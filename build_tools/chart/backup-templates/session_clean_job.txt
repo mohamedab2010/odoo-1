@@ -1,0 +1,33 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: odoo-sessions-cleanup
+spec:
+  schedule: "@hourly"
+  jobTemplate:
+    spec:
+      startingDeadlineSeconds: 1800
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox
+            env:
+            - name: SESSION_FOLDER
+              value: /var/lib/odoo/.local/share/Odoo/session/
+            args:
+            - /bin/echo "SESSION FOLDER = " + $SESSION_FOLDER
+            - /bin/find $SESSION_FOLDER -name '*.sess' | wc -l
+            - /bin/find $SESSION_FOLDER -name '*.sess' -mtime +"$HOW_OLDER" | /bin/rm -v
+            volumeMounts:
+              - name: odoo-data
+                mountPath: /var/lib/odoo
+          restartPolicy: OnFailure
+          volumes:
+            - name: odoo-data
+              {{- if .Values.persistence.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ template "fullname" . }}-data
+              {{- else }}
+              emptyDir: {}
+              {{- end}}
