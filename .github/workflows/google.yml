@@ -28,7 +28,6 @@ env:
   DEPLOYMENT_NAME: web-app
   NODE_ENV: production
   server: ./server
-  client: ./client
 
 jobs:
   setup-build-publish-deploy:
@@ -36,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Setup gcloud CLI
       - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
@@ -51,12 +50,7 @@ jobs:
           # via gcloud command-line tool.
           gcloud auth configure-docker
 
-      # Build the client and copy into server client/ dir
-      - name: Build Client, copy into server
-        run: |
-          npm install
-          npm run-script build
-        working-directory: ${{ env.client }}
+
 
       # Build the Docker image
       - name: Build
