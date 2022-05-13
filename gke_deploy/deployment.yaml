@@ -1,22 +1,41 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: "apps/v1"
+kind: "Deployment"
 metadata:
-  name: web-app
+  name: "odoo-app"
+  namespace: "default"
   labels:
-    app: web-app
+    app: "odoo-app"
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: web-app
+      app: "odoo-app"
   template:
     metadata:
       labels:
-        app: web-app
+        app: "odoo-app"
     spec:
       containers:
-        - name: web-app
-          image: REGISTRY_HOSTNAME/light-quest-349811/IMAGE:GITHUB_SHA
-          ports:
-            - containerPort: 8080
-# update replicas to two            
+      - name: "web-app-sha256-1"
+        image: "gcr.io/light-quest-349811/web-app@sha256:9fd846608fb57d9421fa8af94a675b2c07f9c4c511226f39d695b12ef2b042d0"
+---
+apiVersion: "autoscaling/v2beta1"
+kind: "HorizontalPodAutoscaler"
+metadata:
+  name: "odoo-app-hpa-tnce"
+  namespace: "default"
+  labels:
+    app: "odoo-app"
+spec:
+  scaleTargetRef:
+    kind: "Deployment"
+    name: "odoo-app"
+    apiVersion: "apps/v1"
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: "Resource"
+    resource:
+      name: "cpu"
+      targetAverageUtilization: 80
+
