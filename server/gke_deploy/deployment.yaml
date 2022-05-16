@@ -20,18 +20,19 @@ spec:
           ports:
             - containerPort: 8069
           env:
-          - name: POSTGRES_USER
+          - name: DB_ENV_POSTGRES_USER
             valueFrom:
                secretKeyRef:
                  name: postgres-secret   
                  key: postgres-username
-          - name: POSTGRES_PASSWORD
+          - name: DB_ENV_POSTGRES_PASSWORD
             valueFrom:
                secretKeyRef:
                  name: postgres-secret   
                  key: postgres-password   
-          - name: POSTGRES_DB
+          - name: DB_PORT_5432_TCP_ADDR
             valueFrom:
                configMapKeyRef:
                  name: postgres-configmap  
                  key: database_url
+                
