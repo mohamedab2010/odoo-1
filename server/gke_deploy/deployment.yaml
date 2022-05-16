@@ -5,7 +5,7 @@ metadata:
   labels:
     app: web-app
 spec:
-  replicas: 4
+  replicas: 2
   selector:
     matchLabels:
       app: web-app
@@ -24,13 +24,12 @@ spec:
             valueFrom:
                secretKeyRef:
                  name: postgres-secret   
-                 key: postgres-username
+                 key: POSTGRES_USER
           - name: DB_ENV_POSTGRES_PASSWORD
-            value: "odoo"
-            #valueFrom:
-               #secretKeyRef:
-                 #name: postgres-secret   
-                 #key: postgres-password   
+            valueFrom:
+               secretKeyRef:
+                 name: postgres-secret   
+                 key: POSTGRES_PASSWORD   
           - name: DB_PORT_5432_TCP_ADDR
             valueFrom:
                configMapKeyRef:
