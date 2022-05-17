@@ -7,7 +7,7 @@ USER root
 COPY image-scripts/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 
-RUN pip3 install redis
+#RUN pip3 install redis
 
 COPY addons_ci /mnt/addons_ci
 COPY image-configs/dev.conf /etc/odoo/odoo.conf

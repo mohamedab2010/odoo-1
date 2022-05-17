@@ -26,11 +26,11 @@ check_db_config "db_user" "$USER"
 check_db_config "db_password" "$PASSWORD"
 
 
-: ${REDIS_ENABLED:='False'}
-: ${REDIS_HOST:='localhost'}
-: ${REDIS_PORT:=6379}
-: ${REDIS_DBINDEX:=1}
-: ${REDIS_PASS:='None'}
+#: ${REDIS_ENABLED:='False'}
+#: ${REDIS_HOST:='localhost'}
+#: ${REDIS_PORT:=6379}
+#: ${REDIS_DBINDEX:=1}
+#: ${REDIS_PASS:='None'}
 
 
 function update_redis_config() {
@@ -40,11 +40,11 @@ function update_redis_config() {
 }
 
 #update_redis_config "enable_redis" "$REDIS_ENABLED"
-update_redis_config "enable_redis" "True"
-update_redis_config "redis_host" "$REDIS_HOST"
-update_redis_config "redis_port" "$REDIS_PORT"
-update_redis_config "redis_dbindex" "$REDIS_DBINDEX"
-update_redis_config "redis_pass" "$REDIS_PASS"
+#update_redis_config "enable_redis" "True"
+#update_redis_config "redis_host" "$REDIS_HOST"
+#update_redis_config "redis_port" "$REDIS_PORT"
+#update_redis_config "redis_dbindex" "$REDIS_DBINDEX"
+#update_redis_config "redis_pass" "$REDIS_PASS"
 
 case "$1" in
     -- | odoo)
