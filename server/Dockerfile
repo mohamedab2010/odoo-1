@@ -2,7 +2,7 @@ FROM odoo:13.0
 LABEL maintainer="Oakland  Tech <m.abdalla@odooerp.ae>"
 
 
-USER root
+#USER root
 
 COPY image-scripts/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
@@ -18,7 +18,7 @@ COPY custom_addons /mnt/custom_addons
 COPY addons_dependencies /mnt/addons_dependencies
 #COPY ./addons_extra /mnt/addons_extra
 
-#USER odoo
+USER odoo
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
