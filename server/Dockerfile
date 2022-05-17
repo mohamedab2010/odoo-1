@@ -9,7 +9,7 @@ RUN chmod +x /entrypoint.sh
 
 RUN pip3 install redis
 
-COPY build_tools/addons_ci /mnt/addons_ci
+COPY addons_ci /mnt/addons_ci
 COPY image-configs/dev.conf /etc/odoo/odoo.conf
 RUN chown odoo /etc/odoo/odoo.conf
 
