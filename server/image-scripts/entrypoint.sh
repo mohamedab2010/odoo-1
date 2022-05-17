@@ -40,7 +40,7 @@ function update_redis_config() {
 }
 
 #update_redis_config "enable_redis" "$REDIS_ENABLED"
-update_redis_config "enable_redis" "True"
+update_redis_config "enable_redis" "False"
 update_redis_config "redis_host" "$REDIS_HOST"
 update_redis_config "redis_port" "$REDIS_PORT"
 update_redis_config "redis_dbindex" "$REDIS_DBINDEX"
