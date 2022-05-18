@@ -18,7 +18,7 @@ COPY custom_addons /mnt/custom_addons
 COPY addons_dependencies /mnt/addons_dependencies
 #COPY ./addons_extra /mnt/addons_extra
 
-USER odoo
+#USER odoo
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["odoo"]
