@@ -2,7 +2,7 @@ FROM odoo:13.0
 LABEL maintainer="Oakland  Tech <m.abdalla@odooerp.ae>"
 
 
-USER root
+USER odoo
 
 COPY image-scripts/entrypoint.sh /
 RUN chmod +x /entrypoint.sh
