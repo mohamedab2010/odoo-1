@@ -3,18 +3,18 @@
 # 	* account_invoice_extract
 # 
 # Translators:
-# Linkup <link-up@naver.com>, 2019
-# Seongseok Shin <shinss61@hotmail.com>, 2019
-# Martin Trigaux, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# Martin Trigaux, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
+# Seongseok Shin <shinss61@hotmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:34+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2022-01-24 09:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Seongseok Shin <shinss61@hotmail.com>, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -60,9 +60,17 @@ msgstr ""
 "specific.\"/>"
 
 #. module: account_invoice_extract
+#: model:mail.template,name:account_invoice_extract.account_invoice_extract_no_credit
 #: model:mail.template,subject:account_invoice_extract.account_invoice_extract_no_credit
 msgid "Account Invoice Extract Notification"
-msgstr "계정 송장 추출 알림"
+msgstr "계정 청구서 추출 알림"
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid ""
+"All fields will be automated by Artificial Intelligence, it might take 5 "
+"seconds."
+msgstr ""
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -82,12 +90,16 @@ msgid "Buy credits"
 msgstr "크레딧 구매하기"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_resend_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_resend_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_resend_button
 msgid "Can show the ocr resend button"
 msgstr "OCR 재전송 버튼 표시 가능"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_send_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_send_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_send_button
 msgid "Can show the ocr send button"
 msgstr "OCR 전송 버튼 표시 가능"
 
@@ -109,12 +121,33 @@ msgstr "설정 구성"
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__create_uid
 msgid "Created by"
-msgstr "작성인"
+msgstr "작성자"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__create_date
 msgid "Created on"
-msgstr "작성일"
+msgstr "작성일자"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Currency"
+msgstr "통화"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Customer"
+msgstr "고객"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Date"
+msgstr "일자"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__res_company__extract_show_ocr_option_selection__auto_send
@@ -129,7 +162,7 @@ msgstr "주문형 청구서만 디지털화"
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__display_name
 msgid "Display Name"
-msgstr "표시 이름"
+msgstr "표시명"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__res_company__extract_show_ocr_option_selection__no_send
@@ -137,27 +170,42 @@ msgid "Do not digitalize bills"
 msgstr "청구서를 디지털화하지 마십시오"
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Due Date"
+msgstr "만기일"
+
+#. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__duplicated_vendor_ref
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__duplicated_vendor_ref
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__duplicated_vendor_ref
 msgid "Duplicated vendor reference"
 msgstr "중복된 공급업체 참조"
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.res_config_settings_view_form
 msgid "Enable to get only one invoice line per tax"
-msgstr "세금별로 하나의 송장 내역만 받을 수 있습니다."
+msgstr "세금별로 하나의 청구서 내역만 받을 수 있습니다."
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_error_message
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_error_message
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_error_message
 msgid "Error message"
-msgstr "오류메시지"
+msgstr "오류 메시지"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_word_ids
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_word_ids
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_word_ids
 msgid "Extract Word"
 msgstr "단어 추출"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_state
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_state
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_state
 msgid "Extract state"
 msgstr "추출 상태"
 
@@ -182,24 +230,28 @@ msgid "ID"
 msgstr "ID"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Id of the request to IAP-OCR"
 msgstr "IAP-OCR 요청의 ID"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__invoice_id
 msgid "Invoice"
-msgstr "송장"
+msgstr "청구서"
 
 #. module: account_invoice_extract
 #: model:ir.actions.server,name:account_invoice_extract.ir_cron_update_ocr_status_ir_actions_server
 #: model:ir.cron,cron_name:account_invoice_extract.ir_cron_update_ocr_status
 #: model:ir.cron,name:account_invoice_extract.ir_cron_update_ocr_status
 msgid "Invoice OCR: Update All Status"
-msgstr "송장 OCR : 모든 상태 업데이트"
+msgstr "청구서 OCR : 모든 상태 업데이트"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,help:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,help:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,help:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Invoice extract id"
 msgstr "청구서 추출 ID"
 
@@ -215,8 +267,8 @@ msgstr "청구서 id"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_account_move
-msgid "Journal Entries"
-msgstr "분개장 기입 항목"
+msgid "Journal Entry"
+msgstr "분개"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words____last_update
@@ -231,7 +283,7 @@ msgstr "최근 갱신한 사람"
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__write_date
 msgid "Last Updated on"
-msgstr "최근 갱신일"
+msgstr "최근 갱신 일자"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -253,7 +305,7 @@ msgstr "불충분한 신용 한도"
 #: model:ir.model.fields,field_description:account_invoice_extract.field_res_company__extract_single_line_per_tax
 #: model:ir.model.fields,field_description:account_invoice_extract.field_res_config_settings__extract_single_line_per_tax
 msgid "OCR Single Invoice Line Per Tax"
-msgstr "세금별 OCR 단일 송장 내역"
+msgstr "세금별 OCR 단일 청구서 내역"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_res_config_settings__extract_show_ocr_option_selection
@@ -261,9 +313,26 @@ msgid "Processing Option"
 msgstr "처리 선택사항"
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Reference"
+msgstr "참조"
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid "Refresh"
+msgstr "새로 고침"
+
+#. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "Resend For Digitalization"
 msgstr "디지털화를 위한 재전송"
+
+#. module: account_invoice_extract
+#: model:ir.actions.server,name:account_invoice_extract.model_account_send_for_digitalization
+msgid "Send Bills for digitalization"
+msgstr ""
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
@@ -288,7 +357,9 @@ msgid "Server not available. Please retry later"
 msgstr "서버를 사용할 수 없습니다. 나중에 다시 시도하십시오"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_status_code
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_status_code
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_status_code
 msgid "Status code"
 msgstr "상태 코드"
 
@@ -296,9 +367,17 @@ msgstr "상태 코드"
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid ""
+"The 'invoice_ocr' IAP account token is invalid. Please delete it to let Odoo"
+" generate a new one or fill it with a valid token."
+msgstr ""
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
 "The OCR module is not able to generate the invoice lines because the default"
 " accounts are not correctly set on the %s journal."
-msgstr "%s 분개장에 기본 계정이 올바르게 설정되어 있지 않기 때문에 OCR 모듈이 송장 명세를 생성할 수 없습니다."
+msgstr "%s 분개장에 기본 계정이 올바르게 설정되어 있지 않기 때문에 OCR 모듈이 청구서 내역을 생성할 수 없습니다."
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
@@ -314,27 +393,36 @@ msgid "The document could not be found"
 msgstr "문서를 찾을 수 없습니다"
 
 #. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid ""
-"The file has been sent and is being processed. It usually takes between 5 "
-"and 60 seconds."
-msgstr "파일이 전송되어 처리 중입니다. 보통 5초에서 60초 사이입니다."
-
-#. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "Unsupported image format"
 msgstr "지원되지 않는 이미지 형식"
 
 #. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid "Update status"
-msgstr "상태 업데이트"
-
-#. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__user_selected
 msgid "User Selected"
 msgstr "선택한 사용자"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "VAT"
+msgstr "부가가치세"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor"
+msgstr "공급업체"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor Reference"
+msgstr "공급업체 참조"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_extraction
@@ -345,6 +433,14 @@ msgstr "추출 대기중"
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_validation
 msgid "Waiting validation"
 msgstr "검증 대기중"
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
+"Warning: as the bill date is prior to the lock date, the accounting date was"
+" set for the first following day"
+msgstr ""
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -390,7 +486,7 @@ msgstr "단어"
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "You don't have enough credit to extract data from your invoice."
-msgstr "송장에서 데이터를 추출하기에 충분한 크레딧이 없습니다."
+msgstr "청구서에서 데이터를 추출하기에 충분한 크레딧이 없습니다."
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -411,7 +507,7 @@ msgstr "PDF 파일이 비밀번호로 보호되고 있습니다. OCR에서 데�
 msgid ""
 "Your invoice is too heavy to be processed by the OCR. Try to reduce the "
 "number of pages and avoid pages with too many text"
-msgstr "송장이 너무 무거워 OCR에서 처리할 수 ​​없습니다. 페이지 수를 줄이고 텍스트가 너무 많은 페이지를 피하십시오"
+msgstr "청구서가 OCR에서 처리되기에 양이 많습니다. 페이지 수를 줄이고 텍스트가 너무 많은 페이지를 피하십시오"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__extract_not_ready

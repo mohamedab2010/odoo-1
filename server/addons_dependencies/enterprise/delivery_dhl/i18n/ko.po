@@ -3,18 +3,18 @@
 # 	* delivery_dhl
 # 
 # Translators:
-# Martin Trigaux, 2019
-# heejun lee <tkm01b@gmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# Martin Trigaux, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
+# heejun lee <tkm01b@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2022-01-24 08:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Linkup <link-up@naver.com>, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -148,7 +148,7 @@ msgid "C - Medical Express"
 msgstr "C - 의료 특송"
 
 #. module: delivery_dhl
-#: model:ir.model.fields,field_description:delivery_dhl.field_product_packaging__package_carrier_type
+#: model:ir.model.fields,field_description:delivery_dhl.field_stock_package_type__package_carrier_type
 msgid "Carrier"
 msgstr "운송업체"
 
@@ -169,7 +169,7 @@ msgstr "D - 전세계 특송"
 
 #. module: delivery_dhl
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__delivery_type__dhl
-#: model:ir.model.fields.selection,name:delivery_dhl.selection__product_packaging__package_carrier_type__dhl
+#: model:ir.model.fields.selection,name:delivery_dhl.selection__stock_package_type__package_carrier_type__dhl
 msgid "DHL"
 msgstr "DHL"
 
@@ -184,9 +184,23 @@ msgid "DHL Configuration"
 msgstr "DHL 환경 설정"
 
 #. module: delivery_dhl
-#: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__dhl_default_packaging_id
-msgid "DHL Default Packaging Type"
-msgstr "DHL 기본 포장 유형"
+#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_dom
+#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_eu
+#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_eu_product_template
+msgid "DHL EU"
+msgstr ""
+
+#. module: delivery_dhl
+#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_intl
+#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_intl
+#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_intl_product_template
+msgid "DHL EU -> International"
+msgstr ""
+
+#. module: delivery_dhl
+#: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__dhl_default_package_type_id
+msgid "DHL Package Type"
+msgstr ""
 
 #. module: delivery_dhl
 #: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__dhl_password
@@ -216,18 +230,18 @@ msgid "DHL SiteID"
 msgstr "DHL 사이트 ID"
 
 #. module: delivery_dhl
-#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_dom
-#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_usa
-#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_usa_product_template
-msgid "DHL USA"
-msgstr "DHL USA"
+#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_dom_us
+#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_us
+#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_us_product_template
+msgid "DHL US"
+msgstr ""
 
 #. module: delivery_dhl
-#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_intl
-#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_intl
-#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_intl_product_template
-msgid "DHL USA -> International"
-msgstr "DHL USA -> 국제"
+#: model:delivery.carrier,name:delivery_dhl.delivery_carrier_dhl_intl_us
+#: model:product.product,name:delivery_dhl.product_product_delivery_dhl_intl_us
+#: model:product.template,name:delivery_dhl.product_product_delivery_dhl_intl_us_product_template
+msgid "DHL US -> International"
+msgstr ""
 
 #. module: delivery_dhl
 #: code:addons/delivery_dhl/models/dhl_request.py:0
@@ -251,6 +265,11 @@ msgstr "Dhl 세금 결제"
 #: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__dhl_dutiable
 msgid "Dutiable Material"
 msgstr "과세 대상"
+
+#. module: delivery_dhl
+#: model_terms:ir.ui.view,arch_db:delivery_dhl.view_delivery_carrier_form_with_provider_dhl
+msgid "Duties paid by"
+msgstr ""
 
 #. module: delivery_dhl
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__dhl_product_code__e
@@ -283,6 +302,12 @@ msgid "H - Economy Select"
 msgstr "H - 경제형 선택"
 
 #. module: delivery_dhl
+#: code:addons/delivery_dhl/models/delivery_dhl.py:0
+#, python-format
+msgid "Hint: The destination may not require the dutiable option."
+msgstr ""
+
+#. module: delivery_dhl
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__dhl_product_code__i
 msgid "I - Break Bulk Economy"
 msgstr "I - 브레이크벌크 경제형"
@@ -313,6 +338,11 @@ msgid "L - Express 10:30"
 msgstr "L - 특송 10:30"
 
 #. module: delivery_dhl
+#: model_terms:ir.ui.view,arch_db:delivery_dhl.view_delivery_carrier_form_with_provider_dhl
+msgid "Label Format"
+msgstr ""
+
+#. module: delivery_dhl
 #: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__dhl_label_image_format
 msgid "Label Image Format"
 msgstr "꼬리표 이미지 양식"
@@ -338,6 +368,11 @@ msgid "O - DOM Express 10:30"
 msgstr "O - DOM 특송 10:30"
 
 #. module: delivery_dhl
+#: model_terms:ir.ui.view,arch_db:delivery_dhl.view_delivery_carrier_form_with_provider_dhl
+msgid "Options"
+msgstr "옵션"
+
+#. module: delivery_dhl
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__dhl_product_code__p
 msgid "P - Express Worldwide"
 msgstr "P - 전세계 특송"
@@ -360,6 +395,14 @@ msgstr "패키지 무게 단위"
 #. module: delivery_dhl
 #: code:addons/delivery_dhl/models/dhl_request.py:0
 #, python-format
+msgid ""
+"Please define an incoterm in the associated sale order or set a default "
+"incoterm for the company in the accounting's settings."
+msgstr ""
+
+#. module: delivery_dhl
+#: code:addons/delivery_dhl/models/dhl_request.py:0
+#, python-format
 msgid "Please provide at least one item to ship."
 msgstr "최소한 하나의 배송 품목을 입력해 주세요."
 
@@ -367,11 +410,6 @@ msgstr "최소한 하나의 배송 품목을 입력해 주세요."
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__dhl_package_weight_unit__l
 msgid "Pounds"
 msgstr "파운드"
-
-#. module: delivery_dhl
-#: model:ir.model,name:delivery_dhl.model_product_packaging
-msgid "Product Packaging"
-msgstr "상품 포장"
 
 #. module: delivery_dhl
 #: model:ir.model.fields,field_description:delivery_dhl.field_delivery_carrier__delivery_type
@@ -421,6 +459,11 @@ msgid "Shipping Methods"
 msgstr "선적 방법"
 
 #. module: delivery_dhl
+#: model:ir.model,name:delivery_dhl.model_stock_package_type
+msgid "Stock package type"
+msgstr ""
+
+#. module: delivery_dhl
 #: model:ir.model.fields.selection,name:delivery_dhl.selection__delivery_carrier__dhl_product_code__t
 msgid "T - Express 12:00"
 msgstr "T - 특송 12:00"
@@ -449,9 +492,9 @@ msgstr ""
 #: code:addons/delivery_dhl/models/dhl_request.py:0
 #, python-format
 msgid ""
-"The estimated price cannot be computed because the weight of your product is"
-" missing."
-msgstr "상품의 무게가 누락되어 예상 가격을 계산할 수 없습니다."
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
+msgstr ""
 
 #. module: delivery_dhl
 #: code:addons/delivery_dhl/models/delivery_dhl.py:0
@@ -467,10 +510,14 @@ msgid "U - Express Worldwide"
 msgstr "U - 전세계 특송"
 
 #. module: delivery_dhl
+#: model:product.product,uom_name:delivery_dhl.product_product_delivery_dhl_eu
 #: model:product.product,uom_name:delivery_dhl.product_product_delivery_dhl_intl
-#: model:product.product,uom_name:delivery_dhl.product_product_delivery_dhl_usa
+#: model:product.product,uom_name:delivery_dhl.product_product_delivery_dhl_intl_us
+#: model:product.product,uom_name:delivery_dhl.product_product_delivery_dhl_us
+#: model:product.template,uom_name:delivery_dhl.product_product_delivery_dhl_eu_product_template
 #: model:product.template,uom_name:delivery_dhl.product_product_delivery_dhl_intl_product_template
-#: model:product.template,uom_name:delivery_dhl.product_product_delivery_dhl_usa_product_template
+#: model:product.template,uom_name:delivery_dhl.product_product_delivery_dhl_intl_us_product_template
+#: model:product.template,uom_name:delivery_dhl.product_product_delivery_dhl_us_product_template
 msgid "Units"
 msgstr "단위"
 

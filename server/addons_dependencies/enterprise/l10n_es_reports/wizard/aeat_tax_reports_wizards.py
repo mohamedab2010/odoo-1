@@ -14,7 +14,7 @@ class AEATTaxReportWizard(models.TransientModel):
         report = self.env.ref('l10n_es_reports.mod_' + self._modelo)
         return {
             'type': 'ir.actions.client',
-            'name': _('Tax Report (Mod %s)') % self._modelo,
+            'name': _('Tax Report (Mod %s)', self._modelo),
             'tag': 'account_report',
             'context': {
                 'model': 'account.financial.html.report',

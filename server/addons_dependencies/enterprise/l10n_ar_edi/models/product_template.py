@@ -14,4 +14,4 @@ class ProductTemplate(models.Model):
         if self.l10n_ar_ncm_code and not re.match('^[0-9\.]+$', self.l10n_ar_ncm_code):
             raise UserError(_(
                 'it seems like the product "%s" has no valid NCM Code.\n\nPlease set a valid NCM code to continue.'
-                ' You can go to AFIP page and review the list of available NCM codes' % (self.display_name)))
+                ' You can go to AFIP page and review the list of available NCM codes', self.display_name))

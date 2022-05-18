@@ -3,16 +3,20 @@
 # 	* marketing_automation_sms
 # 
 # Translators:
-# Jaroslav Bosansky <jaro.bosansky@ekoenergo.sk>, 2019
-# Jan Prokop, 2019
+# Martin Trigaux, 2022
+# Jan Prokop, 2022
+# Jaroslav Bosansky <jaro.bosansky@ekoenergo.sk>, 2022
+# karolína schusterová <karolina.schusterova@vdp.sk>, 2022
+# Rastislav Brencic <rastislav.brencic@azet.sk>, 2022
+# Filip Hanes <filip.hanes@protonmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:37+0000\n"
-"Last-Translator: Jan Prokop, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:41+0000\n"
+"Last-Translator: Filip Hanes <filip.hanes@protonmail.com>, 2022\n"
 "Language-Team: Slovak (https://www.transifex.com/odoo/teams/41243/sk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -27,7 +31,30 @@ msgstr ""
 
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-exclamation-circle\"/> Bounced after"
+msgstr ""
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-hand-pointer-o\"/> Clicked after"
+msgstr "<i class=\"fa fa-hand-pointer-o\"/>Klikli po "
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-hand-pointer-o\"/> Not clicked within"
+msgstr "<i class=\"fa fa-hand-pointer-o\"/>Nekliknuté v rámci "
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 msgid "<i class=\"fa fa-pie-chart\"/> Details"
+msgstr "<i class=\"fa fa-pie-chart\"/>Podrobnosti"
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid ""
+"<i data-trigger-type=\"sms_click\" class=\"fa fa-hand-pointer-o o_ma_text_processed o_add_child_activity\" title=\"Clicked\" role=\"img\" aria-label=\"Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_not_click\" class=\"fa fa-hand-pointer-o o_ma_text_rejected o_add_child_activity\" title=\"Not Clicked\" role=\"img\" aria-label=\"Not Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_bounce\" class=\"fa fa fa-exclamation-circle o_ma_text_rejected o_add_child_activity\" title=\"Bounced\" role=\"img\" aria-label=\"Bounced\"/>"
 msgstr ""
 
 #. module: marketing_automation_sms
@@ -43,7 +70,7 @@ msgstr "Odmietnuté"
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 msgid "Clicked"
-msgstr ""
+msgstr "Klikol"
 
 #. module: marketing_automation_sms
 #: code:addons/marketing_automation_sms/models/marketing_activity.py:0
@@ -54,23 +81,22 @@ msgstr ""
 #. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_mailing_trace
 msgid "Mailing Statistics"
-msgstr ""
+msgstr "Štatistika mailingu"
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
+msgid "Mailing Type"
+msgstr "Typ rozposlania"
 
 #. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_marketing_activity
 #: model:ir.model.fields,field_description:marketing_automation_sms.field_sms_composer__marketing_activity_id
 msgid "Marketing Activity"
-msgstr ""
+msgstr "Marketingová aktivita"
 
 #. module: marketing_automation_sms
 #: model:ir.actions.act_window,name:marketing_automation_sms.mail_mass_mailing_action_marketing_automation_sms
 msgid "Marketing Automation SMS"
-msgstr ""
-
-#. module: marketing_automation_sms
-#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
-#, python-format
-msgid "Marketing Automation: activity <%s> encountered mass mailing issue %s"
 msgstr ""
 
 #. module: marketing_automation_sms
@@ -79,22 +105,35 @@ msgid "Marketing Campaign"
 msgstr "Marketingová kampaň"
 
 #. module: marketing_automation_sms
+#: model:ir.model,name:marketing_automation_sms.model_marketing_trace
+msgid "Marketing Trace"
+msgstr "Marketingové sledovanie"
+
+#. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_mailing_mailing
 msgid "Mass Mailing"
 msgstr "Hromadný mail"
 
 #. module: marketing_automation_sms
-#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
-msgid "Mass Mailing Id Mailing Type"
+#: code:addons/marketing_automation_sms/models/marketing_trace.py:0
+#, python-format
+msgid "Parent activity SMS bounced"
+msgstr ""
+
+#. module: marketing_automation_sms
+#: code:addons/marketing_automation_sms/models/marketing_trace.py:0
+#, python-format
+msgid "Parent activity SMS clicked"
 msgstr ""
 
 #. module: marketing_automation_sms
 #: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__activity_type__sms
 #: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__mass_mailing_id_mailing_type__sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_category__sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_participant_view_form
 msgid "SMS"
-msgstr ""
+msgstr "SMS"
 
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.mailing_mailing_view_form_marketing_activity
@@ -109,11 +148,17 @@ msgstr ""
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 msgid "SMS Sent"
-msgstr ""
+msgstr "SMS odoslaná"
 
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_activity_view_form
 msgid "SMS Template"
+msgstr "SMS šablóna"
+
+#. module: marketing_automation_sms
+#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
+#, python-format
+msgid "SMS canceled"
 msgstr ""
 
 #. module: marketing_automation_sms
@@ -124,9 +169,18 @@ msgid "SMS failed"
 msgstr ""
 
 #. module: marketing_automation_sms
-#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
-#, python-format
-msgid "SMS ignored"
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_bounce
+msgid "SMS: bounced"
+msgstr ""
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_click
+msgid "SMS: clicked"
+msgstr ""
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_not_click
+msgid "SMS: not clicked"
 msgstr ""
 
 #. module: marketing_automation_sms
@@ -140,9 +194,26 @@ msgid "Sent"
 msgstr "Poslané"
 
 #. module: marketing_automation_sms
+#: model:ir.model.fields,help:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
+msgid "Technical field doing the mapping of activity type and mailing type."
+msgstr ""
+
+#. module: marketing_automation_sms
 #: code:addons/marketing_automation_sms/models/marketing_activity.py:0
 #, python-format
 msgid ""
 "To use this feature you should be an administrator or belong to the "
 "marketing automation group."
 msgstr ""
+"Ak chcete používať túto funkciu, mali by ste byť správcom alebo patriť do "
+"skupiny automatizácie marketingu."
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__trigger_category
+msgid "Trigger Category"
+msgstr ""
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__trigger_type
+msgid "Trigger Type"
+msgstr "Typ spúšťača"

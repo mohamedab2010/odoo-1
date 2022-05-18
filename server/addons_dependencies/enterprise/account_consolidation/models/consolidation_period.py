@@ -3,6 +3,7 @@
 import datetime
 
 from odoo import models, fields, api, _
+from odoo.exceptions import ValidationError
 from odoo.osv import expression
 from odoo.tools.misc import formatLang
 
@@ -139,8 +140,7 @@ class ConsolidationPeriod(models.Model):
         domain = []
         if name:
             domain = [('chart_name', operator, name)]
-        ids = self._search(expression.AND([domain, args]), limit=limit, access_rights_uid=name_get_uid)
-        return self.browse(ids).name_get()
+        return self._search(expression.AND([domain, args]), limit=limit, access_rights_uid=name_get_uid)
 
     # ACTIONS
 
@@ -200,7 +200,7 @@ class ConsolidationPeriod(models.Model):
         self.ensure_one()
         company_id = self.env.context.get('company_id')
         company = self.env['res.company'].browse(company_id)
-        action = self.env.ref('account_consolidation.account_mapping_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.account_mapping_action")
         action.update({
             'domain': [('company_id', '=', company_id)],
             # dont know why but it's needed otherwise "cannot read type of undefined" js error
@@ -221,7 +221,7 @@ class ConsolidationPeriod(models.Model):
         :return: the action to execute
         """
         self.ensure_one()
-        action = self.env.ref('account_consolidation.consolidation_period_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_period_action")
         action.update({
             'views': [[False, 'form']],
             'res_id': self.id
@@ -243,7 +243,7 @@ class ConsolidationPeriod(models.Model):
             'context': {
                 'default_period_id': self.id
             },
-            'name': _('Trial Balance: %s') % self.display_name,
+            'name': _('Trial Balance: %s', self.display_name),
             'search_view_id': [self.env.ref('account_consolidation.trial_balance_grid_search').id, 'search']
         }
 
@@ -253,7 +253,7 @@ class ConsolidationPeriod(models.Model):
         :return: the action to execute
         """
         self.ensure_one()
-        action = self.env.ref('account_consolidation.consolidation_account_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_account_action")
         action['context'] = {
             'search_default_chart_id': self.chart_id.id,
             'default_chart_id': self.chart_id.id
@@ -425,6 +425,12 @@ class ConsolidationPeriodComposition(models.Model):
          "Two compositions of the same analysis period by the same analysis period cannot be created"),
     ]
 
+    @api.constrains('composed_period_id', 'using_period_id')
+    def _check_composed_period_id(self):
+        for comp in self:
+            if comp.composed_period_id == comp.using_period_id:
+                raise ValidationError(_("The Composed Analysis Period must be different from the Analysis Period"))
+
     def name_get(self):
         result = []
         for record in self:
@@ -581,7 +587,7 @@ class ConsolidationCompanyPeriod(models.Model):
         self.ensure_one()
         journal_lines_values = self.get_journal_lines_values()
         self.env['consolidation.journal'].create({
-            'name': _("%s Consolidated Accounting") % self.company_name,
+            'name': _("%s Consolidated Accounting", self.company_name),
             'auto_generated': True,
             'company_period_id': self.id,
             'period_id': self.period_id.id,
@@ -661,7 +667,7 @@ class ConsolidationCompanyPeriod(models.Model):
             amount = move_line.balance * rate
         else:
             amount = move_line.balance
-            currency = move_line.currency_id or move_line.company_currency_id
+            currency = move_line.company_currency_id
             if currency != self.currency_chart_id:
                 amount = currency._convert(amount, self.currency_chart_id, self.company_id, move_line.date)
         return self._apply_consolidation_rate(amount)

@@ -20,9 +20,13 @@ Whenever possible, you should use a more appropriate file format like OFX.
     'depends': ['account_bank_statement_import', 'base_import'],
     'data': [
         'wizard/account_bank_statement_import_views.xml',
-        'views/account_bank_statement_import_templates.xml',
-    ],
+        ],
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'account_bank_statement_import_csv/static/src/**/*',
+        ],
+    }
 }

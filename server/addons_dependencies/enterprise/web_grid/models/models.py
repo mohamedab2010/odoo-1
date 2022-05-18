@@ -6,15 +6,13 @@ import collections
 from functools import partial
 
 import babel.dates
-from dateutil.relativedelta import relativedelta, MO, SU
+from dateutil.relativedelta import relativedelta, MO, TU, WE, TH, FR, SA, SU
 import pytz
 
 from odoo import _, api, models
 from odoo.exceptions import UserError
 from odoo.osv import expression
 from odoo.tools.misc import format_date, get_lang
-
-_GRID_TUP = [('grid', "Grid")]
 
 
 class Base(models.AbstractModel):
@@ -92,6 +90,7 @@ class Base(models.AbstractModel):
                     # column and the view.
                     row.append(self._grid_make_empty_cell(r['domain'], c['domain'], domain))
                 row[-1]['is_current'] = c.get('is_current', False)
+                row[-1]['is_unavailable'] = c.get('is_unavailable', False)
 
         return {
             'prev': column_info.prev,
@@ -157,7 +156,8 @@ class Base(models.AbstractModel):
                 values=[{
                         'values': { name: v },
                         'domain': [(name, '=', v[0])],
-                        'is_current': False
+                        'is_current': False,
+                        'is_unavailable': False
                     } for v in field._description_selection(self.env)
                 ],
                 format=lambda a: a,
@@ -205,7 +205,8 @@ class Base(models.AbstractModel):
                         'domain': ['&',
                                    (name, '>=', field.to_string(d)),
                                    (name, '<', field.to_string(d + self._grid_step_by(step)))],
-                        'is_current': self._grid_date_is_current(field, span, step, d)
+                        'is_current': self._grid_date_is_current(field, span, step, d),
+                        'is_unavailable': self._grid_datetime_is_unavailable(field, span, step, d)
                     } for d in r.iter(step)
                 ],
                 format=lambda a: a and a[0],
@@ -238,12 +239,13 @@ class Base(models.AbstractModel):
                         'domain': ['&',
                                    (name, '>=', field.to_string(d[0])),
                                    (name, '<', field.to_string(d[1]))],
-                        'is_current': self._grid_datetime_is_current(field, span, step, d)
+                        'is_current': self._grid_datetime_is_current(field, span, step, d),
+                        'is_unavailable': self._grid_datetime_is_unavailable(field, span, step, d),
                         } for d in r.iter()],
                 format=lambda a: a and a[0],
             )
         else:
-            raise ValueError(_("Can not use fields of type %s as grid columns") % field.type)
+            raise ValueError(_("Can not use fields of type %s as grid columns", field.type))
 
     @api.model
     def read_grid_domain(self, field, range):
@@ -290,7 +292,7 @@ class Base(models.AbstractModel):
                 (field.name, '>=', field.to_string(r.start_utc)),
                 (field.name, '<=', field.to_string(r.end_utc))
             ]
-        raise UserError(_("Can not use fields of type %s as grid columns") % field.type)
+        raise UserError(_("Can not use fields of type %s as grid columns", field.type))
 
     def _get_date_column_label(self, date, field, span, step):
         """
@@ -403,23 +405,23 @@ class Base(models.AbstractModel):
 
     def _grid_start_of(self, span, step, anchor):
         if step == 'week':
-            return anchor + START_OF_WEEK[span]
-        return anchor + START_OF[span]
+            return anchor + self._get_start_of_week(span)
+        return anchor + self._get_start_of(span)
 
     def _grid_end_of(self, span, step, anchor):
         if step == 'week':
-            return anchor + END_OF_WEEK[span]
-        return anchor + END_OF[span]
+            return anchor + self._get_end_of_week(span)
+        return anchor + self._get_end_of(span)
 
     def _grid_start_of_period(self, span, step, anchor):
         if step == 'day':
             return anchor
-        return anchor + START_OF[step]
+        return anchor + self._get_start_of(span)
 
     def _grid_end_of_period(self, span, step, anchor):
         if step == 'day':
             return anchor
-        return anchor + END_OF[step]
+        return anchor + self._get_end_of(span)
 
     def _grid_date_is_current(self, field, span, step, date):
         today = field.from_string(field.context_today(self))
@@ -435,6 +437,45 @@ class Base(models.AbstractModel):
         """
         today_utc = pytz.utc.localize(field.now())
         return column_dates[0] <= today_utc < column_dates[1]
+
+    def _grid_datetime_is_unavailable(self, field, span, step, column_dates):
+        """
+            :param column_dates: tuple of start/stop dates of a grid column, timezoned in UTC
+            This method is meant to be overriden by each model that want to
+            implement this feature on a Grid view.
+        """
+        return False
+
+    def _get_start_of(self, span):
+        if span == 'week':
+            user_lang = self.env['res.lang'].search([('code', '=', self.env.user.lang)])
+            week_start_map = {'1': MO(-1), '2': TU(-1), '3': WE(-1), '4': TH(-1), '5': FR(-1), '6': SA(-1), '7': SU(-1)}
+            return relativedelta(weekday=week_start_map.get(user_lang.week_start, MO(-1)))
+        return START_OF[span]
+
+    def _get_start_of_week(self, span):
+        user_lang = self.env['res.lang'].search([('code', '=', self.env.user.lang)])
+        week_start_map = {'1': MO(-1), '2': TU(-1), '3': WE(-1), '4': TH(-1), '5': FR(-1), '6': SA(-1), '7': SU(-1)}
+        week_start_delta = relativedelta(weekday=week_start_map.get(user_lang.week_start, MO(-1)))
+        if span == 'week':
+            return week_start_delta
+        return START_OF[span] + week_start_delta
+
+    def _get_end_of(self, span):
+        if span == 'week':
+            user_lang = self.env['res.lang'].search([('code', '=', self.env.user.lang)])
+            week_end_map = {'1': SU, '2': MO, '3': TU, '4': WE, '5': TH, '6': FR, '7': SA}
+            return relativedelta(weekday=week_end_map.get(user_lang.week_start, SU))
+        return END_OF[span]
+
+    def _get_end_of_week(self, span):
+        user_lang = self.env['res.lang'].search([('code', '=', self.env.user.lang)])
+        week_end_map = {'1': SU, '2': MO, '3': TU, '4': WE, '5': TH, '6': FR, '7': SA}
+        week_end_delta = relativedelta(weekday=week_end_map.get(user_lang.week_start, SU))
+        if span == 'week':
+            return week_end_delta
+        return END_OF[span] + week_end_delta
+
 
 # ---------------------------------------------------------
 # Internal Data Structure:
@@ -517,25 +558,13 @@ class datetime_range(object):
 
 START_OF = {
     'day': relativedelta(days=0),
-    'week': relativedelta(weekday=MO(-1)),
     'month': relativedelta(day=1),
     'year': relativedelta(yearday=1),
 }
-START_OF_WEEK = {
-    'week': relativedelta(weekday=MO(-1)),
-    'month': relativedelta(day=1, weekday=MO(-1)),
-    'year': relativedelta(yearday=1, weekday=MO(-1)),
-}
 END_OF = {
     'day': relativedelta(days=0),
-    'week': relativedelta(weekday=SU),
     'month': relativedelta(months=1, day=1, days=-1),
     'year': relativedelta(years=1, yearday=1, days=-1),
-}
-END_OF_WEEK = {
-    'week': relativedelta(weekday=SU),
-    'month': relativedelta(months=1, day=1, days=-1, weekday=SU),
-    'year': relativedelta(years=1, yearday=1, days=-1, weekday=SU),
 }
 STEP_BY = {
     'day': relativedelta(days=1),

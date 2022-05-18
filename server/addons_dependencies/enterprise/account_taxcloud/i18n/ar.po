@@ -3,19 +3,16 @@
 # 	* account_taxcloud
 # 
 # Translators:
-# Mustafa Rawi <mustafa@cubexco.com>, 2019
-# amrnegm <amrnegm.01@gmail.com>, 2019
-# Mohammed Albasha <m.albasha.ma@gmail.com>, 2019
-# Osama Ahmaro <osamaahmaro@gmail.com>, 2019
-# Ali Alrehawi <alrehawi@hotmail.com>, 2019
+# Martin Trigaux, 2021
+# Malaz Abuidris <msea@odoo.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:04+0000\n"
-"PO-Revision-Date: 2019-08-26 09:34+0000\n"
-"Last-Translator: Ali Alrehawi <alrehawi@hotmail.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:57+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Malaz Abuidris <msea@odoo.com>, 2022\n"
 "Language-Team: Arabic (https://www.transifex.com/odoo/teams/41243/ar/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -40,12 +37,12 @@ msgstr ""
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.res_config_settings_view_form
 msgid "API ID"
-msgstr "معرف API"
+msgstr "معرف الواجهة البرمجية للتطبيق (API) "
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.res_config_settings_view_form
 msgid "API KEY"
-msgstr "مفتاح API"
+msgstr "مفتاح الواجهة البرمجية للتطبيق (API) "
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_res_company
@@ -55,7 +52,7 @@ msgstr "الشركات"
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_res_config_settings
 msgid "Config Settings"
-msgstr "ضبط الإعدادات"
+msgstr "ضبط الاعدادات"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__create_uid
@@ -81,7 +78,7 @@ msgstr "كود TIC الافتراضي"
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__display_name
 msgid "Display Name"
-msgstr "الاسم المعروض"
+msgstr "اسم العرض "
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_position_taxcloud_inherit_from_view
@@ -89,17 +86,19 @@ msgid ""
 "Enable <b>Detect Automatically</b> to automatically use TaxCloud when "
 "selling to American customers."
 msgstr ""
+"تمكين <b>خاصية الاستشعار التلقائي</b> لاستخدام TaxCloud تلقائياً عند البيع "
+"للعملاء الأمريكيين. "
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_fiscal_position
 msgid "Fiscal Position"
-msgstr "الموقف الضريبي"
+msgstr "الوضع المالي "
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_position_taxcloud_inherit_from_view
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.invoice_form_inherit
 msgid "Go to Settings."
-msgstr ""
+msgstr "الذهاب للإعدادات. "
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__id
@@ -107,16 +106,23 @@ msgid "ID"
 msgstr "المُعرف"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_bank_statement_line__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_move__is_taxcloud_configured
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_payment__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_res_company__is_taxcloud_configured
 msgid "Is Taxcloud Configured"
-msgstr ""
+msgstr "هل تمت تهيئة Taxcloud "
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_move
-msgid "Journal Entries"
-msgstr "القيود اليومية"
+msgid "Journal Entry"
+msgstr "قيد اليومية"
+
+#. module: account_taxcloud
+#: model:ir.model,name:account_taxcloud.model_account_move_line
+msgid "Journal Item"
+msgstr "عنصر اليومية"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category____last_update
@@ -134,11 +140,23 @@ msgid "Last Updated on"
 msgstr "آخر تحديث في"
 
 #. module: account_taxcloud
+#: code:addons/account_taxcloud/models/taxcloud_request.py:0
+#, python-format
+msgid ""
+"Please configure taxcloud credentials on the current company or use a "
+"different fiscal position"
+msgstr ""
+"الرجاء تهيئة بيانات اعتماد Taxcloud في الشركة الحالية أو استخدم وضعاً مالياً"
+" مختلفاً "
+
+#. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_position_taxcloud_inherit_from_view
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.invoice_form_inherit
 msgid ""
 "Please enter your Taxcloud credentials to compute tax rates automatically."
 msgstr ""
+"الرجاء إدخال بيانات اعتماد Taxcloud الخاصة بك لحساب معدلات الضرائب تلقائياً."
+" "
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_product_category
@@ -170,6 +188,11 @@ msgid ""
 "By default, TaxCloud relies on the TIC *[0] Uncategorized* default referring"
 " to general goods and services."
 msgstr ""
+"تتيح TIC (أكواد معلومات الخضوع للضريبة) الحصول على معدلات ضرائب محددة لكل "
+"نوع منتج. تنطبق هذه القيمة الافتراضية إذا لم يتم استخدام أي منتج ءفي "
+"الطلب/الفاتورة، أو إذا تم تعيين TIC للمنتج أو فئة المنتج. يعتمد TaxCloud على"
+" TIC بشكل افتراضي في  TIC *[0] غير مصنّف* الافتراضي، مشيراً إلى المنتجات "
+"العامة والخدمات. "
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_taxcloud_tic_category_tree
@@ -224,32 +247,23 @@ msgid "TaxCloud Category"
 msgstr "فئة TaxCloud"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_bank_statement_line__is_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_account_move__is_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_payment__is_taxcloud
 msgid "Technical field to determine whether to hide taxes in views or not."
-msgstr ""
+msgstr "حقل تقني لتحديد إذا ما كان يجب إخفاء الضرائب في العروض أم لا. "
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_fiscal_position_template
 msgid "Template for Fiscal Position"
-msgstr "قالب للموقف الضريبي"
-
-#. module: account_taxcloud
-#: code:addons/account_taxcloud/models/account_invoice.py:0
-#: code:addons/account_taxcloud/models/account_invoice.py:0
-#, python-format
-msgid ""
-"The source document on the refund is not valid and thus the refunded cart "
-"won't be logged on your taxcloud account"
-msgstr ""
-"المستند المصدر للمرتجع غير صالح، لذا لن يتم تسجيل المرتجع في حسابك على "
-"TaxCloud"
+msgstr "قالب للوضع المالي "
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/account_invoice.py:0
 #, python-format
 msgid ""
 "The tax rates have been updated, you may want to check it before validation"
-msgstr "تم تحديث معدلات الضرائب، ربما تريد مراجعتها قبل اعتماد عملية البيع"
+msgstr "تم تحديث معدلات الضرائب. قد ترغب في مراجعتها قبل التصديق "
 
 #. module: account_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_product_product__tic_category_id
@@ -259,6 +273,9 @@ msgid ""
 "TaxCloud to compute specific tax rates for each product type. The value set "
 "here prevails over the one set on the product category."
 msgstr ""
+"يشير ذلك إلى TIC (أكواد معلومات الخضوع للضريبة)، والتي تُستَخدَم من قِبَل "
+"TaxCloud لحساب معدلات ضريبية محددة لكل نوع منتج. تسود القيمة المعيّنة هنا "
+"على القيمة المحددة في فئة المنتج. "
 
 #. module: account_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_product_category__tic_category_id
@@ -268,28 +285,48 @@ msgid ""
 "used when no TIC is set on the product. If no value is set here, the default"
 " value set in Invoicing settings is used."
 msgstr ""
+"يشير ذلك إلى TIC (أكواد معلومات الخضوع للضريبة)، والتي تُستَخدَم من قِبَل "
+"TaxCloud لحساب معدلات ضريبية محددة لكل نوع منتج. تُستخدَم هذه القيمة عندما "
+"لا يكون هناك TIC معين لهذا المنتج. إذا لم يتم تعيين قيمة هنا، سوف تُستخدَم "
+"القيمة المحددة في إعدادات الفوترة. "
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/account_invoice.py:0
 #: code:addons/account_taxcloud/models/res_config_settings.py:0
 #, python-format
 msgid "Unable to retrieve taxes from TaxCloud: "
-msgstr "لم نستطع استرداد بيانات الضرائب من Taxcloud: "
+msgstr "تعذر استرداد بيانات الضرائب من Taxcloud: "
 
 #. module: account_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_bank_statement_line__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position_template__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_move__is_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_payment__is_taxcloud
 msgid "Use TaxCloud API"
 msgstr "استخدام TaxCloud API"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_bank_statement_line__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_account_fiscal_position__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_account_move__is_taxcloud_configured
+#: model:ir.model.fields,help:account_taxcloud.field_account_payment__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_res_company__is_taxcloud_configured
 msgid ""
 "Used to determine whether or not to warn the user to configure TaxCloud."
+msgstr "يُستخدَم لتحديد إذا ما كان يجب تحذير المستخدم لتهيئة TaxCloud أم لا. "
+
+#. module: account_taxcloud
+#: code:addons/account_taxcloud/models/account_invoice.py:0
+#, python-format
+msgid ""
+"You cannot cancel an invoice sent to TaxCloud.\n"
+"You need to issue a refund (credit note) for it instead.\n"
+"This way the tax entries will be cancelled in TaxCloud."
 msgstr ""
+"لا يمكنك إلغاء فاتورة مرسلة لـ TaxCloud.\n"
+"عليك إصدار أمر لاسترداد الأموال (إشعار دائن) عوضاً عن ذلك.\n"
+"بهذه الطريقة، سوف يتم إلغاء القيود الضريبية في TaxCloud. "
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/product.py:0

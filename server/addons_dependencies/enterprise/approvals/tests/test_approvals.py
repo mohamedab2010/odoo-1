@@ -24,8 +24,7 @@ class TestRequest(common.TransactionCase):
             'user_id': 2,
             'request_id': record.id,
             'status': 'new'})
-        record.approver_ids += first_approver
-        record.approver_ids += second_approver
+        record.approver_ids = (first_approver | second_approver)
 
         self.assertEqual(record.request_status, 'new')
 
@@ -73,3 +72,46 @@ class TestRequest(common.TransactionCase):
         with self.assertRaises(UserError):
             record.action_confirm()
         self.assertEqual(record.request_status, 'new')
+
+    def test_compute_request_status_with_required(self):
+        category_test = self.env['approval.category'].browse(1)
+        record = self.env['approval.request'].create({
+            'name': 'test request',
+            'category_id': category_test.id,
+            'date_start': fields.Datetime.now(),
+            'date_end': fields.Datetime.now(),
+            'location': 'testland'
+        })
+        first_approver = self.env['approval.approver'].create({
+            'user_id': 1,
+            'request_id': record.id,
+            'status': 'new',
+            'required': True})
+        second_approver = self.env['approval.approver'].create({
+            'user_id': 2,
+            'request_id': record.id,
+            'status': 'new'})
+        record.approver_ids = (first_approver | second_approver)
+
+        self.assertEqual(record.request_status, 'new')
+
+        record.action_confirm()
+
+        # Min approval = 1 but first approver IS required
+        self.assertEqual(record.request_status, 'pending')
+        record.action_approve(second_approver)
+        # Min approval is met but required approvals are not
+        self.assertEqual(record.request_status, 'pending')
+        record.action_approve(first_approver)
+        self.assertEqual(record.request_status, 'approved')
+
+        # Min approval = 2
+        category_test.approval_minimum = 2
+        record.action_withdraw(first_approver)
+        record.action_withdraw(second_approver)
+        self.assertEqual(record.request_status, 'pending')
+        record.action_approve(first_approver)
+        # All required approvals are met but not the minimal approval count
+        self.assertEqual(record.request_status, 'pending')
+        record.action_approve(second_approver)
+        self.assertEqual(record.request_status, 'approved')

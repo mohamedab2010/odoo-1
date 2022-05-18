@@ -8,7 +8,7 @@
         <div class="o_documents_inspector_preview d-flex flex-row flex-wrap align-items-center justify-content-center position-relative">
             <div t-if="nbPreviews === 0">
                 <t t-if="widget.currentFolder">
-                    <div class="o_inspector_folder_description"><t t-if="widget.currentFolder.description" t-raw="widget.currentFolder.description"/></div>
+                    <div class="o_inspector_folder_description"><t t-if="widget.currentFolder.description" t-out="widget.currentFolder.description"/></div>
                 </t>
             </div>
             <t t-else="" t-call="documents.DocumentsInspector.previews"/>
@@ -27,10 +27,7 @@
 <t t-name="documents.DocumentsInspector.previews">
     <t t-foreach="widget.records.slice(0, 4)" t-as="record">
         <t t-set="recordData" t-value="widget.recordsData[record.id]"/>
-        <div t-attf-class="o_document_preview
-            {{ nbPreviews === 1 ? 'o_documents_single_preview' : '' }}
-            {{ ((recordData.isImage or recordData.isYouTubeVideo) and 'o_documents_preview_image') or 'o_documents_preview_mimetype' }}
-            {{ (recordData.isYouTubeVideo or recordData.isGif) and 'o_non_image_preview' or '' }}">
+        <div name="document_preview" t-attf-class="{{widget._computeClasses(record)}}">
             <t t-set="mimetype" t-value="record.data.mimetype"/>
             <t t-if="recordData.isImage or recordData.isGif or recordData.isYouTubeVideo">
                 <t t-set="size" t-value="nbPreviews === 1 ? '268x130' : nbPreviews === 2 ? '120x130' : '120x75'"/>
@@ -39,15 +36,22 @@
                      class="o_preview_available"
                      t-attf-src="https://img.youtube.com/vi/#{recordData.youtubeToken}/0.jpg"
                      alt="Youtube Video"/>
-                <img t-else=""
-                     class="o_preview_available o_documents_image_background"
-                     t-attf-src="/documents/image/#{record.res_id}/#{size}?signature=#{record.data.checksum}"
-                     t-att-data-id="record.res_id"
-                     t-att-title="record.data.name"/>
+                <t t-else="">
+                    <t t-set="unique" t-value="record.data.checksum ? record.data.checksum.slice(-8) : ''"/>
+                    <img class="o_preview_available o_documents_image_background"
+                         t-attf-src="/documents/image/#{record.res_id}/#{size}?unique=#{unique}"
+                         t-att-data-id="record.res_id"
+                         t-att-title="record.data.name"/>
+                </t>
+
             </t>
             <div t-elif="record.data.url"
                  class="o_image o_mimetype_icon"
                  t-attf-data-mimetype="{{mimetype}}"
+                 t-att-title="record.data.name"
+                 t-att-data-id="record.res_id"/>
+            <div t-elif="record.data.type === 'empty'"
+                 class="o_inspector_request_icon fa fa-upload fa-5x"
                  t-att-title="record.data.name"
                  t-att-data-id="record.res_id"/>
             <div t-else=""
@@ -58,8 +62,11 @@
                  t-att-data-mimetype="mimetype"
                  t-att-data-id="record.res_id"
                  t-att-title="record.data.name"/>
+            <span t-if="record.data.type === 'empty'">
+                Upload Document
+            </span>
         </div>
-        <i t-if="nbPreviews === 1" class="o_inspector_open_chatter rounded-circle text-center fa fa-comments" title="Open chatter"/>
+        <i t-if="nbPreviews === 1 and !widget.isMobile" class="o_inspector_open_chatter rounded-circle text-center fa fa-comments" title="Open chatter"/>
         <div t-if="record_index == 1 and record_size == 4" class="w-100"/>
     </t>
     <div t-if="nbPreviews &gt; 1" class="o_selection_info w-100 text-center mt-2">
@@ -115,6 +122,12 @@
         <label t-if="widget.currentFolder"><i class="o_documents_action_color fa fa-play"/> Actions</label>
         <div class="o_inspector_rules"/>
     </div>
+    <t t-if="widget.records.length === 1 and widget.records[0].data.previous_attachment_ids.res_ids.length > 0">
+        <div class="o_inspector_section o_inspector_section_history mt-3">
+            <label><i class="o_documents_history_color fa fa-history"/> History</label>
+            <div class="o_inspector_history"/>
+        </div>
+    </t>
 </t>
 
 <!-- Document field template -->
@@ -130,18 +143,22 @@
     <td class="o_inspector_label align-middle">
         <label t-att-title="res_model" class="o_inspector_model_name"><i class="o_documents_model_color fa fa-file-text"/> <t t-esc="res_model"/></label>
     </td>
-    <td class="o_inspector_value w-100">
-        <div class="o_inspector_model">
-            <span class="o_inspector_object_name" t-att-title="res_name"><t t-esc="res_name || res_model"/></span>
-        </div>
+    <td class="w-100 o_inspector_trigger_hover_target o_inspector_model_flex" >
+        <span t-att-class="'o_inspector_model  o_inspector_object_name ' + (is_editable_attachment ?  'o_inspector_model_editable' : '')" t-att-title="res_name"><t t-esc="res_name || res_model"/></span>
+        <t t-if="is_editable_attachment">
+            <span class="o_inspector_model_buttons">
+                <span class="o_inspector_model_button o_inspector_model_edit fa fa-pencil"></span>
+                <span class="o_inspector_model_button o_inspector_model_delete fa-fw pl-1">&#215;</span>
+            </span>
+        </t>
     </td>
 </t>
 
 <!-- Document tags template -->
 <t t-name="documents.DocumentsInspector.tag">
     <div class="o_inspector_tag o_inspector_trigger_hover_target" t-att-data-id="id">
-        <span class="o_tag_prefix" t-att-title="group_name"><t t-esc="group_name"/> &gt;</span>
-        <span class= "o_documents_tag_name" t-att-title="name" t-esc="name"/>
+        <span class="o_tag_prefix" t-att-title="group_name" t-esc="group_name"/> &gt;
+        <span class= "o_documents_tag_name" t-att-title="name" t-esc="display_name"/>
         <span class="o_inspector_tag_remove pull-right o_inspector_trigger_hover fa-fw">&#215;</span>
     </div>
 </t>
@@ -149,8 +166,8 @@
 <!-- Document rules template -->
 <t t-name="documents.DocumentsInspector.rule">
     <div class="o_inspector_rule o_inspector_trigger_hover_target mb-2" t-att-data-id="id">
-        <span t-att-title="note || ''"><t t-esc="display_name"/></span>
-        <button t-att-title="note || ''" class="btn fa fa-play text-white bg-primary pull-right o_inspector_trigger_rule o_inspector_trigger_hover"/>
+        <button t-att-title="note || ''" class="btn fa fa-play text-white bg-primary o_inspector_trigger_rule"/>
+        <span class="ml-2" t-att-title="note || ''"><t t-esc="display_name"/></span>
     </div>
 </t>
 
@@ -165,15 +182,43 @@
                     <button t-if="widget.records[0].data.type !== 'url'" class="btn fa fa-retweet o_inspector_button o_inspector_replace" title="Replace"/>
                     <button t-att-class="'btn fa o_inspector_button o_inspector_lock' + (widget.records[0].data.lock_uid ? ' o_locked fa-lock' : ' fa-unlock-alt')" title="Lock"/>
                 </t>
+                <t t-if="widget.isPdfOnly">
+                    <button class="btn fa fa-scissors o_inspector_button o_inspector_split" aria-label="Split" title="Split"/>
+                </t>
             </t>
         </div>
 
         <button t-if="widget.records[0].data.active" class="o_active btn fa fa-archive o_inspector_button o_inspector_archive pull-right" title="Archive"/>
         <t t-else="">
-            <button class="btn pull-right o_inspector_button o_inspector_delete" title="Delete"><i class="fa fa-trash"/> <small>Delete</small></button>
-            <button class="btn pull-right o_inspector_button o_archived o_inspector_archive" style="margin-right:4px" title="Un-archive"><i class="fa fa-upload"/> <small>Restore</small></button>
+            <button class="btn pull-right o_inspector_button o_inspector_delete" title="Delete"><i class="fa fa-trash"/></button>
+            <button class="btn pull-right o_inspector_button o_archived o_inspector_archive" style="margin-right:4px" title="Un-archive"><i class="fa fa-upload"/></button>
         </t>
     </div>
+</t>
+
+<!-- Versioning Template -->
+<t t-name="documents.inspector.attachmentHistory">
+    <t t-foreach="attachments" t-as="attachment">
+        <div class="o_inspector_history_line">
+            <t t-set="createDate" t-value="str_to_datetime(attachment.create_date)"/>
+            <t t-set="fullDate" t-value="createDate.toLocaleString()"/>
+            <t t-set="date" t-value="createDate.toLocaleDateString()"/>
+            <t t-set="createUserName" t-value="attachment.create_uid[1]"/>
+            <div class="o_inspector_history_title">
+                <span class="o_inspector_history_name" t-att-aria-label="name" t-att-title="name" t-esc="name"/>
+                <span class="o_inspector_history_info">
+                    <span class="o_inspector_history_create_name" t-att-aria-label="createUserName" t-att-title="createUserName" t-esc="createUserName"/>
+                    <i class="o_inspector_history_info_separator">-</i>
+                    <span class="o_inspector_history_info_date" t-att-aria-label="fullDate" t-att-title="fullDate" t-esc="date"/>
+                </span>
+            </div>
+            <div class="o_inspector_history_buttons">
+                <button aria-label="delete" title="delete" class="o_inspector_history_button btn fa fa-trash text-white fa-pull-right o_inspector_history_item_delete" t-att-data-id="id"/>
+                <button aria-label="download" title="download" class="o_inspector_history_button btn fa fa-download text-white fa-pull-right o_inspector_history_item_download" t-att-data-id="id"/>
+                <button aria-label="restore" title="restore" class="o_inspector_history_button btn fa fa-retweet text-white fa-pull-right o_inspector_history_item_restore" t-att-data-id="id"/>
+            </div>
+        </div>
+    </t>
 </t>
 
 <!-- Mobile templates -->

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from odoo.addons.account_invoice_extract.models.account_invoice import AccountMove
-from odoo.addons.iap.models.iap import IapAccount
+from odoo.addons.iap.models.iap_account import IapAccount
 from odoo.sql_db import Cursor
 from odoo.tests import common
 

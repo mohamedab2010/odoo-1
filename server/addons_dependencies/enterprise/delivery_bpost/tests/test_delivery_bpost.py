@@ -3,6 +3,7 @@
 import logging
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged, Form
+from odoo.addons.delivery_bpost.models.delivery_bpost import TRACKING_REF_DELIM
 
 _logger = logging.getLogger(__name__)
 
@@ -56,6 +57,8 @@ class TestDeliveryBpost(TransactionCase):
                                  'country_id': self.env.ref('base.us').id,
                                  'phone': '+1 (650) 691-3277  '})
         self.iPadMini = self.env.ref('product.product_product_6')
+        self.product2 = self.env.ref('product.product_product_7')
+        self.product3 = self.env.ref('product.product_product_9')
         self.uom_unit = self.env.ref('uom.product_uom_unit')
         self.stock_location = self.env.ref('stock.stock_location_stock')
         self.customer_location = self.env.ref('stock.stock_location_customers')
@@ -63,14 +66,32 @@ class TestDeliveryBpost(TransactionCase):
     def test_01_bpost_basic_be_domestic_flow(self):
         SaleOrder = self.env['sale.order']
 
-        sol_vals = {'product_id': self.iPadMini.id,
-                    'name': "[A1232] Large Cabinet",
-                    'product_uom': self.env.ref('uom.product_uom_unit').id,
-                    'product_uom_qty': 1.0,
-                    'price_unit': self.iPadMini.lst_price}
+        sol_vals = [
+            {
+                "product_id": self.iPadMini.id,
+                "name": "[A1232] Large Cabinet",
+                "product_uom": self.env.ref("uom.product_uom_unit").id,
+                "product_uom_qty": 1.0,
+                "price_unit": self.iPadMini.lst_price,
+            },
+            {
+                "product_id": self.product2.id,
+                "name": "[E-COM08] Storage Box",
+                "product_uom": self.env.ref("uom.product_uom_unit").id,
+                "product_uom_qty": 1.0,
+                "price_unit": self.product2.lst_price,
+            },
+            {
+                "product_id": self.product3.id,
+                "name": "[E-COM10] Pedal Bin",
+                "product_uom": self.env.ref("uom.product_uom_unit").id,
+                "product_uom_qty": 1.0,
+                "price_unit": self.product3.lst_price,
+            },
+        ]
 
         so_vals = {'partner_id': self.agrolait.id,
-                   'order_line': [(0, None, sol_vals)]}
+                   'order_line': [(0, None, vals) for vals in sol_vals]}
 
         sale_order = SaleOrder.create(so_vals)
         # I add delivery cost in Sales order
@@ -84,23 +105,28 @@ class TestDeliveryBpost(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
+        move_lines_to_pack = picking.move_line_ids.filtered(lambda line: line.product_id.id in [self.product2.id, self.product3.id])
+        picking._put_in_pack(move_lines_to_pack)
+
         try:
-            picking.action_done()
+            picking._action_done()
         except UserError as exc:
-            if exc.name == "The BPost shipping service is unresponsive, please retry later.":
+            if exc.args[0] == "The BPost shipping service is unresponsive, please retry later.":
                 _logger.warning("BPost test aborted, service is unresponsive.")
                 return
             raise
         self.assertIsNot(picking.carrier_tracking_ref, False, "bpost did not return any tracking number")
         self.assertGreater(picking.carrier_price, 0.0, "bpost carrying price is probably incorrect")
+        n_tracking_ref = len(picking.carrier_tracking_ref.split(TRACKING_REF_DELIM))
+        self.assertEqual(n_tracking_ref, 2, "should have 1 ref for the packed, 1 ref for the unpacked")
 
     def test_02_bpost_basic_europe_flow(self):
         SaleOrder = self.env['sale.order']
@@ -126,18 +152,18 @@ class TestDeliveryBpost(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
         try:
-            picking.action_done()
+            picking._action_done()
         except UserError as exc:
-            if exc.name == "The BPost shipping service is unresponsive, please retry later.":
+            if exc.args[0] == "The BPost shipping service is unresponsive, please retry later.":
                 _logger.warning("BPost test aborted, service is unresponsive.")
                 return
             raise
@@ -169,37 +195,31 @@ class TestDeliveryBpost(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         delivery_line = sale_order.order_line.filtered(lambda line: line.is_delivery)
-        self.assertEquals(len(delivery_line), 1, "The delivery line is not present on the SO.")
-        self.assertEquals(delivery_line.price_unit, 0, "The delivery cost should be 0.")
+        self.assertEqual(len(delivery_line), 1, "The delivery line is not present on the SO.")
+        self.assertEqual(delivery_line.price_unit, 0, "The delivery cost should be 0.")
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
         try:
-            picking.action_done()
+            picking._action_done()
         except UserError as exc:
-            if exc.name == "The BPost shipping service is unresponsive, please retry later.":
+            if exc.args[0] == "The BPost shipping service is unresponsive, please retry later.":
                 _logger.warning("BPost test aborted, service is unresponsive.")
                 return
             raise
         self.assertIsNot(picking.carrier_tracking_ref, False, "bpost did not return any tracking number")
         self.assertGreater(picking.carrier_price, 0.0, "bpost carrying price is probably incorrect")
         # Check that the delivery cost (previously set to 0) has been correctly updated
-        self.assertEquals(picking.carrier_price, delivery_line.price_unit, "The delivery cost is not updated")
+        self.assertEqual(picking.carrier_price, delivery_line.price_unit, "The delivery cost is not updated")
 
     def test_03_bpost_flow_from_delivery_order(self):
-
-        inventory = self.env['stock.inventory'].create({
-            'name': '[A1232] iPad Mini',
-            'location_ids': [(4, self.stock_location.id)],
-            'product_ids': [(4, self.iPadMini.id)],
-        })
 
         StockPicking = self.env['stock.picking']
 
@@ -231,7 +251,7 @@ class TestDeliveryBpost(TransactionCase):
         try:
             delivery_order.button_validate()
         except UserError as exc:
-            if exc.name == "The BPost shipping service is unresponsive, please retry later.":
+            if exc.args[0] == "The BPost shipping service is unresponsive, please retry later.":
                 _logger.warning("BPost test aborted, service is unresponsive.")
                 return
             raise

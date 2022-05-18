@@ -7,9 +7,9 @@
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~12.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-18 10:10+0000\n"
+"POT-Creation-Date: 2019-10-01 12:16+0000\n"
 "PO-Revision-Date: 2019-08-26 09:38+0000\n"
 "Last-Translator: Xavier ALT <xal@odoo.com>, 2019\n"
 "Language-Team: Luxembourgish (https://www.transifex.com/odoo/teams/41243/lb/)\n"
@@ -18,42 +18,6 @@ msgstr ""
 "Content-Transfer-Encoding: \n"
 "Language: lb\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-#. module: sale_subscription
-#: model:sale.subscription.template,description:sale_subscription.yearly_subscription
-msgid ""
-"\n"
-"                Payment\n"
-"                All payments are due upon receipt. If a payment is not received or payment method is declined, the buyer forfeits the ownership of any service purchased.\n"
-"    \n"
-"                Refund Policy\n"
-"                Services are entitled to be refunded based on complaint. If a service is unsatisfactory, a written explanation is needed before the service may be considered for a refund. Buyer must take into account the description of the service before requesting a refund. If the services matches the description by the seller and the buyer is unsatisfied, seller is not responsible for refund.\n"
-"    \n"
-"                Cancellation\n"
-"                A service may be cancelled up until payment has been processed. Once payment has been processed, the buyer is responsible for payment.\n"
-"    \n"
-"                Complaints\n"
-"                Any complaints about services or sellers may be sent to our support team: support@wesellyourstuff.com or (888) 555-0198. There is no guarantee of a resolution. Each case will be looked at individually, and the seller will be in contact as well.\n"
-"            "
-msgstr ""
-
-#. module: sale_subscription
-#: model:sale.subscription.template,description:sale_subscription.monthly_subscription
-msgid ""
-"\n"
-"                Payment\n"
-"                All payments are due upon receipt. If a payment is not received or payment method is declined, the buyer forfeits the ownership of any service purchased.\n"
-"        \n"
-"                Refund Policy\n"
-"                Services are entitled to be refunded based on complaint. If a service is unsatisfactory, a written explanation is needed before the service may be considered for a refund. Buyer must take into account the description of the service before requesting a refund. If the services matches the description by the seller and the buyer is unsatisfied, seller is not responsible for refund.\n"
-"        \n"
-"                Cancellation\n"
-"                A service may be cancelled up until payment has been processed. Once payment has been processed, the buyer is responsible for payment.\n"
-"        \n"
-"                Complaints\n"
-"                Any complaints about services or sellers may be sent to our support team: support@wesellyourstuff.com or (888) 555-0198. There is no guarantee of a resolution. Each case will be looked at individually, and the seller will be in contact as well.\n"
-"            "
-msgstr ""
 
 #. module: sale_subscription
 #: code:addons/sale_subscription/models/sale_subscription.py:0
@@ -154,7 +118,7 @@ msgid ""
 "                <table style=\"width:600px;margin:0px auto;background:white;border:1px solid #e1e1e1;\">\n"
 "                    <tbody>\n"
 "                        <tr><td style=\"padding:15px 20px 10px 20px;\">\n"
-"                            <p>Dear ${object.partner_id.name},</p>\n"
+"                            <p>Dear %{object.partner_id.name}.</p>\n"
 "                            <p>Your subscription <strong>${object.name}</strong> needs your attention.</p>\n"
 "                            <p>If you have some concerns about it, please contact your contact person ${object.user_id.name} or reply to this email.</p>\n"
 "                            <p>Kind regards.</p>\n"
@@ -1293,15 +1257,6 @@ msgid "Discount (%)"
 msgstr ""
 
 #. module: sale_subscription
-#: code:addons/sale_subscription/models/sale_subscription.py:0
-#, python-format
-msgid ""
-"Discount computation failed because the upsell date is not between the next "
-"invoice date and the computed last invoice date. Defaulting to NO Discount "
-"policy."
-msgstr ""
-
-#. module: sale_subscription
 #: model:ir.model.fields,field_description:sale_subscription.field_sale_subscription__display_name
 #: model:ir.model.fields,field_description:sale_subscription.field_sale_subscription_alert__display_name
 #: model:ir.model.fields,field_description:sale_subscription.field_sale_subscription_close_reason__display_name
@@ -1378,6 +1333,11 @@ msgstr ""
 msgid ""
 "Enter here the internal requirements for this stage. It will appear as a "
 "tooltip over the stage's name."
+msgstr ""
+
+#. module: sale_subscription
+#: model_terms:ir.ui.view,arch_db:sale_subscription.sale_subscription_view_search
+msgid "Exception Activities"
 msgstr ""
 
 #. module: sale_subscription
@@ -1791,12 +1751,6 @@ msgid "Last Updated on"
 msgstr ""
 
 #. module: sale_subscription
-#: code:addons/sale_subscription/models/sale_subscription.py:0
-#, python-format
-msgid "Last invoice date: "
-msgstr ""
-
-#. module: sale_subscription
 #: model_terms:ir.ui.view,arch_db:sale_subscription.sale_subscription_view_search
 msgid "Late Activities"
 msgstr ""
@@ -1957,9 +1911,6 @@ msgstr ""
 
 #. module: sale_subscription
 #: model:ir.model.fields.selection,name:sale_subscription.selection__sale_subscription_template__recurring_rule_type__monthly
-#: model:product.product,uom_name:sale_subscription.product_office_cleaning
-#: model:product.template,uom_name:sale_subscription.product_office_cleaning_product_template
-#: model:uom.uom,name:sale_subscription.subscription_uom_month
 msgid "Months"
 msgstr ""
 
@@ -2016,12 +1967,6 @@ msgid "Next Invoice:"
 msgstr ""
 
 #. module: sale_subscription
-#: code:addons/sale_subscription/models/sale_subscription.py:0
-#, python-format
-msgid "Next invoice date: "
-msgstr ""
-
-#. module: sale_subscription
 #: model_terms:ir.actions.act_window,help:sale_subscription.product_template_action_subscription
 msgid "No product found"
 msgstr ""
@@ -2067,18 +2012,6 @@ msgid ""
 "Odoo automatically sets subscriptions to be renewed in a pending\n"
 "            state. After the negotiation, the salesman should close or renew\n"
 "            pending subscriptions."
-msgstr ""
-
-#. module: sale_subscription
-#: model:product.product,name:sale_subscription.product_office_cleaning
-#: model:product.template,name:sale_subscription.product_office_cleaning_product_template
-msgid "Office Cleaning Subscription (Monthly)"
-msgstr ""
-
-#. module: sale_subscription
-#: model:product.product,name:sale_subscription.product_office_cleaning_yearly
-#: model:product.template,name:sale_subscription.product_office_cleaning_yearly_product_template
-msgid "Office Cleaning Subscription (Yearly)"
 msgstr ""
 
 #. module: sale_subscription
@@ -2953,12 +2886,6 @@ msgid "Tags"
 msgstr ""
 
 #. module: sale_subscription
-#: model:base.automation,name:sale_subscription.subscription_alert_percent_revenue_base_automation
-#: model:sale.subscription.alert,name:sale_subscription.subscription_alert_percent_revenue
-msgid "Take action on less satisfied clients"
-msgstr ""
-
-#. module: sale_subscription
 #: model:ir.model.fields,field_description:sale_subscription.field_sale_subscription_alert__crud_model_name
 msgid "Target Model"
 msgstr ""
@@ -3106,11 +3033,6 @@ msgid "This upsell order has been created from the subscription "
 msgstr ""
 
 #. module: sale_subscription
-#: model:uom.category,name:sale_subscription.uom_categ_time
-msgid "Time"
-msgstr ""
-
-#. module: sale_subscription
 #: model:ir.model.fields.selection,name:sale_subscription.selection__sale_subscription_alert__trigger_condition__on_time
 msgid "Timed Condition"
 msgstr ""
@@ -3235,12 +3157,6 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:sale_subscription.sale_subscription_view_form
 #: model_terms:ir.ui.view,arch_db:sale_subscription.wizard_form_view
 msgid "Upsell"
-msgstr ""
-
-#. module: sale_subscription
-#: code:addons/sale_subscription/models/sale_subscription.py:0
-#, python-format
-msgid "Upsell date: "
 msgstr ""
 
 #. module: sale_subscription
@@ -3402,9 +3318,6 @@ msgstr ""
 
 #. module: sale_subscription
 #: model:ir.model.fields.selection,name:sale_subscription.selection__sale_subscription_template__recurring_rule_type__yearly
-#: model:product.product,uom_name:sale_subscription.product_office_cleaning_yearly
-#: model:product.template,uom_name:sale_subscription.product_office_cleaning_yearly_product_template
-#: model:uom.uom,name:sale_subscription.subscription_uom_year
 msgid "Years"
 msgstr ""
 

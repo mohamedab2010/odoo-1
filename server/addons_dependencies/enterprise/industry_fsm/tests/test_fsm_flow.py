@@ -1,129 +1,63 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details
 
-from dateutil.relativedelta import relativedelta
-from datetime import datetime
-from odoo.exceptions import UserError, AccessError
-from odoo.tests import common
+from odoo import Command
+from odoo.tests import new_test_user, tagged, TransactionCase
 
-class TestFsmFlow(common.TransactionCase):
 
-    def setUp(self):
-        super(TestFsmFlow, self).setUp()
+@tagged('post_install', '-at_install')
+class TestFsmFlow(TransactionCase):
 
-        self.partner_1 = self.env.ref('base.res_partner_1')
-
-        self.project_user = self.env['res.users'].create({
-            'name': 'Armande Project_user',
-            'login': 'Armande',
-            'email': 'armande.project_user@example.com',
-            'groups_id': [(6, 0, [self.env.ref('project.group_project_user').id])]
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.fsm_project = cls.env['project.project'].create({
+            'name': 'Field Service',
+            'is_fsm': True,
+            'allow_timesheets': True,
         })
 
-        self.fsm_project = self.env.ref('industry_fsm.fsm_project')
-
-        self.product_ordered = self.env.ref('product.product_product_24')
-        self.product_delivered = self.env.ref('product.product_product_25')
-
+    def test_stop_timers_on_mark_as_done(self):
+        self.user_employee_timer_timesheet = new_test_user(self.env, login='marcel', groups='industry_fsm.group_fsm_user')
+        self.user_employee_timer_task = new_test_user(self.env, login='henri', groups='industry_fsm.group_fsm_user')
+        self.user_employee_mark_as_done = new_test_user(self.env, login='george', groups='industry_fsm.group_fsm_user')
+        self.employee_timer_timesheet = self.env['hr.employee'].create({
+            'name': 'Employee Timesheet Timer',
+            'user_id': self.user_employee_timer_timesheet.id
+        })
+        self.employee_timer_task = self.env['hr.employee'].create({
+            'name': 'Employee Task Timer',
+            'user_id': self.user_employee_timer_task.id
+        })
+        self.employee_mark_as_done = self.env['hr.employee'].create({
+            'name': 'Employee Mark As Done',
+            'user_id': self.user_employee_mark_as_done.id
+        })
+        self.partner_1 = self.env['res.partner'].create({'name': 'A Test Partner 1'})
         self.task = self.env['project.task'].with_context({'mail_create_nolog': True}).create({
             'name': 'Fsm task',
-            'user_id': self.project_user.id,
-            'project_id': self.fsm_project.id})
-
-
-
-    def test_fsm_flow(self):
-
-        # material
-        self.assertFalse(self.task.material_line_product_count, "No product should be linked to a new task")
-        with self.assertRaises(UserError, msg='Should not be able to get to material without customer set'):
-            self.task.action_fsm_view_material()
-        self.task.write({'partner_id': self.partner_1.id})
-        self.assertFalse(self.task.fsm_to_invoice, "Nothing should be invoiceable on task")
-        self.task.with_user(self.project_user).action_fsm_view_material()
-        self.product_ordered.with_user(self.project_user).with_context({'fsm_task_id': self.task.id}).fsm_add_quantity()
-        self.assertEqual(self.task.material_line_product_count, 1, "1 product should be linked to the task")
-        self.assertEqual(self.task.material_line_total_price, self.product_ordered.list_price)
-        self.product_ordered.with_user(self.project_user).with_context({'fsm_task_id': self.task.id}).fsm_add_quantity()
-        self.assertEqual(self.task.material_line_product_count, 2, "2 product should be linked to the task")
-        self.assertEqual(self.task.material_line_total_price, 2 * self.product_ordered.list_price)
-        self.product_delivered.with_user(self.project_user).with_context({'fsm_task_id': self.task.id}).fsm_add_quantity()
-        self.assertEqual(self.task.material_line_product_count, 3, "3 products should be linked to the task")
-        self.assertEqual(self.task.material_line_total_price, 2 * self.product_ordered.list_price + self.product_delivered.list_price)
-        self.product_delivered.with_user(self.project_user).with_context({'fsm_task_id': self.task.id}).fsm_remove_quantity()
-
-        self.assertEqual(self.task.material_line_product_count, 2, "2 product should be linked to the task")
-
-        self.assertFalse(self.task.sale_order_id.mapped('order_line').filtered(lambda l: l.product_id.id == self.product_delivered.id), "There should not be any order line left for removed product on task")
-
-        self.product_delivered.with_user(self.project_user).with_context({'fsm_task_id': self.task.id}).fsm_add_quantity()
-
-        self.assertEqual(self.task.material_line_product_count, 3, "3 product should be linked to the task")
-
-        # timesheet
-        values = {
-            'task_id': self.task.id,
-            'project_id': self.task.project_id.id,
-            'date': datetime.now(),
-            'name': 'test timesheet',
-            'user_id': self.env.uid,
-            'unit_amount': 0.25,
-        }
-        self.env['account.analytic.line'].create(values)
-        self.assertEqual(self.task.material_line_product_count, 3, "Timesheet should not appear in material")
-
-        # validation and SO
-        self.assertFalse(self.task.fsm_done, "Task should not be validated")
-        self.assertEqual(self.task.sale_order_id.state, 'draft', "Sale order should not be confirmed")
-        self.task.with_user(self.project_user).action_fsm_validate()
-        self.assertTrue(self.task.fsm_done, "Task should be validated")
-        self.assertEqual(self.task.sale_order_id.state, 'sale', "Sale order should be confirmed")
-
-        # invoice
-        self.assertTrue(self.task.fsm_to_invoice, "Task should be invoiceable")
-        invoice_ctx = self.task.action_fsm_create_invoice()['context']
-        invoice_wizard = self.env['sale.advance.payment.inv'].with_context(invoice_ctx).create({})
-        invoice_wizard.create_invoices()
-        self.assertFalse(self.task.fsm_to_invoice, "Task should not be invoiceable")
-
-
-        # quotation
-        self.assertFalse(self.task.quotation_count, "No quotation should be linked to a new task")
-        quotation_ctx = self.task.action_fsm_create_quotation()['context']
-        quotation = self.env['sale.order'].with_context(quotation_ctx).create({'partner_id': self.task.partner_id.id})
-        self.task._compute_quotation_count() # forced to compute manually because no 'depends' set on that method (no direct link to the task)
-        self.assertEqual(self.task.quotation_count, 1, "1 quotation should be linked to the task")
-        self.assertEqual(self.task.action_fsm_view_quotations()['res_id'], quotation.id, "Created quotation id should be in the action")
-
-    def test_planning_overlap(self):
-        task_A = self.env['project.task'].create({
-            'name': 'Fsm task 1',
-            'user_id': self.project_user.id,
+            'user_ids': [Command.set([self.user_employee_mark_as_done.id])],
             'project_id': self.fsm_project.id,
-            'planned_date_begin': datetime.now(),
-            'planned_date_end': datetime.now() + relativedelta(hours=4)
+            'partner_id': self.partner_1.id,
         })
-        task_B = self.env['project.task'].create({
-            'name': 'Fsm task 2',
-            'user_id': self.project_user.id,
-            'project_id': self.fsm_project.id,
-            'planned_date_begin': datetime.now() + relativedelta(hours=2),
-            'planned_date_end': datetime.now() + relativedelta(hours=6)
-        })
-        task_C = self.env['project.task'].create({
-            'name': 'Fsm task 2',
-            'user_id': self.project_user.id,
-            'project_id': self.fsm_project.id,
-            'planned_date_begin': datetime.now() + relativedelta(hours=5),
-            'planned_date_end': datetime.now() + relativedelta(hours=7)
-        })
-        task_D = self.env['project.task'].create({
-            'name': 'Fsm task 2',
-            'user_id': self.project_user.id,
-            'project_id': self.fsm_project.id,
-            'planned_date_begin': datetime.now() + relativedelta(hours=8),
-            'planned_date_end': datetime.now() + relativedelta(hours=9)
-        })
-        self.assertEqual(task_A.planning_overlap, 1, "One task should be overlapping with task_A")
-        self.assertEqual(task_B.planning_overlap, 2, "Two tasks should be overlapping with task_B")
-        self.assertFalse(task_D.planning_overlap, "No task should be overlapping with task_D")
+        self.assertEqual(len(self.task.sudo().timesheet_ids), 0, 'There is no timesheet associated to the task')
+        timesheet = self.env['account.analytic.line'].with_user(self.user_employee_timer_timesheet).create \
+            ({'name': '', 'project_id': self.fsm_project.id})
+        timesheet.action_add_time_to_timer(3)
+        timesheet.action_change_project_task(self.fsm_project.id, self.task.id)
+        self.assertTrue(timesheet.user_timer_id, 'A timer is linked to the timesheet')
+        self.assertTrue(timesheet.user_timer_id.is_timer_running, 'The timer linked to the timesheet is running')
+        task_with_user_employee_timer_task = self.task.with_user(self.user_employee_timer_task)
+        task_with_user_employee_timer_task.action_timer_start()
+        self.assertTrue(task_with_user_employee_timer_task.user_timer_id, 'A timer is linked to the task')
+        self.assertTrue(task_with_user_employee_timer_task.user_timer_id.is_timer_running, 'The timer linked to the task is running')
+        task_with_user_employee_mark_as_done = self.task.with_user(self.user_employee_mark_as_done)
+        task_with_user_employee_mark_as_done.action_fsm_validate()
+        Timer = self.env['timer.timer']
+        tasks_running_timer_ids = Timer.search([('res_model', '=', 'project.task'), ('res_id', '=', self.task.id)])
+        timesheets_running_timer_ids = Timer.search \
+            ([('res_model', '=', 'account.analytic.line'), ('res_id', '=', timesheet.id)])
+        self.assertFalse(timesheets_running_timer_ids, 'There is no more timer linked to the timesheet')
+        self.task.invalidate_cache(fnames=['timesheet_ids'])
+        self.assertFalse(tasks_running_timer_ids, 'There is no more timer linked to the task')
+        self.assertEqual(len(self.task.sudo().timesheet_ids), 2, 'There are two timesheets')

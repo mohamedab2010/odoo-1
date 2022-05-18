@@ -1,73 +1,73 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from odoo import fields
 from odoo.exceptions import UserError
-from odoo.tests.common import Form
-from odoo.tests.common import SingleTransactionCase
-from odoo.modules.module import get_module_resource
+from odoo.addons.l10n_ar.tests.common import TestAr
+from odoo.tools.misc import file_open
+from odoo.tests import tagged
+from contextlib import contextmanager
 import base64
-import random
 import logging
+import re
 
 _logger = logging.getLogger(__name__)
 
-
-class TestEdi(SingleTransactionCase):
+@tagged('external_l10n', '-at_install', 'post_install', '-standard', 'external')
+class TestEdi(TestAr):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestEdi, cls).setUpClass()
-
-        cls.company_ri = cls.env.ref('l10n_ar.company_ri')
-
-        # Set context to do not make cr.commit() for unit tests
-        cls.env = cls.env(context={'l10n_ar_invoice_skip_commit': True})
-
-        # partners
-        cls.partner_ri = cls.env.ref('l10n_ar.res_partner_adhoc')
-        cls.partner_cf = cls.env.ref('l10n_ar.par_cfa')
-        cls.partner_fz = cls.env.ref('l10n_ar.res_partner_cerrocastor')
-        cls.partner_ex = cls.env.ref('l10n_ar.res_partner_expresso')
-        cls.partner_mipyme = cls.env.ref('l10n_ar.res_partner_mipyme')
-        cls.partner_mipyme_ex = cls.env.ref('l10n_ar.res_partner_mipyme').copy({'name': 'MiPyme Exento', 'l10n_ar_afip_responsibility_type_id': cls.env.ref('l10n_ar.res_IVAE').id})
-
-        # Products
-        cls.product_iva_21 = cls.env.ref('product.product_product_6')
-        cls.service_iva_27 = cls.env.ref('l10n_ar.product_product_telefonia')
-
-        # Document Types
-        cls.document_type = {'invoice_a': cls.env.ref('l10n_ar.dc_a_f'),
-                             'credit_note_a': cls.env.ref('l10n_ar.dc_a_nc'),
-                             'invoice_b': cls.env.ref('l10n_ar.dc_b_f'),
-                             'credit_note_b': cls.env.ref('l10n_ar.dc_b_nc'),
-                             'invoice_e': cls.env.ref('l10n_ar.dc_e_f'),
-                             'invoice_mipyme_a': cls.env.ref('l10n_ar.dc_fce_a_f'),
-                             'invoice_mipyme_b': cls.env.ref('l10n_ar.dc_fce_b_f')}
-
-        # taxes
-        cls.tax_21 = cls._search_tax(cls, 'iva_21')
-        cls.tax_27 = cls._search_tax(cls, 'iva_27')
+    def setUpClass(cls, afip_ws, chart_template_ref='l10n_ar.l10nar_ri_chart_template'):
+        super(TestEdi, cls).setUpClass(chart_template_ref=chart_template_ref)
+        cls.company_ri.write({
+            'l10n_ar_afip_ws_environment': 'testing',
+        })
+        cls.company_mono.write({
+            'l10n_ar_afip_ws_environment': 'testing',
+        })
+        cls._create_afip_connections(cls, cls.company_ri, afip_ws, 'test_cert1.crt')
 
     # Initialition
 
-    def _set_today_rate(self, currency, value):
-        rate_obj = self.env['res.currency.rate']
-        rate = rate_obj.search([('currency_id', '=', currency.id), ('name', '=', fields.Date.to_string(fields.Date.today())),
-                                ('company_id', '=', self.env.company.id)])
-        if rate:
-            rate.rate = value
-        else:
-            rate_obj.create({'company_id': self.env.company.id, 'currency_id': currency.id, 'rate': value})
-        _logger.log(25, 'Using %s rate %s' % (currency.name, currency.rate))
+    def _create_afip_connections(self, company, afip_ws, cert_file):
+        """ Method used to create afip connections and commit then to re use this connections in all the test.
+        If a connection can not be set because another instance is already using the certificate then we assign a
+        random certificate and try again to create the connections. """
+        # In order to connect AFIP we need to create a token which depend on the configured AFIP certificate.
+        # If the certificate is been used by another testing instance will raise an error telling us that the token
+        # can not be used and need to wait 10 minuts or change with another certificate.
+        # To avoid this and always run the unit tests we randonly change the certificate and try to create the
+        # connection until there is not token error.
+        company.l10n_ar_afip_ws_crt = base64.b64encode(file_open("l10n_ar_edi/tests/" + cert_file, 'rb').read())
+        company.l10n_ar_afip_ws_key = base64.b64encode(file_open("l10n_ar_edi/tests/private_key.pem", 'rb').read())
+        _logger.log(25, 'Setting homologation private key to company %s' % (company.name))
+        company = company.with_context(l10n_ar_invoice_skip_commit=True)
+        checked_certificate_token = False
+
+        while not checked_certificate_token:
+            try:
+                company._l10n_ar_get_connection(afip_ws)
+                checked_certificate_token = True
+            except Exception as error:
+                if 'El CEE ya posee un TA valido para el acceso al WSN solicitado' in repr(error):
+                    _logger.log(25, 'Connection Failed')
+                elif 'Missing certificate' in repr(error):
+                    _logger.log(25, 'Not certificate configured yet')
+                else:
+                    raise error
+
+                # Set testing certificate
+                old = company.l10n_ar_afip_ws_crt_fname or 'NOT DEFINED'
+                current_cert_num = re.findall(r"OdootTestsCert(.)", old)
+                current_cert_num = current_cert_num and int(current_cert_num[0]) or 0
+                new_cert_number = 1 if current_cert_num == 3 else current_cert_num + 1
+
+                company.l10n_ar_afip_ws_crt = base64.b64encode(file_open("l10n_ar_edi/tests/test_cert%d.crt" % new_cert_number, 'rb').read())
+                _logger.log(25, 'Setting demo certificate from %s to %s in %s company' % (
+                    old, company.l10n_ar_afip_ws_crt_fname, company.name))
 
     def _prepare_multicurrency_values(self):
-        # Enable multi currency
-        self.env.user.write({'groups_id': [(4, self.env.ref('base.group_multi_currency').id)]})
-        # Set ARS as main currency
-        self._set_today_rate(self.env.ref('base.ARS'), 1.0)
+        super()._prepare_multicurrency_values()
         # Set Rates for USD currency takint into account the value from AFIP
         USD = self.env.ref('base.USD')
-        _date, value = USD._l10n_ar_get_afip_ws_currency_rate()
-        # value = 1.0 / 62.013
+        _date, value = USD.with_context(l10n_ar_invoice_skip_commit=True)._l10n_ar_get_afip_ws_currency_rate()
         self._set_today_rate(USD, 1.0 / value)
 
     # Re used unit tests methods
@@ -75,12 +75,11 @@ class TestEdi(SingleTransactionCase):
     def _test_connection(self):
         """ Review that the connection is made and all the documents are syncronized"""
         with self.assertRaisesRegex(UserError, '"Check Available AFIP PoS" is not implemented in testing mode for webservice'):
-            self.journal.l10n_ar_check_afip_pos_number()
-        self.assertFalse(self.journal.l10n_ar_sync_next_number_with_afip(), 'Sync Next Numbers with AFIP fails')
+            self.journal.with_context(l10n_ar_invoice_skip_commit=True).l10n_ar_check_afip_pos_number()
 
     def _test_consult_invoice(self, expected_result=None):
         invoice = self._create_invoice_product()
-        self._edi_validate_and_review(invoice, expected_result=expected_result)
+        self._validate_and_review(invoice, expected_result=expected_result)
 
         # Consult the info about the last invoice
         last = invoice.journal_id._l10n_ar_get_afip_last_invoice_number(invoice.l10n_latam_document_type_id)
@@ -104,7 +103,10 @@ class TestEdi(SingleTransactionCase):
         expected_document = self.document_type[document_type]
 
         if 'mipyme' in document_type:
-            values.update({'document_type': expected_document, 'lines': [{'price_unit': 100000}]})
+            values.update({'document_type': expected_document, 'lines': [{'price_unit': 150000}]})
+            # We need to define the default value for Optional 27 - Transmission Type
+            self.env.company.l10n_ar_fce_transmission_type = 'SCA'
+
             if '_a' in document_type or '_c' in document_type:
                 values.update({'partner': self.partner_mipyme})
             elif '_b' in document_type:
@@ -115,154 +117,59 @@ class TestEdi(SingleTransactionCase):
         values.update(forced_values)
         invoice = create_invoice(values)
         self.assertEqual(invoice.l10n_latam_document_type_id.display_name, expected_document.display_name, 'The document should be %s' % expected_document.display_name)
-        self._edi_validate_and_review(invoice, expected_result=expected_result)
+        self._validate_and_review(invoice, expected_result=expected_result)
         return invoice
 
     def _test_case_credit_note(self, document_type, invoice, data=None, expected_result=None):
         refund = self._create_credit_note(invoice, data=data)
         expected_document = self.document_type[document_type]
         self.assertEqual(refund.l10n_latam_document_type_id.display_name, expected_document.display_name, 'The document should be %s' % expected_document.display_name)
-        self._edi_validate_and_review(refund, expected_result=expected_result)
+        self._validate_and_review(refund, expected_result=expected_result)
         return refund
 
-    def _test_demo_cases(self, cases):
-        for xml_id, test_case in cases.items():
-            _logger.info('  * running test %s: %s' % (xml_id, test_case))
-            invoice = self._duplicate_demo_invoice(xml_id)
-            self._edi_validate_and_review(invoice, error_msg=test_case)
+    def _test_case_debit_note(self, document_type, invoice, data=None, expected_result='A'):
+        debit_note = self._create_debit_note(invoice, data=data)
+        expected_document = self.document_type[document_type]
+        self.assertEqual(debit_note.l10n_latam_document_type_id.display_name, expected_document.display_name, 'The document should be %s' % expected_document.display_name)
+        self._validate_and_review(debit_note, expected_result=expected_result)
+        return debit_note
 
     # Helpers
 
-    def _create_journal(self, afip_ws, data=None):
-        """ Create a journal of a given AFIP ws type.
-        If there is a problem because we are using a AFIP certificate that is already been in use then change the certificate and try again """
-        data = data or {}
-        mapping = {'WSFE': 'RAW_MAW', 'WSFEX': 'FEEWS', 'WSBFE': 'BFEWS', 'PREPRINTED': 'II_IM'}
-        afip_ws = afip_ws.upper()
-        pos_number = str(random.randint(0, 99999))
-        if 'l10n_ar_afip_pos_number' in data:
-            pos_number = data.pop('l10n_ar_afip_pos_number')
-        values = {'name': '%s %s' % (afip_ws.replace('WS', ''), pos_number),
-                  'type': 'sale',
-                  'code': afip_ws,
-                  'l10n_ar_afip_pos_system': mapping.get(afip_ws),
-                  'l10n_ar_afip_pos_number': pos_number,
-                  'l10n_latam_use_documents': True,
-                  'company_id': self.env.company.id,
-                  'l10n_ar_afip_pos_partner_id': self.partner_ri.id}
-        values.update(data)
+    @classmethod
+    def _get_afip_pos_system_real_name(cls):
+        mapping = super()._get_afip_pos_system_real_name()
+        mapping.update({'WSFE': 'RAW_MAW', 'WSFEX': 'FEEWS', 'WSBFE': 'BFEWS'})
+        return mapping
 
-        # When we create the journal we are syncronizing document types sequeces with the ones we have in AFIP. In order to connection AFIP we need to
-        # to create a token which depend on the configured AFIP certificate . If the certificate is been used by another testing instance will raise an error
-        # telling us that the token can not be used and need to wait 10 minutos or change with another certificate. To avoid this and always run the unit
-        # tests we randonly change the certificate and try to create the journal (connect to AFIP) until there is not token error.
-        journal = False
-        while not journal:
-            try:
-                journal = self.env['account.journal'].create(values)
-                journal.l10n_ar_sync_next_number_with_afip()
-                _logger.info('Using certificate %s for %s company' % (self.env.company.l10n_ar_afip_ws_crt_fname, self.env.company.name))
-                _logger.info('Created journal %s for company %s' % (journal.name, self.env.company.name))
-            except Exception:
-                old = self.env.company.l10n_ar_afip_ws_crt_fname or 'NOT DEFINED'
-                self.env.company.l10n_ar_afip_ws_crt = base64.b64encode(open(get_module_resource('l10n_ar_edi', 'tests', 'test_cert%d.crt' % random.randint(1, 3)), 'rb').read())
-                _logger.log(25, 'Certificate %s already in use. Change to certificate %s for %s company' % (old, self.env.company.l10n_ar_afip_ws_crt_fname, self.env.company.name))
-        return journal
+    @contextmanager
+    def _handler_afip_internal_error(self):
+        try:
+            yield
+        except Exception as exc:
+            error_msg = repr(exc)
+            if 'Code 500' in error_msg or 'Code 501' in error_msg or 'Code 502' in error_msg:
+                self.skipTest("We receive an internal error from AFIP so skip this test")
+            else:
+                raise
 
-    def _create_invoice(self, data=None, invoice_type='out_invoice'):
-        data = data or {}
-        with Form(self.env['account.move'].with_context(default_type=invoice_type)) as invoice_form:
-            invoice_form.partner_id = data.pop('partner', self.partner)
-            if 'in_' not in invoice_type:
-                invoice_form.journal_id = data.pop('journal', self.journal)
+    def _post(self, invoice):
+        with self._handler_afip_internal_error():
+            invoice.with_context(l10n_ar_invoice_skip_commit=True).action_post()
 
-            if data.get('document_type'):
-                invoice_form.l10n_latam_document_type_id = data.pop('document_type')
-            if data.get('document_number'):
-                invoice_form.l10n_latam_document_number = data.pop('document_number')
-            if data.get('incoterm'):
-                invoice_form.invoice_incoterm_id = data.pop('incoterm')
-            if data.get('currency'):
-                invoice_form.currency_id = data.pop('currency')
-            for line in data.get('lines', [{}]):
-                with invoice_form.invoice_line_ids.new() as invoice_line_form:
-                    invoice_line_form.product_id = line.get('product', self.product_iva_21)
-                    invoice_line_form.quantity = line.get('quantity', 1)
-                    invoice_line_form.price_unit = line.get('price_unit', 100)
-        invoice = invoice_form.save()
-        return invoice
+    def _l10n_ar_verify_on_afip(self, bill):
+        with self._handler_afip_internal_error():
+            bill.l10n_ar_verify_on_afip()
 
-    def _create_invoice_product(self, data=None):
-        data = data or {}
-        return self._create_invoice(data)
+    def _validate_and_review(self, invoice, expected_result=None, error_msg=None):
+        """ Validate electronic invoice and review that the invoice has been proper validated """
 
-    def _create_invoice_service(self, data=None):
-        data = data or {}
-        newlines = []
-        for line in data.get('lines', [{}]):
-            line.update({'product': self.service_iva_27})
-            newlines.append(line)
-        data.update({'lines': newlines})
-        return self._create_invoice(data)
-
-    def _create_invoice_product_service(self, data=None):
-        data = data or {}
-        newlines = []
-        for line in data.get('lines', [{}]):
-            line.update({'product': self.product_iva_21})
-            newlines.append(line)
-        data.update({'lines': newlines + [{'product': self.service_iva_27}]})
-        return self._create_invoice(data)
-
-    def _create_credit_note(self, invoice, data=None):
-        data = data or {}
-        refund_wizard = self.env['account.move.reversal'].with_context(active_ids=[invoice.id], active_model='account.move').create({
-            'reason': data.get('reason', 'Mercadería defectuosa'),
-            'refund_method': data.get('refund_method', 'refund'),
-            'move_id': invoice.id})
-        refund_wizard._onchange_move_id()
-
-        forced_document_type = data.get('document_type')
-        if forced_document_type:
-            refund_wizard.l10n_latam_document_type_id = forced_document_type.id
-
-        res = refund_wizard.reverse_moves()
-        refund = self.env['account.move'].browse(res['res_id'])
-        return refund
-
-    def _create_debit_note(self, document_type, invoice, expected_result='A'):
-        expected_document = self.document_type[document_type]
-        debit_note = self._test_case(document_type, 'product_service', {'document_type': expected_document})
-        debit_note.invoice_origin = invoice.l10n_latam_document_number
-        self.assertEqual(debit_note.l10n_latam_document_type_id.display_name, expected_document.display_name, 'The document should be %s' % expected_document.display_name)
-        self._edi_validate_and_review(debit_note, expected_result=expected_result)
-        return debit_note
-
-    def _search_tax(self, tax_type):
-        res = self.env['account.tax'].with_context(active_test=False).search([('type_tax_use', '=', 'sale'),
-            ('company_id', '=', self.env.company.id), ('tax_group_id', '=', self.env.ref('l10n_ar.tax_group_' + tax_type).id)], limit=1)
-        self.assertTrue(res, '%s Tax was not found' % (tax_type))
-        return res
-
-    def _search_fp(self, name):
-        return self.env['account.fiscal.position'].search([('company_id', '=', self.env.company.id), ('name', '=', name)])
-
-    def _duplicate_demo_invoice(self, xml_id):
-        demo_invoice = self.env.ref('l10n_ar.' + xml_id)
-        invoice = demo_invoice.copy({'journal_id': self.journal.id})
-        invoice._onchange_partner_journal()
-        invoice._onchange_partner_id()
-        return invoice
-
-    def _edi_validate_and_review(self, invoice, expected_result=None, error_msg=None):
-        """ Validate electronic invoice and review that the invoice has been proper validated. """
         expected_result = expected_result or 'A'
         error_msg = error_msg or 'This test return a result different from the expteced (%s)' % expected_result
-        invoice.post()
+        self._post(invoice)
 
-        self.assertEqual(invoice.state, 'posted', error_msg)
+        # EDI validations
         self.assertEqual(invoice.l10n_ar_afip_auth_mode, 'CAE', error_msg)
-
         detail_info = error_msg + '\nReponse\n' + invoice.l10n_ar_afip_xml_response + '\nMsg\n' + invoice.message_ids[0].body
         self.assertEqual(invoice.l10n_ar_afip_result, expected_result, detail_info)
 
@@ -272,16 +179,14 @@ class TestEdi(SingleTransactionCase):
         self.assertTrue(invoice.l10n_ar_afip_xml_response, error_msg)
 
 
-class TestFex(TestEdi):
+@tagged('external_l10n', '-at_install', 'post_install', '-standard', 'external')
+class TestFexCommon(TestEdi):
 
     @classmethod
     def setUpClass(cls):
-        super(TestFex, cls).setUpClass()
+        super(TestFexCommon, cls).setUpClass('wsfex')
 
-        context = dict(cls.env.context, allowed_company_ids=[cls.company_ri.id])
-        cls.env = cls.env(context=context)
-
-        cls.partner = cls.partner_ex
+        cls.partner = cls.res_partner_expresso
         cls.incoterm = cls.env.ref('account.incoterm_EXW')
         cls.journal = cls._create_journal(cls, 'wsfex')
 

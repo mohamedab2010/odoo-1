@@ -1,15 +1,19 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.modules.module import get_module_resource
 from datetime import datetime
-from OpenSSL import crypto
 import base64
 import random
 import logging
 
 
 _logger = logging.getLogger(__name__)
+
+try:
+    from OpenSSL import crypto
+except ImportError:
+    _logger.warning('OpenSSL library not found. If you plan to use l10n_ar_edi, please install the library from https://pypi.python.org/pypi/pyOpenSSL')
 
 
 class ResCompany(models.Model):
@@ -41,6 +45,11 @@ class ResCompany(models.Model):
         " Please upload here the AFIP certificate in PEM format. You can get your certificate from your AFIP Portal")
     l10n_ar_afip_ws_crt_fname = fields.Char('Certificate name', compute="_compute_l10n_ar_afip_ws_crt_fname", store=True)
 
+    l10n_ar_fce_transmission_type = fields.Selection(
+        [('SCA', 'SCA - TRANSFERENCIA AL SISTEMA DE CIRCULACION ABIERTA'), ('ADC', 'ADC - AGENTE DE DEPOSITO COLECTIVO')],
+        'FCE: Transmission Option Default',
+        help='Default value for "FCE: Transmission Option" on electronic invoices')
+
     @api.depends('l10n_ar_afip_ws_crt')
     def _compute_l10n_ar_afip_ws_crt_fname(self):
         """ Set the certificate name in the company. Needed in unit tests, solved by a similar onchange method in res.config.settings while setting the certificate via web interface """
@@ -51,15 +60,46 @@ class ResCompany(models.Model):
             rec.l10n_ar_afip_ws_crt_fname = certificate.get_subject().CN
         remaining.l10n_ar_afip_ws_crt_fname = ''
 
+    @api.constrains('l10n_ar_afip_ws_crt')
+    def _l10n_ar_check_afip_certificate(self):
+        """ Verify if certificate uploaded is well formed before saving """
+        for rec in self.filtered('l10n_ar_afip_ws_crt'):
+            error = False
+            try:
+                content = base64.decodebytes(rec.with_context(bin_size=False).l10n_ar_afip_ws_crt).decode('ascii')
+                crypto.load_certificate(crypto.FILETYPE_PEM, content)
+            except Exception as exc:
+                if 'Expecting: CERTIFICATE' in repr(exc) or "('PEM routines', 'get_name', 'no start line')" in repr(exc):
+                    error = _('Wrong certificate file format.\nPlease upload a valid PEM certificate.')
+                else:
+                    error = _('Not a valid certificate file')
+                _logger.warning('%s %s' % (error, repr(exc)))
+            if error:
+                raise ValidationError('\n'.join([_('The certificate can not be uploaded!'), error]))
+
+    @api.constrains('l10n_ar_afip_ws_key')
+    def _l10n_ar_check_afip_private_key(self):
+        """ Verify if private key uploaded is well formed before saving """
+        for rec in self.filtered('l10n_ar_afip_ws_key'):
+            error = False
+            try:
+                content = base64.decodebytes(rec.with_context(bin_size=False).l10n_ar_afip_ws_key).decode('ascii').strip()
+                crypto.load_privatekey(crypto.FILETYPE_PEM, content)
+            except Exception as exc:
+                error = _('Not a valid private key file')
+                _logger.warning('%s %s' % (error, repr(exc)))
+            if error:
+                raise ValidationError('\n'.join([_('The private key can not be uploaded!'), error]))
+
     def _l10n_ar_get_certificate_object(self, cert):
-        crt_str = base64.decodestring(cert).decode('ascii')
+        crt_str = base64.decodebytes(cert).decode('ascii')
         res = crypto.load_certificate(crypto.FILETYPE_PEM, crt_str)
         return res
 
     def _l10n_ar_get_afip_crt_expire_date(self):
         """ return afip certificate expire date in datetime.date() """
         self.ensure_one()
-        crt = self.l10n_ar_afip_ws_crt
+        crt = self.with_context(bin_size=False).l10n_ar_afip_ws_crt
         if crt:
             certificate = self._l10n_ar_get_certificate_object(crt)
             datestring = certificate.get_notAfter().decode()
@@ -116,8 +156,8 @@ class ResCompany(models.Model):
     def _get_key_and_certificate(self):
         """ Return the pkey and certificate string representations in order to be used. Also raise exception if any key or certificate is not defined """
         self.ensure_one()
-        pkey = base64.decodestring(self.l10n_ar_afip_ws_key) if self.l10n_ar_afip_ws_key else ''
-        cert = base64.decodestring(self.l10n_ar_afip_ws_crt) if self.l10n_ar_afip_ws_crt else ''
+        pkey = base64.decodebytes(self.with_context(bin_size=False).l10n_ar_afip_ws_key) if self.l10n_ar_afip_ws_key else ''
+        cert = base64.decodebytes(self.l10n_ar_afip_ws_crt) if self.l10n_ar_afip_ws_crt else ''
         res = (pkey, cert)
         if not all(res):
             error = '\n * ' + _(' Missing private key.') if not pkey else ''
@@ -152,11 +192,11 @@ class ResCompany(models.Model):
         req_subject.O = self.name.encode('ascii', 'ignore')
         req_subject.OU = 'IT'.encode('ascii', 'ignore')
         req_subject.CN = common_name.encode('ascii', 'ignore')
-        req_subject.serialNumber = ('CUIT %s' % self.partner_id.l10n_ar_vat).encode('ascii', 'ignore')
+        req_subject.serialNumber = ('CUIT %s' % self.partner_id.ensure_vat()).encode('ascii', 'ignore')
 
         if not self.l10n_ar_afip_ws_key:
             self._generate_afip_private_key()
-        pkey = base64.decodestring(self.l10n_ar_afip_ws_key)
+        pkey = base64.decodebytes(self.with_context(bin_size=False).l10n_ar_afip_ws_key)
 
         private_key = crypto.load_privatekey(crypto.FILETYPE_PEM, pkey)
         req.set_pubkey(private_key)

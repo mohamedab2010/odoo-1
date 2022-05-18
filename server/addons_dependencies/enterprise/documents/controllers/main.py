@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import os
+from contextlib import ExitStack
 
 from odoo import http
 from odoo.exceptions import AccessError
@@ -20,12 +21,6 @@ class ShareRoute(http.Controller):
 
     # util methods #################################################################################
 
-    def _neuter_mimetype(self, mimetype, user):
-        wrong_type = 'ht' in mimetype or 'xml' in mimetype or 'svg' in mimetype
-        if wrong_type and not user._is_system():
-            return 'text/plain'
-        return mimetype
-
     def binary_content(self, id, env=None, field='datas', share_id=None, share_token=None,
                        download=False, unique=False, filename_field='name'):
         env = env or request.env
@@ -35,7 +30,7 @@ class ShareRoute(http.Controller):
         if share_id:
             share = env['documents.share'].sudo().browse(int(share_id))
             record = share._get_documents_and_check_access(share_token, [int(id)], operation='read')
-        if not record:
+        if not record or not record.exists():
             return (404, [], None)
 
         #check access right
@@ -77,6 +72,10 @@ class ShareRoute(http.Controller):
 
         return response
 
+    def _get_downloadable_documents(self, documents):
+        """ to override to filter out documents that cannot be downloaded """
+        return documents
+
     def _make_zip(self, name, documents):
         """returns zip files for the Document Inspector and the portal.
 
@@ -87,7 +86,7 @@ class ShareRoute(http.Controller):
         stream = io.BytesIO()
         try:
             with zipfile.ZipFile(stream, 'w') as doc_zip:
-                for document in documents:
+                for document in self._get_downloadable_documents(documents):
                     if document.type != 'binary':
                         continue
                     status, content, filename, mimetype, filehash = request.env['ir.http']._binary_record_content(
@@ -110,15 +109,16 @@ class ShareRoute(http.Controller):
     # Download & upload routes #####################################################################
 
     @http.route('/documents/upload_attachment', type='http', methods=['POST'], auth="user")
-    def upload_document(self, folder_id, ufile, document_id=False, partner_id=False, owner_id=False):
+    def upload_document(self, folder_id, ufile, tag_ids, document_id=False, partner_id=False, owner_id=False):
         files = request.httprequest.files.getlist('ufile')
         result = {'success': _("All files uploaded")}
+        tag_ids = tag_ids.split(',') if tag_ids else []
         if document_id:
             document = request.env['documents.document'].browse(int(document_id))
             ufile = files[0]
             try:
-                data = base64.encodestring(ufile.read())
-                mimetype = self._neuter_mimetype(ufile.content_type, http.request.env.user)
+                data = base64.encodebytes(ufile.read())
+                mimetype = ufile.content_type
                 document.write({
                     'name': ufile.filename,
                     'datas': data,
@@ -131,13 +131,14 @@ class ShareRoute(http.Controller):
             vals_list = []
             for ufile in files:
                 try:
-                    mimetype = self._neuter_mimetype(ufile.content_type, http.request.env.user)
+                    mimetype = ufile.content_type
                     datas = base64.encodebytes(ufile.read())
                     vals = {
                         'name': ufile.filename,
                         'mimetype': mimetype,
                         'datas': datas,
                         'folder_id': int(folder_id),
+                        'tag_ids': tag_ids,
                         'partner_id': int(partner_id)
                     }
                     if owner_id:
@@ -146,9 +147,70 @@ class ShareRoute(http.Controller):
                 except Exception as e:
                     logger.exception("Fail to upload document %s" % ufile.filename)
                     result = {'error': str(e)}
-            request.env['documents.document'].create(vals_list)
+            cids = request.httprequest.cookies.get('cids', str(request.env.user.company_id.id))
+            allowed_company_ids = [int(cid) for cid in cids.split(',')]
+            documents = request.env['documents.document'].with_context(allowed_company_ids=allowed_company_ids).create(vals_list)
+            result['ids'] = documents.ids
 
         return json.dumps(result)
+
+    @http.route('/documents/pdf_split', type='http', methods=['POST'], auth="user")
+    def pdf_split(self, new_files=None, ufile=None, archive=False, vals=None):
+        """Used to split and/or merge pdf documents.
+
+        The data can come from different sources: multiple existing documents
+        (at least one must be provided) and any number of extra uploaded files.
+
+        :param new_files: the array that represents the new pdf structure:
+            [{
+                'name': 'New File Name',
+                'new_pages': [{
+                    'old_file_type': 'document' or 'file',
+                    'old_file_index': document_id or index in ufile,
+                    'old_page_number': 5,
+                }],
+            }]
+        :param ufile: extra uploaded files that are not existing documents
+        :param archive: whether to archive the original documents
+        :param vals: values for the create of the new documents.
+        """
+        vals = json.loads(vals)
+        new_files = json.loads(new_files)
+        # find original documents
+        document_ids = set()
+        for new_file in new_files:
+            for page in new_file['new_pages']:
+                if page['old_file_type'] == 'document':
+                    document_ids.add(page['old_file_index'])
+        documents = request.env['documents.document'].browse(document_ids)
+
+        with ExitStack() as stack:
+            files = request.httprequest.files.getlist('ufile')
+            open_files = [stack.enter_context(io.BytesIO(file.read())) for file in files]
+
+            # merge together data from existing documents and from extra uploads
+            document_id_index_map = {}
+            current_index = len(open_files)
+            for document in documents:
+                open_files.append(stack.enter_context(io.BytesIO(base64.b64decode(document.datas))))
+                document_id_index_map[document.id] = current_index
+                current_index += 1
+
+            # update new_files structure with the new indices from documents
+            for new_file in new_files:
+                for page in new_file['new_pages']:
+                    if page.pop('old_file_type') == 'document':
+                        page['old_file_index'] = document_id_index_map[page['old_file_index']]
+
+            # apply the split/merge
+            new_documents = documents._pdf_split(new_files=new_files, open_files=open_files, vals=vals)
+
+        # archive original documents if needed
+        if archive == 'true':
+            documents.write({'active': False})
+
+        response = request.make_response(json.dumps(new_documents.ids), [('Content-Type', 'application/json')])
+        return response
 
     @http.route(['/documents/content/<int:id>'], type='http', auth='user')
     def documents_content(self, id):
@@ -157,13 +219,17 @@ class ShareRoute(http.Controller):
     @http.route(['/documents/image/<int:id>',
                  '/documents/image/<int:id>/<int:width>x<int:height>',
                  ], type='http', auth="public")
-    def content_image(self, id=None, field='datas', share_id=None, width=0, height=0, crop=False, share_token=None, **kwargs):
+    def content_image(self, id=None, field='datas', share_id=None, width=0, height=0, crop=False, share_token=None,
+                      unique=False, **kwargs):
         status, headers, image_base64 = self.binary_content(
-            id=id, field=field, share_id=share_id, share_token=share_token)
+            id=id, field=field, share_id=share_id, share_token=share_token, unique=unique)
         if status != 200:
             return request.env['ir.http']._response_by_status(status, headers, image_base64)
 
-        image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop)
+        try:
+            image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop)
+        except Exception:
+            return request.not_found()
 
         if not image_base64:
             return request.not_found()
@@ -175,7 +241,7 @@ class ShareRoute(http.Controller):
         return response
 
     @http.route(['/document/zip'], type='http', auth='user')
-    def get_zip(self, file_ids, zip_name, token=None):
+    def get_zip(self, file_ids, zip_name, **kw):
         """route to get the zip file of the selection in the document's Kanban view (Document inspector).
         :param file_ids: if of the files to zip.
         :param zip_name: name of the zip file.
@@ -183,8 +249,6 @@ class ShareRoute(http.Controller):
         ids_list = [int(x) for x in file_ids.split(',')]
         env = request.env
         response = self._make_zip(zip_name, env['documents.document'].browse(ids_list))
-        if token:
-            response.set_cookie('fileToken', token)
         return response
 
     @http.route(["/document/download/all/<int:share_id>/<access_token>"], type='http', auth='public')
@@ -217,7 +281,12 @@ class ShareRoute(http.Controller):
             env = request.env
             share = env['documents.share'].sudo().browse(share_id)
             if share._get_documents_and_check_access(access_token, document_ids=[], operation='read') is not False:
-                return base64.b64decode(env['res.users'].sudo().browse(share.create_uid.id).image_128)
+                image = env['res.users'].sudo().browse(share.create_uid.id).avatar_128
+
+                if not image:
+                    return env['ir.http']._placeholder()
+
+                return base64.b64decode(image)
             else:
                 return request.not_found()
         except Exception:
@@ -299,7 +368,7 @@ class ShareRoute(http.Controller):
             try:
                 file = request.httprequest.files.getlist('requestFile')[0]
                 data = file.read()
-                mimetype = self._neuter_mimetype(file.content_type, http.request.env.user)
+                mimetype = file.content_type
                 write_vals = {
                     'mimetype': mimetype,
                     'name': file.filename,
@@ -315,7 +384,7 @@ class ShareRoute(http.Controller):
             try:
                 for file in request.httprequest.files.getlist('files'):
                     data = file.read()
-                    mimetype = self._neuter_mimetype(file.content_type, http.request.env.user)
+                    mimetype = file.content_type
                     document_dict = {
                         'mimetype': mimetype,
                         'name': file.filename,
@@ -363,7 +432,7 @@ class ShareRoute(http.Controller):
                     return request.not_found()
 
             options = {
-                'base_url': http.request.env["ir.config_parameter"].sudo().get_param("web.base.url"),
+                'base_url': share.get_base_url(),
                 'token': str(token),
                 'upload': share.action == 'downloadupload',
                 'share_id': str(share.id),

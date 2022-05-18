@@ -78,7 +78,7 @@ class Mod347And349CommonBOEWizard(models.TransientModel):
     previous_report_number = fields.Char(string="Previous Report Number", size=13, help="Number of the previous report, corrected or replaced by this one, if any")
 
     def get_formatted_contact_phone(self):
-        return re.sub('\D', '', self.contact_person_phone)
+        return re.sub('\D', '', self.contact_person_phone or '')
 
 
 class Mod111BOEWizard(models.TransientModel):
@@ -110,13 +110,26 @@ class Mod303BOEWizard(models.TransientModel):
             if not record.partner_bank_id.bank_bic:
                 raise ValidationError(_("Please first assign a BIC number to the bank related to this account."))
 
+    def _get_using_sii_2021_value(self):
+        """ Hook to be overridden in 2021 module to allow manual
+        configuration of the SII field in the BOE"""
+        return 2
+
+    def _get_exonerated_from_mod_390_2021_value(self, period):
+        """ Hook to be overridden in 2021 module to allow manual
+        configuration of the 'exeonerated from mod 390' field in the BOE"""
+        return 2 if period in ('12', '4T') else 0
 
 class Mod347BOEWizard(models.TransientModel):
     _inherit = 'l10n_es_reports.aeat.boe.mod347and349.export.wizard'
     _name = 'l10n_es_reports.aeat.boe.mod347.export.wizard'
     _description = "BOE Export Wizard for (mod347)"
 
-    cash_basis_mod347_data = fields.One2many(comodel_name='l10n_es_reports.aeat.mod347.manual.partner.data', inverse_name='parent_wizard_id', relation='l10n_es_reports_mod347_boe_wizard_cash_basis_rel', string="Cash Basis Data", help="Manual entries containing the amounts perceived for the partners with cash basis criterion during this year. Leave empty for partners for which this criterion does not apply.")
+    cash_basis_mod347_data = fields.One2many(
+        comodel_name='l10n_es_reports.aeat.mod347.manual.partner.data',
+        inverse_name='parent_wizard_id',
+        string="Cash Basis Data",
+        help="Manual entries containing the amounts perceived for the partners with cash basis criterion during this year. Leave empty for partners for which this criterion does not apply.")
 
     def get_partners_manual_parameters_map(self):
         cash_basis_dict = {}

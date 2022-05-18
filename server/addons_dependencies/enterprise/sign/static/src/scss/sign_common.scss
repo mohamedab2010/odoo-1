@@ -10,11 +10,38 @@
 .o_sign_request_reference_title {
     text-align: left;
 }
-.o_sign_signer_status.clearfix {
-    text-align: right;
+.o_sign_signer_status_wrapper{
+    max-height: 76px;
+    overflow: auto;
+}
+.o_sign_signer_status {
+    line-height: 32px;
+    div {
+        line-height: $o-line-height-base;
+    }
+    &.clearfix {
+        text-align: right;
+    }
+    img {
+        height: 32px;
+    }
 }
 .o_sign_request_from {
     text-align: left;
+}
+.o_sign_request_signer {
+    line-height: 38px;
+    font-size: 1.15rem;
+    margin: 0;
+}
+.o_sign_breadcrumb {
+    font-size: 1.25rem !important;
+    a:hover{
+        text-decoration: none;
+    }
+}
+.o_sign_document_buttons {
+    margin-top: 5px;
 }
 
 .o_sign_request_follower_name {
@@ -35,7 +62,6 @@
     > .container-fluid {
         flex: 0 0 auto;
         margin: 0;
-        padding: 0 $o-horizontal-padding 10px;
     }
 
     > .container {
@@ -43,6 +69,11 @@
     }
 
     .row {
+        &.o_sign_page_info {
+            max-height: 33vh;
+            overflow-y: auto;
+        }
+
         > div {
             > .o_page_header, > .alert {
                 margin: 10px 0;
@@ -52,10 +83,6 @@
         > .o_sign_sign_document_button {
             margin: 0 $o-horizontal-padding;
         }
-    }
-
-    .o_sign_signer_status > img {
-        height: 32px;
     }
 }
 
@@ -145,4 +172,54 @@
         justify-content: flex-start;
     }
 }
-     
+
+.oe_sign_terms {
+    flex: auto !important;
+}
+
+@media only screen and (max-width:650px) {
+    .mobile-hide{
+        display: none !important;
+    }
+    .flex-fill {
+        flex: none;
+    }
+}
+@include media-breakpoint-down(sm) {
+
+    .o_sign_item_bottom_sheet {
+        display: none;
+        width: 100%;
+        padding: 10px;
+        position: absolute;
+        bottom: 0;
+        background-color: $o-enterprise-color;
+        opacity: 0;
+        transition: opacity 500ms;
+
+        &.show {
+            opacity: 1;
+            box-shadow: 0 0 5px 0 rgba(0,0,0,0.75);
+        }
+
+        .o_sign_next_button {
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .o_sign_item_bottom_sheet_field {
+            display: block;
+            width: 100%;
+        }
+
+        .o_sign_label {
+            width: 100%;
+            color: white;
+            text-transform: uppercase;
+        }
+    }
+
+    .modal .modal-footer .btn {
+        width: 30% !important;
+    }
+}

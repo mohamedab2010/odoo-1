@@ -16,6 +16,91 @@ from odoo.tools.translate import _
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
 
 BANXICO_DATE_FORMAT = '%d/%m/%Y'
+CBUAE_URL = "https://www.centralbank.ae/en/fx-rates"
+CBEGY_URL = "https://www.cbe.org.eg/en/EconomicResearch/Statistics/Pages/OfficialRatesListing.aspx"
+MAP_CURRENCIES = {
+    'US Dollar': 'USD',
+    'UAE Dirham': 'AED',
+    'Argentine Peso': 'ARS',
+    'Australian Dollar': 'AUD',
+    'Bangladesh Taka': 'BDT',
+    'Bahrani Dinar': 'BHD',
+    'Bahraini Dinar': 'BHD',
+    'Brunei Dollar': 'BND',
+    'Brazilian Real': 'BRL',
+    'Botswana Pula': 'BWP',
+    'Belarus Rouble': 'BYN',
+    'Canadian Dollar': 'CAD',
+    'Swiss Franc': 'CHF',
+    'Chilean Peso': 'CLP',
+    'Chinese Yuan - Offshore': 'CNY',
+    'Chinese Yuan': 'CNY',
+    'Colombian Peso': 'COP',
+    'Czech Koruna': 'CZK',
+    'Danish Krone': 'DKK',
+    'Algerian Dinar': 'DZD',
+    'Egypt Pound': 'EGP',
+    'Euro': 'EUR',
+    'GB Pound': 'GBP',
+    'Pound Sterling': 'GBP',
+    'Hongkong Dollar': 'HKD',
+    'Hungarian Forint': 'HUF',
+    'Indonesia Rupiah': 'IDR',
+    'Indian Rupee': 'INR',
+    'Iceland Krona': 'ISK',
+    'Jordan Dinar': 'JOD',
+    'Jordanian Dinar': 'JOD',
+    'Japanese Yen': 'JPY',
+    'Japanese Yen 100': 'JPY',
+    'Kenya Shilling': 'KES',
+    'Korean Won': 'KRW',
+    'Kuwaiti Dinar': 'KWD',
+    'Kazakhstan Tenge': 'KZT',
+    'Lebanon Pound': 'LBP',
+    'Sri Lanka Rupee': 'LKR',
+    'Moroccan Dirham': 'MAD',
+    'Macedonia Denar': 'MKD',
+    'Mexican Peso': 'MXN',
+    'Malaysia Ringgit': 'MYR',
+    'Nigerian Naira': 'NGN',
+    'Norwegian Krone': 'NOK',
+    'NewZealand Dollar': 'NZD',
+    'Omani Rial': 'OMR',
+    'Omani Riyal': 'OMR',
+    'Peru Sol': 'PEN',
+    'Philippine Piso': 'PHP',
+    'Pakistan Rupee': 'PKR',
+    'Polish Zloty': 'PLN',
+    'Qatari Riyal': 'QAR',
+    'Serbian Dinar': 'RSD',
+    'Russia Rouble': 'RUB',
+    'Saudi Riyal': 'SAR',
+    'Swedish Krona': 'SWK',
+    'Singapore Dollar': 'SGD',
+    'Thai Baht': 'THB',
+    'Tunisian Dinar': 'TND',
+    'Turkish Lira': 'TRY',
+    'Trin Tob Dollar': 'TTD',
+    'Taiwan Dollar': 'TWD',
+    'Tanzania Shilling': 'TZS',
+    'Uganda Shilling': 'UGX',
+    'Vietnam Dong': 'VND',
+    'South Africa Rand': 'ZAR',
+    'Zambian Kwacha': 'ZMW',
+}
+
+CBUAE_CURRENCIES = MAP_CURRENCIES  # renamed constant. Maintained for stable policy
+
+COUNTRY_CURRENCY_PROVIDERS = {
+    'AE': 'cbuae',
+    'CA': 'boc',
+    'CH': 'fta',
+    'CL': 'mindicador',
+    'EG': 'cbegy',
+    'MX': 'banxico',
+    'PE': 'bcrp',
+    'RO': 'bnr',
+}
 
 _logger = logging.getLogger(__name__)
 
@@ -35,34 +120,28 @@ class ResCompany(models.Model):
         ('banxico', 'Mexican Bank'),
         ('boc', 'Bank Of Canada'),
         ('xe_com', 'xe.com'),
+        ('bnr', 'National Bank Of Romania'),
+        ('mindicador', 'Chilean mindicador.cl'),
+        ('bcrp', 'Bank of Peru'),
+        ('cbuae', 'UAE Central Bank'),
+        ('cbegy', 'Central Bank of Egypt'),
     ], default='ecb', string='Service Provider')
 
     @api.model
     def create(self, vals):
         ''' Change the default provider depending on the company data.'''
         if vals.get('country_id') and 'currency_provider' not in vals:
-            code_providers = {'CH' : 'fta', 'MX': 'banxico', 'CA' : 'boc'}
             cc = self.env['res.country'].browse(vals['country_id']).code.upper()
-            if cc in code_providers:
-                vals['currency_provider'] = code_providers[cc]
+            if cc in COUNTRY_CURRENCY_PROVIDERS:
+                vals['currency_provider'] = COUNTRY_CURRENCY_PROVIDERS[cc]
         return super(ResCompany, self).create(vals)
 
     @api.model
     def set_special_defaults_on_install(self):
-        ''' At module isntallation, set the default provider depending on the company country.'''
+        ''' At module installation, set the default provider depending on the company country.'''
         all_companies = self.env['res.company'].search([])
         for company in all_companies:
-            if company.country_id.code == 'CH':
-                # Sets FTA as the default provider for every swiss company that was already installed
-                company.currency_provider = 'fta'
-            elif company.country_id.code == 'MX':
-                # Sets Banxico as the default provider for every mexican company that was already installed
-                company.currency_provider = 'banxico'
-            elif company.country_id.code == 'CA':
-                # Bank of Canada
-                company.currency_provider = 'boc'
-            else:
-                company.currency_provider = 'ecb'
+            company.currency_provider = COUNTRY_CURRENCY_PROVIDERS.get(company.country_id.code, 'ecb')
 
     def update_currency_rates(self):
         ''' This method is used to update all currencies given by the provider.
@@ -93,7 +172,7 @@ class ResCompany(models.Model):
             if parse_results == False:
                 # We check == False, and don't use bool conversion, as an empty
                 # dict can be returned, if none of the available currencies is supported by the provider
-                _logger.warning(_('Unable to connect to the online exchange rate platform %s. The web service may be temporary down.') % currency_provider)
+                _logger.warning('Unable to connect to the online exchange rate platform %s. The web service may be temporary down.', currency_provider)
                 rslt = False
             else:
                 companies._generate_currency_rates(parse_results)
@@ -131,7 +210,7 @@ class ResCompany(models.Model):
             rate_info = parsed_data.get(company.currency_id.name, None)
 
             if not rate_info:
-                raise UserError(_("Your main currency (%s) is not supported by this exchange rate provider. Please choose another one.") % company.currency_id.name)
+                raise UserError(_("Your main currency (%s) is not supported by this exchange rate provider. Please choose another one.", company.currency_id.name))
 
             base_currency_rate = rate_info[0]
 
@@ -148,7 +227,7 @@ class ResCompany(models.Model):
     def _parse_fta_data(self, available_currencies):
         ''' Parses the data returned in xml by FTA servers and returns it in a more
         Python-usable form.'''
-        request_url = 'http://www.pwebapps.ezv.admin.ch/apps/rates/rate/getxml?activeSearchType=today'
+        request_url = 'https://www.backend-rates.ezv.admin.ch/api/xmldaily?d=today&locale=en'
         try:
             parse_url = requests.request('GET', request_url)
         except:
@@ -202,6 +281,57 @@ class ResCompany(models.Model):
         if rslt and 'EUR' in available_currency_names:
             rslt['EUR'] = (1.0, fields.Date.today())
 
+        return rslt
+
+    def _parse_cbuae_data(self, available_currencies):
+        ''' This method is used to update the currencies by using UAE Central Bank service provider.
+            Exchange rates are expressed as 1 unit of the foreign currency converted into AED
+        '''
+        try:
+            fetched_data = requests.get(CBUAE_URL, timeout=30)
+            fetched_data.raise_for_status()
+        except Exception:
+            return False
+
+        htmlelem = etree.fromstring(fetched_data.content, etree.HTMLParser())
+        rates_entries = htmlelem.xpath("//table[@id='ratesDateTable']/tbody/tr")
+        available_currency_names = set(available_currencies.mapped('name'))
+        rslt = {}
+        for rate_entry in rates_entries:
+            # line structure is <td>Currency Description</td><td>rate</td>
+            currency_code = MAP_CURRENCIES.get(rate_entry[0].text)
+            rate = float(rate_entry[1].text)
+            if currency_code in available_currency_names:
+                rslt[currency_code] = (1.0/rate, fields.Date.today())
+
+        if 'AED' in available_currency_names:
+            rslt['AED'] = (1.0, fields.Date.today())
+        return rslt
+
+    def _parse_cbegy_data(self, available_currencies):
+        ''' This method is used to update the currencies by using the Central Bank of Egypt service provider.
+            Exchange rates are expressed as 1 unit of the foreign currency converted into EGP
+        '''
+        try:
+            fetched_data = requests.get(CBEGY_URL, timeout=30)
+            fetched_data.raise_for_status()
+        except Exception:
+            return False
+
+        htmlelem = etree.fromstring(fetched_data.content, etree.HTMLParser())
+        rates_entries = htmlelem.xpath("//table/tbody/tr")
+        available_currency_names = set(available_currencies.mapped('name'))
+        rslt = {}
+        for rate_entry in rates_entries:
+            currency_code = MAP_CURRENCIES.get(rate_entry[0].text)
+            # line structure is <td>Currency Description</td><td><span>BUY RATE</span></td><td><span>SELL RATE</span></td>
+            # we use the average of SELL and BUY rates
+            rate = (float(rate_entry[1][0].text) + float(rate_entry[2][0].text)) / 2
+            if currency_code in available_currency_names:
+                rslt[currency_code] = (1.0/rate, fields.Date.today())
+
+        if 'EGP' in available_currency_names:
+            rslt['EGP'] = (1.0, fields.Date.today())
         return rslt
 
     def _parse_boc_data(self, available_currencies):
@@ -271,7 +401,7 @@ class ResCompany(models.Model):
             date_mx = datetime.datetime.now(timezone('America/Mexico_City'))
             today = date_mx.strftime(DEFAULT_SERVER_DATE_FORMAT)
             yesterday = (date_mx - datetime.timedelta(days=1)).strftime(DEFAULT_SERVER_DATE_FORMAT)
-            res = requests.get(url % (','.join(foreigns), yesterday, today, token))
+            res = requests.get(url % (','.join(foreigns), yesterday, today, token), timeout=30)
             res.raise_for_status()
             series = res.json()['bmx']['series']
             series = {serie['idSerie']: {dato['fecha']: dato['dato'] for dato in serie['datos']} for serie in series if 'datos' in serie}
@@ -288,7 +418,7 @@ class ResCompany(models.Model):
         yesterday = (date_mx - datetime.timedelta(days=1)).strftime(BANXICO_DATE_FORMAT)
         for index, currency in foreigns.items():
             if not series.get(index, False):
-                return False
+                continue
             if currency not in available_currency_names:
                 continue
 
@@ -297,7 +427,7 @@ class ResCompany(models.Model):
                 try:
                     foreign_mxn_rate = float(serie[rate])
                 except (ValueError, TypeError):
-                    return False
+                    continue
                 foreign_rate_date = datetime.datetime.strptime(rate, BANXICO_DATE_FORMAT).strftime(DEFAULT_SERVER_DATE_FORMAT)
                 rslt[currency] = (1.0/foreign_mxn_rate, foreign_rate_date)
         return rslt
@@ -324,14 +454,151 @@ class ResCompany(models.Model):
             rslt['USD'] = (1.0, today)
 
         htmlelem = etree.fromstring(fetched_data.content, etree.HTMLParser())
-        rates_table = htmlelem.find(".//table[@id='historicalRateTbl']/tbody")
-        for rate_entry in list(rates_table):
-            if type(rate_entry) != etree._Comment: # The returned HTML always contains commented lines (for some reason), so we ignore them
-                currency_code = rate_entry.find('.//a').text
-                if currency_code in available_currency_names:
-                    rate = float(rate_entry.find("td[@class='historicalRateTable-rateHeader']").text)
-                    rslt[currency_code] = (rate, today)
+        rates_entries = htmlelem.xpath(".//div[@id='table-section']//tbody/tr")
+        for rate_entry in rates_entries:
+            # line structure is <th>CODE</th><td>NAME<td><td>UNITS PER CURRENCY</td><td>CURRENCY PER UNIT</td>
+            currency_code = ''.join(rate_entry.find('.//th').itertext()).strip()
+            if currency_code in available_currency_names:
+                rate = float(rate_entry.find("td[2]").text.replace(',', ''))
+                rslt[currency_code] = (rate, today)
 
+        return rslt
+
+    def _parse_bnr_data(self, available_currencies):
+        ''' This method is used to update the currencies by using
+        BNR service provider. Rates are given against RON
+        '''
+        request_url = "https://www.bnr.ro/nbrfxrates.xml"
+        try:
+            parse_url = requests.request('GET', request_url)
+        except:
+            #connection error, the request wasn't successful
+            return False
+
+        xmlstr = etree.fromstring(parse_url.content)
+        data = xml2json_from_elementtree(xmlstr)
+        available_currency_names = available_currencies.mapped('name')
+        rate_date = fields.Date.today()
+        rslt = {}
+        rates_node = data['children'][1]['children'][2]
+        if rates_node:
+            rate_date = (datetime.datetime.strptime(
+                rates_node['attrs']['date'], DEFAULT_SERVER_DATE_FORMAT
+            ) + datetime.timedelta(days=1)).strftime(DEFAULT_SERVER_DATE_FORMAT)
+            for x in rates_node['children']:
+                if x['attrs']['currency'] in available_currency_names:
+                    rslt[x['attrs']['currency']] = (
+                        float(x['attrs'].get('multiplier', '1')) / float(x['children'][0]),
+                        rate_date
+                    )
+        if rslt and 'RON' in available_currency_names:
+            rslt['RON'] = (1.0, rate_date)
+        return rslt
+
+    def _parse_bcrp_data(self, available_currencies):
+        """Bank of Peru (bcrp)
+        API Doc: https://estadisticas.bcrp.gob.pe/estadisticas/series/ayuda/api
+            - https://estadisticas.bcrp.gob.pe/estadisticas/series/api/[códigos de series]/[formato de salida]/[periodo inicial]/[periodo final]/[idioma]
+        Source: https://estadisticas.bcrp.gob.pe/estadisticas/series/diarias/tipo-de-cambio
+            PD04640PD	TC Sistema bancario SBS (S/ por US$) - Venta
+            PD04648PD	TC Euro (S/ por Euro) - Venta
+        """
+
+        bcrp_date_format_url = '%Y-%m-%d'
+        bcrp_date_format_res = '%d.%b.%y'
+        result = {}
+        available_currency_names = available_currencies.mapped('name')
+        if 'PEN' not in available_currency_names:
+            return result
+        result['PEN'] = (1.0, fields.Date.context_today(self.with_context(tz='America/Lima')))
+        url_format = "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/%(currency_code)s/json/%(date_start)s/%(date_end)s/ing"
+        foreigns = {
+            # currency code from webservices
+            'USD': 'PD04640PD',
+            'EUR': 'PD04648PD',
+        }
+        date_pe = self.mapped('currency_next_execution_date')[0] or datetime.datetime.now(timezone('America/Lima'))
+        # In case the desired date does not have an exchange rate, it means that we must use the previous day until we
+        # find a change. It is left 7 since in tests we have found cases of up to 5 days without update but no more
+        # than that. That is not to say that that cannot change in the future, so we leave a little margin.
+        first_pe_str = (date_pe - datetime.timedelta(days=7)).strftime(bcrp_date_format_url)
+        second_pe_str = date_pe.strftime(bcrp_date_format_url)
+        data = {
+            'date_start': first_pe_str,
+            'date_end': second_pe_str,
+        }
+        for currency_odoo_code, currency_pe_code in foreigns.items():
+            if currency_odoo_code not in available_currency_names:
+                continue
+            data.update({'currency_code': currency_pe_code})
+            url = url_format % data
+            try:
+                res = requests.get(url, timeout=10)
+                res.raise_for_status()
+                series = res.json()
+            except Exception as e:
+                _logger.error(e)
+                continue
+            date_rate_str = series['periods'][-1]['name']
+            fetched_rate = float(series['periods'][-1]['values'][0])
+            rate = 1.0 / fetched_rate if fetched_rate else 0
+            if not rate:
+                continue
+            # This replace is done because the service is returning Set for September instead of Sep the value
+            # commonly accepted for September,
+            normalized_date = date_rate_str.replace('Set', 'Sep')
+            date_rate = datetime.datetime.strptime(normalized_date, bcrp_date_format_res).strftime(DEFAULT_SERVER_DATE_FORMAT)
+            result[currency_odoo_code] = (rate, date_rate)
+        return result
+
+    def _parse_mindicador_data(self, available_currencies):
+        """Parse function for mindicador.cl provider for Chile
+        * Regarding needs of rates in Chile there will be one rate per day, except for UTM index (one per month)
+        * The value of the rate is the "official" rate
+        * The base currency is always CLP but with the inverse 1/rate.
+        * The webservice returns the following currency rates:
+            - EUR
+            - USD (Dolar Observado)
+            - UF (Unidad de Fomento)
+            - UTM (Unidad Tributaria Mensual)
+        """
+        logger = _logger.getChild('mindicador')
+        icp = self.env['ir.config_parameter'].sudo()
+        server_url = icp.get_param('mindicador_api_url')
+        if not server_url:
+            server_url = 'https://mindicador.cl/api'
+            icp.set_param('mindicador_api_url', server_url)
+        foreigns = {
+            "USD": "dolar",
+            "EUR": "euro",
+            "UF": "uf",
+            "UTM": "utm",
+        }
+        available_currency_names = available_currencies.mapped('name')
+        logger.debug('mindicador: available currency names: %s', available_currency_names)
+        today_date = fields.Date.context_today(self.with_context(tz='America/Santiago'))
+        rslt = {
+            'CLP': (1.0, fields.Date.to_string(today_date)),
+        }
+        request_date = today_date.strftime('%d-%m-%Y')
+        for index, currency in foreigns.items():
+            if index not in available_currency_names:
+                logger.debug('Index %s not in available currency name', index)
+                continue
+            url = server_url + '/%s/%s' % (currency, request_date)
+            try:
+                res = requests.get(url, timeout=30)
+                res.raise_for_status()
+            except Exception as e:
+                return False
+            if 'html' in res.text:
+                return False
+            data_json = res.json()
+            if not data_json['serie']:
+                continue
+            date = data_json['serie'][0]['fecha'][:10]
+            rate = data_json['serie'][0]['valor']
+            rslt[index] = (1.0 / rate,  date)
         return rslt
 
     @api.model

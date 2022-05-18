@@ -11,8 +11,9 @@ class AccountArVatLine(models.Model):
     add some other fields """
 
     _name = "account.ar.vat.line"
-    _description = "VAT line for Analysis in Argentinian Localization"
+    _description = "VAT line for Analysis in Argentinean Localization"
     _auto = False
+    _order = 'invoice_date asc, move_name asc, id asc'
 
     document_type_id = fields.Many2one('l10n_latam.document.type', 'Document Type', readonly=True)
     date = fields.Date(readonly=True)
@@ -21,7 +22,7 @@ class AccountArVatLine(models.Model):
     afip_responsibility_type_name = fields.Char(readonly=True)
     partner_name = fields.Char(readonly=True)
     move_name = fields.Char(readonly=True)
-    type = fields.Selection(selection=[
+    move_type = fields.Selection(selection=[
             ('entry', 'Journal Entry'),
             ('out_invoice', 'Customer Invoice'),
             ('out_refund', 'Customer Credit Note'),
@@ -68,7 +69,7 @@ class AccountArVatLine(models.Model):
         # we use tax_ids for base amount instead of tax_base_amount for two reasons:
         # * zero taxes do not create any aml line so we can't get base for them with tax_base_amount
         # * we use same method as in odoo tax report to avoid any possible discrepancy with the computed tax_base_amount
-        query = """
+        sql = """CREATE or REPLACE VIEW account_ar_vat_line as (
 SELECT
     am.id,
     (CASE WHEN lit.l10n_ar_afip_code = '80' THEN rp.vat ELSE null END) as cuit,
@@ -76,7 +77,7 @@ SELECT
     am.name as move_name,
     rp.name as partner_name,
     am.id as move_id,
-    am.type,
+    am.move_type,
     am.date,
     am.invoice_date,
     am.partner_id,
@@ -124,7 +125,7 @@ LEFT JOIN
     ON ntg.id = nt.tax_group_id
 LEFT JOIN
     res_partner AS rp
-    ON rp.id = am.partner_id
+    ON rp.id = am.commercial_partner_id
 LEFT JOIN
     l10n_latam_identification_type AS lit
     ON rp.l10n_latam_identification_type_id = lit.id
@@ -133,11 +134,10 @@ LEFT JOIN
     ON am.l10n_ar_afip_responsibility_type_id = art.id
 WHERE
     (aml.tax_line_id is not null or btg.l10n_ar_vat_afip_code is not null)
-    and am.type in ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
+    and am.move_type in ('out_invoice', 'in_invoice', 'out_refund', 'in_refund')
 GROUP BY
     am.id, art.name, rp.id, lit.id
 ORDER BY
     am.date, am.name
-        """
-        sql = """CREATE or REPLACE VIEW %s as (%s)""" % (self._table, query)
+        )"""
         cr.execute(sql)

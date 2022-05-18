@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo.tests.common import tagged, TransactionCase, post_install
+from odoo.tests.common import tagged, TransactionCase
 
 GIF = b"R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs="
 
@@ -36,15 +36,19 @@ class TestCaseDocumentsBridgeRecruitment(TransactionCase):
         doc = self.env['documents.document'].search([('attachment_id', '=', attachment.id)])
 
         self.assertTrue(doc, "It should have created a document")
-        self.assertEqual(doc.folder_id, self.folder, "It should be in the the correct folder")
+        self.assertEqual(doc.folder_id, self.folder, "It should be in the correct folder")
 
     def test_applicant_attachment(self):
         """
         Document is created from applicant attachment
         """
+        partner = self.env['res.partner'].create({
+            'name': 'Applicant Partner',
+        })
         applicant = self.env['hr.applicant'].create({
             'name': 'Applicant',
             'company_id': self.company.id,
+            'partner_id': partner.id,
         })
         attachment = self.env['ir.attachment'].create({
             'datas': GIF,
@@ -57,4 +61,5 @@ class TestCaseDocumentsBridgeRecruitment(TransactionCase):
         doc = self.env['documents.document'].search([('attachment_id', '=', attachment.id)])
 
         self.assertTrue(doc, "It should have created a document")
-        self.assertEqual(doc.folder_id, self.folder, "It should be in the the correct folder")
+        self.assertEqual(doc.folder_id, self.folder, "It should be in the correct folder")
+        self.assertEqual(doc.partner_id, partner, "The partner_id should be the applicant's partner_id")

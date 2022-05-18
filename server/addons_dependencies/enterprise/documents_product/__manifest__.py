@@ -4,7 +4,7 @@
 {
     'name': 'Documents - Product',
     'version': '1.0',
-    'category': 'Operations/Documents',
+    'category': 'Productivity/Documents',
     'summary': 'Products from Documents',
     'description': """
 Adds the ability to create products from the document module and adds the

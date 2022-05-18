@@ -7,7 +7,7 @@
     'sequence': 9876,
     'summary': 'Mail Tests: performances and tests specific to mail with all sub-modules',
     'description': """This module contains tests related to mail. Those are
-contained in a separate module as it contains models used only to perform
+present in a separate module as it contains models used only to perform
 tests independently to functional aspects of other models. Moreover most of
 modules build on mail (sms, snailmail, mail_enterprise) are set as dependencies
 in order to test the whole mail codebase. """,
@@ -16,7 +16,8 @@ in order to test the whole mail codebase. """,
         'mail_bot',
         'mass_mailing',
         'marketing_automation',
-        'ocn_client',
+        'marketing_automation_sms',
+        'mail_mobile',
         'snailmail',
         'sms',
         'test_mail',
@@ -29,4 +30,5 @@ in order to test the whole mail codebase. """,
     ],
     'installable': True,
     'application': False,
+    'license': 'OEEL-1',
 }

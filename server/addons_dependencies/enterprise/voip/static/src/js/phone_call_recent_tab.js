@@ -48,7 +48,7 @@ const PhoneCallRecentTab = PhoneCallTab.extend({
      * @param {string} param0.number
      * @param {integer} param0.resId
      * @param {string} param0.resModel
-     * @return {Promise}
+     * @return {voip.PhoneCall}
      */
     async callFromPhoneWidget({ number, resId, resModel }) {
         const phoneCallData = await this._rpc({
@@ -58,7 +58,8 @@ const PhoneCallRecentTab = PhoneCallTab.extend({
         });
         const phoneCallId = await this._displayInQueue(phoneCallData);
         this._currentPhoneCallId = phoneCallId;
-        return this._selectPhoneCall(phoneCallId);
+        await this._selectPhoneCall(phoneCallId);
+        return this._getCurrentPhoneCall();
     },
     /**
      * @override
@@ -133,8 +134,11 @@ const PhoneCallRecentTab = PhoneCallTab.extend({
             method: 'get_recent_list',
             args: [search, this._offset, this._limit],
         });
-        if (!phoneCallsData.length) {
+        if (phoneCallsData.length < this._limit) {
             this._isLazyLoadFinished = true;
+        }
+        for (const phoneCallData of phoneCallsData) {
+            phoneCallData.isRecent = true;
         }
         const promises = phoneCallsData.map(phoneCallData =>
             this._displayInQueue(phoneCallData));

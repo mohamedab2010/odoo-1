@@ -112,13 +112,13 @@
                             <field name="table_id"/>
                         </group>
                         <notebook colspan="4">
-                            <page string="Products">
+                            <page string="Products" name="products">
                                 <field name="lines" colspan="4" nolabel="1">
                                     <tree string="Order lines" editable="bottom">
                                         <field name="product_id"/>
                                         <field name="qty"/>
                                         <field name="price_unit" widget="monetary"/>
-                                        <field name="discount" widget="monetary"/>
+                                        <field name="discount"/>
                                         <field name="tax_ids" widget="many2many_tags"/>
                                         <field name="price_subtotal" widget="monetary"/>
                                         <field name="price_subtotal_incl" widget="monetary"/>
@@ -127,7 +127,7 @@
                                         <group col="4">
                                             <field name="product_id"/>
                                             <field name="qty"/>
-                                            <field name="discount" widget="monetary"/>
+                                            <field name="discount"/>
                                             <field name="price_unit" widget="monetary"/>
                                             <field name="price_subtotal" invisible="1" widget="monetary"/>
                                             <field name="price_subtotal_incl" invisible="1" widget="monetary"/>
@@ -178,44 +178,44 @@
             </xpath>
         </template>
 
-        <report id="action_report_pos_financial_x"
-                string="X-report"
-                model="pos.session"
-                report_type="qweb-pdf"
-                name="pos_blackbox_be.financial_report_template_x"
-                file="pos_blackbox_be.financial_report_template_x"
-                menu="False"
-                print_report_name="(object.name + '_financial_x_report')"
-                attachment_use="False"/>
-        <report id="action_report_pos_financial_z"
-                string="Z-report"
-                model="pos.session"
-                report_type="qweb-pdf"
-                name="pos_blackbox_be.financial_report_template_z"
-                file="pos_blackbox_be.financial_report_template_z"
-                menu="False"
-                print_report_name="(object.name + '_financial_z_report')"
-                attachment_use="True"
-                attachment="(object.name + '_financial_z_report.pdf')"/>
-        <report id="action_report_pos_user_x"
-                string="X-User"
-                model="pos.session"
-                report_type="qweb-pdf"
-                name="pos_blackbox_be.user_report_template_x"
-                file="pos_blackbox_be.user_report_template_x"
-                menu="False"
-                print_report_name="(object.name + '_user_x_report')"
-                attachment_use="False"/>
-        <report id="action_report_pos_user_z"
-                string="Z-User"
-                model="pos.session"
-                report_type="qweb-pdf"
-                name="pos_blackbox_be.user_report_template_z"
-                file="pos_blackbox_be.user_report_template_z"
-                menu="False"
-                print_report_name="(object.name + '_user_z_report')"
-                attachment_use="True"
-                attachment="(object.name + '_user_z_report.pdf')"/>
+        <record id="action_report_pos_financial_x" model="ir.actions.report">
+            <field name="name">X-report</field>
+            <field name="model">pos.session</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">pos_blackbox_be.financial_report_template_x</field>
+            <field name="report_file">pos_blackbox_be.financial_report_template_x</field>
+            <field name="print_report_name">(object.name + '_financial_x_report')</field>
+            <field name="attachment_use">True</field>
+        </record>
+        <record id="action_report_pos_financial_z" model="ir.actions.report">
+            <field name="name">Z-report</field>
+            <field name="model">pos.session</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">pos_blackbox_be.financial_report_template_z</field>
+            <field name="report_file">pos_blackbox_be.financial_report_template_z</field>
+            <field name="print_report_name">(object.name + '_financial_z_report')</field>
+            <field name="attachment">(object.name + '_financial_z_report.pdf')</field>
+            <field name="attachment_use">True</field>
+        </record>
+        <record id="action_report_pos_user_x" model="ir.actions.report">
+            <field name="name">X-User</field>
+            <field name="model">pos.session</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">pos_blackbox_be.user_report_template_x</field>
+            <field name="report_file">pos_blackbox_be.user_report_template_x</field>
+            <field name="print_report_name">(object.name + '_user_x_report')</field>
+            <field name="attachment_use">True</field>
+        </record>
+        <record id="action_report_pos_user_z" model="ir.actions.report">
+            <field name="name">Z-User</field>
+            <field name="model">pos.session</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">pos_blackbox_be.user_report_template_z</field>
+            <field name="report_file">pos_blackbox_be.user_report_template_z</field>
+            <field name="print_report_name">(object.name + '_user_z_report')</field>
+            <field name="attachment">(object.name + '_user_z_report.pdf')</field>
+            <field name="attachment_use">True</field>
+        </record>
 
         <record model="ir.ui.view" id="view_pos_session_form">
             <field name="name">pos.session.form.view</field>
@@ -255,7 +255,7 @@
         <record id="pos_config_view_form_inherit_blackbox_be" model="ir.ui.view">
             <field name="name">pos.config.form.inherit.blackbox.be</field>
             <field name="model">pos.config</field>
-            <field name="inherit_id" ref="pos_restaurant.pos_config_view_form_inherit_restaurant"/>
+            <field name="inherit_id" ref="pos_iot.pos_iot_config_view_form"/>
             <field name="arch" type="xml">
                 <xpath position="inside"
                     expr="//div[@id='posbox_reference']/div/div[hasclass('o_setting_right_pane')]/div[hasclass('content-group')]">
@@ -585,25 +585,6 @@
             <t t-call="pos_blackbox_be.user_report_template"/>
         </template>
 
-        <template id="include_vat_notice_report_external_header" inherit_id="web.external_layout_standard">
-            <xpath expr="//div[@name='moto']" position="replace">
-                <div class="col-5 text-center" style="margin-top:20px;">
-                    <strong>THIS IS NOT A VALID VAT TICKET</strong>
-                </div>
-                <div class="col-4 text-right" style="margin-top:20px;" t-field="company.report_header"/>
-            </xpath>
-        </template>
-
-        <template id="include_vat_notice_report_internal" inherit_id="web.internal_layout">
-            <xpath expr="//div[hasclass('row')]" position="before">
-                <div class="row">
-                    <div class="col-12 text-center">
-                        <strong>THIS IS NOT A VALID VAT TICKET</strong>
-                    </div>
-                </div>
-            </xpath>
-        </template>
-
         <record id="view_pos_pro_forma_filter" model="ir.ui.view">
             <field name="name">Pro forma orders (PS)</field>
             <field name="model">pos.order_pro_forma</field>
@@ -614,29 +595,29 @@
             </field>
         </record>
 
-        <act_window
-            id="action_pro_forma_orders_by_partner"
-            name="Pro forma orders (PS)"
-            context="{'search_default_partner_id': [active_id]}"
-            res_model="pos.order_pro_forma"
-            binding_model="res.partner"
-            binding_views="form"/>
+        <record id="action_pro_forma_orders_by_partner" model="ir.actions.act_window">
+            <field name="name">Pro forma orders (PS)</field>
+            <field name="res_model">pos.order_pro_forma</field>
+            <field name="context">{'search_default_partner_id': [active_id]}</field>
+            <field name="binding_model_id" ref="base.model_res_partner"/>
+            <field name="binding_view_types">form</field>
+        </record>
 
         <template id="fdm_source">
 SIGNATURES:
 --------------------------------------------------------------------
 GLOBAL HASH: <t t-esc="main_hash" />
             <t t-foreach="files" t-as="current_file">
-<t t-raw="current_file['name']"/>: <t t-raw="current_file['hash']"/> (size in bytes: <t t-raw="current_file['size_in_bytes']"/>)
+<t t-out="current_file['name']"/>: <t t-out="current_file['hash']"/> (size in bytes: <t t-out="current_file['size_in_bytes']"/>)
             </t>
 --------------------------------------------------------------------
 
 CONTENT:
             <t t-foreach="files" t-as="current_file">
 --------------------------------------------------------------------
-<t t-raw="current_file['name']"/>
+<t t-out="current_file['name']"/>
 --------------------------------------------------------------------
-<t t-raw="current_file['contents']"/>
+<t t-out="current_file['contents']"/>
             </t>
         </template>
 

@@ -18,6 +18,8 @@ class HelpdeskTeam(models.Model):
     def _onchange_use_website_helpdesk(self):
         if not (self.use_website_helpdesk_form or self.use_website_helpdesk_forum or self.use_website_helpdesk_slides) and self.website_published:
             self.is_published = False
+        elif self.use_website_helpdesk_form and not self.website_published:
+            self.is_published = True
 
     def write(self, vals):
         if 'active' in vals and not vals['active']:
@@ -31,5 +33,5 @@ class HelpdeskTeam(models.Model):
             'type': 'ir.actions.act_url',
             'name': "Redirect to the Website Helpdesk Rating Page",
             'target': 'self',
-            'url': "/helpdesk/rating/%s" % (self.id,)
+            'url': "/helpdesk/rating/"
         }

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, new_test_user
 import base64
 
 GIF = b"R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs="
@@ -165,6 +165,59 @@ class TestCaseDocuments(TransactionCase):
         self.assertEqual(self.document_gif.folder_id.id, self.folder_b.id, "failed at workflow rule set folder gif")
         self.assertEqual(self.document_txt.folder_id.id, self.folder_b.id, "failed at workflow rule set folder txt")
 
+    def test_documents_rules_link_to_record(self):
+        """
+        Tests a documents.workflow.rule that links a document to a record.
+        """
+        workflow_rule_link = self.env['documents.workflow.rule'].create({
+            'domain_folder_id': self.folder_a.id,
+            'name': 'workflow rule on link to record',
+            'condition_type': 'criteria',
+            'create_model': 'link.to.record',
+        })
+        user_admin_doc = new_test_user(self.env, login='Test admin documents', groups='documents.group_documents_manager,base.group_partner_manager')
+
+        # prepare documents that the user owns
+        Document = self.env['documents.document'].with_user(user_admin_doc)
+        document_gif = Document.create({
+            'datas': GIF,
+            'name': 'file.gif',
+            'mimetype': 'image/gif',
+            'folder_id': self.folder_b.id,
+        })
+        document_txt = Document.create({
+            'datas': TEXT,
+            'name': 'file.txt',
+            'mimetype': 'text/plain',
+            'folder_id': self.folder_b.id,
+        })
+        documents_to_link = [document_gif, document_txt]
+
+        res_model = 'res.partner'
+        record = {
+            'res_model': res_model,
+            'res_model_id': self.env['ir.model'].name_search(res_model, operator='=', limit=1)[0],
+            'res_id': self.env[res_model].search([], limit=1).id,
+        }
+        link_to_record_ctx = workflow_rule_link.apply_actions([doc.id for doc in documents_to_link])['context']
+        link_to_record_wizard = self.env['documents.link_to_record_wizard'].with_user(user_admin_doc)\
+                                                                           .with_context(link_to_record_ctx).create({})
+        # Link record to document_gif and document_txt
+        link_to_record_wizard.model_id = record['res_model_id']
+        link_to_record_wizard.resource_ref = '%s,%s' % (record['res_model'], record['res_id'])
+        link_to_record_wizard.link_to()
+
+        for doc in documents_to_link:
+            self.assertEqual(doc.res_model, record['res_model'], "bad model linked to the document")
+            self.assertEqual(doc.res_id, record['res_id'], "bad record linked to the document")
+
+        # Removes the link between document_gif and record
+        workflow_rule_link.unlink_record([self.document_gif.id])
+        self.assertNotEqual(self.document_gif.res_model, record['res_model'],
+                            "the link between document_gif and its record was not correctly removed")
+        self.assertNotEqual(self.document_gif.res_id, record['res_id'],
+                            "the link between document_gif and its record was not correctly removed")
+
     def test_documents_rule_display(self):
         """
         tests criteria of rules
@@ -233,11 +286,8 @@ class TestCaseDocuments(TransactionCase):
             'tag_ids': [(6, 0, [])],
             'type': 'domain',
         }
-        action_folder = self.env['documents.share'].create_share(vals)
-        result_share_folder = self.env['documents.share'].search([('folder_id', '=', self.folder_b.id)])
-        result_share_folder_act = self.env['documents.share'].browse(action_folder['res_id'])
-        self.assertEqual(result_share_folder.id, result_share_folder_act.id, "failed at share link by folder")
-        self.assertEqual(result_share_folder_act.type, 'domain', "failed at share link type domain")
+        self.documents_share_links_a = self.env['documents.share'].create(vals)
+        self.assertEqual(self.documents_share_links_a.type, 'domain', "failed at share link type domain")
 
         # by Folder with upload and activites
         vals = {
@@ -254,12 +304,11 @@ class TestCaseDocuments(TransactionCase):
             'activity_date_deadline_range_type': 'days',
             'activity_user_id': self.env.user.id,
         }
-        action_folder_with_upload = self.env['documents.share'].create_share(vals)
-        share_folder_with_upload = self.env['documents.share'].browse(action_folder_with_upload['res_id'])
-        self.assertTrue(share_folder_with_upload.exists(), 'failed at upload folder creation')
-        self.assertEqual(share_folder_with_upload.activity_type_id.name, 'To validate',
+        self.share_folder_with_upload = self.env['documents.share'].create(vals)
+        self.assertTrue(self.share_folder_with_upload.exists(), 'failed at upload folder creation')
+        self.assertEqual(self.share_folder_with_upload.activity_type_id.name, 'To validate',
                          'failed at activity type for upload documents')
-        self.assertEqual(share_folder_with_upload.state, 'live', "failed at share_link live")
+        self.assertEqual(self.share_folder_with_upload.state, 'live', "failed at share_link live")
 
         # by documents
         vals = {
@@ -268,16 +317,43 @@ class TestCaseDocuments(TransactionCase):
             'date_deadline': '2001-11-05',
             'type': 'ids',
         }
-        action_documents = self.env['documents.share'].create_share(vals)
-        result_share_documents_act = self.env['documents.share'].browse(action_documents['res_id'])
+        self.result_share_documents_act = self.env['documents.share'].create(vals)
 
         # Expiration date
-        self.assertEqual(result_share_documents_act.state, 'expired', "failed at share_link expired")
+        self.assertEqual(self.result_share_documents_act.state, 'expired', "failed at share_link expired")
+
+    def test_documents_share_popup(self):
+        share_folder = self.env['documents.folder'].create({
+            'name': 'share folder',
+        })
+        share_tag_category = self.env['documents.facet'].create({
+            'folder_id': share_folder.id,
+            'name': "share category",
+        })
+        share_tag = self.env['documents.tag'].create({
+            'facet_id': share_tag_category.id,
+            'name': "share tag",
+        })
+        domain = [('folder_id', 'in', share_folder.id)]
+        action = self.env['documents.share'].open_share_popup({
+            'domain': domain,
+            'folder_id': share_folder.id,
+            'tag_ids': [[6, 0, [share_tag.id]]],
+            'type': 'domain',
+        })
+        action_context = action['context']
+        self.assertTrue(action_context)
+        self.assertEqual(action_context['default_owner_id'], self.env.uid, "the action should open a view with the current user as default owner")
+        self.assertEqual(action_context['default_folder_id'], share_folder.id, "the action should open a view with the right default folder")
+        self.assertEqual(action_context['default_tag_ids'], [[6, 0, [share_tag.id]]], "the action should open a view with the right default tags")
+        self.assertEqual(action_context['default_type'], 'domain', "the action should open a view with the right default type")
+        self.assertEqual(action_context['default_domain'], domain, "the action should open a view with the right default domain")
 
     def test_request_activity(self):
         """
         Makes sure the document request activities are working properly
         """
+        partner = self.env['res.partner'].create({'name': 'Pepper Street'})
         activity_type = self.env['mail.activity.type'].create({
             'name': 'test_activity_type',
             'category': 'upload_file',
@@ -286,7 +362,7 @@ class TestCaseDocuments(TransactionCase):
         activity = self.env['mail.activity'].create({
             'activity_type_id': activity_type.id,
             'user_id': self.doc_user.id,
-            'res_id': self.env['res.partner'].search([('name', 'ilike', 'Deco Addict')], limit=1).id,
+            'res_id': partner.id,
             'res_model_id': self.env['ir.model'].search([('model', '=', 'res.partner')], limit=1).id,
             'summary': 'test_summary',
         })
@@ -294,7 +370,7 @@ class TestCaseDocuments(TransactionCase):
         activity_2 = self.env['mail.activity'].create({
             'activity_type_id': activity_type.id,
             'user_id': self.doc_user.id,
-            'res_id': self.env['res.partner'].search([('name', 'ilike', 'Deco Addict')], limit=1).id,
+            'res_id': partner.id,
             'res_model_id': self.env['ir.model'].search([('model', '=', 'res.partner')], limit=1).id,
             'summary': 'test_summary_2',
         })
@@ -321,6 +397,43 @@ class TestCaseDocuments(TransactionCase):
         self.assertFalse(activity.exists(), 'the activity should be done')
         self.assertFalse(activity_2.exists(), 'the activity_2 should be done')
 
+    def test_recurring_document_request(self):
+        """
+        Ensure that separate document requests are created for recurring upload activities
+        Ensure that the next activity is linked to the new document
+        """
+        activity_type = self.env['mail.activity.type'].create({
+            'name': 'recurring_upload_activity_type',
+            'category': 'upload_file',
+            'folder_id': self.folder_a.id,
+        })
+        activity_type.write({
+            'chaining_type': 'trigger',
+            'triggered_next_type_id': activity_type.id
+        })
+        document = self.env['documents.request_wizard'].create({
+            'name': 'Wizard Request',
+            'owner_id': self.doc_user.id,
+            'activity_type_id': activity_type.id,
+            'folder_id': self.folder_a.id,
+        }).request_document()
+        activity = document.request_activity_id
+
+        self.assertEqual(activity.summary, 'Wizard Request')
+
+        document.write({'datas': GIF, 'name': 'testGif.gif'})
+
+        self.assertFalse(activity.exists(), 'the activity should be removed after file upload')
+        self.assertEqual(document.type, 'binary', 'document 1 type should be binary')
+        self.assertFalse(document.request_activity_id, 'document 1 should have no activity remaining')
+
+        # a new document (request) and file_upload activity should be created
+        activity_2 = self.env['mail.activity'].search([('res_model', '=', 'documents.document')])
+        document_2 = self.env['documents.document'].search([('request_activity_id', '=', activity_2.id), ('type', '=', 'empty')])
+
+        self.assertNotEqual(document_2.id, document.id, 'a new document and activity should exist')
+        self.assertEqual(document_2.request_activity_id.summary, 'Wizard Request')
+
     def test_default_res_id_model(self):
         """
         Test default res_id and res_model from context are used for linking attachment to document.
@@ -337,11 +450,100 @@ class TestCaseDocuments(TransactionCase):
         self.assertEqual(attachment.res_model, document._name, "It should be linked to the default res_model")
         self.assertEqual(document.attachment_id, attachment, "Document should be linked to the created attachment")
 
+    def test_versioning(self):
+        """
+        Tests the versioning/history of documents
+        """
+        document = self.env['documents.document'].create({'datas': GIF, 'folder_id': self.folder_b.id})
+        self.assertEqual(len(document.previous_attachment_ids.ids), 0, "The history should be empty")
+        document.write({'datas': TEXT})
+        self.assertEqual(len(document.previous_attachment_ids.ids), 1, "There should be 1 attachment in history")
+        self.assertEqual(document.previous_attachment_ids[0].datas, GIF, "The history should have the right content")
+        old_attachment = document.previous_attachment_ids[0]
+        new_attachment = document.attachment_id
+        document.write({'attachment_id': old_attachment.id})
+        self.assertEqual(len(document.previous_attachment_ids.ids), 1, "there should still be 1 attachment in history")
+        self.assertEqual(document.attachment_id.id, old_attachment.id, "the history should contain the old attachment")
+        self.assertEqual(document.previous_attachment_ids[0].id, new_attachment.id,
+                         "the document should contain the new attachment")
+
     def test_write_mimetype(self):
         """
         Tests the consistency of documents' mimetypes
         """
         document = self.env['documents.document'].create({'datas': GIF, 'folder_id': self.folder_b.id})
-        document.write({'datas': TEXT, 'mimetype': 'text/plain'})
-
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'text/plain'})
         self.assertEqual(document.mimetype, 'text/plain', "the new mimetype should be the one given on write")
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})
+        self.assertEqual(document.mimetype, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', "should preserve office mime type")
+
+    def test_cascade_delete(self):
+        """
+        Makes sure that documents are unlinked when their attachment is unlinked.
+        """
+        document = self.env['documents.document'].create({'datas': GIF, 'folder_id': self.folder_b.id})
+        self.assertTrue(document.exists(), 'the document should exist')
+        document.attachment_id.unlink()
+        self.assertFalse(document.exists(), 'the document should not exist')
+
+    def test_is_favorited(self):
+        user = new_test_user(self.env, "test user", groups='documents.group_documents_user')
+        document = self.env['documents.document'].create({'datas': GIF, 'folder_id': self.folder_b.id})
+        document.favorited_ids = user
+        self.assertFalse(document.is_favorited)
+        self.assertTrue(document.with_user(user).is_favorited)
+
+    def test_neuter_mimetype(self):
+        """
+        Tests that potentially harmful mimetypes (XML mimetypes that can lead to XSS attacks) are converted to text
+
+        In fact this logic is implemented in the base `IrAttachment` model but was originally duplicated.  
+        The test stays duplicated here to ensure the de-duplicated logic still catches our use cases.
+        """
+        document = self.env['documents.document'].create({'datas': GIF, 'folder_id': self.folder_b.id})
+
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'text/xml'})
+        self.assertEqual(document.mimetype, 'text/plain', "XML mimetype should be forced to text")
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'image/svg+xml'})
+        self.assertEqual(document.mimetype, 'text/plain', "SVG mimetype should be forced to text")
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'text/html'})
+        self.assertEqual(document.mimetype, 'text/plain', "HTML mimetype should be forced to text")
+        document.with_user(self.doc_user.id).write({'datas': TEXT, 'mimetype': 'application/xhtml+xml'})
+        self.assertEqual(document.mimetype, 'text/plain', "XHTML mimetype should be forced to text")
+
+    def test_create_from_message(self):
+        """
+        When we create the document from a message, we need to apply the defaults set on the share.
+        """
+        attachment = self.env['ir.attachment'].create({
+            'datas': GIF,
+            'name': 'attachmentGif.gif',
+            'res_model': 'documents.document',
+            'res_id': 0,
+        })
+        partner = self.env['res.partner'].create({
+            'name': 'Luke Skywalker'
+        })
+        share = self.env['documents.share'].create({
+            'owner_id': self.doc_user.id,
+            'partner_id': partner.id,
+            'tag_ids': [(6, 0, [self.tag_b.id])],
+            'folder_id': self.folder_a.id,
+        })
+        message = self.env['documents.document'].message_new({
+            'subject': 'test message'
+        }, {
+            # this create_share_id value, is normally passed from the alias default created by the share
+            'create_share_id': share.id,
+            'folder_id': self.folder_a.id,
+        })
+        message._message_post_after_hook({ }, {
+            'attachment_ids': [(4, attachment.id)]
+        })
+        self.assertEqual(message.active, False, 'Document created for the message should be inactive')
+        self.assertNotEqual(attachment.res_id, 0, 'Should link document to attachment')
+        attachment_document = self.env['documents.document'].browse(attachment.res_id)
+        self.assertNotEqual(attachment_document, None, 'Should have created document')
+        self.assertEqual(attachment_document.owner_id.id, self.doc_user.id, 'Should assign owner from share')
+        self.assertEqual(attachment_document.partner_id.id, partner.id, 'Should assign partner from share')
+        self.assertEqual(attachment_document.tag_ids.ids, [self.tag_b.id], 'Should assign tags from share')

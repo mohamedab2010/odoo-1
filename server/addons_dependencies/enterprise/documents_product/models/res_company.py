@@ -9,7 +9,7 @@ class ResCompany(models.Model):
 
     def _domain_company(self):
         company = self.env.company
-        return ['|', ('company_id', '=', False), ('company_id', '=', company)]
+        return ['|', ('company_id', '=', False), ('company_id', '=', company.id)]
 
     documents_product_settings = fields.Boolean()
     product_folder = fields.Many2one('documents.folder', string="Product Workspace", domain=_domain_company,

@@ -1,19 +1,26 @@
-odoo.define('account_invoice_extract.FormViewTests', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var mailTestUtils = require('mail.testUtils');
+import {
+    afterEach,
+    afterNextRender,
+    beforeEach,
+    nextAnimationFrame,
+    start,
+} from '@mail/utils/test_utils';
 
-var FormRenderer = require('account_invoice_extract.FormRenderer');
-var FormView = require('account_invoice_extract.FormView');
-var invoiceExtractTestUtils = require('account_invoice_extract.testUtils');
+import FormRenderer from '@account_invoice_extract/js/invoice_extract_form_renderer';
+import FormView from '@account_invoice_extract/js/invoice_extract_form_view';
+import invoiceExtractTestUtils from '@account_invoice_extract/tests/helpers/invoice_extract_test_utils';
 
-var config = require('web.config');
-var testUtils = require('web.test_utils');
+import config from 'web.config';
+import testUtils from 'web.test_utils';
 
 QUnit.module('account_invoice_extract', {}, function () {
-QUnit.module('FormView', {
-    beforeEach: function () {
-        this.data = {
+QUnit.module('invoice_extract_form_view_tests.js', {
+    beforeEach() {
+        beforeEach(this);
+
+        Object.assign(this.data, {
             'account.move': {
                 fields: {
                     amount_total: { string: 'Amount Total', type: 'integer' },
@@ -24,60 +31,41 @@ QUnit.module('FormView', {
                     display_name: { string: 'Name', type: 'string' },
                     invoice_id: { string: 'InvoiceId', type: 'string' },
                     message_attachment_count: { string: 'Attachment count', type: 'integer' },
-                    message_ids: {
-                        string: 'messages',
-                        type: 'one2many',
-                        relation: 'mail.message',
-                        relation_field: 'res_id',
-                    },
+                    message_ids: { string: 'messages', type: 'one2many', relation: 'mail.message', relation_field: 'res_id' },
+                    message_main_attachment_id: { string: "Main Attachment", type: 'many2one', relation: 'ir.attachment' },
                 },
                 records: [{
                     amount_total: 100,
-                    currency_id: [2, 'USD'],
+                    currency_id: 2,
                     date: '1984-12-15',
                     date_due: '1984-12-20',
-                    invoice_date: '1984-12-15',
                     display_name: 'MyInvoice',
-                    invoice_id: 'INV_15/26/34',
                     id: 2,
+                    invoice_date: '1984-12-15',
+                    invoice_id: 'INV_15/26/34',
                     message_attachment_count: 1,
-                    message_ids: [1]
+                    message_ids: [1],
+                    message_main_attachment_id: 1,
                 }],
             },
-            'mail.message': {
+            'res.currency': {
                 fields: {
-                    // attachment_ids: { string: 'Attachments', type: 'one2many', relation: 'ir.attachment'},
-                    author_id: { string: '', type: '' },
-                    body: { string: '', type: 'string' },
-                    date: { string: 'Date', type: 'date' },
-                    displayed_author: { string: '', type: 'string' },
-                    is_note: { string: '', type: 'boolean' },
-                    is_discussion: { string: '', type: 'boolean' },
-                    is_starred: { string: 'Starred', type: 'boolean' },
-                    model: { string: 'Document Model', type: 'string' },
-                    res_id: { string: 'Document ID', type: 'integer' },
+                    name: { string: "Name" },
                 },
-                records: [{
-                    attachment_ids: [{
-                        filename: 'image1.jpg',
-                        id:1,
-                        mimetype: 'image/jpeg',
-                        name: 'Test Image 1',
-                        url: '/web/content/1?download=true',
-                    }],
-                    author_id: [1, "Kamlesh Sulochan"],
-                    body: "Attachment viewer test",
-                    date: "2016-12-20 09:35:40",
-                    displayed_author: "Kamlesh Sulochan",
-                    id: 1,
-                    is_note: false,
-                    is_discussion: true,
-                    is_starred: false,
-                    model: 'account.move',
-                    res_id: 2,
-                }],
-            }
-        };
+                records: [{ id: 2, name: "USD" }],
+            },
+        });
+        this.data['ir.attachment'].records.push({
+            id: 1,
+            mimetype: 'image/jpeg',
+            res_id: 2,
+            res_model: 'account.move',
+        });
+        this.data['mail.message'].records.push({
+            attachment_ids: [1],
+            model: 'account.move',
+            res_id: 2,
+        });
 
         testUtils.mock.patch(FormRenderer, {
             /**
@@ -94,13 +82,15 @@ QUnit.module('FormView', {
     },
     afterEach: function () {
         testUtils.mock.unpatch(FormRenderer);
+        afterEach(this);
     },
 }, function () {
 
     QUnit.test('basic', async function (assert) {
         assert.expect(27);
 
-        var form = await testUtils.createView({
+        const { widget: form } = await start({
+            hasView: true,
             View: FormView,
             model: 'account.move',
             data: this.data,
@@ -108,33 +98,46 @@ QUnit.module('FormView', {
                     '<div class="o_success_ocr"/>' +
                     '<div class="o_attachment_preview" options="{\'order\':\'desc\'}"></div>' +
                     '<div class="oe_chatter">' +
-                        '<field name="message_ids" widget="mail_thread" options="{\'display_log_button\': True}"/>' +
+                        '<field name="message_ids"/>' +
                     '</div>' +
                 '</form>',
+            // FIXME could be removed once task-2248306 is done
+            archs: {
+                'mail.message,false,list': '<tree/>',
+            },
             res_id: 2,
-            services: mailTestUtils.getMailServices(),
+            services: this.services,
             config: {
                 device: {
                     size_class: config.device.SIZES.XXL,
                 },
             },
-            mockRPC: function (route, args) {
+            mockRPC(route, args) {
                 if (args.method === 'get_boxes') {
                     return Promise.resolve(invoiceExtractTestUtils.createBoxesData());
-                } else if (args.method === 'search_read') {
-                    return Promise.resolve([this.data['mail.message'].records[0].attachment_ids[0]]);
                 } else if (args.method === 'register_as_main_attachment') {
                     return Promise.resolve(true);
                 }
                 return this._super.apply(this, arguments);
             },
+            waitUntilEvent: {
+                eventName: 'o-thread-view-hint-processed',
+                message: "should wait until account.move 2 thread displayed its messages",
+                predicate: ({ hint, threadViewer }) => {
+                    return (
+                        hint.type === 'messages-loaded' &&
+                        threadViewer.thread.model === 'account.move' &&
+                        threadViewer.thread.id === 2
+                    );
+                },
+            },
         });
 
         // Need to load form view before going to edit mode, otherwise
         // 'o_success_ocr' is not loaded.
-        await testUtils.dom.click($('.o_form_button_edit'));
+        await afterNextRender(() => testUtils.dom.click($('.o_form_button_edit')));
 
-        var $attachmentPreview = form.$('.o_attachment_preview_img');
+        let $attachmentPreview = form.$('.o_attachment_preview_img');
 
         // check presence of attachment, buttons, box layer, boxes
         assert.strictEqual($attachmentPreview.length, 1,
@@ -216,7 +219,8 @@ QUnit.module('FormView', {
     QUnit.test('no box and button in readonly mode', async function (assert) {
         assert.expect(15);
 
-        var form = await testUtils.createView({
+        const { widget: form } = await start({
+            hasView: true,
             View: FormView,
             model: 'account.move',
             data: this.data,
@@ -224,29 +228,43 @@ QUnit.module('FormView', {
                     '<div class="o_success_ocr"/>' +
                     '<div class="o_attachment_preview" options="{\'order\':\'desc\'}"></div>' +
                     '<div class="oe_chatter">' +
-                        '<field name="message_ids" widget="mail_thread" options="{\'display_log_button\': True}"/>' +
+                        '<field name="message_ids"/>' +
                     '</div>' +
                 '</form>',
+            // FIXME could be removed once task-2248306 is done
+            archs: {
+                'mail.message,false,list': '<tree/>',
+            },
             res_id: 2,
-            services: mailTestUtils.getMailServices(),
             config: {
                 device: {
                     size_class: config.device.SIZES.XXL,
                 },
             },
-            mockRPC: function (route, args) {
+            mockRPC(route, args) {
                 if (args.method === 'get_boxes') {
                     return Promise.resolve(invoiceExtractTestUtils.createBoxesData());
-                } else if (args.method === 'search_read') {
-                    return Promise.resolve([this.data['mail.message'].records[0].attachment_ids[0]]);
                 } else if (args.method === 'register_as_main_attachment') {
                     return Promise.resolve(true);
                 }
                 return this._super.apply(this, arguments);
             },
+            waitUntilEvent: {
+                eventName: 'o-thread-view-hint-processed',
+                message: "should wait until account.move 2 thread displayed its messages",
+                predicate: ({ hint, threadViewer }) => {
+                    return (
+                        hint.type === 'messages-loaded' &&
+                        threadViewer.thread.model === 'account.move' &&
+                        threadViewer.thread.id === 2
+                    );
+                },
+            },
         });
 
-        var $attachmentPreview = form.$('.o_attachment_preview_img');
+        await nextAnimationFrame();
+
+        let $attachmentPreview = form.$('.o_attachment_preview_img');
         assert.strictEqual($attachmentPreview.length, 1,
             "should display attachment preview");
         assert.strictEqual($attachmentPreview.find('.o_invoice_extract_buttons').length, 0,
@@ -260,7 +278,9 @@ QUnit.module('FormView', {
 
         // Need to load form view before going to edit mode, otherwise
         // 'o_success_ocr' is not loaded.
-        await testUtils.dom.click($('.o_form_button_edit'));
+        await afterNextRender(() => {
+            testUtils.dom.click($('.o_form_button_edit'));
+        });
 
         $attachmentPreview = form.$('.o_attachment_preview_img');
         assert.strictEqual($attachmentPreview.length, 1,
@@ -274,7 +294,9 @@ QUnit.module('FormView', {
         assert.strictEqual($('.o_invoice_extract_box').length, 5,
             "should now display boxes in edit mode");
 
-        await testUtils.dom.click($('.o_form_button_save'));
+        await afterNextRender(() => {
+            testUtils.dom.click($('.o_form_button_save'));
+        });
 
         $attachmentPreview = form.$('.o_attachment_preview_img');
         assert.strictEqual($attachmentPreview.length, 1,
@@ -294,7 +316,8 @@ QUnit.module('FormView', {
     QUnit.test('change active field', async function (assert) {
         assert.expect(12);
 
-        var form = await testUtils.createView({
+        const { widget: form } = await start({
+            hasView: true,
             View: FormView,
             model: 'account.move',
             data: this.data,
@@ -302,31 +325,43 @@ QUnit.module('FormView', {
                     '<div class="o_success_ocr"/>' +
                     '<div class="o_attachment_preview" options="{\'order\':\'desc\'}"></div>' +
                     '<div class="oe_chatter">' +
-                        '<field name="message_ids" widget="mail_thread" options="{\'display_log_button\': True}"/>' +
+                        '<field name="message_ids"/>' +
                     '</div>' +
                 '</form>',
+            // FIXME could be removed once task-2248306 is done
+            archs: {
+                'mail.message,false,list': '<tree/>',
+            },
             res_id: 2,
-            services: mailTestUtils.getMailServices(),
             config: {
                 device: {
                     size_class: config.device.SIZES.XXL,
                 },
             },
-            mockRPC: function (route, args) {
+            mockRPC(route, args) {
                 if (args.method === 'get_boxes') {
                     return Promise.resolve(invoiceExtractTestUtils.createBoxesData());
-                } else if (args.method === 'search_read') {
-                    return Promise.resolve([this.data['mail.message'].records[0].attachment_ids[0]]);
                 } else if (args.method === 'register_as_main_attachment') {
                     return Promise.resolve(true);
                 }
                 return this._super.apply(this, arguments);
             },
+            waitUntilEvent: {
+                eventName: 'o-thread-view-hint-processed',
+                message: "should wait until account.move 2 thread displayed its messages",
+                predicate: ({ hint, threadViewer }) => {
+                    return (
+                        hint.type === 'messages-loaded' &&
+                        threadViewer.thread.model === 'account.move' &&
+                        threadViewer.thread.id === 2
+                    );
+                },
+            },
         });
 
         // Need to load form view before going to edit mode, otherwise
         // 'o_success_ocr' is not loaded.
-        await testUtils.form.clickEdit(form);
+        await afterNextRender(() => testUtils.form.clickEdit(form));
 
         assert.strictEqual($('.o_invoice_extract_button.active').data('field-name'),
             'VAT_Number', "should have 'VAT_Number' as the active field");
@@ -364,6 +399,78 @@ QUnit.module('FormView', {
         form.destroy();
     });
 
-});
+    QUnit.test('always keep one box layer per page on enabling OCR boxes visualisation', async function (assert) {
+        assert.expect(3);
+
+        const { widget: form } = await start({
+            hasView: true,
+            View: FormView,
+            model: 'account.move',
+            data: this.data,
+            arch: `<form string="Account Invoice">
+                    <div class="o_success_ocr"/>
+                    <div class="o_attachment_preview" options="{'order': 'desc'}"></div>
+                    <div class="oe_chatter">
+                        <field name="message_ids"/>
+                    </div>
+                </form>`,
+            // FIXME could be removed once task-2248306 is done
+            archs: {
+                'mail.message,false,list': '<tree/>',
+            },
+            res_id: 2,
+            config: {
+                device: {
+                    size_class: config.device.SIZES.XXL,
+                },
+            },
+            async mockRPC(route, args) {
+                if (args.method === 'get_boxes') {
+                    return invoiceExtractTestUtils.createBoxesData();
+                } else if (args.method === 'register_as_main_attachment') {
+                    return true;
+                }
+                return this._super(...arguments);
+            },
+            waitUntilEvent: {
+                eventName: 'o-thread-view-hint-processed',
+                message: "should wait until account.move 2 thread displayed its messages",
+                predicate: ({ hint, threadViewer }) => {
+                    return (
+                        hint.type === 'messages-loaded' &&
+                        threadViewer.thread.model === 'account.move' &&
+                        threadViewer.thread.id === 2
+                    );
+                },
+            },
+        });
+
+        // Need to load form view before going to edit mode, otherwise
+        // 'o_success_ocr' is not loaded.
+        await afterNextRender(() => {
+            testUtils.dom.click($('.o_form_button_edit'));
+        });
+        let $attachmentPreview = form.$('.o_attachment_preview_img');
+        // check presence of attachment, buttons, box layer, boxes
+        assert.strictEqual($attachmentPreview.length, 1,
+            "should display attachment preview");
+        assert.strictEqual($attachmentPreview.find('.boxLayer').length, 1,
+            "should contain a box layer on attachment");
+
+        // Send a new message to trigger a rerender (which will trigger a new boxlayer creation)
+        await afterNextRender(() => {
+            testUtils.dom.click($('.o_ChatterTopbar_buttonLogNote'));
+        });
+        form.$('.o_ComposerTextInput_textarea:first()').val("Blah");
+        await testUtils.dom.click($('.o_Composer_buttonSend'));
+
+        $attachmentPreview = form.$('.o_attachment_preview_img');
+        // check presence of attachment, buttons, box layer, boxes
+        assert.strictEqual($attachmentPreview.find('.boxLayer').length, 1,
+            "should contain only one box layer on attachment");
+        // Need to wait a little while so that the attachmentPreview finished its rendering
+        await testUtils.nextTick();
+        form.destroy();
+    });
 });
 });

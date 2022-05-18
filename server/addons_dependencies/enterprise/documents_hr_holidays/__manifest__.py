@@ -4,8 +4,8 @@
 {
     'name': 'Documents - Time Off',
     'version': '1.0',
-    'category': 'Operations/Documents',
-    'summary': 'Store employee\'s time off documents  in the Document app',
+    'category': 'Productivity/Documents',
+    'summary': 'Store employee\'s time off documents in the Document app',
     'description': """
 Time off documents will be automatically integrated to the Document app.
 """,

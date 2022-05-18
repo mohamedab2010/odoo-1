@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 from dateutil.relativedelta import relativedelta
 
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 
 
 class WorkflowActionRule(models.Model):
     _name = "documents.workflow.rule"
     _description = "A set of condition and actions which will be available to all attachments matching the conditions"
+    _order = "sequence"
 
-    domain_folder_id = fields.Many2one('documents.folder', string="Workspace", required=True, ondelete='cascade')
-    name = fields.Char(required=True, string="Rule name", translate=True)
+    domain_folder_id = fields.Many2one('documents.folder', string="Related Workspace", required=True, ondelete='cascade')
+    name = fields.Char(required=True, string="Action Button Name", translate=True)
     note = fields.Char(string="Tooltip")
     sequence = fields.Integer('Sequence', default=10)
 
@@ -34,8 +35,9 @@ class WorkflowActionRule(models.Model):
     user_id = fields.Many2one('res.users', string="Set Owner")
     tag_action_ids = fields.One2many('documents.workflow.action', 'workflow_rule_id', string='Set Tags')
     folder_id = fields.Many2one('documents.folder', string="Move to Workspace")
-    has_business_option = fields.Boolean(compute='_get_business')
-    create_model = fields.Selection([], string="Create")
+    create_model = fields.Selection([('link.to.record', 'Link to record')], string="Create")
+    link_model = fields.Many2one('ir.model', string="Specific Model Linked",
+                                 domain=[('model', '!=', 'documents.document'), ('is_mail_thread', '=', 'True')])
 
     # Activity
     remove_activities = fields.Boolean(string='Mark all as Done')
@@ -49,6 +51,7 @@ class WorkflowActionRule(models.Model):
         ('months', 'Months'),
     ], string='Due type', default='days')
     activity_note = fields.Html(string="Activity Note")
+    has_owner_activity = fields.Boolean(string="Set the activity on the document owner")
     activity_user_id = fields.Many2one('res.users', string='Responsible')
 
     @api.onchange('domain_folder_id')
@@ -57,14 +60,6 @@ class WorkflowActionRule(models.Model):
             self.required_tag_ids = False
         if self.domain_folder_id != self.excluded_tag_ids.mapped('folder_id'):
             self.excluded_tag_ids = False
-
-    def _get_business(self):
-        """
-        Checks if the workflow rule has available create models to display the option.
-        Implemented by the bridge models if the rule should only be available for a single record.
-        """
-        for record in self:
-            record.has_business_option = len(self._fields['create_model'].selection)
 
     def _compute_limited_to_single_record(self):
         """
@@ -82,8 +77,59 @@ class WorkflowActionRule(models.Model):
         :param documents: the list of the documents of the selection
         :return: the action dictionary that will be called after the workflow action is done or True.
         """
+        if self.create_model == 'link.to.record':
+            return self.link_to_record(documents)
 
         return True
+
+    def link_to_record(self, documents=None):
+        """
+        :param documents: the list of the documents of the selection
+        :return: the action dictionary that will activate a wizard to create a link between the documents of the selection and a record.
+        """
+        context = {
+                    'default_document_ids': documents.ids,
+                    'default_resource_ref': False,
+                    'default_is_readonly_model': False,
+                    'default_model_ref': False,
+                    }
+
+        documents_link_record = [d for d in documents if (d.res_model != 'documents.document')]
+        if documents_link_record:
+            return {
+                    'warning': {
+                            'title': _("Already linked Documents"),
+                            'documents': [d.name for d in documents_link_record],
+                            }
+                    }
+        elif self.link_model:
+            # Throw a warning if the user does not have access to the model.
+            self.env[self.link_model.model].check_access_rights('write')
+            context['default_is_readonly_model'] = True
+            context['default_model_id'] = self.link_model.id
+
+        link_to_record_action = {
+                'name': _('Choose a record to link'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'documents.link_to_record_wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'views': [(False, "form")],
+                'context': context,
+            }
+        return link_to_record_action
+
+    @api.model
+    def unlink_record(self, document_ids=None):
+        """
+        Removes the link with its record for all the documents having is id in document_ids
+        """
+        documents = self.env['documents.document'].browse(document_ids)
+        documents.write({
+            'res_model': 'documents.document',
+            'res_id': False,
+            'is_editable_attachment': False,
+        })
 
     def apply_actions(self, document_ids):
         """
@@ -120,7 +166,7 @@ class WorkflowActionRule(models.Model):
             documents.documents_set_activity(settings_record=self)
 
         if self.create_model:
-            return self.create_record(documents=documents)
+            return self.with_company(documents.company_id).create_record(documents=documents)
 
         return True
 
@@ -148,7 +194,8 @@ class WorkflowTagAction(models.Model):
             if faceted_tags.ids:
                 for tag in faceted_tags:
                     document.write({'tag_ids': [(3, tag.id, False)]})
-            return document.write({'tag_ids': [(4, self.tag_id.id, False)]})
+            if self.tag_id:
+                return document.write({'tag_ids': [(4, self.tag_id.id, False)]})
         elif self.action == 'remove':
             if self.tag_id.id:
                 return document.write({'tag_ids': [(3, self.tag_id.id, False)]})

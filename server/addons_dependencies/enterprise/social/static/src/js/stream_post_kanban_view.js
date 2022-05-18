@@ -71,12 +71,12 @@ var StreamPostKanbanView = KanbanView.extend({
             this._super.apply(this, arguments)
         ]).then(function (results) {
             var socialAccountsStats = results[0];
-            var state = results[1];
+            const { state, handle } = results[1];
             if (!state.socialAccountsStats) {
                 state.socialAccountsStats = socialAccountsStats;
             }
 
-            return state;
+            return { state, handle };
         });
     },
 });

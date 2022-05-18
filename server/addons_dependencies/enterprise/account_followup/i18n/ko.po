@@ -3,18 +3,17 @@
 # 	* account_followup
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Link Up링크업 <linkup.way@gmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# Martin Trigaux, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-07 07:20+0000\n"
-"PO-Revision-Date: 2019-09-13 11:47+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Linkup <link-up@naver.com>, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -56,7 +55,9 @@ msgstr ""
 "            "
 
 #. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
 #: model:account_followup.followup.line,description:account_followup.demo_followup_line1
+#, python-format
 msgid ""
 "\n"
 "Dear %(partner_name)s,\n"
@@ -112,18 +113,16 @@ msgstr ""
 "            "
 
 #. module: account_followup
-#: code:addons/account_followup/models/account_followup_report.py:0
+#: code:addons/account_followup/models/account_followup.py:0
 #, python-format
-msgid "%s Payment Reminder"
-msgstr "%s 결제 미리 알림"
+msgid "%(company_name)s Payment Reminder - %(partner_name)s"
+msgstr ""
 
 #. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
-#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#: code:addons/account_followup/models/account_followup.py:0
 #, python-format
-msgid "&times;"
-msgstr "&times;"
+msgid "%s (copy)"
+msgstr "%s (사본)"
 
 #. module: account_followup
 #: model:ir.actions.report,print_report_name:account_followup.action_report_followup
@@ -157,6 +156,11 @@ msgstr ": 사용자의 회사명"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid "<b>Email Subject:</b><br/>"
+msgstr ""
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
 msgid "<b>Next Reminder Date:</b>"
 msgstr "<b>다음 알림 날짜 :</b>"
 
@@ -179,6 +183,14 @@ msgstr "<i class=\"fa fa-circle\" style=\"color: red;\"/> 불량 채무자"
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
 msgid "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\"/>"
 msgstr "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\"/>"
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid ""
+"<i class=\"fa fa-fw fa-pencil o_account_reports_edit_email_subject_pencil\" "
+"role=\"img\" aria-label=\"Edit Email Subject\" title=\"Edit Email "
+"Subject\"/>"
+msgstr ""
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
@@ -216,9 +228,21 @@ msgid ""
 msgstr "<strong>경고!</strong> 이 협력사는 조치를 취할 필요가 없습니다."
 
 #. module: account_followup
+#: model:ir.model.constraint,message:account_followup.constraint_account_followup_followup_line_uniq_name
+msgid ""
+"A follow-up action name must be unique. This name is already set to another "
+"action."
+msgstr ""
+
+#. module: account_followup
 #: model:ir.model,name:account_followup.model_account_chart_template
 msgid "Account Chart Template"
-msgstr "회계 계정 서식"
+msgstr "계정과목 일람표 서식"
+
+#. module: account_followup
+#: model:ir.model,name:account_followup.model_report_account_followup_report_followup_print_all
+msgid "Account Follow-up Report"
+msgstr ""
 
 #. module: account_followup
 #: model:ir.actions.server,name:account_followup.ir_cron_auto_post_draft_entry_ir_actions_server
@@ -241,6 +265,11 @@ msgstr "추가 작업"
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
 msgid "Add a note"
 msgstr "노트 추가하기"
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid "Add an email subject"
+msgstr ""
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
@@ -275,16 +304,17 @@ msgid "Bad debtor"
 msgstr "악성 채무자"
 
 #. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/js/followup_form_renderer.js:0
-#, python-format
-msgid "Calling"
-msgstr "전화 중"
-
-#. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.line_template_followup_report
 msgid "Change expected payment date"
 msgstr "예상 결제 날짜 변경"
+
+#. module: account_followup
+#. openerp-web
+#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#, python-format
+msgid "Close"
+msgstr "닫기"
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -313,12 +343,12 @@ msgstr "지정된 이메일 주소가 없어 %s 협력사에게 메일을 발송
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__create_uid
 msgid "Created by"
-msgstr "작성인"
+msgstr "작성자"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__create_date
 msgid "Created on"
-msgstr "작성일"
+msgstr "작성일자"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.followup_filter_info_template
@@ -334,7 +364,7 @@ msgstr "고객 명세서"
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Date"
-msgstr "날짜"
+msgstr "일자"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
@@ -346,7 +376,7 @@ msgstr "\"나중에 알림\" 버튼을 선택한 경우 Odoo가 후속 조치를
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.followup_filter_info_template
 msgid "Date:"
-msgstr "날짜 :"
+msgstr "일자:"
 
 #. module: account_followup
 #: model:ir.model.constraint,message:account_followup.constraint_account_followup_followup_line_days_uniq
@@ -354,11 +384,13 @@ msgid "Days of the follow-up levels must be different per company"
 msgstr "후속 조치 수준의 날짜는 회사마다 달라야 합니다."
 
 #. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line1
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line2
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line3
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line4
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line5
+#, python-format
 msgid "Dear %(partner_name)s, it seems that some of your payments stay unpaid"
 msgstr "%(partner_name)s님. 일부 결제가 미지급 상태인 것으로 보입니다."
 
@@ -368,10 +400,14 @@ msgid "Define follow-up levels and their related actions"
 msgstr "후속 조치 수준 및 관련 조치 정의"
 
 #. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "Description"
+msgstr "설명"
+
+#. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__display_name
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report__display_name
 msgid "Display Name"
-msgstr "표시 이름"
+msgstr "표시명"
 
 #. module: account_followup
 #. openerp-web
@@ -384,12 +420,19 @@ msgstr "완료"
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Due Date"
-msgstr "만기일 "
+msgstr "만기일"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__delay
 msgid "Due Days"
 msgstr "만기일"
+
+#. module: account_followup
+#: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__email_subject
+#: model:ir.model.fields,field_description:account_followup.field_account_report_manager__email_subject
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "Email Subject"
+msgstr ""
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -401,7 +444,7 @@ msgstr "제외됨"
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Expected Date"
-msgstr "예상된 날짜"
+msgstr "예정일"
 
 #. module: account_followup
 #: code:addons/account_followup/models/chart_template.py:0
@@ -489,12 +532,6 @@ msgid "Follow-ups Done / Total Follow-ups"
 msgstr "후속 조치 완료 / 총 후속 조치"
 
 #. module: account_followup
-#: code:addons/account_followup/models/account_followup_report.py:0
-#, python-format
-msgid "Followup Report"
-msgstr "후속 조치 보고서"
-
-#. module: account_followup
 #: model_terms:ir.actions.act_window,help:account_followup.action_account_followup_line_definition_form
 msgid ""
 "For each step, specify the actions to be taken and delay in days. It is\n"
@@ -511,13 +548,7 @@ msgid "Good debtor"
 msgstr "우량 채무자"
 
 #. module: account_followup
-#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
-msgid "How to customize your messages?"
-msgstr "메시지를 맞춤 설정하는 방법은 무엇입니까?"
-
-#. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__id
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report__id
 msgid "ID"
 msgstr "ID"
 
@@ -540,7 +571,7 @@ msgstr "맞춤 설정된 메시지를 작성하려면 :"
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__join_invoices
 msgid "Join open Invoices"
-msgstr "미결 송장 가입"
+msgstr "미결 청구서 가입"
 
 #. module: account_followup
 #: model:ir.model,name:account_followup.model_account_move_line
@@ -549,7 +580,6 @@ msgstr "분개 항목"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line____last_update
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report____last_update
 msgid "Last Modified on"
 msgstr "최근 수정일"
 
@@ -561,7 +591,7 @@ msgstr "최근 갱신한 사람"
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__write_date
 msgid "Last Updated on"
-msgstr "최근 갱신일"
+msgstr "최근 갱신 일자"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_move_line__followup_date
@@ -652,12 +682,12 @@ msgstr "또는, 이 필드에 사용자를 할당하여 후속 관리 담당자�
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid "Options"
-msgstr "선택 사항"
+msgstr "옵션"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.customer_statements_search_view
 msgid "Overdue Invoices"
-msgstr "연체 송장"
+msgstr "연체 청구서"
 
 #. module: account_followup
 #: code:addons/account_followup/models/res_partner.py:0
@@ -668,13 +698,7 @@ msgstr "%s에 대한 연체 지불금"
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_report_manager__partner_id
 msgid "Partner"
-msgstr "협력사"
-
-#. module: account_followup
-#: code:addons/account_followup/models/res_partner.py:0
-#, python-format
-msgid "Partner Ledger"
-msgstr "협력사 원장"
+msgstr "파트너"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.account_move_line_partner_tree
@@ -685,6 +709,12 @@ msgstr "협력사 항목"
 #: model:ir.actions.act_window,name:account_followup.action_account_followup_line_definition_form
 msgid "Payment Follow-ups"
 msgstr "결제 후속 관리"
+
+#. module: account_followup
+#: code:addons/account_followup/models/account_followup_report.py:0
+#, python-format
+msgid "Payment Reminder"
+msgstr ""
 
 #. module: account_followup
 #: model:ir.actions.report,name:account_followup.action_report_followup
@@ -728,11 +758,6 @@ msgid "Remind me later"
 msgstr "나중에 알림"
 
 #. module: account_followup
-#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
-msgid "SMS Message"
-msgstr "SMS 메시지"
-
-#. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__sms_description
 msgid "SMS Text Message"
 msgstr "SMS 문자 메시지"
@@ -756,7 +781,7 @@ msgstr "두 번째 미리 알림 서신 및 이메일"
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Send SMS Text Message"
-msgstr "문자메시지 전송"
+msgstr "SMS 문자메시지 전송"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__send_email
@@ -792,13 +817,6 @@ msgstr "SMS로 전송"
 #, python-format
 msgid "Source Document"
 msgstr "원본 문서"
-
-#. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/js/followup_form_renderer.js:0
-#, python-format
-msgid "Start Calling"
-msgstr "전화 시작"
 
 #. module: account_followup
 #: model:ir.model.fields,help:account_followup.field_res_partner__payment_next_action_date
@@ -929,16 +947,11 @@ msgstr "연체 청구서 사용"
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid ""
 "Write here the introduction in the letter and mail or sms,\n"
-"                                        according to the level of the follow-up. You can\n"
-"                                        use the following keywords in the text. Don't\n"
-"                                        forget to translate in all languages you installed\n"
-"                                        using to top right icon."
+"                                            according to the level of the follow-up. You can\n"
+"                                            use the following keywords in the text. Don't\n"
+"                                            forget to translate in all languages you installed\n"
+"                                            using to top right icon."
 msgstr ""
-"후속 조치 수준에 따라 서신과 메일 또는 SMS에 사용할\n"
-"                            소개글을 작성합니다. 글에\n"
-"                            다음과 같은 키워드를 사용할 수 있습니다.\n"
-"                            오른쪽 상단 아이콘을 사용하여 모든 설치\n"
-"                            언어로 번역하는 것을 잊지 마십시오."
 
 #. module: account_followup
 #. openerp-web
@@ -953,7 +966,7 @@ msgstr "후속 조치를 완료했습니다! %s 협력사는 제외하였습니�
 msgid ""
 "You are trying to send a followup report to a partner for which you didn't "
 "print all the invoices ({})"
-msgstr "({}) 송장을 모두 인쇄하지 않은 상태에서 협력사에게 후속 조치 보고서를 보내려고 합니다."
+msgstr "({}) 청구서를 모두 인쇄하지 않은 상태에서 협력사에게 후속 조치 보고서를 보내려고 합니다."
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -974,6 +987,14 @@ msgstr "귀하의 설명은 유효하지 않습니다. 적절한 범례를 사�
 #: code:addons/account_followup/models/account_followup.py:0
 #, python-format
 msgid ""
+"Your email subject is invalid, use the right legend or %% if you want to use"
+" the percent character."
+msgstr ""
+
+#. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
+#, python-format
+msgid ""
 "Your sms description is invalid, use the right legend or %% if you want to "
 "use the percent character."
 msgstr "귀하의 SMS 설명은 유효하지 않습니다. 적절한 범례를 사용하거나 비율 문자를 사용하려면 %%를 사용하십시오."
@@ -987,6 +1008,11 @@ msgstr "일이 지날 경우, 다음과 같은 조치를 취합니다."
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid "e.g. Call the customer, check if it's paid, ..."
 msgstr "예: 고객에게 전화, 지불되었는지 확인..."
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "e.g. First Reminder Email"
+msgstr ""
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0

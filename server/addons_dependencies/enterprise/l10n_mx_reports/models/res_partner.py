@@ -27,16 +27,15 @@ class ResPartner(models.Model):
     l10n_mx_nationality = fields.Char(
         help='Nationality based in the supplier country. Is the '
         'seventh column in DIOT report',
-        compute='_compute_nationality', inverse='_inverse_nationality')
+        compute='_compute_nationality', readonly=True)
 
     @api.depends('country_id')
     def _compute_type_of_third(self):
         """Get the type of third to use in DIOT report.
         04 is to National Supplier
         05 to Foreign Supplier"""
-        mexico = self.env.ref('base.mx')
         for partner in self:
-            partner_type = '04' if partner.country_id == mexico else '05'
+            partner_type = '04' if partner.country_id.code == "MX" else '05'
             partner.l10n_mx_type_of_third = partner_type
 
     @api.depends('country_id')
@@ -45,12 +44,6 @@ class ResPartner(models.Model):
         for partner in self:
             partner.l10n_mx_nationality = partner.country_id.with_context(
                 lang=default_lang).demonym
-
-    def _inverse_nationality(self):
-        default_lang = get_lang(self.env, lang_code='es_MX').code
-        for partner in self.filtered('country_id'):
-            partner.country_id.with_context(lang=default_lang).demonym = (
-                partner.l10n_mx_nationality)
 
     def _get_not_partners_diot(self):
         partners = self.mapped('commercial_partner_id')

@@ -51,3 +51,15 @@ class SocialTwitterCase(SocialCase):
     @classmethod
     def _get_social_media(cls):
         return cls.env.ref('social_twitter.social_media_twitter')
+
+    def test_remove_mentions(self):
+        assert_results = [
+            ["@mister hello", "@ mister hello"],
+            ["111@mister hello", "111@mister hello"],
+            ["hello @mister", "hello @ mister"],
+            ["hello@gmail.com hello @mister", "hello@gmail.com hello @ mister"],
+            ["#@mister hello", "#@mister hello"],
+            ["@aa @bb @cc", "@ aa @ bb @ cc"],
+        ]
+        for message, expected in assert_results:
+            self.assertEqual(self.env["social.live.post"]._remove_mentions(message), expected)

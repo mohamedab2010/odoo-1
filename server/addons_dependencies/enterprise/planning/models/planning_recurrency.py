@@ -11,10 +11,10 @@ class PlanningRecurrency(models.Model):
     _name = 'planning.recurrency'
     _description = "Planning Recurrence"
 
-    slot_ids = fields.One2many('planning.slot', 'recurrency_id', string="Related planning entries")
-    repeat_interval = fields.Integer("Repeat every", default=1, required=True)
-    repeat_type = fields.Selection([('forever', 'Forever'), ('until', 'Until')], string='weeks', default='forever')
-    repeat_until = fields.Datetime(string="Repeat until", help="Up to which date should the plannings be repeated")
+    slot_ids = fields.One2many('planning.slot', 'recurrency_id', string="Related Planning Entries")
+    repeat_interval = fields.Integer("Repeat Every", default=1, required=True)
+    repeat_type = fields.Selection([('forever', 'Forever'), ('until', 'Until')], string='Weeks', default='forever')
+    repeat_until = fields.Datetime(string="Repeat Until", help="Up to which date should the plannings be repeated")
     last_generated_end_datetime = fields.Datetime("Last Generated End Date", readonly=True)
     company_id = fields.Many2one('res.company', string="Company", readonly=True, required=True, default=lambda self: self.env.company)
 
@@ -26,7 +26,7 @@ class PlanningRecurrency(models.Model):
     @api.constrains('company_id', 'slot_ids')
     def _check_multi_company(self):
         for recurrency in self:
-            if not all(recurrency.company_id == planning.company_id for planning in recurrency.slot_ids):
+            if any(recurrency.company_id != planning.company_id for planning in recurrency.slot_ids):
                 raise ValidationError(_('An shift must be in the same company as its recurrency.'))
 
     def name_get(self):
@@ -59,8 +59,9 @@ class PlanningRecurrency(models.Model):
             recurrencies._repeat_slot(now + delta)
 
     def _repeat_slot(self, stop_datetime=False):
+        PlanningSlot = self.env['planning.slot']
         for recurrency in self:
-            slot = self.env['planning.slot'].search([('recurrency_id', '=', recurrency.id)], limit=1, order='start_datetime DESC')
+            slot = PlanningSlot.search([('recurrency_id', '=', recurrency.id)], limit=1, order='start_datetime DESC')
 
             if slot:
                 # find the end of the recurrence
@@ -75,7 +76,7 @@ class PlanningRecurrency(models.Model):
 
                 # generate recurring slots
                 recurrency_delta = get_timedelta(recurrency.repeat_interval, 'week')
-                next_start = slot.start_datetime + recurrency_delta
+                next_start = PlanningSlot._add_delta_with_dst(slot.start_datetime, recurrency_delta)
 
                 slot_values_list = []
                 while next_start < range_limit:
@@ -85,17 +86,22 @@ class PlanningRecurrency(models.Model):
                         'recurrency_id': recurrency.id,
                         'company_id': recurrency.company_id.id,
                         'repeat': True,
-                        'is_published': False
+                        'state': 'draft'
                     })[0]
                     slot_values_list.append(slot_values)
-                    next_start = next_start + recurrency_delta
+                    next_start = PlanningSlot._add_delta_with_dst(next_start, recurrency_delta)
 
-                self.env['planning.slot'].create(slot_values_list)
-                recurrency.write({'last_generated_end_datetime': next_start - recurrency_delta})
+                if slot_values_list:
+                    PlanningSlot.create(slot_values_list)
+                    recurrency.write({'last_generated_end_datetime': slot_values_list[-1]['start_datetime']})
 
             else:
                 recurrency.unlink()
 
     def _delete_slot(self, start_datetime):
-        slots = self.env['planning.slot'].search([('recurrency_id', 'in', self.ids), ('start_datetime', '>=', start_datetime), ('is_published', '=', False)])
+        slots = self.env['planning.slot'].search([
+            ('recurrency_id', 'in', self.ids),
+            ('start_datetime', '>=', start_datetime),
+            ('state', '=', 'draft'),
+        ])
         slots.unlink()

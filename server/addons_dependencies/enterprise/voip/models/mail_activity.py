@@ -4,12 +4,6 @@
 from odoo import api, fields, models
 
 
-class MailActivityType(models.Model):
-    _inherit = 'mail.activity.type'
-
-    category = fields.Selection(selection_add=[('phonecall', 'Phonecall')])
-
-
 class MailActivity(models.Model):
     _inherit = 'mail.activity'
 
@@ -31,20 +25,14 @@ class MailActivity(models.Model):
                     phonecall = self.env['voip.phonecall'].create_from_activity(activity)
                     activity.voip_phonecall_id = phonecall.id
         for user in user_to_notify:
-            self.env['bus.bus'].sendone(
-                (self._cr.dbname, 'res.partner', user.partner_id.id),
-                {'type': 'refresh_voip'}
-            )
+            self.env['bus.bus']._sendone(user.partner_id, 'refresh_voip', {})
         return activities
 
     def write(self, values):
         if 'date_deadline' in values:
             self.mapped('voip_phonecall_id').write({'date_deadline': values['date_deadline']})
             for user in self.mapped('user_id'):
-                self.env['bus.bus'].sendone(
-                    (self._cr.dbname, 'res.partner', user.partner_id.id),
-                    {'type': 'refresh_voip'}
-                )
+                self.env['bus.bus']._sendone(user.partner_id, 'refresh_voip', {})
         return super(MailActivity, self).write(values)
 
     def _compute_phonenumbers(self):
@@ -98,8 +86,9 @@ class MailActivity(models.Model):
                         values_to_write['call_date'] = fields.Datetime.now()
                     phonecall.write(values_to_write)
 
-                    bus_notifications.append([(self._cr.dbname, 'res.partner', values_to_keep['partner_id']), {'type': 'refresh_voip'}])
+                    partner = self.env['res.partner'].browse(values_to_keep['partner_id'])
+                    bus_notifications.append([partner, 'refresh_voip', {}])
 
-            self.env['bus.bus'].sendmany(bus_notifications)
+            self.env['bus.bus']._sendmany(bus_notifications)
 
         return messages, activities

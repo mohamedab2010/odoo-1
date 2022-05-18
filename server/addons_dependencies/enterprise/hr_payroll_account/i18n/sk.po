@@ -3,17 +3,18 @@
 # 	* hr_payroll_account
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Jaroslav Bosansky <jaro.bosansky@ekoenergo.sk>, 2019
-# gebri <gebri@inmail.sk>, 2019
+# Martin Trigaux, 2022
+# karolína schusterová <karolina.schusterova@vdp.sk>, 2022
+# Rastislav Brencic <rastislav.brencic@azet.sk>, 2022
+# Jaroslav Bosansky <jaro.bosansky@ekoenergo.sk>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:36+0000\n"
-"Last-Translator: gebri <gebri@inmail.sk>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:57+0000\n"
+"PO-Revision-Date: 2021-09-14 12:40+0000\n"
+"Last-Translator: Jaroslav Bosansky <jaro.bosansky@ekoenergo.sk>, 2022\n"
 "Language-Team: Slovak (https://www.transifex.com/odoo/teams/41243/sk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,7 +23,6 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n >= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);\n"
 
 #. module: hr_payroll_account
-#: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_contract_view_form
 #: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_salary_rule_view_form
 msgid "Accounting"
 msgstr "Účtovníctvo"
@@ -43,6 +43,7 @@ msgstr "Úpravný vstup"
 
 #. module: hr_payroll_account
 #: model:ir.model.fields,field_description:hr_payroll_account.field_hr_contract__analytic_account_id
+#: model:ir.model.fields,field_description:hr_payroll_account.field_hr_contract_history__analytic_account_id
 #: model:ir.model.fields,field_description:hr_payroll_account.field_hr_salary_rule__analytic_account_id
 msgid "Analytic Account"
 msgstr "Analytický účet"
@@ -50,8 +51,19 @@ msgstr "Analytický účet"
 #. module: hr_payroll_account
 #: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_payslip_run_view_form
 #: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_payslip_view_form
-msgid "Create Draft Entry"
+msgid "Are you sure you want to proceed ?"
+msgstr "Naozaj chcete pokračovať?"
+
+#. module: hr_payroll_account
+#: model:ir.model,name:hr_payroll_account.model_hr_contract_history
+msgid "Contract history"
 msgstr ""
+
+#. module: hr_payroll_account
+#: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_payslip_run_view_form
+#: model_terms:ir.ui.view,arch_db:hr_payroll_account.hr_payslip_view_form
+msgid "Create Draft Entry"
+msgstr "Vytvorenie konceptu"
 
 #. module: hr_payroll_account
 #: model:ir.model.fields,field_description:hr_payroll_account.field_hr_salary_rule__account_credit
@@ -71,7 +83,14 @@ msgstr "Debetný účet"
 #. module: hr_payroll_account
 #: model:ir.model,name:hr_payroll_account.model_hr_contract
 msgid "Employee Contract"
-msgstr "Zmluva zamestnanca"
+msgstr "Zamestnanecká zmluva"
+
+#. module: hr_payroll_account
+#: code:addons/hr_payroll_account/models/hr_payroll_account.py:0
+#, python-format
+msgid ""
+"Incorrect journal: The journal must be in the same currency as the company"
+msgstr "Nesprávny denník: Denník musí byť v rovnakej mene ako spoločnosť"
 
 #. module: hr_payroll_account
 #: model:ir.model.fields,help:hr_payroll_account.field_hr_payslip__date
@@ -82,24 +101,24 @@ msgstr ""
 #. module: hr_payroll_account
 #: model:ir.model.fields,field_description:hr_payroll_account.field_hr_salary_rule__not_computed_in_net
 msgid "Not computed in net accountably"
-msgstr ""
+msgstr "Nepočíta sa v čistom vyjadrení"
 
 #. module: hr_payroll_account
 #: code:addons/hr_payroll_account/models/hr_payroll_account.py:0
 #, python-format
 msgid "One of the contract for these payslips has no structure type."
-msgstr ""
+msgstr "Jedna zo zmlúv na tieto výplatné pásky nemá žiadny typ štruktúry."
 
 #. module: hr_payroll_account
 #: code:addons/hr_payroll_account/models/hr_payroll_account.py:0
 #, python-format
 msgid "One of the payroll structures has no account journal defined on it."
-msgstr ""
+msgstr "Jedna zo mzdových štruktúr nemá v nej definovaný účtovný denník."
 
 #. module: hr_payroll_account
 #: model:ir.model,name:hr_payroll_account.model_hr_payslip
 msgid "Pay Slip"
-msgstr "Pay Slip "
+msgstr "Výplatná páska"
 
 #. module: hr_payroll_account
 #: model:ir.model.fields,field_description:hr_payroll_account.field_hr_payroll_structure__journal_id
@@ -110,7 +129,7 @@ msgstr "Účtovná kniha výplat"
 #. module: hr_payroll_account
 #: model:ir.model,name:hr_payroll_account.model_hr_salary_rule
 msgid "Salary Rule"
-msgstr ""
+msgstr "Platové pravidlá"
 
 #. module: hr_payroll_account
 #: model:ir.model,name:hr_payroll_account.model_hr_payroll_structure
@@ -142,3 +161,7 @@ msgid ""
 "in the accounting. For example, if you want to display the value of your "
 "representation fees, you can check this field."
 msgstr ""
+"Toto pole umožňuje odstrániť hodnotu tohto pravidla v položke „Čistá mzda“ "
+"na úrovni účtovníctva, aby sa v účtovníctve výslovne zobrazila hodnota tohto"
+" pravidla. Ak napríklad chcete zobraziť hodnotu svojich poplatkov za "
+"reprezentáciu, môžete začiarknuť toto pole."

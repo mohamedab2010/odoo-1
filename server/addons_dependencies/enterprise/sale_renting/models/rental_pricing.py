@@ -25,7 +25,7 @@ class RentalPricing(models.Model):
         help="Minimum duration before this rule is applied. If set to 0, it represents a fixed rental price.")
     unit = fields.Selection([("hour", "Hours"), ("day", "Days"), ("week", "Weeks"), ("month", "Months")], string="Unit", required=True, default='day')
 
-    price = fields.Monetary(string="Price", required=True, digits='Product Price', default=1.0)
+    price = fields.Monetary(string="Price", required=True, default=1.0)
     currency_id = fields.Many2one(
         'res.currency', 'Currency',
         default=lambda self: self.env.company.currency_id.id,

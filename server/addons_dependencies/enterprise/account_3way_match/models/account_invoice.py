@@ -31,10 +31,18 @@ class AccountMove(models.Model):
         string="Force Status",
         help="Indicates whether the 'Should Be Paid' status is defined automatically or manually.")
 
-    @api.depends('invoice_line_ids.can_be_paid', 'force_release_to_pay')
+    @api.depends('invoice_line_ids.can_be_paid', 'force_release_to_pay', 'payment_state')
     def _compute_release_to_pay(self):
-        for invoice in self:
-            if invoice.force_release_to_pay:
+        records = self
+        if self.env.context.get('module') == 'account_3way_match':
+            # on module installation we set 'no' for all paid bills and other non relevant records at once
+            records = records.filtered(lambda r: r.payment_state != 'paid' and r.move_type in ('in_invoice', 'in_refund'))
+            (self - records).release_to_pay = 'no'
+        for invoice in records:
+            if invoice.payment_state == 'paid':
+                # no need to pay, if it's already paid
+                invoice.release_to_pay = 'no'
+            elif invoice.force_release_to_pay:
                 #we must use the manual value contained in release_to_pay_manual
                 invoice.release_to_pay = invoice.release_to_pay_manual
             else:

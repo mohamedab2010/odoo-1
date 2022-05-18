@@ -6,11 +6,12 @@
 
 {
     "name": "Austria - Accounting Reports",
+    'icon': '/l10n_at/static/description/icon.png',
     "version": "2.0",
     "author": "WT-IO-IT GmbH, Wolfgang Taferner",
     "website": "https://www.wt-io-it.at",
     "license": 'OEEL-1',
-    "category": "Accounting/Accounting",
+    "category": "Accounting/Localizations/Reporting",
     'summary': "Austrian Financial Reports",
     'description': """
 

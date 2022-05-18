@@ -16,5 +16,6 @@ Manage automatic transfers between your accounts.
         'views/transfer_model_views.xml',
     ],
     'application': False,
-    'auto_install': True
+    'auto_install': True,
+    'license': 'OEEL-1',
 }

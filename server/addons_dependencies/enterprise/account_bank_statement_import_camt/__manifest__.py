@@ -9,7 +9,7 @@
 Module to import CAMT bank statements.
 ======================================
 
-Improve the import of bank statement feature to support the SEPA recommanded Cash Management format (CAMT.053).
+Improve the import of bank statement feature to support the SEPA recommended Cash Management format (CAMT.053).
     """,
     'data': [
         'data/account_bank_statement_import_data.xml'

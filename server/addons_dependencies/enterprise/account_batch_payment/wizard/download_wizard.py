@@ -15,4 +15,3 @@ class DownloadWizard(models.TransientModel):
 
     export_file = fields.Binary(string='File', related='batch_payment_id.export_file', readonly=True, help="Generated XML file")
     export_filename = fields.Char(string='File name', related='batch_payment_id.export_filename', readonly=True, help="Name of the generated XML file")
-    warning_message = fields.Char(string='Warning', readonly=True, help="Warning message to display about the content of the downloadable file.")

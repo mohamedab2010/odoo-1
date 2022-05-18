@@ -27,7 +27,7 @@ QUnit.module('FormManager', {
     QUnit.test('Simple Form Manager rendering', async function (assert) {
         assert.expect(4);
         var clientAction = new FormManager(null, {}, this.options);
-        testUtils.mock.addMockEnvironment(clientAction, {
+        await testUtils.mock.addMockEnvironment(clientAction, {
             data: this.data,
             mockRPC: function (route, args) {
                 if (route === '/website_studio/get_forms') {

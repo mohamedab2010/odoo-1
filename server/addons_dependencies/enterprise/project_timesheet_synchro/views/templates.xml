@@ -10,8 +10,8 @@
         <link rel="shortcut icon" href="static/src/img/favicon.ico" type="image/x-icon"/>
 
         <script type="text/javascript">
-            var odoo = <t t-raw="json.dumps({
-                'session_info': session_info,
+            var odoo = <t t-out="json.dumps({
+                '__session_info__': session_info,
                 'debug': debug,
             })"/>;
         </script>
@@ -20,14 +20,6 @@
         <t t-call-assets="web.assets_backend"/>
         <t t-call="web.conditional_assets_tests"/>
         <t t-call-assets="project_timesheet_synchro.assets_timesheet_app"/>
-
-        <script type="text/javascript" id="loading-script" t-raw="init">
-            odoo.define('web.web_client', function (require) {
-                var WebClient = require('web.WebClient');
-                var web_client = new WebClient();
-                return web_client;
-            });
-        </script>
 
         <script type="text/javascript" src="static/src/js/project_timesheet.js"></script>
         <script type="text/javascript" id="loading-script" src="static/src/js/init.js"></script>

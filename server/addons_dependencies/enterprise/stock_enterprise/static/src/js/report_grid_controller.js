@@ -14,17 +14,16 @@ var ReportGridController = GridController.extend({
      * cell.
      *
      */
-    _onClickCellInformation: function (e) {
+    _onOpenCellInformation: function (ev) {
         var self = this;
-        var $target = $(e.target);
         var state = this.model.get();
-        var cellPath = $target.parent().attr('data-path').split('.');
+        var cellPath = ev.data.path.split('.');
         var rowPath = cellPath.slice(0, -3).concat(['rows'], cellPath.slice(-2, -1));
-        var row = utils.into(state, rowPath);
+        var row = utils.into(state.data, rowPath);
         var colPath = cellPath.slice(0, -3).concat(['cols'], cellPath.slice(-1));
-        var col = utils.into(state, colPath);
+        var col = utils.into(state.data, colPath);
         if (!row.values.product_id) {
-            this.do_warn(_t("Error: Only grouping by product is supported."));
+            this.displayNotification({ message: _t("Only grouping by product is supported"), type: 'danger' });
             return;
         }
         return this._rpc({
@@ -32,7 +31,7 @@ var ReportGridController = GridController.extend({
             method: 'action_open_moves',
             args: [
                 row.values.product_id[0],
-                row.values.state,
+                row.values.state.data,
                 col.values.date[0].split('/')[0],
             ]
         }).then(function (action) {

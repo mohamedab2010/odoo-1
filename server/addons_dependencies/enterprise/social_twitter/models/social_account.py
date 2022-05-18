@@ -6,7 +6,8 @@ import base64
 import requests
 from werkzeug.urls import url_join
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 TWITTER_IMAGES_UPLOAD_ENDPOINT = "https://upload.twitter.com/1.1/media/upload.json"
 
@@ -22,7 +23,7 @@ class SocialAccountTwitter(models.Model):
     def _compute_statistics(self):
         """ See methods '_get_last_tweets_stats' for more info about Twitter stats. """
 
-        twitter_accounts = self.filtered(lambda account: account.media_type == 'twitter')
+        twitter_accounts = self._filter_by_media_types(['twitter'])
         super(SocialAccountTwitter, (self - twitter_accounts))._compute_statistics()
 
         for account in twitter_accounts:
@@ -37,7 +38,7 @@ class SocialAccountTwitter(models.Model):
                 })
 
     def _compute_stats_link(self):
-        twitter_accounts = self.filtered(lambda account: account.media_type == 'twitter')
+        twitter_accounts = self._filter_by_media_types(['twitter'])
         super(SocialAccountTwitter, (self - twitter_accounts))._compute_stats_link()
 
         for account in twitter_accounts:
@@ -61,8 +62,9 @@ class SocialAccountTwitter(models.Model):
         )
         result = requests.get(
             user_search_endpoint,
-            params,
-            headers=headers
+            params=params,
+            headers=headers,
+            timeout=5
         )
         return result.json()
 
@@ -105,7 +107,8 @@ class SocialAccountTwitter(models.Model):
         result = requests.get(
             twitter_account_info_url,
             params={'screen_name': self.twitter_screen_name},
-            headers=headers
+            headers=headers,
+            timeout=5
         )
 
         if isinstance(result.json(), dict) and result.json().get('errors'):
@@ -199,7 +202,7 @@ class SocialAccountTwitter(models.Model):
         data = {
             'command': 'INIT',
             'total_bytes': image['file_size'],
-            'media_category': 'tweet_image',
+            'media_category': 'tweet_gif' if image['mimetype'] == 'image/gif' else 'tweet_image',
             'media_type': image['mimetype'],
         }
         headers = self._get_twitter_oauth_header(
@@ -210,7 +213,14 @@ class SocialAccountTwitter(models.Model):
             TWITTER_IMAGES_UPLOAD_ENDPOINT,
             data=data,
             headers=headers,
+            timeout=5
         )
+        if not result.ok:
+            # unfortunately Twitter does not return a proper error code so we have to rely on the error message
+            # last known max file size for the API is 5MB
+            generic_api_error = result.json().get('error', '')
+            raise UserError(_("We could not upload your image, try reducing its size and posting it again (error: %s).", generic_api_error))
+
         return result.json().get('media_id_string')
 
     def _process_twitter_upload(self, image, media_id):
@@ -231,6 +241,7 @@ class SocialAccountTwitter(models.Model):
             params=params,
             files=files,
             headers=headers,
+            timeout=15
         )
 
     def _finish_twitter_upload(self, media_id):
@@ -246,4 +257,5 @@ class SocialAccountTwitter(models.Model):
             TWITTER_IMAGES_UPLOAD_ENDPOINT,
             data=data,
             headers=headers,
+            timeout=5
         )

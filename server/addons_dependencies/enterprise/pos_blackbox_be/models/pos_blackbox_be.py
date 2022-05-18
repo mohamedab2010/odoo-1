@@ -42,10 +42,10 @@ class pos_config(models.Model):
     iface_fiscal_data_module = fields.Many2one('iot.device',
                                                domain="[('type', '=', 'fiscal_data_module'), '|', ('company_id', '=', False), ('company_id', '=', company_id)]")
 
-    @api.constrains("module_pos_reprint", "module_pos_discount", "module_pos_loyalty","blackbox_pos_production_id")
+    @api.constrains("module_pos_discount", "module_pos_loyalty","blackbox_pos_production_id")
     def _check_blackbox_config(self):
         for config in self:
-            if config.blackbox_pos_production_id and (config.module_pos_reprint or config.module_pos_discount or config.module_pos_loyalty):
+            if config.blackbox_pos_production_id and (config.module_pos_discount or config.module_pos_loyalty):
                 raise UserError(_("Loyalty programs, reprint and global discounts cannot be used on a PoS associated with a blackbox."))
 
     @api.constrains('blackbox_pos_production_id')
@@ -182,12 +182,12 @@ class pos_session(models.Model):
         help='This is a technical field used for tracking the status of the session for each users.',
     )
 
-    @api.depends('statement_ids')
+    @api.depends('order_ids')
     def _compute_total_sold(self):
         for rec in self:
             rec.total_sold = 0
-            for st in rec.statement_ids:
-                rec.total_sold += st.total_entry_encoding
+            for order in rec.order_ids:
+                rec.total_sold += order.amount_paid
 
     @api.depends('pro_forma_order_ids')
     def _compute_total_pro_forma(self):
@@ -235,10 +235,7 @@ class pos_session(models.Model):
                 for line in order.lines:
                     if line.discount > 0:
                         rec.amount_of_discounts += 1
-                        original_line_discount = line.discount
-                        line.discount = 0
-                        price_without_discount = line.price_subtotal_incl
-                        line.discount = original_line_discount
+                        price_without_discount = line.currency_id.round(line.price_subtotal_incl/(1-(line.discount/100)))
                         rec.total_discount += price_without_discount - line.price_subtotal_incl
 
     @api.depends('order_ids')
@@ -351,7 +348,7 @@ class pos_session(models.Model):
         self.ensure_one()
         pos = self.config_id
         if not pos.blackbox_pos_production_id:
-            raise UserError(_("PoS %s is not a certified PoS") % pos.name)
+            raise UserError(_("PoS %s is not a certified PoS", pos.name))
         return {
             'type': 'ir.actions.act_url',
             'url': "/journal_file/" + pos.blackbox_pos_production_id,
@@ -427,12 +424,11 @@ class pos_order(models.Model):
 
         return order
 
-    def unlink(self):
+    @api.ondelete(at_uninstall=True)
+    def _unlink_except_registered_order(self):
         for order in self:
             if order.config_id.blackbox_pos_production_id:
                 raise UserError(_('Deleting of registered orders is not allowed.'))
-
-        return super(pos_order, self).unlink()
 
     def write(self, values):
         for order in self:
@@ -687,7 +683,8 @@ class pos_blackbox_be_log(models.Model):
     def write(self, values):
         raise UserError(_("Can't modify the log book."))
 
-    def unlink(self):
+    @api.ondelete(at_uninstall=True)
+    def _unlink_never(self):
         raise UserError(_("Can't modify the log book."))
 
 class product_template(models.Model):
@@ -713,19 +710,19 @@ class product_template(models.Model):
 
         return super(product_template, self).write(values)
 
-    def unlink(self):
-        ir_model_data = self.env['ir.model.data']
-        work_in = ir_model_data.xmlid_to_object('pos_blackbox_be.product_product_work_in').product_tmpl_id.id
-        work_out = ir_model_data.xmlid_to_object('pos_blackbox_be.product_product_work_out').product_tmpl_id.id
+    @api.ondelete(at_uninstall=True)
+    def _unlink_except_master_data(self):
+        work_in = self.env.ref('pos_blackbox_be.product_product_work_in').product_tmpl_id.id
+        work_out = self.env.ref('pos_blackbox_be.product_product_work_out').product_tmpl_id.id
 
         for product in self.ids:
             if product == work_in or product == work_out:
                 raise UserError(_('Deleting this product is not allowed.'))
 
+    def unlink(self):
         for product in self:
             self.env['pos_blackbox_be.log'].sudo().create({}, "delete", product._name, product.name)
-
-        return super(product_template, self).unlink()
+        return super().unlink()
 
     @api.model
     def _remove_availibility_all_but_blackbox(self):
@@ -769,8 +766,8 @@ class ProductProduct(models.Model):
                 taxes = self.env['account.tax'].sudo().with_context(active_test=False).search([('amount', '=', 0.0), ('type_tax_use', '=', 'sale'), ('name', '=', '0%'), ('company_id', '=', company.id)])
                 if not taxes.active:
                     taxes.active = True
-                work_in.with_context(force_company=company.id).write({'taxes_id': [(4, taxes.id)]})
-                work_out.with_context(force_company=company.id).write({'taxes_id': [(4, taxes.id)]})
+                work_in.with_company(company.id).write({'taxes_id': [(4, taxes.id)]})
+                work_out.with_company(company.id).write({'taxes_id': [(4, taxes.id)]})
 
 
 class AccountChartTemplate(models.Model):
@@ -784,5 +781,5 @@ class AccountChartTemplate(models.Model):
             taxes = self.env['account.tax'].sudo().with_context(active_test=False).search([('amount', '=', 0.0), ('type_tax_use', '=', 'sale'), ('name', '=', '0%'), ('company_id', '=', company.id)])
             if not taxes.active:
                 taxes.active = True
-            work_in.with_context(install_mode=True, force_company=company.id).write({'taxes_id': [(4, taxes.id)]})
-            work_out.with_context(install_mode=True, force_company=company.id).write({'taxes_id': [(4, taxes.id)]})
+            work_in.with_context(install_mode=True).with_company(company.id).write({'taxes_id': [(4, taxes.id)]})
+            work_out.with_context(install_mode=True).with_company(company.id).write({'taxes_id': [(4, taxes.id)]})

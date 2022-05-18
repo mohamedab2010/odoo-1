@@ -1,10 +1,11 @@
 # coding: utf-8
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import models, _, fields, tools
+from odoo import models, _, api, fields, tools
 from odoo.exceptions import ValidationError
-from odoo.tools.safe_eval import safe_eval
 from odoo.tools.xml_utils import _check_with_xsd
+
+import ast
 
 MX_NS_REFACTORING = {
     'catalogocuentas__': 'catalogocuentas',
@@ -27,15 +28,9 @@ class MXReportAccountCoa(models.AbstractModel):
     filter_hierarchy = None
     filter_journals = None
 
-    def _get_templates(self):
-        templates = super(MXReportAccountCoa, self)._get_templates()
-        #use the main template instead of the trial balance with 2 header lines
-        templates['main_table_header_template'] = 'account_reports.main_table_header'
-        templates['main_template'] = 'account_reports.main_template'
-        return templates
-
-    def _get_columns_name(self, options):
-        return [{'name': ''}, {'name': _('Nature')}]
+    @api.model
+    def _get_columns(self, options):
+        return [[{'name': ''}, {'name': _('Nature')}]]
 
     def _get_lines(self, options, line_id=None):
         options['coa_only'] = True
@@ -56,17 +51,17 @@ class MXReportAccountCoa(models.AbstractModel):
         lines = []
         account_obj = self.env['account.account']
         for domain in afr_lines.mapped('children_ids').mapped('domain'):
+            # TODO CLEAN ME: using account.financial.html.report.line's domain on other
+            # objects as account.move.line is not the proper way.
             account_ids = account_obj.search(
-                safe_eval(domain or '[]'), order='code')
+                ast.literal_eval(domain or '[]'), order='code')
             accounts.extend(account_ids.ids)
-        basis_account_ids = self.env['account.tax'].search_read(
-            [('cash_basis_base_account_id', '!=', False)], ['cash_basis_base_account_id'])
-        accounts.extend([account['cash_basis_base_account_id'][0] for account in basis_account_ids])
         accounts = account_obj.search([
             ('id', 'not in', list(set(accounts))),
             ('deprecated', '=', False),
-            ('company_id', 'in', self.env.context['company_ids']),
+            ('company_id', 'in', self.env.companies.ids),
         ])
+        accounts |= accounts.company_id.account_cash_basis_base_account_id
 
         if accounts:
             lines.append({
@@ -149,12 +144,11 @@ class MXReportAccountCoa(models.AbstractModel):
         version = '1.3'
         ctx = self._set_context(options)
         values = self.with_context(ctx)._get_coa_dict(options)
-        cfdicoa = qweb.render(CFDICOA_TEMPLATE, values=values)
+        cfdicoa = qweb._render(CFDICOA_TEMPLATE, values=values)
         for key, value in MX_NS_REFACTORING.items():
-            cfdicoa = cfdicoa.replace(key.encode('UTF-8'),
-                                      value.encode('UTF-8') + b':')
+            cfdicoa = cfdicoa.replace(key, value + ':')
         cfdicoa = self._l10n_mx_edi_add_digital_stamp(
-            CFDICOA_XSLT_CADENA % version, cfdicoa)
+            CFDICOA_XSLT_CADENA % version, cfdicoa.encode())
 
         with tools.file_open(CFDICOA_XSD % version, "rb") as xsd:
             _check_with_xsd(cfdicoa, xsd)

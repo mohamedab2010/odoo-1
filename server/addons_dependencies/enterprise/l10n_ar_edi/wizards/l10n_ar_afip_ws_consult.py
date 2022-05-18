@@ -29,8 +29,12 @@ class L10nArAfipWsConsult(models.TransientModel):
     @api.depends('journal_id')
     def _compute_available_document_types(self):
         self.available_document_type_ids = False
-        for rec in self:
-            rec.available_document_type_ids = self.journal_id.l10n_ar_sequence_ids.mapped('l10n_latam_document_type_id')
+        with_journal = self.filtered('journal_id')
+        for rec in with_journal:
+            codes = rec.journal_id._get_journal_codes()
+            rec.available_document_type_ids = self.env['l10n_latam.document.type'].search([('code', 'in', codes)]) if codes else False
+        remaining = self - with_journal
+        remaining.available_document_type_ids = False
 
     def button_confirm(self):
         """ Recover infomation of an invoice that has already been authorized by AFIP.
@@ -69,9 +73,9 @@ class L10nArAfipWsConsult(models.TransientModel):
             if response.BFEEvents.EventCode != 0 or response.BFEEvents.EventMsg:
                 error += repr(response.BFEEvents)
         else:
-            raise UserError(_('AFIP WS %s not implemented') % afip_ws)
+            raise UserError(_('AFIP WS %s not implemented', afip_ws))
 
-        title = _('Invoice number %s\n' % self.number)
+        title = _('Invoice number %s\n', self.number)
         if error:
             _logger.warning('%s\n%s' % (title, error))
             raise UserError(_('AFIP Errors') + ' %s' % error)

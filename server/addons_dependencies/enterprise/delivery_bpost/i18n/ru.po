@@ -3,16 +3,18 @@
 # 	* delivery_bpost
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Ivan Yelizariev <yelizariev@it-projects.info>, 2019
+# Martin Trigaux, 2021
+# Ivan Yelizariev // IEL (ellui) <yelizariev@itpp.dev>, 2021
+# Irina Fedulova <istartlin@gmail.com>, 2021
+# Evgeniia Kotova, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Ivan Yelizariev <yelizariev@it-projects.info>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Evgeniia Kotova, 2022\n"
 "Language-Team: Russian (https://www.transifex.com/odoo/teams/41243/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -41,7 +43,7 @@ msgstr "Разрешить доставку в субботу (дополнит�
 msgid ""
 "Authentication error -- wrong credentials\n"
 "(Detailed error: %s)"
-msgstr "Ошибка аутентификации - ложные учетные данные (Подробная ошибка:% s)"
+msgstr "Ошибка аутентификации - ложные учетные данные (Подробная ошибка: %s)"
 
 #. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_account_number
@@ -81,6 +83,11 @@ msgid "Bpost Label Stock Type"
 msgstr "Тип логотипа состава Bpost"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Bpost Package Type"
+msgstr ""
+
+#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_parcel_return_instructions
 msgid "Bpost Parcel Return Instructions"
 msgstr "Инструкция возврата посылок Bpost"
@@ -98,7 +105,7 @@ msgid "Bpost World Express Pro"
 msgstr "Bpost World Express Pro"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_product_packaging__package_carrier_type
+#: model:ir.model.fields,field_description:delivery_bpost.field_stock_package_type__package_carrier_type
 msgid "Carrier"
 msgstr "Перевозчик"
 
@@ -138,9 +145,24 @@ msgid "International"
 msgstr "Международный"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Format"
+msgstr ""
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Type"
+msgstr ""
+
+#. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_shipment_type__other
 msgid "OTHER"
 msgstr "ДРУГОЕ"
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Options"
+msgstr "Параметры"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_label_format__pdf
@@ -170,17 +192,18 @@ msgid "Please provide at least one item to ship."
 msgstr "Укажите, пожалуйста, хотя бы один элемент для отгрузки."
 
 #. module: delivery_bpost
-#: model:ir.model,name:delivery_bpost.model_product_packaging
-msgid "Product Packaging"
-msgstr "Тара"
-
-#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__delivery_type
 msgid "Provider"
 msgstr "Провайдер"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
+#, python-format
+msgid ""
+"Return labels created into bpost <br/> <b>Tracking Numbers: </b><br/>%s"
+msgstr ""
+
+#. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
 msgid "Return shipment created into bpost <br/> <b>Tracking Number : </b>%s"
@@ -204,18 +227,23 @@ msgstr "Образец"
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment N° %s has been cancelled"
-msgstr "Отгрузка № %s была отменена"
+msgid "Shipment #%s has been cancelled"
+msgstr ""
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment created into bpost <br/> <b>Tracking Number : </b>%s"
-msgstr "Отправка создана в bpost <br/> <b>Номер отслеживания%</b> s"
+msgid "Shipment created into bpost <br/> <b>Tracking Links</b> <br/>%s"
+msgstr ""
 
 #. module: delivery_bpost
 #: model:ir.model,name:delivery_bpost.model_delivery_carrier
 msgid "Shipping Methods"
+msgstr "Методы доставки"
+
+#. module: delivery_bpost
+#: model:ir.model,name:delivery_bpost.model_stock_package_type
+msgid "Stock package type"
 msgstr ""
 
 #. module: delivery_bpost
@@ -232,27 +260,23 @@ msgid ""
 " %s)"
 msgstr ""
 "Адрес вашей компании / склада является неполной или неправильной "
-"(отсутствует поле (я):% s)"
-
-#. module: delivery_bpost
-#: code:addons/delivery_bpost/models/bpost_request.py:0
-#, python-format
-msgid ""
-"The estimated shipping cannot be computed because the weight of your product"
-" is missing."
-msgstr ""
-"Оценка отправки не может быть вычислена, поскольку вес вашей продукции "
-"отсутствует."
+"(отсутствует поле (я): %s)"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid ""
 "The estimated shipping price cannot be computed because all your products "
-"are service/digital."
+"are service."
 msgstr ""
-"Оцениваемая стоимость доставки не может быть вычислена, поскольку все ваши "
-"товары являются услугами / цифровыми."
+
+#. module: delivery_bpost
+#: code:addons/delivery_bpost/models/bpost_request.py:0
+#, python-format
+msgid ""
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
+msgstr ""
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
@@ -260,7 +284,7 @@ msgstr ""
 msgid ""
 "The recipient address is incomplete or wrong (Missing field(s):  \n"
 " %s)"
-msgstr "Адрес получателя неполная или неправильная (отсутствует поле (я):% s)"
+msgstr "Адрес получателя неполная или неправильная (отсутствует поле (я): %s)"
 
 #. module: delivery_bpost
 #: model:product.product,uom_name:delivery_bpost.product_product_delivery_bpost_domestic
@@ -268,7 +292,7 @@ msgstr "Адрес получателя неполная или неправил
 #: model:product.template,uom_name:delivery_bpost.product_product_delivery_bpost_domestic_product_template
 #: model:product.template,uom_name:delivery_bpost.product_product_delivery_bpost_world_product_template
 msgid "Units"
-msgstr "единицы"
+msgstr "Единицы"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
@@ -316,7 +340,7 @@ msgstr "bpack World Express Pro"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__delivery_type__bpost
-#: model:ir.model.fields.selection,name:delivery_bpost.selection__product_packaging__package_carrier_type__bpost
+#: model:ir.model.fields.selection,name:delivery_bpost.selection__stock_package_type__package_carrier_type__bpost
 msgid "bpost"
 msgstr "bpost"
 
@@ -326,9 +350,9 @@ msgid "bpost Configuration"
 msgstr "Настройка bpost"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_packaging_id
-msgid "bpost Default Packaging Type"
-msgstr "Тип упаковки bpost по умолчанию"
+#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_package_type_id
+msgid "bpost Default Package Type"
+msgstr ""
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0

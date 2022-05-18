@@ -42,6 +42,8 @@ class IntrastatReport(models.AbstractModel):
             {'name': _('Region Code')},
             {'name': _('Commodity Code')},
             {'name': _('Type')},
+            {'name': _('Origin Country')},
+            {'name': _('Partner VAT')},
         ]
         if options.get('intrastat_extended'):
             columns += [
@@ -57,11 +59,10 @@ class IntrastatReport(models.AbstractModel):
 
     @api.model
     def _create_intrastat_report_line(self, options, vals):
-        caret_options = 'account.invoice.%s' % (vals['invoice_type'] in ('in_invoice', 'in_refund') and 'in' or 'out')
-
         columns = [{'name': c} for c in [
-            vals['invoice_date'], vals['system'], vals['country_code'], vals['trans_code'],
-            vals['region_code'], vals['commodity_code'], vals['type']
+            vals['invoice_date'], vals['system'], vals['country_code'], vals['transaction_code'],
+            vals['region_code'], vals['commodity_code'], vals['type'],
+            vals['intrastat_product_origin_country'], vals['partner_vat'],
         ]]
         if options.get('intrastat_extended'):
             columns += [{'name': c} for c in [
@@ -75,7 +76,7 @@ class IntrastatReport(models.AbstractModel):
 
         return {
             'id': vals['id'],
-            'caret_options': caret_options,
+            'caret_options': 'account.move',
             'model': 'account.move.line',
             'name': vals['invoice_number'],
             'columns': columns,
@@ -112,34 +113,49 @@ class IntrastatReport(models.AbstractModel):
         # accordingly to specs (https://www.nbb.be/doc/dq/f_pdf_ex/intra2017fr.pdf (§ 4.x))
         select = '''
                 row_number() over () AS sequence,
-                CASE WHEN inv.type IN ('in_invoice', 'out_refund') THEN %(import_merchandise_code)s ELSE %(export_merchandise_code)s END AS system,
+                CASE WHEN inv.move_type IN ('in_invoice', 'out_refund') THEN %(import_merchandise_code)s ELSE %(export_merchandise_code)s END AS system,
                 country.code AS country_code,
                 company_country.code AS comp_country_code,
-                CASE WHEN inv_line.intrastat_transaction_id IS NULL THEN '1' ELSE transaction.code END AS transaction_code,
+                transaction.code AS transaction_code,
                 company_region.code AS region_code,
                 code.code AS commodity_code,
                 inv_line.id AS id,
                 prodt.id AS template_id,
+                prodt.categ_id AS category_id,
                 inv.id AS invoice_id,
                 inv.currency_id AS invoice_currency_id,
                 inv.name AS invoice_number,
                 coalesce(inv.date, inv.invoice_date) AS invoice_date,
-                inv.type AS invoice_type,
+                inv.move_type AS invoice_type,
                 inv_incoterm.code AS invoice_incoterm,
                 comp_incoterm.code AS company_incoterm,
                 inv_transport.code AS invoice_transport,
                 comp_transport.code AS company_transport,
-                CASE WHEN inv_line.intrastat_transaction_id IS NULL THEN '1' ELSE transaction.code END AS trans_code,
-                CASE WHEN inv.type IN ('in_invoice', 'out_refund') THEN 'Arrival' ELSE 'Dispatch' END AS type,
-                prod.weight * inv_line.quantity * (
-                    CASE WHEN inv_line_uom.category_id IS NULL OR inv_line_uom.category_id = prod_uom.category_id
-                    THEN 1 ELSE inv_line_uom.factor END
+                CASE WHEN inv.move_type IN ('in_invoice', 'out_refund') THEN 'Arrival' ELSE 'Dispatch' END AS type,
+                partner.vat as partner_vat,
+                ROUND(
+                    prod.weight * inv_line.quantity / (
+                        CASE WHEN inv_line_uom.category_id IS NULL OR inv_line_uom.category_id = prod_uom.category_id
+                        THEN inv_line_uom.factor ELSE 1 END
+                    ) * (
+                        CASE WHEN prod_uom.uom_type <> 'reference'
+                        THEN prod_uom.factor ELSE 1 END
+                    ),
+                    SCALE(ref_weight_uom.rounding)
                 ) AS weight,
-                inv_line.quantity * (
+                inv_line.quantity / (
                     CASE WHEN inv_line_uom.category_id IS NULL OR inv_line_uom.category_id = prod_uom.category_id
-                    THEN 1 ELSE inv_line_uom.factor END
+                    THEN inv_line_uom.factor ELSE 1 END
                 ) AS quantity,
-                inv_line.price_subtotal AS value
+                CASE WHEN inv_line.price_subtotal = 0 THEN inv_line.price_unit * inv_line.quantity ELSE inv_line.price_subtotal END AS value,
+                CASE WHEN inv_line.intrastat_product_origin_country_id IS NULL
+                     THEN \'QU\'  -- If you don't know the country of origin of the goods, as an exception you may replace the country code by "QU".
+                     ELSE product_country.code
+                END AS intrastat_product_origin_country,
+                CASE WHEN partner_country.id IS NULL
+                     THEN \'QV999999999999\'  -- For VAT numbers of companies outside the European Union, for example in the case of triangular trade, you always have to use the code "QV999999999999".
+                     ELSE partner.vat
+                END AS partner_vat
                 '''
         from_ = '''
                 account_move_line inv_line
@@ -153,27 +169,32 @@ class IntrastatReport(models.AbstractModel):
                 LEFT JOIN res_country company_country ON comp_partner.country_id = company_country.id
                 INNER JOIN product_product prod ON inv_line.product_id = prod.id
                 LEFT JOIN product_template prodt ON prod.product_tmpl_id = prodt.id
-                LEFT JOIN account_intrastat_code code ON prodt.intrastat_id = code.id
+                LEFT JOIN account_intrastat_code code ON code.id = COALESCE(prod.intrastat_variant_id, prodt.intrastat_id)
                 LEFT JOIN uom_uom inv_line_uom ON inv_line.product_uom_id = inv_line_uom.id
                 LEFT JOIN uom_uom prod_uom ON prodt.uom_id = prod_uom.id
                 LEFT JOIN account_incoterms inv_incoterm ON inv.invoice_incoterm_id = inv_incoterm.id
                 LEFT JOIN account_incoterms comp_incoterm ON company.incoterm_id = comp_incoterm.id
                 LEFT JOIN account_intrastat_code inv_transport ON inv.intrastat_transport_mode_id = inv_transport.id
                 LEFT JOIN account_intrastat_code comp_transport ON company.intrastat_transport_mode_id = comp_transport.id
+                LEFT JOIN res_country product_country ON product_country.id = inv_line.intrastat_product_origin_country_id
+                LEFT JOIN res_country partner_country ON partner.country_id = partner_country.id AND partner_country.intrastat IS TRUE
+                LEFT JOIN uom_uom ref_weight_uom on ref_weight_uom.category_id = %(weight_category_id)s and ref_weight_uom.uom_type = 'reference'
                 '''
         where = '''
                 inv.state = 'posted'
                 AND inv_line.display_type IS NULL
+                AND NOT inv_line.quantity = 0
                 AND inv.company_id = %(company_id)s
                 AND company_country.id != country.id
-                AND country.intrastat = TRUE
+                AND country.intrastat = TRUE AND (country.code != 'GB' OR inv.date < '2021-01-01')
                 AND coalesce(inv.date, inv.invoice_date) >= %(date_from)s
                 AND coalesce(inv.date, inv.invoice_date) <= %(date_to)s
                 AND prodt.type != 'service'
                 AND inv.journal_id IN %(journal_ids)s
-                AND inv.type IN %(invoice_types)s
+                AND inv.move_type IN %(invoice_types)s
+                AND NOT inv_line.exclude_from_invoice_tab
                 '''
-        order = 'inv.invoice_date DESC'
+        order = 'inv.invoice_date DESC, inv_line.id'
         params = {
             'company_id': self.env.company.id,
             'import_merchandise_code': _merchandise_import_code.get(self.env.company.country_id.code, '29'),
@@ -181,6 +202,7 @@ class IntrastatReport(models.AbstractModel):
             'date_from': date_from,
             'date_to': date_to,
             'journal_ids': tuple(journal_ids),
+            'weight_category_id': self.env['ir.model.data']._xmlid_to_res_id('uom.product_uom_categ_kgm'),
         }
         if with_vat:
             where += ' AND partner.vat IS NOT NULL '
@@ -197,41 +219,43 @@ class IntrastatReport(models.AbstractModel):
         return query, params
 
     @api.model
-    def _fill_missing_values(self, vals, cache=None):
+    def _fill_missing_values(self, vals_list):
         ''' Some values are too complex to be retrieved in the SQL query.
         Then, this method is used to compute the missing values fetched from the database.
 
         :param vals:    A dictionary created by the dictfetchall method.
-        :param cache:   A cache dictionary used to avoid performance loss.
         '''
-        if cache is None:
-            cache = {}
-        for index in range(len(vals)):
+
+        # Prefetch data before looping
+        category_ids = self.env['product.category'].browse({vals['category_id'] for vals in vals_list})
+        self.env['product.category'].search([('id', 'parent_of', category_ids.ids)]).read(['intrastat_id', 'parent_id'])
+
+        for vals in vals_list:
             # Check account.intrastat.code
             # If missing, retrieve the commodity code by looking in the product category recursively.
-            if not vals[index]['commodity_code']:
-                cache_key = 'commodity_code_%d' % vals[index]['template_id']
-                vals[index]['commodity_code'] = cache.get(cache_key)
-                if not vals[index]['commodity_code']:
-                    product = self.env['product.template'].browse(vals[index]['template_id'])
-                    intrastat_code = product.search_intrastat_code()
-                    cache[cache_key] = vals[index]['commodity_code'] = intrastat_code.name
+            if not vals['commodity_code']:
+                category_id = self.env['product.category'].browse(vals['category_id'])
+                vals['commodity_code'] = category_id.search_intrastat_code().code
+
+            # set transaction_code default value if none (this is overridden in account_intrastat_expiry)
+            if not vals['transaction_code']:
+                vals['transaction_code'] = 1
 
             # Check the currency.
-            cache_key = 'currency_%d' % vals[index]['invoice_currency_id']
-            if cache_key not in cache:
-                cache[cache_key] = self.env['res.currency'].browse(vals[index]['invoice_currency_id'])
-
+            currency_id = self.env['res.currency'].browse(vals['invoice_currency_id'])
             company_currency_id = self.env.company.currency_id
-            if cache[cache_key] != company_currency_id:
-                vals[index]['value'] = cache[cache_key]._convert(vals[index]['value'], company_currency_id, self.env.company, vals[index]['invoice_date'])
-        return vals
+            if currency_id != company_currency_id:
+                vals['value'] = currency_id._convert(vals['value'], company_currency_id, self.env.company, vals['invoice_date'])
+        return vals_list
 
     @api.model
     def _get_lines(self, options, line_id=None):
         self.env['account.move.line'].check_access_rights('read')
 
         date_from, date_to, journal_ids, incl_arrivals, incl_dispatches, extended, with_vat = self._decode_options(options)
+
+        if not journal_ids:
+            return []
 
         invoice_types = []
         if incl_arrivals:
@@ -268,3 +292,6 @@ class IntrastatReport(models.AbstractModel):
     @api.model
     def _get_report_name(self):
         return _('Intrastat Report')
+
+    def _get_report_country_code(self, options):
+        return self.env.company.account_fiscal_country_id.code or None

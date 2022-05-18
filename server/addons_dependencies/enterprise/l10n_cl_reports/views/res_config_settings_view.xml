@@ -8,12 +8,12 @@
         <field name="arch" type="xml">
 
             <xpath expr="//div[@id='l10n_cl_title']" position="attributes">
-                <attribute name="attrs">{'invisible': False}</attribute>
+                <attribute name="attrs">{'invisible': [('country_code', '!=', 'CL')]}</attribute>
             </xpath>
 
             <xpath expr="//div[@id='l10n_cl_section']" position="inside">
 
-                <div class="row mt16 o_settings_container">
+                <div class="row mt16 o_settings_container" attrs="{'invisible': [('country_code', '!=', 'CL')]}">
                     <div class="col-12 col-lg-6 o_setting_box" id="l10n_cl_tasa_ppm_settings">
                         <div class="o_setting_left_pane"/>
                         <div class="o_setting_right_pane">
@@ -31,7 +31,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-lg-6 o_setting_box" id="l10n_cl_fpp_settings">
+                    <div class="col-12 col-lg-6 o_setting_box" id="l10n_cl_fpp_settings" attrs="{'invisible': [('country_code', '!=', 'CL')]}">
                         <div class="o_setting_left_pane"/>
                         <div class="o_setting_right_pane">
                             <label string="Proportional Factor for the fiscal year" for="l10n_cl_report_fpp_value"/>

@@ -10,9 +10,14 @@ var session = require('web.session');
 var utils = require('web.utils');
 
 var QWeb = core.qweb;
+var _t = core._t;
 
 
 var GanttRenderer = AbstractRenderer.extend({
+    config: {
+        GanttRow: GanttRow
+    },
+
     custom_events: _.extend({}, AbstractRenderer.prototype.custom_events, {
         'start_dragging': '_onStartDragging',
         'start_no_dragging': '_onStartNoDragging',
@@ -27,6 +32,9 @@ var GanttRenderer = AbstractRenderer.extend({
         'decoration-warning',
         'decoration-danger',
     ],
+    sampleDataTargets: [
+        '.o_gantt_row',
+    ],
     /**
      * @override
      * @param {Widget} parent
@@ -34,6 +42,7 @@ var GanttRenderer = AbstractRenderer.extend({
      * @param {Object} params
      * @param {boolean} params.canCreate
      * @param {boolean} params.canEdit
+     * @param {boolean} params.canCellCreate
      * @param {Object} params.cellPrecisions
      * @param {string} params.colorField
      * @param {Object} params.fieldsInfo
@@ -50,10 +59,12 @@ var GanttRenderer = AbstractRenderer.extend({
         this.$draggedPillClone = null;
 
         this.canCreate = params.canCreate;
+        this.canCellCreate = params.canCellCreate;
         this.canEdit = params.canEdit;
         this.canPlan = params.canPlan;
         this.cellPrecisions = params.cellPrecisions;
         this.colorField = params.colorField;
+        this.disableDragdrop = params.disableDragdrop;
         this.progressField = params.progressField;
         this.consolidationParams = params.consolidationParams;
         this.fieldsInfo = params.fieldsInfo;
@@ -76,6 +87,9 @@ var GanttRenderer = AbstractRenderer.extend({
         } else {
             this.popoverQWeb = QWeb;
         }
+
+        this.isRTL = _t.database.parameters.direction === "rtl";
+        this.template_to_use = "GanttView";
     },
     /**
      * Called each time the renderer is attached into the DOM.
@@ -84,7 +98,9 @@ var GanttRenderer = AbstractRenderer.extend({
         this._isInDom = true;
         core.bus.on("keydown", this, this._onKeydown);
         core.bus.on("keyup", this, this._onKeyup);
-        this._setRowsDroppable();
+        if (!this.disableDragdrop) {
+            this._setRowsDroppable();
+        }
     },
     /**
      * Called each time the renderer is detached from the DOM.
@@ -128,6 +144,9 @@ var GanttRenderer = AbstractRenderer.extend({
                 $previousRow = row.$el;
             });
             _.invoke(oldRows, 'destroy');
+            if (!self.disableDragdrop) {
+                self._setRowsDroppable();
+            }
         });
     },
 
@@ -153,7 +172,7 @@ var GanttRenderer = AbstractRenderer.extend({
         var focusDate = this.state.focusDate;
         switch (this.state.scale) {
             case 'day':
-                return focusDate.format('DD MMMM YYYY');
+                return focusDate.format('dddd, MMMM DD, YYYY');
             case 'week':
                 var dateStart = focusDate.clone().startOf('week').format('DD MMMM YYYY');
                 var dateEnd = focusDate.clone().endOf('week').format('DD MMMM YYYY');
@@ -207,13 +226,11 @@ var GanttRenderer = AbstractRenderer.extend({
         };
     },
     /**
-     * Render gantt view and its rows.
+     * Renders gantt view and its rows.
      *
      * @override
-     * @private
-     * @returns {Deferred}
      */
-    _render: function () {
+    async _renderView() {
         var self = this;
         var oldRowWidgets = Object.keys(this.rowWidgets).map(function (rowId) {
             return self.rowWidgets[rowId];
@@ -231,25 +248,30 @@ var GanttRenderer = AbstractRenderer.extend({
         var proms = this.proms;
         delete this.proms;
         return Promise.all(proms).then(function () {
-            self.$el.empty();
             _.invoke(oldRowWidgets, 'destroy');
+            self.$el.empty();
 
-            self._replaceElement(QWeb.render('GanttView', {widget: self}));
+            self._replaceElement(QWeb.render(self.template_to_use, {widget: self, isMobile: config.device.isMobile}));
             const $containment = $('<div id="o_gantt_containment"/>');
-            self.$('.o_gantt_row_container').append($containment);
+            const $rowContainer = self.$('.o_gantt_row_container');
+            $rowContainer.append($containment);
             if (!self.state.groupedBy.length) {
-                $containment.css({ left: 0});
+                $containment.css(self.isRTL ? {right: 0} : {left: 0});
             }
 
             rows.forEach(function (row) {
-                row.$el.appendTo(self.$('.o_gantt_row_container'));
+                row.$el.appendTo($rowContainer);
             });
             if (totalRow) {
                 totalRow.$el.appendTo(self.$('.o_gantt_total_row_container'));
             }
 
-            if (self._isInDom) {
+            if (self._isInDom && !self.disableDragdrop) {
                 self._setRowsDroppable();
+            }
+
+            if (self.state.isSample) {
+                self._renderNoContentHelper();
             }
         });
     },
@@ -276,18 +298,14 @@ var GanttRenderer = AbstractRenderer.extend({
             hideSidebar = self.state.groupedBy.length === 0;
         }
         rows.forEach(function (row) {
-            var pillsInfo = {
-                groupId: row.groupId,
-                resId: row.resId,
-                pills: row.records,
-                groupLevel: groupLevel,
-            };
+            const pillsInfo = self._getPillsInfo(row, groupLevel);
             if (groupedBy.length) {
                 pillsInfo.groupName = row.name;
                 pillsInfo.groupedByField = row.groupedByField;
             }
             var params = {
                 canCreate: self.canCreate,
+                canCellCreate: self.canCellCreate,
                 canEdit: self.canEdit,
                 canPlan: self.canPlan,
                 isGroup: row.isGroup,
@@ -295,7 +313,9 @@ var GanttRenderer = AbstractRenderer.extend({
                 hideSidebar: hideSidebar,
                 isOpen: row.isOpen,
                 disableResize: disableResize,
+                disableDragdrop: self.disableDragdrop,
                 rowId: row.id,
+                fromServer: row.fromServer,
                 scales: self.SCALES,
                 unavailabilities: row.unavailabilities,
             };
@@ -324,7 +344,7 @@ var GanttRenderer = AbstractRenderer.extend({
      * @returns {Promise<GanttRow>} resolved when the row is ready
      */
     _renderRow: function (pillsInfo, params) {
-        var ganttRow = new GanttRow(this, pillsInfo, this.viewInfo, params);
+        var ganttRow = new this.config.GanttRow(this, pillsInfo, this.viewInfo, params);
         this.rowWidgets[ganttRow.rowId] = ganttRow;
         this.proms.push(ganttRow._widgetRenderAndInsert(function () {}));
         return ganttRow;
@@ -337,13 +357,13 @@ var GanttRenderer = AbstractRenderer.extend({
      */
     _renderTotalRow: function () {
         var pillsInfo = {
-            groupId: "groupTotal",
             pills: this.state.records,
             groupLevel: 0,
             groupName: "Total"
         };
         var params = {
             canCreate: this.canCreate,
+            canCellCreate: this.canCellCreate,
             canEdit: this.canEdit,
             canPlan: this.canPlan,
             hideSidebar: this.state.groupedBy.length === 0,
@@ -361,6 +381,19 @@ var GanttRenderer = AbstractRenderer.extend({
         // getBoundingClientRect is costly when there are lots of rows
         const firstCell = this.$('.o_gantt_header_scale .o_gantt_header_cell:first')[0];
         _.invoke(this.rowWidgets, 'setDroppable', firstCell);
+    },
+    /**
+     * Get pills info
+     *
+     * @param {Object} row
+     * @param {*} groupLevel
+     */
+    _getPillsInfo: function (row, groupLevel) {
+        return {
+            resId: row.resId,
+            pills: row.records,
+            groupLevel: groupLevel,
+        };
     },
 
     //--------------------------------------------------------------------------

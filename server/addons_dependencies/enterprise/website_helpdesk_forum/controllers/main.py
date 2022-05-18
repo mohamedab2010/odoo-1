@@ -2,10 +2,10 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo.http import request
-from odoo.addons.website_helpdesk.controllers.main import WebsiteHelpdesk
+from odoo.addons.website_helpdesk.controllers import main
 
 
-class WebsiteHelpdesk(WebsiteHelpdesk):
+class WebsiteHelpdesk(main.WebsiteHelpdesk):
 
     def get_helpdesk_team_data(self, team, search=None):
         result = super(WebsiteHelpdesk, self).get_helpdesk_team_data(team, search)

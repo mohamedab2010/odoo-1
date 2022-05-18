@@ -9,10 +9,10 @@ class SocialMediaPushNotifications(models.Model):
 
     media_type = fields.Selection(selection_add=[('push_notifications', 'Push Notifications')])
 
-    def action_add_account(self):
+    def _action_add_account(self):
         self.ensure_one()
 
         if self.media_type != 'push_notifications':
-            return super(SocialMediaPushNotifications, self).action_add_account()
+            return super(SocialMediaPushNotifications, self)._action_add_account()
 
         return None

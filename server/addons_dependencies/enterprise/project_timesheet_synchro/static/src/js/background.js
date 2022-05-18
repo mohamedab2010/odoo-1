@@ -1,3 +1,4 @@
+/* global chrome */
 var clockInterval = null;
 var min = 0;
 

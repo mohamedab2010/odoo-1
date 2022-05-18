@@ -4,11 +4,10 @@ odoo.define('quality_iot.iot_picture', function (require) {
 var registry = require('web.field_registry');
 var TabletImage = require('quality.tablet_image_field').TabletImage;
 var iot_widgets = require('iot.widgets');
-var Dialog = require('web.Dialog');
 var core = require('web.core');
 var _t = core._t;
 
-var TabletImageIot = TabletImage.extend(iot_widgets.IotValueFieldMixin, {
+var TabletImageIoT = TabletImage.extend(iot_widgets.IoTValueFieldMixin, {
     events: _.extend({}, TabletImage.prototype.events, {
         'click .o_input_file': '_onButtonClick',
     }),
@@ -17,11 +16,9 @@ var TabletImageIot = TabletImage.extend(iot_widgets.IotValueFieldMixin, {
      * @private
      */
     _getDeviceInfo: function() {
-        var record_data = this.record.data;
-        if (record_data.test_type === 'picture' && record_data.identifier) {
-            this.iot_device = new iot_widgets.DeviceProxy({ iot_ip: record_data.ip, identifier: record_data.identifier });
+        if (this.recordData.test_type === 'picture') {
+            return iot_widgets.IoTValueFieldMixin._getDeviceInfo.apply(this);
         }
-        return Promise.resolve();
     },
 
     _onButtonClick: function (ev) {
@@ -29,12 +26,12 @@ var TabletImageIot = TabletImage.extend(iot_widgets.IotValueFieldMixin, {
         ev.stopImmediatePropagation();
         if (this.iot_device) {
             ev.preventDefault();
-            this.do_notify(_t('Capture image...'));
-            this.iot_device.action('')
+            this.displayNotification({ message: _t('Capture image...') });
+            this.iot_device.action({})
                 .then(function(data) {
                     self._onIoTActionResult(data);
                 })
-                .guardedCatch(self._onIoTActionFail);
+                .guardedCatch(self._onIoTActionFail.bind(self));
         }
     },
     /**
@@ -47,7 +44,7 @@ var TabletImageIot = TabletImage.extend(iot_widgets.IotValueFieldMixin, {
      */
     _onValueChange: function (data){
         if (data.owner && data.owner === data.session_id) {
-            this.do_notify(data.message);
+            this.displayNotification({ title: data.message });
             if (data.image){
                 this._setValue(data.image);
             }
@@ -55,7 +52,7 @@ var TabletImageIot = TabletImage.extend(iot_widgets.IotValueFieldMixin, {
     },
 });
 
-registry.add('iot_picture', TabletImageIot);
+registry.add('iot_picture', TabletImageIoT);
 
-return TabletImageIot;
+return TabletImageIoT;
 });

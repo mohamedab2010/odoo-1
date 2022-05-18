@@ -20,9 +20,10 @@ class TestPlanningPublishing(TestCommonPlanning):
             'work_email': False,
             'tz': 'UTC'
         })
+        cls.resource_dirk = cls.employee_dirk_no_mail.resource_id
 
         values = {
-            'employee_id': cls.employee_joseph.id,
+            'resource_id': cls.resource_joseph.id,
             'allocated_hours': 8,
             'start_datetime': datetime(2019, 6, 6, 8, 0, 0),
             'end_datetime': datetime(2019, 6, 6, 17, 0, 0)
@@ -34,21 +35,21 @@ class TestPlanningPublishing(TestCommonPlanning):
             'allocated_hours': 10
         })
 
-        Mails = self.env['mail.mail']
+        Mails = self.env['mail.mail'].sudo()
         before_mails = Mails.search([])
 
         self.shift.action_send()
-        self.assertTrue(self.shift.is_published, 'planning is is_published when we call its action_send')
+        self.assertEqual(self.shift.state, 'published', 'planning is published when we call its action_send')
 
         shift_mails = set(Mails.search([])) ^ set(before_mails)
         self.assertEqual(len(shift_mails), 1, 'only one mail is created when publishing planning')
 
     def test_sending_planning_do_not_create_mail_if_employee_has_no_email(self):
-        self.shift.write({'employee_id': self.employee_dirk_no_mail.id})
+        self.shift.write({'resource_id': self.resource_dirk.id})
 
         self.assertFalse(self.employee_dirk_no_mail.work_email)  # if no work_email
 
-        Mails = self.env['mail.mail']
+        Mails = self.env['mail.mail'].sudo()
         before_mails = Mails.search([])
 
         self.shift.action_send()

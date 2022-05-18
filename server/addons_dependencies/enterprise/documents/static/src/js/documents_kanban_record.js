@@ -1,14 +1,14 @@
 odoo.define('documents.DocumentsKanbanRecord', function (require) {
-"use strict";
+'use strict';
 
 /**
  * This file defines the KanbanRecord for the Documents Kanban view.
  */
 
-var KanbanRecord = require('web.KanbanRecord');
+const KanbanRecord = require('web.KanbanRecord');
 
-var DocumentsKanbanRecord = KanbanRecord.extend({
-    events: _.extend({}, KanbanRecord.prototype.events, {
+const DocumentsKanbanRecord = KanbanRecord.extend({
+    events: Object.assign({}, KanbanRecord.prototype.events, {
         'click': '_onSelectRecord',
         'click .o_record_selector': '_onAddRecordToSelection',
         'click .oe_kanban_previewer': '_onImageClicked',
@@ -20,9 +20,9 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * @returns {integer} resID of the record
+     * @returns {integer} resId of the record
      */
-    getResID: function () {
+    getResId() {
         return this.id;
     },
     /**
@@ -32,19 +32,17 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
      *
      * @override
      */
-    update: function () {
-        var self = this;
-        var isSelected = this.$el.hasClass('o_record_selected');
-        return this._super.apply(this, arguments).then(function () {
-            if (isSelected) {
-                self.$el.addClass('o_record_selected');
-            }
-        });
+    async update() {
+        const isSelected = this.$el.hasClass('o_record_selected');
+        await this._super(...arguments);
+        if (isSelected) {
+            this.$el.addClass('o_record_selected');
+        }
     },
     /**
      * @param {boolean} selected
      */
-    updateSelection: function (selected) {
+    updateSelection(selected) {
         this.$el.toggleClass('o_record_selected', selected);
     },
 
@@ -54,15 +52,15 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
 
     /**
      * @private
-     * @param {boolean} clear if true, will ask to unselect other records
-     * @param {jQueryEvent} ev
+      * @param {jQueryEvent} ev
+      * @param {Object} param1
+      * @param {boolean} [param1.isKeepingSelection=false]
      */
-    _toggleSelect: function (clear, ev) {
+    _toggleSelect(ev, { isKeepSelection=false }={}) {
         this.trigger_up('select_record', {
-            clear: clear,
+            isKeepSelection,
             originalEvent: ev,
-            resID: this.getResID(),
-            selected: !this.$el.hasClass('o_record_selected'),
+            resId: this.getResId(),
         });
     },
     //--------------------------------------------------------------------------
@@ -75,21 +73,21 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
      * @private
      * @param {MouseEvent} ev
      */
-    _onAddRecordToSelection: function (ev) {
+    _onAddRecordToSelection(ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        this._toggleSelect(false, ev);
+        this._toggleSelect(ev, { isKeepSelection: true });
     },
     /**
      * @private
      * @param {MouseEvent} ev
      */
-    _onImageClicked: function (ev) {
+    _onImageClicked(ev) {
         ev.preventDefault();
         ev.stopPropagation();
         this.trigger_up('kanban_image_clicked', {
             recordList: [this.recordData],
-            recordID: this.recordData.id
+            recordId: this.recordData.id
         });
     },
     /**
@@ -99,21 +97,20 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
      * @override
      * @private
      */
-    _onKeyDownOpenFirstLink: function (ev) {
+    _onKeyDownOpenFirstLink(ev) {
         switch (ev.keyCode) {
             case $.ui.keyCode.ENTER:
-                this._toggleSelect(true, ev);
+                this._toggleSelect(ev, { isKeepSelection: false });
                 break;
         }
     },
     /**
      * @private
-     *
      */
-    _onRequestImage: function (ev) {
+    _onRequestImage(ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        this.trigger_up('replace_file', {id: this.id});
+        this.trigger_up('set_file', {id: this.id});
     },
     /**
      * Toggle the selected status of the record (and unselect all other records)
@@ -121,11 +118,11 @@ var DocumentsKanbanRecord = KanbanRecord.extend({
      * @private
      * @param {MouseEvent} ev
      */
-    _onSelectRecord: function (ev) {
+    _onSelectRecord(ev) {
         ev.preventDefault();
         // ignore clicks on oe_kanban_action elements
         if (!$(ev.target).hasClass('oe_kanban_action')) {
-            this._toggleSelect(true, ev);
+            this._toggleSelect(ev, { isKeepSelection: false });
         }
     },
 });

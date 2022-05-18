@@ -2,9 +2,11 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, models, fields, _
+from odoo.exceptions import UserError
 
 import json
 import base64
+from urllib.parse import urlparse, parse_qs
 
 
 class ReportExportWizard(models.TransientModel):
@@ -29,7 +31,7 @@ class ReportExportWizard(models.TransientModel):
         # We create one export format object per available export type of the report,
         # with the right generation function associated to it.
         # This is done so to allow selecting them as Many2many tags in the wizard.
-        for button_dict in report._get_reports_buttons_in_sequence():
+        for button_dict in report._get_reports_buttons_in_sequence(self._context.get('account_report_generation_options', {})):
             if button_dict.get('file_export_type'):
                 self.env['account_reports.export.wizard.format'].create({
                     'name': button_dict['file_export_type'],
@@ -56,18 +58,33 @@ class ReportExportWizard(models.TransientModel):
         self.ensure_one()
         to_create_attachments = []
         for format in self.export_format_ids:
-            report_action = format.apply_export(self.env.context['account_report_generation_options'])
-            output_format = report_action['data']['output_format']
+            report_options = self.env.context['account_report_generation_options']
+            report_action = format.apply_export(report_options)
             report = self._get_report_obj()
-            mimetype = report.get_export_mime_type(output_format)
+            if report_action['type'] == 'ir_actions_account_report_download':
+                output_format = report_action['data']['output_format']
+                mimetype = report.get_export_mime_type(output_format)
 
-            if mimetype is not False: # We let the option to set a None value for it
-                report_options = json.loads(report_action['data']['options'])
-                generation_function = getattr(report, 'get_' + output_format)
-                file_name = report.get_report_filename(report_options) + '.' + output_format
-                file_content = base64.encodestring(generation_function(report_options)) # We use the options from the action, as the action may have added or modified stuff into them (see l10n_es_reports, with BOE wizard)
-                log_options_dict = self._get_log_options_dict(report_options)
-                to_create_attachments.append(self.get_attachment_vals(file_name, file_content, mimetype, log_options_dict))
+                if mimetype is not False: # We let the option to set a None value for it
+                    report_options = json.loads(report_action['data']['options'])
+                    report_options = self._get_log_options_dict(report_options)
+                    generation_function = getattr(report, 'get_' + output_format)
+                    file_name = f"{self.doc_name or report.get_report_filename(report_options)}.{output_format}"
+                    # We use the options from the action, as the action may have added or modified
+                    # stuff into them (see l10n_es_reports, with BOE wizard)
+                    file_content = base64.encodebytes(generation_function(report_options))
+            elif report_action['type'] == 'ir.actions.act_url':
+                query_params = parse_qs(urlparse(report_action['url']).query)
+                model = query_params['model'][0]
+                model_id = int(query_params['id'][0])
+                wizard = self.env[model].browse(model_id)
+                file_name = wizard[query_params['filename_field'][0]]
+                file_content = wizard[query_params['field'][0]]
+                mimetype = self.env['account.report'].get_export_mime_type(file_name.split('.')[-1])
+            else:
+                raise UserError(_("One of the formats chosen can not be exported in the DMS"))
+            report_options.pop('self', False)
+            to_create_attachments.append(self.get_attachment_vals(file_name, file_content, mimetype, report_options))
         return to_create_attachments
 
     def get_attachment_vals(self, file_name, file_content, mimetype, log_options_dict):

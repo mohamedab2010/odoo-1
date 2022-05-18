@@ -5,4 +5,6 @@ from odoo import fields, models
 class ActWindowView(models.Model):
     _inherit = 'ir.actions.act_window.view'
 
-    view_mode = fields.Selection(selection_add=[('dashboard', "Dashboard")])
+    view_mode = fields.Selection(selection_add=[
+        ('dashboard', "Dashboard")
+    ], ondelete={'dashboard': 'cascade'})

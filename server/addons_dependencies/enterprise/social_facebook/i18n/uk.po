@@ -3,17 +3,16 @@
 # 	* social_facebook
 # 
 # Translators:
-# Martin Trigaux, 2019
-# ТАрас <tratatuta@i.ua>, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -42,6 +41,12 @@ msgid "Actual Facebook ID of the post"
 msgstr "Фактичне ID Facebook публікації"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "An error occurred."
+msgstr "Виникла помилка."
+
+#. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "App ID"
 msgstr "ID додатка"
@@ -49,7 +54,7 @@ msgstr "ID додатка"
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "App Secret"
-msgstr "Секрет додатка"
+msgstr "Секретний ключ додатка"
 
 #. module: social_facebook
 #. openerp-web
@@ -58,6 +63,15 @@ msgstr "Секрет додатка"
 #, python-format
 msgid "Author Image"
 msgstr "Зображення автора"
+
+#. module: social_facebook
+#: model:ir.model.fields,help:social_facebook.field_res_config_settings__facebook_use_own_account
+msgid ""
+"Check this if you want to use your personal Facebook Developer Account "
+"instead of the provided one."
+msgstr ""
+"Позначте, якщо ви хочете використовувати свій особистий обліковий запис "
+"розробника Facebook замість наданого."
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_comments_count
@@ -71,6 +85,7 @@ msgstr "Налаштування"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__display_facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__display_facebook_preview
 msgid "Display Facebook Preview"
 msgstr "Відображати попередній перегляд Facebook"
 
@@ -115,7 +130,7 @@ msgstr "ID автора Facebook"
 #: code:addons/social_facebook/static/src/js/stream_post_facebook_comments.js:0
 #, python-format
 msgid "Facebook Comments"
-msgstr "Коментарі Facebook"
+msgstr "Facebook Comments"
 
 #. module: social_facebook
 #: model:ir.model.fields,help:social_facebook.field_social_account__facebook_access_token
@@ -142,8 +157,27 @@ msgstr "ID публікації Facebook"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__facebook_preview
 msgid "Facebook Preview"
 msgstr "Попередній перегляд Facebook"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token or it may have expired."
+msgstr ""
+"Facebook не надав дійсний токен доступу або він, можливо, протермінований."
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token."
+msgstr "Facebook не надав дійсний токен доступу."
+
+#. module: social_facebook
+#: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_is_event_post
+msgid "Is event post"
+msgstr "Публікація події"
 
 #. module: social_facebook
 #. openerp-web
@@ -172,6 +206,16 @@ msgstr "Публікації сторінки"
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
 msgid "Post Image"
 msgstr "Зображення публікації"
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid ""
+"Post not found. It could be because the post has been deleted on the Social "
+"Platform."
+msgstr ""
+"Публікація не знайдена. Це можливо, якщо публікацію було видалено з "
+"соцмережі."
 
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
@@ -213,6 +257,11 @@ msgid "Social Post"
 msgstr "Публікація в соцмережах"
 
 #. module: social_facebook
+#: model:ir.model,name:social_facebook.model_social_post_template
+msgid "Social Post Template"
+msgstr "Шаблон публікації соцмереж"
+
+#. module: social_facebook
 #: model:ir.model,name:social_facebook.model_social_stream
 msgid "Social Stream"
 msgstr "Пряма трансляція у соціальних мережах"
@@ -221,6 +270,25 @@ msgstr "Пряма трансляція у соціальних мережах"
 #: model:ir.model,name:social_facebook.model_social_stream_post
 msgid "Social Stream Post"
 msgstr "Публікація трансляції соцмереж"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "There is no page linked to this account"
+msgstr "Немає сторінки, пов'язаної з цим обліковим записом"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator. "
+msgstr "Неавторизовано. Зв'яжіться з вашим адміністратором. "
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "Unknown"
+msgstr "Невідомо"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_res_config_settings__facebook_use_own_account
@@ -257,10 +325,26 @@ msgid "Views"
 msgstr "Переглядів"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_live_post.py:0
+#: code:addons/social_facebook/models/social_post.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+"Нам не вдалося завантажити ваше зображення, спробуйте зменшити його розмір і"
+" опублікувати знову (помилка: %s)."
+
+#. module: social_facebook
 #: code:addons/social_facebook/models/social_media.py:0
 #, python-format
 msgid "You don't have an active subscription. Please buy one here: %s"
 msgstr "У вас немає активної підписки. Купіть її тут: %s"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.social_stream_post_view_kanban
+msgid "added an event"
+msgstr "додано подію"
 
 #. module: social_facebook
 #. openerp-web
@@ -268,3 +352,8 @@ msgstr "У вас немає активної підписки. Купіть ї�
 #, python-format
 msgid "comment/reply"
 msgstr "залишити коментар/відповісти"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
+msgid "• <i class=\"fa fa-globe\"/>"
+msgstr "• <i class=\"fa fa-globe\"/>"

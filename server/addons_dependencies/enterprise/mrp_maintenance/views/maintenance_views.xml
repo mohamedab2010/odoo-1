@@ -43,6 +43,7 @@
         <field name="inherit_id" ref="maintenance.hr_equipment_request_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='maintenance_type']" position="after">
+                <field name="production_company_id" invisible="1"/>
                 <field name="production_id" options="{'no_create': True, 'no_open': True}"/>
                 <field name="workorder_id" attrs="{'invisible': [('production_id', '=', False)]}" options="{'no_create': True, 'no_open': True}" domain="[('production_id', '=', production_id)]" groups="mrp.group_mrp_routings"/>
                 <!-- <field name="repair_id"/> -->
@@ -50,8 +51,8 @@
             <xpath expr="//div[hasclass('oe_chatter')]" position="after">
                 <div invisible="not context.get('discard_on_footer_button', False)">
                     <footer class="oe_edit_only">
-                        <button special="save" string="Save" class="oe_highlight"/>
-                        <button string="Discard" special="cancel"/>
+                        <button special="save" data-hotkey="v" string="Save" class="oe_highlight"/>
+                        <button string="Discard" special="cancel" data-hotkey="z"/>
                     </footer>
                 </div>
             </xpath>

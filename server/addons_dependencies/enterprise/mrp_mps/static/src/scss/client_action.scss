@@ -2,23 +2,45 @@
     background-color: white;
 
     button {
+        &.o_mrp_mps_procurement {
+            background-color: $gray-200;
+            border: none;
+        }
         &.o_no_padding {
             padding: 0 0 0 0;
         }
     }
 
     input {
-        background: rgba(255, 255, 255, .25);
         border-style: groove;
-        &.alert-dark {
-            background: rgba(255, 255, 255, .5);
-        }
         height: 100%;
         padding-top: 0;
     }
 
     table {
-       margin-bottom: 0em;
+        thead th {
+            @include o-position-sticky($top: 0px, $left: 0px);
+            z-index: 10;
+            border-top: none;
+            &:first-child {
+                z-index: 11;
+            }
+        }
+        tbody th {
+            @include o-position-sticky($left: 0px);
+            &:first-child {
+                z-index: 1;
+                background-color: $gray-200;
+            }
+        }
+        th {
+            vertical-align: middle;
+            min-width: 110px;
+        }
+        .o_mps_inline {
+            display: inline-flex;
+            max-width: 38%;
+        }
     }
 
     tr {
@@ -34,14 +56,6 @@
     .form-control {
         padding: 0em 0em;
         color: $black;
-    }
-
-    .table th {
-        vertical-align: middle;
-        &.o_top_border_hidden {
-            border: none;
-            padding-top: 0;
-        }
     }
 
     .o_input {

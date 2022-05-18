@@ -32,9 +32,9 @@
             <field name="name">account_consolidation.trial_balance.report.grid</field>
             <field name="model">consolidation.journal.line</field>
             <field name="arch" type="xml">
-                <graph string="Trial Balance">
-                    <field name="group_id" type="row"/>
-                    <field name="journal_id" type="row"/>
+                <graph string="Trial Balance" sample="1">
+                    <field name="group_id"/>
+                    <field name="journal_id"/>
                     <field name="amount" type="measure"/>
                 </graph>
             </field>
@@ -57,10 +57,10 @@
         <!-- Search template used in trial balance report for consolidation : add journals and comparisons-->
         <template id="search_template" inherit_id="account_reports.search_template">
             <xpath expr="//div[hasclass('o_account_reports_filter_journals')]" position="after">
-                <div class="btn-group o_dropdown o_account_reports_filter_consolidation_period_comparisons">
+                <div class="btn-group dropdown o_account_reports_filter_consolidation_period_comparisons">
                     <t t-call="account_consolidation.search_template_consolidation_period_comparisons"/>
                 </div>
-                <div class="btn-group o_dropdown o_account_reports_filter_consolidation_journals"
+                <div class="btn-group dropdown o_account_reports_filter_consolidation_journals"
                      t-if="options.get('consolidation_journals') != None">
                     <t t-call="account_consolidation.search_template_consolidation_journals"/>
                 </div>
@@ -69,7 +69,7 @@
         <!-- Template for journals filter -->
         <template id="search_template_consolidation_journals">
             <t t-set="has_a_selected_period"
-               t-value="options.get('periods', False) and any([period.get('selected') for period in options['periods']])"/>
+               t-value="options.get('periods', False) and any(period.get('selected') for period in options['periods'])"/>
             <t t-if="not has_a_selected_period">
                 <a type="button" class="dropdown-toggle" data-toggle="dropdown">
                     <span class="fa fa-book"/>
@@ -83,7 +83,7 @@
                         All
                     </t>
                 </a>
-                <div class="dropdown-menu o_filters_menu" role="menu">
+                <div class="dropdown-menu o_filter_menu" role="menu">
                     <t t-foreach="options['consolidation_journals']" t-as="j">
                         <a role="menuitem" t-att-title="j.get('name')"
                            data-filter="consolidation_journals" t-att-data-id="j.get('id')"
@@ -107,7 +107,7 @@
                         <t t-esc="selected_periods"/>
                     </t>
                 </a>
-                <div class="dropdown-menu o_filters_menu" role="menu">
+                <div class="dropdown-menu o_filter_menu" role="menu">
                     <t t-foreach="options['periods']" t-as="p">
                         <a role="menuitem" t-att-title="p.get('name')"
                            data-filter="periods" t-att-data-id="p.get('id')"
@@ -120,7 +120,7 @@
         </template>
         <!-- Extra options template to add "show zero balance accounts" option -->
         <template id="search_template_conso_extra_options" inherit_id="account_reports.search_template_extra_options">
-            <xpath expr="//div[hasclass('o_filters_menu')]" position="inside">
+            <xpath expr="//div[hasclass('o_filter_menu')]" position="inside">
                 <a role="menuitem" class="dropdown-item js_account_report_bool_filter"
                    t-if="options.get('show_zero_balance_accounts') != None"
                    title="Show Zero Balance Accounts" data-filter="show_zero_balance_accounts">
@@ -194,6 +194,21 @@
                     </t>
                 </tr>
             </t>
+        </template>
+        <template id="header_cell_template">
+            <t t-esc="cell.get('name')"/>
+            <br />
+            <t t-if="cell.get('consolidation_rate')">
+                <span class="subtitle">
+                    Conso Rate: <t t-esc="cell.get('consolidation_rate')"/>%<br/>
+                    <t t-if="cell.get('from_currency')">
+                        Avg Rate: 1<t t-esc="cell.get('from_currency')"/> = <t t-esc="cell.get('currency_rate_avg')"/><t t-esc="cell.get('to_currency')"/>
+                        / End Rate: 1<t t-esc="cell.get('from_currency')"/> = <t t-esc="cell.get('currency_rate_end')"/><t t-esc="cell.get('to_currency')"/>
+                    </t>
+                </span>
+            </t>
+            <br />
+            <br />
         </template>
     </data>
 </odoo>

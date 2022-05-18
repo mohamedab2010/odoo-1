@@ -7,7 +7,7 @@ from odoo import fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
-    manufacturing_period = fields.Selection(related="company_id.manufacturing_period", default='month', string="Manufacturing Period", readonly=False)
+    manufacturing_period = fields.Selection(related="company_id.manufacturing_period", string="Manufacturing Period", readonly=False)
     manufacturing_period_to_display = fields.Integer(
-        related='company_id.manufacturing_period_to_display', default=12,
+        related='company_id.manufacturing_period_to_display',
         string='Number of Manufacturing Period Columns', readonly=False)

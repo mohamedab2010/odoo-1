@@ -9,7 +9,7 @@ class HrExpenseSheet(models.Model):
 
     refund_in_payslip = fields.Boolean(
         string="Reimburse In Next Payslip", states={'done': [('readonly', True)], 'post': [('readonly', True)]},
-        groups='hr_expense.group_hr_expense_team_approver')
+        groups='hr_expense.group_hr_expense_team_approver,account.group_account_invoice')
     payslip_id = fields.Many2one('hr.payslip', string="Payslip", readonly=True)
 
     def action_report_in_next_payslip(self):

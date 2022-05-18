@@ -4,7 +4,6 @@
 from odoo import api, fields, models, _
 from odoo.addons.http_routing.models.ir_http import slug
 from odoo.exceptions import UserError
-from odoo.tools import plaintext2html
 
 
 class HelpdeskTeam(models.Model):
@@ -16,7 +15,7 @@ class HelpdeskTeam(models.Model):
     def _compute_forum_url(self):
         for team in self:
             if team.forum_id and team.id:
-                team.forum_url = '/forum/%s' % slug(team.forum_id)
+                team.forum_url = '%s/forum/%s' % (team.get_base_url(), slug(team.forum_id))
             else:
                 team.forum_url = False
 
@@ -37,16 +36,11 @@ class HelpdeskTeam(models.Model):
         else:
             default_value = self.env.ref('website_forum.forum_help').id
 
-            query = 'SELECT id, use_website_helpdesk_forum FROM "%s" WHERE "%s" is NULL' % (
-                self._table, column_name)
-            self.env.cr.execute(query)
-            # query_results = [team_ids, use_website_helpdesk_forum]
-            query_results = self.env.cr.fetchall()
-            for team in query_results:
-                if team[1]:
-                    query = 'UPDATE "%s" SET "%s"=%%s WHERE id = %s' % (
-                        self._table, column_name, team[0])
-                    self.env.cr.execute(query, (default_value,))
+            self.env.cr.execute("""
+            UPDATE {}
+               SET forum_id = %s
+             WHERE use_website_helpdesk_forum AND forum_id IS NULL
+            """.format(self._table), [default_value])
 
 
 class HelpdeskTicket(models.Model):
@@ -69,7 +63,7 @@ class HelpdeskTicket(models.Model):
             self.forum_post_id = self.env['forum.post'].create({
                 'name': self.name,
                 'forum_id': self.team_id.forum_id.id,
-                'content': plaintext2html(self.description) or '',
+                'content': self.description or '',
             }).id
         self.message_post(body=_('Ticket has been shared on the %s forum.') % (self.forum_post_id.forum_id.name,))
         return self.forum_post_open()

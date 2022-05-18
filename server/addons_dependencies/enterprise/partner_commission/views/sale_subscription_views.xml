@@ -13,7 +13,7 @@
                 <label for="commission_plan_assignation" string="Commission Plan" attrs="{'invisible': [('referrer_id', '=', False)]}"/>
                 <div class="o_row" attrs="{'invisible': [('referrer_id', '=', False)]}">
                     <field name="commission_plan_assignation" attrs="{'required': [('referrer_id', '!=', False)]}"/>
-                    <field name="commission_plan_id" attrs="{'readonly': [('commission_plan_assignation', '=', 'auto')]}"/>
+                    <field name="commission_plan_id" attrs="{'readonly': [('commission_plan_assignation', '=', 'auto')]}" domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]" />
                 </div>
             </xpath>
             <xpath expr="//field[@name='recurring_total']" position="after">

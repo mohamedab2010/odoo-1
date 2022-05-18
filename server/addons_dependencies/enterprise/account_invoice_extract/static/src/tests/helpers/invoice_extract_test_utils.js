@@ -1,9 +1,8 @@
-odoo.define('account_invoice_extract.testUtils', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var InvoiceExtractBoxLayer = require('account_invoice_extract.BoxLayer');
+import InvoiceExtractBoxLayer from '@account_invoice_extract/js/invoice_extract_box_layer';
 
-var testUtils = require('web.test_utils');
+import testUtils from 'web.test_utils';
 
 /**
  * @param {Object} params
@@ -101,7 +100,7 @@ async function createBoxLayer(params) {
                 return Promise.resolve();
             }
         });
-        params.parent = testUtils.createParent(parentParams);
+        params.parent = await testUtils.createParent(parentParams);
     }
 
     var boxLayer = new InvoiceExtractBoxLayer(params.parent, {
@@ -122,10 +121,8 @@ async function createBoxLayer(params) {
 
 }
 
-return {
+export default {
     createBoxData: createBoxData,
     createBoxesData: createBoxesData,
     createBoxLayer: createBoxLayer,
 };
-
-});

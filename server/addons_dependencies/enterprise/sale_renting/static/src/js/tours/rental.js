@@ -2,19 +2,21 @@ odoo.define('sale_renting.tour', function (require) {
 "use strict";
 
 var core = require('web.core');
+const {Markup} = require('web.utils');
 var tour = require('web_tour.tour');
 
 var _t = core._t;
 
 tour.register('rental_tour', {
     url: "/web",
-}, [tour.STEPS.SHOW_APPS_MENU_ITEM, {
+    sequence: 240,
+}, [tour.stepUtils.showAppsMenuItem(), {
     trigger: '.o_app[data-menu-xmlid="sale_renting.rental_menu_root"]',
-    content: _t("Want to <b>rent products</b>? \n Let's discover Odoo Rental App."),
+    content: Markup(_t("Want to <b>rent products</b>? \n Let's discover Odoo Rental App.")),
     position: 'bottom',
     edition: 'enterprise'
 }, {
-    trigger: '.o_menu_entry_lvl_1[data-menu-xmlid="sale_renting.menu_rental_products"]',
+    trigger: '.dropdown-item[data-menu-xmlid="sale_renting.menu_rental_products"]',
     content: _t("At first, let's create some products to rent."),
     position: 'bottom',
 }, {
@@ -35,12 +37,12 @@ tour.register('rental_tour', {
     content: _t("Save the product."),
     position: 'bottom',
 }, {
-    trigger: '.o_menu_header_lvl_1[data-menu-xmlid="sale_renting.rental_order_menu"]',
+    trigger: 'button[data-menu-xmlid="sale_renting.rental_order_menu"]',
     extra_trigger: '.o_form_button_edit',
     content: _t("Let's now create an order."),
     position: 'bottom',
 }, {
-    trigger: '.o_menu_entry_lvl_2[data-menu-xmlid="sale_renting.rental_orders_all"]',
+    trigger: '.dropdown-item[data-menu-xmlid="sale_renting.rental_orders_all"]',
     content: _t("Go to the orders menu."),
     position: 'bottom',
 }, {

@@ -4,7 +4,7 @@
 {
     'name': "Analytic Accounting Enterprise",
     'version': '0.1',
-    'website': "https://www.odoo.com/page/accounting",
+    'website': "https://www.odoo.com/app/accounting",
     'category': 'Accounting/Accounting',
     'depends': ['web_grid', 'analytic', 'account'],
     'description': """

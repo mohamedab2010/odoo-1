@@ -136,22 +136,20 @@ class HmrcVatObligation(models.Model):
         reverse_table = {}
         for line_xml_id in translation_table:
             uk_report_id = self.env.ref('l10n_uk.' + translation_table[line_xml_id])
-            if line_xml_id in ('netVatDue', 'totalVatDue'): #Ids of totals are "total_" + id
-                reverse_table['total_' + str(uk_report_id.id)] = line_xml_id
-            else:
-                reverse_table[uk_report_id.id] = line_xml_id
+            reverse_table[uk_report_id.id] = line_xml_id
 
         values = {}
         for line in lines:
-            if reverse_table.get(line['id']):
+            line_id = self.env['account.generic.tax.report']._parse_line_id(line['id'])[-1][-1]
+            if reverse_table.get(line_id):
                 # Do a get for the no_format_name as for the totals you have twice the line, without and with amount
                 # We cannot pass a negative netVatDue to the API and the amounts of sales/purchases/goodssupplied/ ... must be rounded
-                if reverse_table[line['id']] == 'netVatDue':
-                    values[reverse_table[line['id']]] = abs(round(line['columns'][0].get('balance', 0.0), 2))
-                elif reverse_table[line['id']] in ('totalValueSalesExVAT', 'totalValuePurchasesExVAT', 'totalValueGoodsSuppliedExVAT', 'totalAcquisitionsExVAT'):
-                    values[reverse_table[line['id']]] = round(line['columns'][0].get('balance', 0.0))
+                if reverse_table[line_id] == 'netVatDue':
+                    values[reverse_table[line_id]] = abs(round(line['columns'][0].get('balance', 0.0), 2))
+                elif reverse_table[line_id] in ('totalValueSalesExVAT', 'totalValuePurchasesExVAT', 'totalValueGoodsSuppliedExVAT', 'totalAcquisitionsExVAT'):
+                    values[reverse_table[line_id]] = round(line['columns'][0].get('balance', 0.0))
                 else:
-                    values[reverse_table[line['id']]] = round(line['columns'][0].get('balance', 0.0), 2)
+                    values[reverse_table[line_id]] = round(line['columns'][0].get('balance', 0.0), 2)
         return values
 
     def action_submit_vat_return(self):
@@ -162,8 +160,6 @@ class HmrcVatObligation(models.Model):
                         'date_to': fields.Date.to_string(self.date_end),
                         'filter': 'custom',
                         'mode': 'range'})
-        if self.env.context.get('hmrc_cash_basis', False):
-            options.update({'cash_basis': True})
         ctx = report._set_context(options)
         report_values = report.with_context(ctx)._get_lines(options)
         values = self._fetch_values_from_report(report_values)
@@ -198,11 +194,11 @@ class HmrcVatObligation(models.Model):
             self.sudo().message_post(body=msg)
             self.sudo().write({'status': "fulfilled"})
         elif r.status_code == 401:  # auth issue
-            _logger.exception(_("HMRC auth issue : %s"), r.content)
+            _logger.exception("HMRC auth issue : %s", r.content)
             raise UserError(_(
              "Sorry, your credentials were refused by HMRC or your permission grant has expired. You may try to authenticate again."))
         else:  # other issues
-            _logger.exception(_("HMRC other issue : %s") % r.content)
+            _logger.exception("HMRC other issue : %s", r.content)
             # even 'normal' hmrc errors have a json body. Otherwise will also raise.
             response = json.loads(r.content.decode())
             # Recuperate error message

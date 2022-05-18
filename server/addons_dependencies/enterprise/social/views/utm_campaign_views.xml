@@ -9,23 +9,39 @@
                 <button name="action_create_new_post"
                         type="object"
                         class="oe_highlight order-2"
-                        string="Send Social Post"/>
+                        string="Send Social Post"
+                        groups="social.group_social_user"/>
             </xpath>
             <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
                 <button name="action_redirect_to_social_media_posts"
                     type="object" class="oe_stat_button order-10" icon="fa-newspaper-o"
-                    attrs="{'invisible': [('social_posts_count', '=', 0)]}">
+                    attrs="{'invisible': [('social_posts_count', '=', 0)]}" groups="social.group_social_user">
                     <field name="social_posts_count" widget="statinfo" string="Posts"/>
                 </button>
-                <button icon="fa-thumbs-up">
+                <button icon="fa-thumbs-up" disabled="disabled" groups="social.group_social_user">
                     <field name="social_engagement" widget="statinfo" string="Engagement"/>
                 </button>
             </xpath>
             <xpath expr="//notebook" position="inside">
-                <page string="Social Media" class="order-2" attrs="{'invisible': [('social_posts_count', '=', 0)]}">
+                <page string="Social Media" name="social_media" class="order-2"
+                    attrs="{'invisible': [('social_posts_count', '=', 0)]}" groups="social.group_social_user">
                     <field name="social_post_ids" mode="kanban" widget="one2many" nolabel="1" context="{'default_campaign_id': active_id}"/>
                 </page>
             </xpath>
+        </field>
+    </record>
+
+    <record id="utm_campaign_view_form_quick_create_social" model="ir.ui.view">
+        <field name="name">utm.campaign.view.form.quick.create.social</field>
+        <field name="model">utm.campaign</field>
+        <field name="arch" type="xml">
+            <form string="Campaign">
+                <group>
+                    <field name="name"/>
+                    <field name="user_id"/>
+                    <field name="tag_ids" widget="many2many_tags"/>
+                </group>
+            </form>
         </field>
     </record>
 
@@ -39,8 +55,8 @@
             </xpath>
             <xpath expr="//ul[@id='o_utm_actions']">
                 <a name="action_redirect_to_social_media_posts" type="object"
-                    t-attf-class="#{record.social_posts_count.raw_value === 0 ? 'text-muted' : ''}">
-                    <t t-raw="record.social_posts_count.raw_value"/> Posts
+                    t-attf-class="#{record.social_posts_count.raw_value === 0 ? 'text-muted' : ''}" groups="social.group_social_user">
+                    <t t-out="record.social_posts_count.raw_value"/> Posts
                 </a>
             </xpath>
         </field>
@@ -52,13 +68,13 @@
         <field name="view_mode">kanban,tree,form</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
-            Create your first campaign
+            Create a Campaign
           </p>
           <p>
-            Campaigns are the perfect tool to track your posts results.
+            Campaigns are used to centralize your marketing efforts and track their results.
           </p>
         </field>
-        <field name="domain">[('is_website', '=', False)]</field>
+        <field name="domain">[('is_auto_campaign', '=', False)]</field>
     </record>
 
     <menuitem

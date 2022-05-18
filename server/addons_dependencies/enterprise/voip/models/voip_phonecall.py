@@ -3,6 +3,8 @@
 
 import time
 
+from markupsafe import Markup
+
 from odoo import api, fields, models, _
 from odoo.tools.misc import clean_context
 
@@ -19,7 +21,7 @@ class VoipPhonecall(models.Model):
     user_id = fields.Many2one('res.users', 'Responsible', default=lambda self: self.env.uid)
     partner_id = fields.Many2one('res.partner', 'Contact')
     activity_id = fields.Many2one('mail.activity', 'Linked Activity')
-    mail_message_id = fields.Many2one('mail.message', 'Linked Chatter Message')
+    mail_message_id = fields.Many2one('mail.message', 'Linked Chatter Message', index=True)
     note = fields.Html('Note')
     duration = fields.Float('Duration', help="Duration in minutes.")
     phone = fields.Char('Phone')
@@ -58,7 +60,7 @@ class VoipPhonecall(models.Model):
                 note = self.activity_id.note
                 minutes = int(duration_minutes)
                 seconds = int(duration_seconds - minutes * 60)
-                duration_log = '<br/><p>Call duration: %smin %ssec</p>' % (minutes, seconds)
+                duration_log = Markup('<br/><p>%s</p>') % _('Call duration: %(min)smin %(sec)ssec', min=minutes, sec=seconds)
                 if self.activity_id.note:
                     self.activity_id.note += duration_log
                 else:
@@ -103,18 +105,18 @@ class VoipPhonecall(models.Model):
                 'note': record.note,
             }
             if record.partner_id:
-                ir_model = record.env['ir.model'].search([('model', '=', 'res.partner')])
+                ir_model = record.env['ir.model']._get('res.partner')
                 info.update({
                     'partner_id': record.partner_id.id,
                     'activity_res_id': record.partner_id.id,
                     'activity_res_model': 'res.partner',
                     'activity_model_name': ir_model.display_name,
                     'partner_name': record.partner_id.name,
-                    'partner_image_128': record.partner_id.image_128,
+                    'partner_avatar_128': record.partner_id.avatar_128,
                     'partner_email': record.partner_id.email
                 })
             if record.activity_id:
-                ir_model = record.env['ir.model'].search([('model', '=', record.activity_id.res_model)])
+                ir_model = record.env['ir.model']._get(record.activity_id.res_model)
                 info.update({
                     'activity_id': record.activity_id.id,
                     'activity_res_id': record.activity_id.res_id,
@@ -124,7 +126,7 @@ class VoipPhonecall(models.Model):
                     'activity_note': record.activity_id.note
                 })
             elif record.mail_message_id:
-                ir_model = record.env['ir.model'].search([('model', '=', record.mail_message_id.model)])
+                ir_model = record.env['ir.model']._get(record.mail_message_id.model)
                 info.update({
                     'activity_res_id': record.mail_message_id.res_id,
                     'activity_res_model': record.mail_message_id.model,
@@ -157,6 +159,19 @@ class VoipPhonecall(models.Model):
         return self.search(domain, offset=offset, limit=limit, order='call_date desc')._get_info()
 
     @api.model
+    def get_missed_call_info(self):
+        domain = [
+            ('user_id', '=', self.env.user.id),
+            ('call_date', '!=', False),
+            ('in_queue', '=', True),
+            ('state', '=', 'missed'),
+        ]
+        last_seen_phone_call = self.env.user.last_seen_phone_call
+        if last_seen_phone_call:
+            domain += [('id', '>', last_seen_phone_call.id)]
+        return (self.search_count(domain), last_seen_phone_call.call_date)
+
+    @api.model
     def _create_and_init(self, vals):
         phonecall = self.create(vals)
         phonecall.init_call()
@@ -182,7 +197,7 @@ class VoipPhonecall(models.Model):
     def create_from_recent(self, phonecall_id):
         recent_phonecall = self.browse(phonecall_id)
         vals = {
-            'name': _('Call to %s') % recent_phonecall.phone,
+            'name': _('Call to %s', recent_phonecall.phone),
             'phone': recent_phonecall.phone,
             'mobile': recent_phonecall.mobile,
             'partner_id': recent_phonecall.partner_id.id,
@@ -192,7 +207,7 @@ class VoipPhonecall(models.Model):
     @api.model
     def create_from_number(self, number):
         vals = {
-            'name': _('Call to %s') % number,
+            'name': _('Call to %s', number),
             'phone': number,
         }
         return self._create_and_init(vals)
@@ -200,7 +215,7 @@ class VoipPhonecall(models.Model):
     def create_from_missed_call(self, number, partner_id=False):
         self.ensure_one()
         vals = {
-            'name': _('Missed Call from %s') % number,
+            'name': _('Missed Call from %s', number),
             'phone': number,
             'state': 'missed',
             'phonecall_type': 'incoming',
@@ -211,7 +226,7 @@ class VoipPhonecall(models.Model):
     def create_from_rejected_call(self, number, partner_id=False):
         self.ensure_one()
         vals = {
-            'name': _('Rejected Incoming Call from %s') % number,
+            'name': _('Rejected Incoming Call from %s', number),
             'phone': number,
             'phonecall_type': 'incoming',
             'state': 'rejected',
@@ -222,7 +237,7 @@ class VoipPhonecall(models.Model):
     def create_from_incoming_call_accepted(self, number, partner_id=False):
         self.ensure_one()
         vals = {
-            'name': _('Incoming call from %s') % number,
+            'name': _('Incoming call from %s', number),
             'phone': number,
             'state': 'done',
             'phonecall_type': 'incoming',
@@ -233,9 +248,9 @@ class VoipPhonecall(models.Model):
     @api.model
     def create_from_incoming_call(self, number, partner_id=False):
         if partner_id:
-            name = _('Incoming call from %s') % self.env['res.partner'].browse([partner_id]).display_name
+            name = _('Incoming call from %s', self.env['res.partner'].browse([partner_id]).display_name)
         else:
-            name = _('Incoming call from %s') % number
+            name = _('Incoming call from %s', number)
         vals = {
             'name': name,
             'phone': number,
@@ -279,7 +294,7 @@ class VoipPhonecall(models.Model):
             if len(partner_field_name):
                 partner_id = record[partner_field_name].id
         vals = {
-            'name': _('Call to %s') % number,
+            'name': _('Call to %s', number),
             'phone': number,
             'partner_id': partner_id,
         }

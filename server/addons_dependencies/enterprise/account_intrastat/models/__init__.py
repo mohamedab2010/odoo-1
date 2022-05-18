@@ -6,5 +6,4 @@ from . import res_country
 from . import account_move
 from . import product
 from . import account_intrastat_report
-from . import account_sales_report
 from . import res_config_settings

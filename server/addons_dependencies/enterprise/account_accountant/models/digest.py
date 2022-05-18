@@ -23,7 +23,7 @@ class Digest(models.Model):
                 ('company_id', '=', company.id)], ['journal_id', 'amount_total'], ['journal_id'])
             record.kpi_account_bank_cash_value = sum([account_move['amount_total'] for account_move in account_moves])
 
-    def compute_kpis_actions(self, company, user):
-        res = super(Digest, self).compute_kpis_actions(company, user)
+    def _compute_kpis_actions(self, company, user):
+        res = super(Digest, self)._compute_kpis_actions(company, user)
         res.update({'kpi_account_bank_cash': 'account.open_account_journal_dashboard_kanban&menu_id=%s' % (self.env.ref('account.menu_finance').id)})
         return res

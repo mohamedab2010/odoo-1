@@ -12,23 +12,12 @@
     <menuitem
         id="stock_barcode_menu"
         action="stock_barcode_action_main_menu"
-        icon="fa-barcode"
         web_icon="stock_barcode,static/description/icon.png"
-        sequence="50"
+        sequence="155"
         groups="stock.group_stock_user" />
 
 
     <!-- Actions -->
-
-    <record id="stock_inventory_action_new_inventory" model="ir.actions.act_window">
-        <field name="name">New Inventory</field>
-        <field name="res_model">stock.inventory</field>
-        <field name="view_mode">form</field>
-        <field name="context">{
-            'default_filter': 'partial',
-            'form_view_initial_mode': 'edit',
-        }</field>
-    </record>
 
     <record id="stock_picking_action_form" model="ir.actions.act_window">
         <field name="name">Picking</field>
@@ -49,7 +38,8 @@
         <field name="priority">100</field>
         <field name="arch" type="xml">
             <xpath expr="//kanban[hasclass('o_kanban_mobile')]" position="attributes">
-                <attribute name="create">false</attribute>
+                <attribute name="js_class">stock_barcode_list_kanban</attribute>
+                <attribute name="import">false</attribute>
             </xpath>
         </field>
     </record>
@@ -65,6 +55,13 @@
             'search_default_available': 1,
             'force_detailed_view': True
         }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a new transfer
+            </p><p>
+                Transfers allow you to move products from one location to another.
+            </p>
+        </field>
     </record>
 
     <!-- Kanban view to access operations by operation type -->
@@ -75,7 +72,7 @@
         <field name="mode">primary</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <kanban class="o_kanban_mobile oe_background_grey o_emphasize_colors" create="0">
+            <kanban class="o_kanban_mobile oe_background_grey o_emphasize_colors" create="0" sample="1">
                 <field name="display_name"/>
                 <field name="color"/>
                 <field name="count_picking_ready"/>
@@ -85,19 +82,17 @@
                         <div t-if="['incoming', 'outgoing', 'internal'].indexOf(record.code.raw_value) > -1" t-attf-class="oe_kanban_card #{!selection_mode ? kanban_color(record.color.raw_value) : ''} oe_kanban_global_click">
                             <span class="oe_kanban_color_help" t-attf-title="In #{kanban_getcolorname(record.color.raw_value)}" role="img" t-attf-aria-label="In #{kanban_getcolorname(record.color.raw_value)}"/>
                                 <div class="o_kanban_card_header">
-                                        <div class="o_primary o_kanban_record_title">
-                                            <field name="name"/>
-                                        </div>
-                                        <div class="o_secondary">
-                                            <field name="warehouse_id" readonly="1"/>
-                                        </div>
+                                    <div class="o_primary o_kanban_record_title">
+                                        <field name="name"/>
+                                    </div>
+                                    <div class="o_secondary">
+                                        <field name="warehouse_id" readonly="1" groups="stock.group_stock_multi_warehouses"/>
+                                    </div>
                                 </div>
                             <div class="container o_kanban_card_content o_kanban_button">
                                 <div class="row text-muted">
                                     <button class="btn btn-primary" name="get_action_picking_tree_ready_kanban" type="object">
-                                        <span t-if="record.code.raw_value =='incoming'"><t t-esc="record.count_picking_ready.value"/> To Process</span>
-                                        <span t-if="record.code.raw_value =='outgoing'"><t t-esc="record.count_picking_ready.value"/> To Process</span>
-                                        <span t-if="record.code.raw_value =='internal'"><t t-esc="record.count_picking_ready.value"/> To Process</span>
+                                        <t t-esc="record.count_picking_ready.value"/> To Process
                                     </button>
                                 </div>
                             </div>

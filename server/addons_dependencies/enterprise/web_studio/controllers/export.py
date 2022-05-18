@@ -29,12 +29,13 @@ MODELS_TO_EXPORT = [
     'base.automation',
     'ir.model.access',
     'ir.rule',
+    'ir.default',
 ]
 # list of fields to export by model
 FIELDS_TO_EXPORT = {
     'base.automation': [
         'action_server_id', 'active', 'filter_domain', 'filter_pre_domain',
-        'last_run', 'on_change_fields', 'trg_date_id', 'trg_date_range',
+        'last_run', 'on_change_field_ids', 'trg_date_id', 'trg_date_range',
         'trg_date_range_type', 'trigger'
     ],
     'ir.actions.act_window': [
@@ -55,7 +56,7 @@ FIELDS_TO_EXPORT = {
     'ir.filters': [
         'action_id', 'active', 'context', 'domain', 'is_default', 'model_id', 'name', 'sort'
     ],
-    'ir.model': ['info', 'is_mail_thread', 'model', 'name', 'state', 'transient'],
+    'ir.model': ['info', 'is_mail_thread', 'is_mail_activity', 'model', 'name', 'state', 'transient'],
     'ir.model.access': [
         'active', 'group_id', 'model_id', 'name', 'perm_create', 'perm_read', 'perm_unlink',
         'perm_write'
@@ -80,14 +81,15 @@ FIELDS_TO_EXPORT = {
         'auto_delete', 'body_html', 'copyvalue', 'email_cc', 'email_from', 'email_to', 'lang',
         'model_id', 'model_object_field', 'name', 'null_value', 'partner_to', 'ref_ir_act_window',
         'reply_to', 'report_name', 'report_template', 'scheduled_date', 'sub_model_object_field',
-        'sub_object', 'subject', 'use_default_to', 'user_signature'
+        'sub_object', 'subject', 'use_default_to'
     ],
     'res.groups': ['color', 'comment', 'implied_ids', 'name', 'share'],
+    'ir.default': ['field_id', 'condition', 'json_value'],
 }
 # list of relational fields to NOT export, by model
 FIELDS_NOT_TO_EXPORT = {
     'base.automation': ['trg_date_calendar_id'],
-    'ir.actions.server': ['channel_ids', 'fields_lines', 'partner_ids'],
+    'ir.actions.server': ['fields_lines', 'partner_ids'],
     'ir.filter': ['user_id'],
     'mail.template': ['attachment_ids', 'mail_server_id'],
     'report.paperformat': ['report_ids'],
@@ -141,7 +143,7 @@ def generate_module(module, data):
         for record in records:
             xmlid = get_xmlid(record)
             module_name = xmlid.split('.', 1)[0]
-            if module_name != module.name and module_name != '__export__':
+            if module_name != module.name:
                 # data depends on a record from another module
                 depends.add(module_name)
             for field in fields:
@@ -220,7 +222,7 @@ def generate_module(module, data):
         module.installed_version,
         'u"""\n%s\n"""' % module.description,
         module.author,
-        ''.join("\n        %r," % d for d in sorted(depends)),
+        ''.join("\n        %r," % d for d in sorted(depends - {'__export__'})),
         ''.join("\n        %r," % f for f in filenames),
         module.application,
         module.license,
@@ -271,9 +273,9 @@ def get_relations(record, field):
     # be defined in other modules and those modules need to be listed as
     # dependencies of the exported module
     if field.model_name == 'ir.actions.act_window' and field.name in ('res_model', 'binding_model'):
-        return record.env['ir.model'].search([('model', '=', record[field.name])])
+        return record.env['ir.model']._get(record[field.name])
     if field.model_name == 'ir.actions.report' and field.name == 'model':
-        return record.env['ir.model'].search([('model', '=', record.model)])
+        return record.env['ir.model']._get(record.model)
 
 
 def generate_record(record, get_xmlid):
@@ -307,7 +309,7 @@ def get_fields_to_export(record):
         # deduce the fields_to_export from available data
         fields_to_export = set(record._fields.keys())
         fields_to_export -= set(models.MAGIC_COLUMNS)
-        fields_to_export -= set(record.CONCURRENCY_CHECK_FIELD)
+        fields_to_export.discard(record.CONCURRENCY_CHECK_FIELD)
         if FIELDS_NOT_TO_EXPORT.get(record._name):
             fields_to_export -= set(FIELDS_NOT_TO_EXPORT.get(record._name))
     return fields_to_export

@@ -5,6 +5,9 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
+import logging
+_logger = logging.getLogger(__name__)
+
 
 class VoipQueueMixin(models.AbstractModel):
     _name = 'voip.queue.mixin'
@@ -29,15 +32,21 @@ class VoipQueueMixin(models.AbstractModel):
 
     def create_call_in_queue(self):
         # creating an activity of type phonecall will automaticaly create a voip.phonecall
-        # will only work if _compute_phonenumbers gives a resul
-        phonecall_activity_type = self.env.ref('mail.mail_activity_data_call')
-        if phonecall_activity_type.category != 'phonecall':
-            raise UserError(_('Call activity type is not of category "phonecall"'))
-
+        # will only work if _compute_phonenumbers gives a result
+        phonecall_activity_type = self.env.ref('mail.mail_activity_data_call', raise_if_not_found=False)
+        if not phonecall_activity_type:
+            phonecall_activity_type = self.env['mail.activity.type'].search([('category', '=', 'phonecall')], limit=1)
+            if not phonecall_activity_type:
+                phonecall_activity_type = self.env.ref('mail.mail_activity_todo', raise_if_not_found=False) or self.env['mail.activity.type'].search([('category', '=', False)], limit=1)
+                if phonecall_activity_type:
+                    _logger.warning("No phonecall activity type found. VOIP activities aren't guaranteed to work as expected. Fallback on %s", phonecall_activity_type.name)
+                else:
+                    _logger.warning("No phonecall or fallback activity type found. VOIP activities aren't guaranteed to work as expected.")
+        # VFE FIXME what if mail_activity_data_call was deleted by user?
         values_list = [{
             'res_id': record.id,
             'res_model_id': self.env['ir.model']._get(record._name).id,
-            'activity_type_id': phonecall_activity_type.id,
+            'activity_type_id': phonecall_activity_type and phonecall_activity_type.id,
             'user_id': self.env.user.id,
             'date_deadline': fields.Date.today(self),
         } for record in self]
@@ -45,14 +54,11 @@ class VoipQueueMixin(models.AbstractModel):
         for activity in activities:
             if not activity.voip_phonecall_id:
                 record = self.env[activity.res_model_id.model].browse(activity.res_id)
-                raise UserError(_('Phone call cannot be created. Is it any phone number linked to record %s?' % record.name))
+                raise UserError(_('Phone call cannot be created. Is it any phone number linked to record %s?', record.name))
 
     def delete_call_in_queue(self):
         domain = self._linked_phone_call_domain()
         phonecalls = self.env['voip.phonecall'].search(domain)
         for phonecall in phonecalls:
             phonecall.remove_from_queue()
-        self.env['bus.bus'].sendone(
-            (self._cr.dbname, 'res.partner', self.env.user.id),
-            {'type': 'refresh_voip'}
-        )
+        self.env['bus.bus']._sendone(self.env.user.partner_id, 'refresh_voip', {})

@@ -3,21 +3,17 @@
 # 	* account_auto_transfer
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Wolfgang Taferner, 2019
-# Philipp Fürstos <pfu@odoo.com>, 2019
-# Leon Grill <leg@odoo.com>, 2019
-# Anja Uebermuth <anja.uebermuth@arts.eu>, 2019
-# philku79 <philip.kuss@gmx.de>, 2019
-# Kevin Harrings <kha@odoo.com>, 2020
+# Martin Trigaux, 2021
+# Friederike Fasterling-Nesselbosch, 2022
+# Udo Hennig <info@udohennig.de>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-27 09:17+0000\n"
-"PO-Revision-Date: 2019-09-27 12:00+0000\n"
-"Last-Translator: Kevin Harrings <kha@odoo.com>, 2020\n"
+"POT-Creation-Date: 2021-07-12 07:57+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Udo Hennig <info@udohennig.de>, 2022\n"
 "Language-Team: German (https://www.transifex.com/odoo/teams/41243/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -33,19 +29,19 @@ msgstr "<span> bis </span>"
 #. module: account_auto_transfer
 #: model:ir.model,name:account_auto_transfer.model_account_transfer_model
 msgid "Account Transfer Model"
-msgstr ""
+msgstr "Kontenübertragsmodell"
 
 #. module: account_auto_transfer
 #: model:ir.model,name:account_auto_transfer.model_account_transfer_model_line
 msgid "Account Transfer Model Line"
-msgstr ""
+msgstr "Kontenübertragsmodell Zeile"
 
 #. module: account_auto_transfer
 #: model:ir.actions.server,name:account_auto_transfer.ir_cron_auto_transfer_ir_actions_server
 #: model:ir.cron,cron_name:account_auto_transfer.ir_cron_auto_transfer
 #: model:ir.cron,name:account_auto_transfer.ir_cron_auto_transfer
 msgid "Account automatic transfers : Perform transfers"
-msgstr ""
+msgstr "Automatische Kontoüberträge: Buchung ausführen"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
@@ -53,9 +49,29 @@ msgid "Activate"
 msgstr "Aktivieren"
 
 #. module: account_auto_transfer
+#: model:ir.model.fields,help:account_auto_transfer.field_account_transfer_model_line__analytic_account_ids
+msgid ""
+"Adds a condition to only transfer the sum of the lines from the origin "
+"accounts that match these analytic accounts to the destination account"
+msgstr ""
+"Fügt eine Bedingung hinzu, um nur die Summe der Zeilen aus den "
+"Herkunftskonten, die mit diesen analytischen Konten übereinstimmen, auf das "
+"Zielkonto zu übertragen."
+
+#. module: account_auto_transfer
+#: model:ir.model.fields,help:account_auto_transfer.field_account_transfer_model_line__partner_ids
+msgid ""
+"Adds a condition to only transfer the sum of the lines from the origin "
+"accounts that match these partners to the destination account"
+msgstr ""
+"Fügt eine Bedingung hinzu, um nur die Summe der Zeilen von den "
+"Herkunftskonten, die mit diesen Partnern übereinstimmen, auf das Zielkonto "
+"zu übertragen"
+
+#. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__analytic_account_ids
 msgid "Analytic Filter"
-msgstr "Analyse Filter"
+msgstr "Analysefilter"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
@@ -77,14 +93,45 @@ msgstr "Automatischer Transfer (-%s%%)"
 #. module: account_auto_transfer
 #: code:addons/account_auto_transfer/models/transfer_model.py:0
 #, python-format
-msgid "Automatic Transfer (entries with analytic account(s): %s)"
+msgid ""
+"Automatic Transfer (entries with analytic account(s): %s and partner(s): %s)"
 msgstr ""
+"Automatischer Transfer (Einträge mit analytischen Konten: %s und Partnern: "
+"%s)"
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid "Automatic Transfer (entries with analytic account(s): %s)"
+msgstr "Automatische Übertragung (Einträge mit Kostenstelle(n): %s)"
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid "Automatic Transfer (entries with partner(s): %s)"
+msgstr "Automatischer Übertrag (Einträge mit Partner(n): %s)"
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid ""
+"Automatic Transfer (from account %s with analytic account(s): %s and "
+"partner(s): %s)"
+msgstr ""
+"Automatische Überweisung (von Konto %s mit analytischem Konto: %s und "
+"Partner(n): %s)"
 
 #. module: account_auto_transfer
 #: code:addons/account_auto_transfer/models/transfer_model.py:0
 #, python-format
 msgid "Automatic Transfer (from account %s with analytic account(s): %s)"
-msgstr ""
+msgstr "Automatische Buchung (von Konto %s mit Kostenstelle(n): %s)"
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid "Automatic Transfer (from account %s with partner(s): %s)"
+msgstr "Automatische Überweisung (von Konto %s mit Partner(n): %s)"
 
 #. module: account_auto_transfer
 #: code:addons/account_auto_transfer/models/transfer_model.py:0
@@ -96,7 +143,7 @@ msgstr "Automatischer Transfer (auf Konto %s)"
 #: model:ir.actions.act_window,name:account_auto_transfer.transfer_model_action
 #: model:ir.ui.menu,name:account_auto_transfer.menu_auto_transfer
 msgid "Automatic Transfers"
-msgstr "Automatische Transfers"
+msgstr "Automatische Überträge"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__company_id
@@ -106,12 +153,12 @@ msgstr "Unternehmen"
 #. module: account_auto_transfer
 #: model:ir.model.fields,help:account_auto_transfer.field_account_transfer_model__company_id
 msgid "Company related to this journal"
-msgstr "Unternehmen für dieses Journal"
+msgstr "Unternehmen in Verbindung mit diesem Journal"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
 msgid "Compute Transfer"
-msgstr ""
+msgstr "Übertrag berechnen"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__create_uid
@@ -126,9 +173,14 @@ msgid "Created on"
 msgstr "Erstellt am"
 
 #. module: account_auto_transfer
+#: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
+msgid "Description"
+msgstr "Beschreibung"
+
+#. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__account_id
 msgid "Destination Account"
-msgstr "Konto Zahlungsempfänger"
+msgstr "Zielkonto"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__line_ids
@@ -148,7 +200,7 @@ msgstr "Deaktivieren"
 #. module: account_auto_transfer
 #: model:ir.model.fields.selection,name:account_auto_transfer.selection__account_transfer_model__state__disabled
 msgid "Disabled"
-msgstr "Behinderung"
+msgstr "Deaktiviert"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__display_name
@@ -184,14 +236,14 @@ msgstr "Journal"
 
 #. module: account_auto_transfer
 #: model:ir.model,name:account_auto_transfer.model_account_move
-msgid "Journal Entries"
-msgstr "Buchungssätze"
+msgid "Journal Entry"
+msgstr "Journaleintrag"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model____last_update
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line____last_update
 msgid "Last Modified on"
-msgstr "Letzte Änderung am"
+msgstr "Zuletzt geändert am"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__write_uid
@@ -218,34 +270,40 @@ msgstr ""
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
 msgid "Move Model"
-msgstr ""
+msgstr "Buchungsmodell"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_tree
 msgid "Move Models"
-msgstr ""
+msgstr "Buchungsmodelle"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__name
-#: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
 msgid "Name"
 msgstr "Name"
 
 #. module: account_auto_transfer
 #: model:ir.model.constraint,message:account_auto_transfer.constraint_account_transfer_model_line_unique_account_by_transfer_model
 msgid "Only one account occurrence by transfer model"
-msgstr ""
+msgstr "Beim Buchungsmodell darf nur ein Konto vorkommen."
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__account_ids
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
 msgid "Origin Accounts"
-msgstr ""
+msgstr "Quellkonto"
 
 #. module: account_auto_transfer
+#: model:ir.model.fields,field_description:account_auto_transfer.field_account_bank_statement_line__transfer_model_id
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_move__transfer_model_id
+#: model:ir.model.fields,field_description:account_auto_transfer.field_account_payment__transfer_model_id
 msgid "Originating Model"
-msgstr ""
+msgstr "Quellmodell"
+
+#. module: account_auto_transfer
+#: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__partner_ids
+msgid "Partner Filter"
+msgstr "Partner-Filter"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__percent
@@ -268,6 +326,8 @@ msgid ""
 "Percentage of the sum of lines from the origin accounts will be transferred "
 "to the destination account"
 msgstr ""
+"Prozentualer Anteil der Summe der Zeilen aus den Ursprungskonten wird auf "
+"das Zielkonto übertragen"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
@@ -285,6 +345,11 @@ msgid "Running"
 msgstr "Laufend"
 
 #. module: account_auto_transfer
+#: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__sequence
+msgid "Sequence"
+msgstr "Abfolge"
+
+#. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__date_start
 msgid "Start Date"
 msgstr "Startdatum"
@@ -300,11 +365,26 @@ msgid "Stop Date"
 msgstr "Enddatum"
 
 #. module: account_auto_transfer
-#: model:ir.model.fields,help:account_auto_transfer.field_account_transfer_model_line__analytic_account_ids
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid "The analytic filter %s is duplicated"
+msgstr "Der analytische Filter %s wurde dupliziert"
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
 msgid ""
-"The sum of all lines from the origin accounts having this analytic account "
-"will be automatically transferred to the destination account"
+"The partner filter %s in combination with the analytic filter %s is "
+"duplicated"
 msgstr ""
+"Der Partner-Filter %s in Kombination mit dem analytischen Filter %s wurde "
+"dupliziert."
+
+#. module: account_auto_transfer
+#: code:addons/account_auto_transfer/models/transfer_model.py:0
+#, python-format
+msgid "The partner filter %s is duplicated"
+msgstr "Der Partner-Filter %s ist dupliziert"
 
 #. module: account_auto_transfer
 #: code:addons/account_auto_transfer/models/transfer_model.py:0
@@ -315,19 +395,24 @@ msgstr "Die gesamte Prozentzahl (%s) muss kleiner oder gleich 100 sein!"
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model__total_percent
 msgid "Total Percent"
-msgstr "Gesamt Prozentzahl"
+msgstr "Gesamt Prozentsatz"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields,field_description:account_auto_transfer.field_account_transfer_model_line__transfer_model_id
 msgid "Transfer Model"
-msgstr ""
+msgstr "Buchungsmodell"
 
 #. module: account_auto_transfer
 #: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
 msgid "Transfers"
-msgstr "Bewegungen"
+msgstr "Überträge"
 
 #. module: account_auto_transfer
 #: model:ir.model.fields.selection,name:account_auto_transfer.selection__account_transfer_model__frequency__year
 msgid "Yearly"
 msgstr "Jährlich"
+
+#. module: account_auto_transfer
+#: model_terms:ir.ui.view,arch_db:account_auto_transfer.view_transfer_model_form
+msgid "e.g. Monthly Expense Transfer"
+msgstr "z.B. Monatliche Kostenüberweisung"

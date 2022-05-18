@@ -21,6 +21,22 @@
     overflow: auto;
     @include size(100%);
 
+    .o_stock_mobile_barcode_container{
+        position:  relative;
+        display: inline-block;
+        .o_stock_mobile_barcode{
+            width: 100%;
+            bottom: 0px;
+            position: absolute;
+            opacity: 0.75;
+            font-size: 12px;
+            .o_mobile_barcode_camera{
+                margin: 5px;
+                font-size: 2.2em;
+            }
+        }
+    }
+
     .o_stock_barcode_menu {
         line-height: 1.9;
     }
@@ -44,6 +60,14 @@
 
         img {
             width: 200px;
+
+            @include media-breakpoint-down(xs) {
+                width: 140px;
+                height: 94px;
+            }
+        }
+        .o_stock_mobile_barcode {
+            height: 94px;
         }
     }
 
@@ -57,8 +81,20 @@
             line-height: 2.6;
         }
 
-        .button_inventory, .button_operations {
+        button.btn-primary {
             font-size: 1.25rem;
+        }
+    }
+
+    @include media-breakpoint-up(sm) {
+        .row .col .btn {
+            height: 100%;
+        }
+    }
+
+    @include media-breakpoint-down(xs) {
+        .row .col {
+            min-width: 100%;
         }
     }
 }

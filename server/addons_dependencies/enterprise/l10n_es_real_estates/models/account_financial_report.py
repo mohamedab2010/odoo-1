@@ -9,11 +9,17 @@ class AccountFinancialReport(models.Model):
     def _mod347_get_real_estates_data(self, boe_report_options, currency_id):
         """ Overrides the placeholder defined in l10n_reports
         """
-        count_line_data = self._get_lines(boe_report_options, line_id=self.env.ref('l10n_es_real_estates.mod_347_statistics_real_estates_count').id)[0]
-        count = sum(i['no_format_name'] for i in count_line_data['columns'])
+        count = self.env.ref('l10n_es_real_estates.mod_347_statistics_real_estates_count')
+        count_line_data = self._get_lines(boe_report_options, line_id=self._build_line_id([
+            ('', count._name, count.id)
+        ]))[0]
+        count = sum(i['no_format'] for i in count_line_data['columns'])
 
-        total_line_data = self._get_lines(boe_report_options, line_id=self.env.ref('l10n_es_real_estates.mod_347_real_estates').id)[-1]
-        total = currency_id.round(sum(i['no_format_name'] for i in total_line_data['columns']))
+        total = self.env.ref('l10n_es_real_estates.mod_347_real_estates')
+        total_line_data = self._get_lines(boe_report_options, line_id=self._build_line_id([
+            ('', total._name, total.id)
+        ]))[-1]
+        total = currency_id.round(sum(i['no_format'] for i in total_line_data['columns']))
 
         return {'count': count, 'total': total}
 

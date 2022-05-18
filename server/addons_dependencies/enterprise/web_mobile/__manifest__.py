@@ -3,21 +3,32 @@
 
 {
     'name': 'Mobile',
-    'category': 'Mobile',
+    'category': 'Hidden',
     'summary': 'Odoo Mobile Core module',
     'version': '1.0',
     'description': """
         This module provides the core of the Odoo Mobile App.
         """,
     'depends': [
-        'base_setup',
+        'web_enterprise',
     ],
-    'qweb': ['static/src/xml/*.xml'],
     'data': [
-        'views/mobile_template.xml',
         'views/views.xml',
-        'views/res_config_settings_views.xml',
     ],
+    'assets': {
+        'web.assets_qweb': [
+            'web_mobile/static/src/xml/**/*',
+        ],
+        'web.assets_backend': [
+            'web_mobile/static/src/**/*',
+        ],
+        'web.tests_assets': [
+            'web_mobile/static/tests/helpers/**/*',
+        ],
+        'web.qunit_mobile_suite_tests': [
+            'web_mobile/static/tests/*_mobile_tests.js',
+        ],
+    },
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',

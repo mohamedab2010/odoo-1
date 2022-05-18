@@ -28,6 +28,7 @@ var AddStreamModal = Dialog.extend({
         this.isSocialManager = options.isSocialManager;
         this.socialMedia = options.socialMedia;
         this.socialAccounts = options.socialAccounts;
+        this.companies = options.companies;
 
         this._super.apply(this, arguments);
     },
@@ -58,8 +59,12 @@ var AddStreamModal = Dialog.extend({
      * @private
      */
     _onClickSocialMedia: function (ev) {
-        var mediaId = $(ev.currentTarget).data('mediaId');
-        this.trigger_up('new_stream_media_clicked', {'mediaId': mediaId});
+        const mediaId = $(ev.currentTarget).data('mediaId');
+
+        const selectCompany = $('select[name="company_id"]');
+        const companyId = selectCompany.length ? parseInt(selectCompany.val()) || 0 : undefined;
+
+        this.trigger_up('new_stream_media_clicked', {'mediaId': mediaId, 'companyId': companyId});
     }
 });
 

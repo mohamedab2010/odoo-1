@@ -5,6 +5,8 @@ var core = require('web.core');
 var KanbanColumn = require('web.KanbanColumn');
 var KanbanRenderer = require('web.KanbanRenderer');
 var QWeb = core.qweb;
+const _t = core._t;
+var utils = require('web.utils');
 
 /**
  * Simple override in order to provide a slightly modified template that shows the
@@ -86,11 +88,11 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
         this.$el.closest('.o_content').prepend($('<a>', {
             class: 'o_social_stream_post_kanban_new_content alert alert-info mb-0 text-center border-bottom' + (this.refreshRequired ? '' : ' d-none'),
             href: '#',
-            text: _('New content available.')
+            text: _t('New content available.')
         }).append($('<i>', {
             class: 'fa fa-refresh ml-2 mr-1'
         })).append($('<b>', {
-            text: _('Click to refresh.')
+            text: _t('Click to refresh.')
         })).on('click', function (ev) {
             ev.preventDefault();
             $(ev.currentTarget).addClass('d-none');
@@ -127,6 +129,7 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
                     .addClass('d-none');
             }
             self._renderAccountStats();
+            self._insertThousandSeparators(self.$el, '.o_social_kanban_likes_count');
         });
     },
 
@@ -139,8 +142,10 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
         this.$before.empty();
         if (this.state.socialAccountsStats && this.state.socialAccountsStats.length !== 0) {
             var $socialAccountsStats = QWeb.render(
-                'social.AccountsStats',
-                {socialAccounts: this.state.socialAccountsStats}
+                'social.AccountsStats', {
+                    widget: this,
+                    socialAccounts: this.state.socialAccountsStats,
+                }
             );
 
             if (this.$before.find('.o_social_stream_stat_box').length > 0) {
@@ -152,8 +157,18 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
                 this.$before.append($socialAccountsStats);
             }
 
-            this.$before.find('[data-toggle="popover"]').popover({
-                trigger: 'hover'
+            this._insertThousandSeparators(this.$before, '.social_account_stat_value');
+
+            // This DOM element is periodically refreshed (removed/re-rendered) by the kanban view (when refreshing statistics).
+            // If the element is removed while its popover is open, the popover will not be closed automatically anymore.
+            // That's why we need to listen to the "remove" event and dispose the popover accordingly.
+            var $popoverElement = this.$before.find('[data-toggle="popover"]');
+            $popoverElement.popover({
+                trigger: 'hover',
+                delay: { "show": 500, "hide": 0 },
+            });
+            $popoverElement.on("remove", () => {
+                $popoverElement.popover('dispose');
             });
         }
     },
@@ -164,6 +179,32 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
     _createBeforeSectionElement: function () {
         return $('<section/>', {
             class: 'o_social_stream_post_kanban_before d-flex flex-nowrap border-bottom'
+        });
+    },
+
+    /**
+     * Defines whether the social account has stories or not.
+     * True by default and can be overridden to add specific behavior.
+     *
+     * @param {Object} socialAccount social.account search_read data
+     * @private
+     */
+    _hasStories: function (socialAccount) {
+        return true;
+    },
+
+    /**
+     * Format the content of integer fields to improve readability, by adding thousand separators,
+     * which depend on current language. e.g. 1232342 displays 1,232,342 for en_us language. 
+     * 
+     * @param {jQuery} $elementExplored  - Element where toFormatSelector is searched for.
+     * @param {String} toFormatSelector - Selector of elements containing integer values to be formatted.
+     * @private
+     */
+    _insertThousandSeparators: function ($elementExplored, toFormatSelector) {
+        $elementExplored.find(toFormatSelector).each(function(){
+            var integerText = $(this).text();
+            $(this).text(utils.insert_thousand_seps(integerText));
         });
     },
 
@@ -185,7 +226,7 @@ var StreamPostKanbanRenderer = KanbanRenderer.extend({
         var $noContentHelper = this.$('.o_view_nocontent');
 
         if (displayNoContentHelper && !$noContentHelper.length) {
-            this.$el.append(this._renderNoContentHelper());
+            this._renderNoContentHelper();
         }
         if (!displayNoContentHelper && $noContentHelper.length) {
             $noContentHelper.remove();

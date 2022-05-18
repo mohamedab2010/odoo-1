@@ -30,7 +30,7 @@ class HrSalaryRuleParameter(models.Model):
 
     name = fields.Char(required=True)
     code = fields.Char(required=True, help="This code is used in salary rules to refer to this parameter.")
-    description = fields.Text()
+    description = fields.Html()
     country_id = fields.Many2one('res.country', string='Country', default=lambda self: self.env.company.country_id)
     parameter_version_ids = fields.One2many('hr.rule.parameter.value', 'rule_parameter_id', string='Versions')
 
@@ -40,7 +40,7 @@ class HrSalaryRuleParameter(models.Model):
 
     @api.model
     @ormcache('code', 'date', 'tuple(self.env.context.get("allowed_company_ids", []))')
-    def _get_parameter_from_code(self, code, date=None):
+    def _get_parameter_from_code(self, code, date=None, raise_if_not_found=True):
         if not date:
             date = fields.Date.today()
         # This should be quite fast as it uses a limit and fields are indexed
@@ -48,6 +48,9 @@ class HrSalaryRuleParameter(models.Model):
         rule_parameter = self.env['hr.rule.parameter.value'].search([
             ('code', '=', code),
             ('date_from', '<=', date)], limit=1)
-        if not rule_parameter:
+        if rule_parameter:
+            return ast.literal_eval(rule_parameter.parameter_value)
+        if raise_if_not_found:
             raise UserError(_("No rule parameter with code '%s' was found for %s ") % (code, date))
-        return ast.literal_eval(rule_parameter.parameter_value)
+        else:
+            return None

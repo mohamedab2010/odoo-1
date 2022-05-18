@@ -8,28 +8,21 @@
                 <form string="Compose Email">
                     <group col="1">
                         <group col="2">
-                            <field name="recipient_id"
-                                required="1"
+                            <field name="render_model" invisible="1"/>
+                            <field name="recipient_ids"
+                                widget="many2many_tags"
                                 placeholder="Add existing contacts..."
                                 context="{'force_email':True, 'show_email':True, 'no_create_edit': True}"/>
                         </group>
                         <group col="2">
                             <field name="subject" placeholder="Subject..."/>
-                            <field name="deadline"/>
                         </group>
-                        <field name="body" options="{'style-inline': true}"/>
-                        <group>
-                            <group>
-                                <field name="attachment_ids" widget="many2many_binary"/>
-                            </group>
-                            <group>
-                                <field name="template_id" label="Use template"/>
-                            </group>
-                        </group>
+                        <field name="user_body" class="oe-bordered-editor" options="{'style-inline': true}"/>
+                        <field name="template_id" invisible='1'/>
                     </group>
                     <footer>
-                        <button string="Send Request" name="action_invite" type="object" class="btn-primary"/>
-                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                        <button string="Send" name="action_invite" type="object" class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z"/>
                     </footer>
                 </form>
             </field>

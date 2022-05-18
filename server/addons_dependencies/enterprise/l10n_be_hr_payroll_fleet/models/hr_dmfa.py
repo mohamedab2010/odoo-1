@@ -6,7 +6,7 @@ from lxml import etree
 
 from odoo import api, fields, models, _
 from odoo.tools import date_utils
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError
 from odoo.addons.l10n_be_hr_payroll.models.hr_dmfa import DMFANode, format_amount
 
 
@@ -15,6 +15,7 @@ class DMFACompanyVehicle(DMFANode):
     def __init__(self, vehicle, sequence=1):
         super().__init__(vehicle.env, sequence=sequence)
         self.license_plate = vehicle.license_plate
+        self.eco_vehicle = -1
 
 
 class HrDMFAReport(models.Model):
@@ -24,15 +25,23 @@ class HrDMFAReport(models.Model):
 
     @api.depends('quarter_end')
     def _compute_vehicle_ids(self):
+        monthly_pay = self.env.ref('l10n_be_hr_payroll.hr_payroll_structure_cp200_employee_salary')
         for dmfa in self:
-            vehicles = self.env['fleet.vehicle'].search([
-                ('first_contract_date', '<=', dmfa.quarter_end),
-                ('driver_id', '!=', False),  # contribution for unused cars?
-                ('company_id', '=', dmfa.company_id.id),
-            ])
+            vehicles = self.env['hr.payslip'].search([
+                # ('employee_id', 'in', employees.ids),
+                ('date_to', '>=', self.quarter_start),
+                ('date_to', '<=', self.quarter_end),
+                ('state', 'in', ['done', 'paid']),
+                ('company_id', '=', self.company_id.id),
+                ('struct_id', '=', monthly_pay.id),
+            ]).mapped('vehicle_id')
             dmfa.vehicle_ids = [(6, False, vehicles.ids)]
 
     def _get_rendering_data(self):
+        invalid_vehicles = self.vehicle_ids.filtered(lambda v: len(v.license_plate) > 10)
+        if invalid_vehicles:
+            raise UserError(_('The following license plates are invalid:\n%s', '\n'.join(invalid_vehicles.mapped('license_plate'))))
+
         return dict(
             super()._get_rendering_data(),
             vehicles_cotisation=format_amount(self._get_vehicles_contribution()),
@@ -40,13 +49,31 @@ class HrDMFAReport(models.Model):
         )
 
     def _get_vehicles_contribution(self):
-        amount = 0
-        self = self.sudo()
-        for vehicle in self.vehicle_ids:
-            n_months = min(relativedelta(self.quarter_end, self.quarter_start).months, relativedelta(self.quarter_end, vehicle.first_contract_date).months)
-            amount += vehicle.co2_fee * n_months
-        return amount
+        regular_payslip = self.env.ref('l10n_be_hr_payroll.hr_payroll_structure_cp200_employee_salary')
+        payslips_sudo = self.env['hr.payslip'].sudo().search([
+            ('date_to', '>=', self.quarter_start),
+            ('date_to', '<=', self.quarter_end),
+            ('state', 'in', ['done', 'paid']),
+            ('struct_id', '=', regular_payslip.id),
+            ('company_id', '=', self.company_id.id),
+        ])
+        return round(sum(p.vehicle_id.co2_fee for p in payslips_sudo), 2)
 
-    def _get_global_contribution(self, payslips):
-        amount = super()._get_global_contribution(payslips)
+    def _get_global_contribution(self, employees_infos, double_onss):
+        # En DMFA et en DMFAPPL, la cotisation de solidarité sur l’usage personnel d’un véhicule de
+        # société se déclare globalement par catégorie d'employeur dans le bloc 90002 « cotisation
+        # non liée à une personne physique» sous le code travailleur 862.
+        # NB : Il est autorisé de rassembler les données de toute l’entreprise sous une seule
+        # catégorie.
+        # De plus, dans le bloc fonctionnel 90294 « Véhicule de société », la mention des numéros de
+        # plaque des véhicules concernés est obligatoire. Un même numéro d’immatriculation ne peut
+        # être repris qu’une seule fois.
+        # L'avantage perçu par le travailleur pour l'usage d'un véhicule de société doit également
+        # être déclaré  sous  le code rémunération DMFA 10  ou le code rémunération DMFAPPL 770 dans
+        # le bloc fonctionnel 90019 "Rémunération de l'occupation ligne travailleur".
+        # Lorsque la DMFA ou la DMFAPPL  est introduite via le web, le montant global de cette
+        # cotisation doit être mentionné dans les cotisations dues pour l’ensemble de l’entreprise,
+        # les numéros de plaques des véhicules concernés introduits dans l’écran prévu et
+        # l'avantage déclaré avec les rémunérations du travailleur.
+        amount = super()._get_global_contribution(employees_infos, double_onss)
         return amount + self._get_vehicles_contribution()

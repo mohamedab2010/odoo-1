@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from odoo import api, fields, models, _
+import datetime
+
+from odoo import api, fields, models, _, SUPERUSER_ID
 from odoo.exceptions import ValidationError
 from odoo.tools import float_compare, float_round, ormcache
 
@@ -28,6 +30,8 @@ class SaleOrder(models.Model):
         return request.get_all_taxes_values()
 
     def validate_taxes_on_sales_order(self):
+        if not self.fiscal_position_id.is_taxcloud:
+            return True
         company = self.company_id
         shipper = company or self.env.company
         api_id = shipper.taxcloud_api_id
@@ -38,6 +42,7 @@ class SaleOrder(models.Model):
         request.set_location_destination_detail(self.partner_shipping_id)
 
         request.set_order_items_detail(self)
+        request.taxcloud_date = fields.Datetime.context_timestamp(self, datetime.datetime.now())
 
         response = self._get_all_taxes_values(request, request.hash)
 
@@ -67,7 +72,11 @@ class SaleOrder(models.Model):
                         ('company_id', '=', company.id),
                     ], limit=1)
                     if tax:
-                        tax.active = True  # Needs to be active to be included in order total computation
+                        # Only set if not already set, otherwise it triggers a
+                        # needless and potentially heavy recompute for
+                        # everything related to the tax.
+                        if not tax.active:
+                            tax.active = True  # Needs to be active to be included in order total computation
                     else:
                         tax = self.env['account.tax'].sudo().with_context(default_company_id=company.id).create({
                             'name': 'Tax %.3f %%' % (tax_rate),
@@ -78,6 +87,12 @@ class SaleOrder(models.Model):
                         })
                     line.tax_id = tax
         return True
+
+    def add_option_to_order_with_taxcloud(self):
+        self.ensure_one()
+        # portal user call this method with sudo
+        if self.fiscal_position_id.is_taxcloud and self._uid == SUPERUSER_ID:
+            self.validate_taxes_on_sales_order()
 
 
 class SaleOrderLine(models.Model):

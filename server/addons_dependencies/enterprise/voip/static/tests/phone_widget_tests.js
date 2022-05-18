@@ -1,6 +1,7 @@
 odoo.define('voip.tests', function (require) {
 "use strict";
 
+const basicFields = require('web.basic_fields');
 var config = require('web.config');
 var FormView = require('web.FormView');
 var ListView = require('web.ListView');
@@ -51,7 +52,7 @@ QUnit.module('voip', {
             },
         });
 
-        var $phoneLink = form.$('a.o_form_uri.o_field_widget');
+        var $phoneLink = form.$('div.o_form_uri.o_field_phone.o_field_widget > a');
         assert.strictEqual($phoneLink.length, 1,
             "should have a anchor with correct classes");
         assert.strictEqual($phoneLink.text(), 'yop',
@@ -71,7 +72,7 @@ QUnit.module('voip', {
 
         // save
         await testUtils.form.clickSave(form);
-        $phoneLink = form.$('a.o_form_uri.o_field_widget');
+        $phoneLink = form.$('div.o_form_uri.o_field_phone.o_field_widget > a');
         assert.strictEqual($phoneLink.text(), 'new',
             "new value should be displayed properly");
         assert.hasAttrValue($phoneLink, 'href', 'tel:new',
@@ -97,10 +98,10 @@ QUnit.module('voip', {
 
         assert.containsN(list, 'tbody td:not(.o_list_record_selector)', 5,
             "should have 5 cells");
-        assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'yop',
+        assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'yopSMS',
             "value should be displayed properly");
 
-        var $phoneLink = list.$('a.o_form_uri.o_field_widget');
+        var $phoneLink = list.$('div.o_form_uri.o_field_phone.o_field_widget > a');
         assert.strictEqual($phoneLink.length, 5,
             "should have anchors with correct classes");
         assert.hasAttrValue($phoneLink.first(), 'href', 'tel:yop',
@@ -118,15 +119,44 @@ QUnit.module('voip', {
         await testUtils.dom.click(list.$buttons.find('.o_list_button_save'));
         $cell = list.$('tbody td:not(.o_list_record_selector)').first();
         assert.doesNotHaveClass($cell.parent(), 'o_selected_row', 'should not be in edit mode anymore');
-        assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'new',
+        assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'newSMS',
             "value should be properly updated");
-        $phoneLink = list.$('a.o_form_uri.o_field_widget');
+        $phoneLink = list.$('div.o_form_uri.o_field_phone.o_field_widget > a');
         assert.strictEqual($phoneLink.length, 5,
             "should still have anchors with correct classes");
         assert.hasAttrValue($phoneLink.first(), 'href', 'tel:new',
             "should still have proper tel prefix");
 
         list.destroy();
+    });
+
+    QUnit.test("click on phone field link triggers call once", async function (assert) {
+        testUtils.mock.patch(basicFields.FieldPhone, {
+            _onClickLink(...args) {
+                assert.step("phone link clicked");
+                this._super(...args);
+            },
+        });
+        const form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: `<form string="Partners">
+                    <sheet>
+                        <group>
+                            <field name="foo" widget="phone"/>
+                        </group>
+                    </sheet>
+                </form>`,
+            res_id: 1,
+        });
+
+        await testUtils.dom.click(form.el.querySelector('.o_field_phone a'));
+        assert.containsOnce(form.el, ".o_form_readonly", "form view should not change to edit mode from click on phone link");
+        assert.verifySteps(["phone link clicked"], "should have called click handler of phone link only once");
+        testUtils.mock.unpatch(basicFields.FieldPhone);
+
+        form.destroy();
     });
 
 });

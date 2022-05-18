@@ -19,65 +19,74 @@ Only the partners having a debit sum value strictly superior to the threshold ov
 will be taken into account in this report.
 This feature is only supported/useful in spanish MOD347 report.""")
 
-    def _parse_threshold_parameter(self, company, date):
+    def _parse_threshold_parameter(self, date):
         """ Parses the content of the l10n_es_mod347_threshold field, returning its
         value in company currency.
         """
-        self.ensure_one()
         if self.l10n_es_mod347_threshold:
-            amount = self.l10n_es_mod347_threshold
-            threshold_currency = self.env['res.currency'].search([('name', '=', 'EUR')])
+            threshold_currency = self.env["res.currency"].search([('name', '=', 'EUR')], limit=1)
 
-            if not threshold_currency:
-                raise UserError(_("Currency %s, used for a threshold in this report, is either nonexistent or inactive. Please create or activate it." % threshold_currency.name))
+            if not threshold_currency or not threshold_currency.active:
+                raise UserError(_("Currency %s, used for a threshold in this report, is either nonexistent or inactive. Please create or activate it.", threshold_currency.name))
 
             company_currency = self.env.company.currency_id
-            return threshold_currency._convert(amount, company_currency, company, date)
+            return threshold_currency._convert(self.l10n_es_mod347_threshold, company_currency, self.env.company, date)
 
-    def _get_with_statement(self):
-        self.ensure_one()
-        financial_report = self._get_financial_report()
-        if financial_report and financial_report.l10n_es_reports_modelo_number == '347' and self.l10n_es_mod347_threshold:
-            if self.groupby != 'partner_id':
-                raise UserError(_("Trying to use a groupby threshold for a line without grouping by partner_id isn't supported."))
+    def _get_domain(self, options, financial_report):
+        # OVERRIDE to filter out lines based on the threshold.
+        domain = super()._get_domain(options, financial_report)
+        if options.get('l10n_es_mod347_add_domain'):
+            domain += options['l10n_es_mod347_add_domain']
+        return domain
 
-            company = self.env['res.company'].browse(self.env.context['company_ids'][0])
-            from_fiscalyear_dates = company.compute_fiscalyear_dates(datetime.strptime(self.env.context['date_from'], DEFAULT_SERVER_DATE_FORMAT))
-            to_fiscalyear_dates = company.compute_fiscalyear_dates(datetime.strptime(self.env.context['date_to'], DEFAULT_SERVER_DATE_FORMAT))
+    def _get_options_with_threshold(self, options_list):
+        ''' Helper used to filter out unfolded lines based on their total balance regarding the threshold computed
+        on the fiscal year.
+        :param options_list:    The report options list, first one being the current dates range, others being the
+                                comparisons.
+        :return:                A new options_list containing 'l10n_es_mod347_add_domain' to filter out the unfolded lines.
+        '''
+        new_options_list = []
+        for i, options in enumerate(options_list):
+            from_fy_dates = self.env.company.compute_fiscalyear_dates(fields.Date.from_string(options['date']['date_from']))
+            to_fy_dates = self.env.company.compute_fiscalyear_dates(fields.Date.from_string(options['date']['date_to']))
 
-            # ignore the threshold if from and to dates belong to different fiscal years
-            if from_fiscalyear_dates == to_fiscalyear_dates:
-                sql_with = """WITH account_move_line
-                              AS (SELECT *
-                                  FROM account_move_line where partner_id
-                                  IN (SELECT account_move_line.partner_id
-                                      FROM account_move_line
-                                      JOIN account_move
-                                      ON account_move_line.move_id = account_move.id
-                                      WHERE account_move_line.date >= %s AND account_move_line.date <= %s
-                                      AND account_move.type IN ('in_invoice', 'out_invoice', 'in_refund', 'out_refund')
-                                      GROUP BY account_move_line.partner_id
-                                      HAVING sum(debit) > %s
-                                      )
-                                  )
-                           """
-                threshold_value = self._parse_threshold_parameter(company, from_fiscalyear_dates['date_to'])
-                params_sql = [from_fiscalyear_dates['date_from'].strftime(DEFAULT_SERVER_DATE_FORMAT), from_fiscalyear_dates['date_to'].strftime(DEFAULT_SERVER_DATE_FORMAT), str(threshold_value)]
-                return sql_with, params_sql
+            # Ignore the threshold if from and to dates belong to different fiscal years.
+            if from_fy_dates != to_fy_dates:
+                new_options_list.append(options)
+                continue
 
-        return '', []
+            # Compute results for the fiscal year.
+            fy_options = {**options, 'date': options['date'].copy()}
+            fy_options['date'].update({
+                'date_from': fields.Date.to_string(from_fy_dates['date_from']),
+                'date_to': fields.Date.to_string(from_fy_dates['date_to']),
+                'mode': 'range',
+            })
+            fy_results = super()._compute_amls_results([fy_options], self, sign=1)
 
-    def _build_query_rows_count(self, groupby, tables, where_clause, params):
-        query, params = super()._build_query_rows_count(groupby, tables, where_clause, params)
-        with_query, with_params = self._get_with_statement()
-        return with_query + query, with_params + params
+            # Compute records to exclude per period.
+            ids_to_exclude = []
+            threshold = self._parse_threshold_parameter(from_fy_dates['date_to'])
+            for groupby_key, display_name, formula_results in fy_results:
+                balance = sum(formula_results.values())
+                if abs(balance) <= threshold:
+                    ids_to_exclude.append(groupby_key)
 
-    def _build_query_compute_line(self, select, tables, where_clause, params):
-        query, params = super()._build_query_compute_line(select, tables, where_clause, params)
-        with_query, with_params = self._get_with_statement()
-        return with_query + query, with_params + params
+            if ids_to_exclude:
+                new_options_list.append({**options, 'l10n_es_mod347_add_domain': [(self.groupby, 'not in', tuple(ids_to_exclude))]})
+            else:
+                new_options_list.append(options)
+        return new_options_list
 
-    def _build_query_eval_formula(self, groupby, select, tables, where_clause, params):
-        query, params = super()._build_query_eval_formula(groupby, select, tables, where_clause, params)
-        with_query, with_params = self._get_with_statement()
-        return with_query + query, with_params + params
+    def _compute_amls_results(self, options_list, calling_financial_report, sign=1, operator=None):
+        # OVERRIDE to filter out lines that are under the threshold given by the 'l10n_es_mod347_threshold' field.
+        if self.l10n_es_mod347_threshold:
+            options_list = self._get_options_with_threshold(options_list)
+        return super()._compute_amls_results(options_list, calling_financial_report, sign=sign, operator=operator)
+
+    def _compute_sum(self, options_list, calling_financial_report):
+        # OVERRIDE to filter out lines that are under the threshold given by the 'l10n_es_mod347_threshold' field.
+        if self.l10n_es_mod347_threshold:
+            options_list = self._get_options_with_threshold(options_list)
+        return super()._compute_sum(options_list, calling_financial_report)

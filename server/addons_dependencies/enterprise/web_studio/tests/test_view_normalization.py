@@ -1,11 +1,12 @@
 import random
 import textwrap
 from odoo.http import _request_stack
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import TransactionCase, tagged
 from odoo.tools import DotDict
 from odoo.addons.web_studio.controllers.main import WebStudioController
 
 
+@tagged('web_studio_normalization')
 class TestViewNormalization(TransactionCase):
 
     maxDiff = None
@@ -540,8 +541,8 @@ class TestViewNormalization(TransactionCase):
             <data>
               <xpath expr="/form[1]/*[last()]" position="after">
                 <div class="oe_chatter">
-                  <field name="message_follower_ids" widget="mail_followers"/>
-                  <field name="message_ids" widget="mail_thread"/>
+                  <field name="message_follower_ids"/>
+                  <field name="message_ids"/>
                 </div>
               </xpath>
             </data>
@@ -549,8 +550,8 @@ class TestViewNormalization(TransactionCase):
             <data>
               <xpath expr="//form[1]/sheet[1]" position="after">
                 <div class="oe_chatter" name="studio_div_302a40">
-                  <field name="message_follower_ids" widget="mail_followers"/>
-                  <field name="message_ids" widget="mail_thread"/>
+                  <field name="message_follower_ids"/>
+                  <field name="message_ids"/>
                 </div>
               </xpath>
             </data>
@@ -718,8 +719,8 @@ class TestViewNormalization(TransactionCase):
               </xpath>
               <xpath expr="//templates//div" position="inside">
                 <div class="o_dropdown_kanban dropdown">
-                            <a class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#">
-                                <span class="fa fa-bars fa-lg"/>
+                            <a role="button" class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#">
+                                <span class="fa fa-bars fa-lg" title="menu"/>
                             </a>
                             <div class="dropdown-menu" role="menu">
                                 <t t-if="widget.editable"><a type="edit" class="dropdown-item">Edit</a></t>
@@ -742,8 +743,8 @@ class TestViewNormalization(TransactionCase):
               </xpath>
               <xpath expr="//form[1]/sheet[1]/notebook[1]/page[1]/field[@name='child_ids']/kanban[1]/templates[1]/t[1]/div[1]/field[@name='name']" position="after">
                 <div class="o_dropdown_kanban dropdown" name="studio_div_302a40">
-                  <a class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#">
-                    <span class="fa fa-bars fa-lg"/>
+                  <a role="button" class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#">
+                    <span class="fa fa-bars fa-lg" title="menu"/>
                   </a>
                   <div class="dropdown-menu" role="menu" name="studio_div_4e2ccd">
                     <t t-if="widget.editable">
@@ -1168,7 +1169,7 @@ class TestViewNormalization(TransactionCase):
               </data>
             ''')
 
-    def test_view_normalization_31(self):
+    def test_view_normalization_31_2(self):
         self.view = self.base_view.create({
             'arch_base':
             '''
@@ -1318,14 +1319,14 @@ class TestViewNormalization(TransactionCase):
               <data>
                 <xpath expr="//group" position="inside">
                     <tree>
-                        <div name="first_in_tree"/>
-                        <div name="middle"/>
-                        <div name="last_in_tree"/>
+                        <button name="first_in_tree"/>
+                        <button name="middle"/>
+                        <button name="last_in_tree"/>
                     </tree>
                     <form>
-                        <div name="first_in_form"/>
-                        <div name="middle"/>
-                        <div name="last_in_form"/>
+                        <button name="first_in_form"/>
+                        <button name="middle"/>
+                        <button name="last_in_form"/>
                     </form>
                 </xpath>
               </data>
@@ -1334,20 +1335,20 @@ class TestViewNormalization(TransactionCase):
               <data>
                 <xpath expr="//group[@name='o2m_field']" position="inside">
                   <tree>
-                    <div name="first_in_tree"/>
-                    <div name="middle"/>
-                    <div name="last_in_tree"/>
+                    <button name="first_in_tree"/>
+                    <button name="middle"/>
+                    <button name="last_in_tree"/>
                   </tree>
                   <form>
-                    <div name="first_in_form"/>
-                    <div name="middle"/>
-                    <div name="last_in_form"/>
+                    <button name="first_in_form"/>
+                    <button name="middle"/>
+                    <button name="last_in_form"/>
                   </form>
                 </xpath>
               </data>
             ''')
 
-    def test_view_normalization_37(self):
+    def test_view_normalization_37_2(self):
         """Button have a name which is not unique"""
 
         self.view = self.base_view.create({

@@ -10,15 +10,17 @@
 
 {
     'name': 'Colombian - Accounting Reports',
+    'icon': '/l10n_co/static/description/icon.png',
     'version': '1.1',
     'description': """
 Accounting reports for Colombia
 ================================
     """,
     'author': ['David Arnold (XOE Solutions)'],
-    'category': 'Accounting/Accounting',
+    'category': 'Accounting/Localizations/Reporting',
     'depends': ['l10n_co', 'account_reports'],
     'data': [
+        'security/ir.model.access.csv',
         'data/l10n_co_reports.xml',
         'wizard/retention_report_views.xml',
         'report/certification_report_templates.xml',

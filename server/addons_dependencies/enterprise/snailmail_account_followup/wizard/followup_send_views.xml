@@ -41,23 +41,21 @@
 
                     <footer>
                         <button string="Send by Post"
-                            name="snailmail_send_action" type="object" class="btn-primary o_mail_send"/>
-                        <button string="Cancel" class="btn-secondary" special="cancel" />
+                            name="snailmail_send_action" type="object" class="btn-primary o_mail_send" data-hotkey="q"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z" />
                     </footer>
                 </form>
             </field>
         </record>
 
-       <act_window
-            name="Send by post"
-            id="followup_send"
-            res_model="followup.send"
-            binding_model="res.partner"
-            binding_views="list"
-            view_mode="form"
-            target="new"
-            groups="account.group_account_invoice"
-            />
+       <record id="followup_send" model="ir.actions.act_window">
+           <field name="name">Send by post</field>
+           <field name="res_model">followup.send</field>
+           <field name="view_mode">form</field>
+           <field name="target">new</field>
+           <field name="binding_model_id" ref="base.model_res_partner"/>
+           <field name="binding_view_types">list</field>
+       </record>
 
     </data>
 

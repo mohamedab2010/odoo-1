@@ -15,7 +15,7 @@ class OnboardingController(http.Controller):
             return {}
 
         return {
-            'html': request.env.ref('account_consolidation.account_consolidation_dashboard_onboarding_panel').render({
+            'html': request.env.ref('account_consolidation.account_consolidation_dashboard_onboarding_panel')._render({
                 'company': company,
                 'state': company.get_and_update_consolidation_dashboard_onboarding_state()
             })

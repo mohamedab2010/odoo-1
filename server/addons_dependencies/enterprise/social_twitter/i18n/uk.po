@@ -3,17 +3,16 @@
 # 	* social_twitter
 # 
 # Translators:
-# Martin Trigaux, 2019
-# ТАрас <tratatuta@i.ua>, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-09-23 14:03+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -47,6 +46,15 @@ msgstr "<i class=\"fa fa-heart\" title=\"Likes\"/>"
 #, python-format
 msgid "Author Image"
 msgstr "Зображення автора"
+
+#. module: social_twitter
+#: model:ir.model.fields,help:social_twitter.field_res_config_settings__twitter_use_own_account
+msgid ""
+"Check this if you want to use your personal Twitter Developer Account "
+"instead of the provided one."
+msgstr ""
+"Позначте, якщо ви хочете використовувати свій особистий обліковий запис "
+"розробника Twitter замість наданого."
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_res_config_settings
@@ -85,6 +93,7 @@ msgstr "Назва для відображення"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__display_twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__display_twitter_preview
 msgid "Display Twitter Preview"
 msgstr "Відображати попередній перегляд Twitter"
 
@@ -131,6 +140,16 @@ msgid "Likes"
 msgstr "Сподобалося"
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"Looks like you've made too many requests. Please wait a few minutes before "
+"giving it another try."
+msgstr ""
+"Схоже, ви зробили занадто багато запитів. Зачекайте кілька хвилин, перш ніж "
+"спробувати ще раз."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_media__media_type
 msgid "Media Type"
 msgstr "Тип медіа"
@@ -144,6 +163,12 @@ msgstr "Згадування"
 #: model:ir.model.fields,field_description:social_twitter.field_social_twitter_account__name
 msgid "Name"
 msgstr "Назва"
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid "Please select a Twitter account for this stream type."
+msgstr "Оберіть обліковий запис Twitter для цього типу трансляції."
 
 #. module: social_twitter
 #: model_terms:ir.ui.view,arch_db:social_twitter.twitter_preview
@@ -199,6 +224,11 @@ msgid "Social Post"
 msgstr "Публікація в соцмережах"
 
 #. module: social_twitter
+#: model:ir.model,name:social_twitter.model_social_post_template
+msgid "Social Post Template"
+msgstr "Шаблон публікації соцмереж"
+
+#. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_stream
 msgid "Social Stream"
 msgstr "Пряма трансляція у соціальних мережах"
@@ -214,6 +244,16 @@ msgid "Social Twitter Account"
 msgstr "Обліковий запис соцмережі Twitter"
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"The keyword you've typed in does not look valid. Please try again with other"
+" words."
+msgstr ""
+"Ключове слово, яке ви ввели, здається недійсним. Спробуйте ще раз з іншими "
+"словами."
+
+#. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0
 #, python-format
 msgid ""
@@ -227,13 +267,6 @@ msgstr ""
 #: model:social.stream.type,name:social_twitter.stream_type_twitter_follow
 msgid "Tweets of"
 msgstr "Твіти"
-
-#. module: social_twitter
-#. openerp-web
-#: code:addons/social_twitter/static/src/xml/social_twitter_templates.xml:0
-#, python-format
-msgid "Twitter Profile Image"
-msgstr "Зображення профілю Twitter"
 
 #. module: social_twitter
 #: model:ir.model.fields.selection,name:social_twitter.selection__social_media__media_type__twitter
@@ -296,8 +329,16 @@ msgstr "Секретний токен Twitter OAuth"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__twitter_preview
 msgid "Twitter Preview"
 msgstr "Попередній перегляд Twitter"
+
+#. module: social_twitter
+#. openerp-web
+#: code:addons/social_twitter/static/src/xml/social_twitter_templates.xml:0
+#, python-format
+msgid "Twitter Profile Image"
+msgstr "Зображення профілю Twitter"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_stream_post__twitter_profile_image_url
@@ -330,9 +371,27 @@ msgid "Twitter User Likes"
 msgstr "Лайки користувача в Twitter"
 
 #. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token or it may have expired."
+msgstr "Twitter не надав дійсний токен доступу або він протермінований."
+
+#. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token."
+msgstr "Twitter не надав дійсний токен доступу."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_live_post__twitter_tweet_id
 msgid "Twitter tweet id"
 msgstr "Id твіта в Twitter"
+
+#. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator."
+msgstr "Неавторизовано. Зв'яжіться з вашим адміністратором."
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_res_config_settings__twitter_use_own_account
@@ -354,6 +413,26 @@ msgid ""
 msgstr ""
 "Використовується для порівняння, коли нам потрібно обмежити деякі функції "
 "певним медіа ('facebook', 'twitter', ...)."
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_account.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+"Нам не вдалося завантажити ваше зображення, спробуйте зменшити його розмір і"
+" опублікувати знову (помилка: %s)."
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"You cannot create a Stream from this Twitter account.\n"
+"It may be because it's protected. To solve this, please make sure you follow it before trying again."
+msgstr ""
+"Ви не можете створити трансляцію з цього облікового запису Twitter.\n"
+"IЦе можливо через його захист. Щоби вирішити це, переконайтеся, що ви стежите за ни перед тим, як пробувати ще раз."
 
 #. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0

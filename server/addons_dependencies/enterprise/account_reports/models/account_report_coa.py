@@ -23,38 +23,38 @@ class AccountChartOfAccountReport(models.AbstractModel):
     @api.model
     def _get_templates(self):
         templates = super(AccountChartOfAccountReport, self)._get_templates()
-        templates['main_table_header_template'] = 'account_reports.template_coa_table_header'
+        templates['main_template'] = 'account_reports.main_template_with_filter_input_accounts'
         return templates
 
     @api.model
-    def _get_columns_name(self, options):
-        columns = [
+    def _get_columns(self, options):
+        header1 = [
+            {'name': '', 'style': 'width: 100%'},
+            {'name': _('Initial Balance'), 'class': 'number', 'colspan': 2},
+        ] + [
+            {'name': period['string'], 'class': 'number', 'colspan': 2}
+            for period in reversed(options['comparison'].get('periods', []))
+        ] + [
+            {'name': options['date']['string'], 'class': 'number', 'colspan': 2},
+            {'name': _('End Balance'), 'class': 'number', 'colspan': 2},
+        ]
+        header2 = [
             {'name': '', 'style': 'width:40%'},
-            {'name': _('Debit'), 'class': 'number'},
-            {'name': _('Credit'), 'class': 'number'},
+            {'name': _('Debit'), 'class': 'number o_account_coa_column_contrast'},
+            {'name': _('Credit'), 'class': 'number o_account_coa_column_contrast'},
         ]
         if options.get('comparison') and options['comparison'].get('periods'):
-            columns += [
-                {'name': _('Debit'), 'class': 'number '},
-                {'name': _('Credit'), 'class': 'number'},
+            header2 += [
+                {'name': _('Debit'), 'class': 'number o_account_coa_column_contrast'},
+                {'name': _('Credit'), 'class': 'number o_account_coa_column_contrast'},
             ] * len(options['comparison']['periods'])
-        return columns + [
-            {'name': _('Debit'), 'class': 'number '},
-            {'name': _('Credit'), 'class': 'number'},
-            {'name': _('Debit'), 'class': 'number '},
-            {'name': _('Credit'), 'class': 'number'},
+        header2 += [
+            {'name': _('Debit'), 'class': 'number o_account_coa_column_contrast'},
+            {'name': _('Credit'), 'class': 'number o_account_coa_column_contrast'},
+            {'name': _('Debit'), 'class': 'number o_account_coa_column_contrast'},
+            {'name': _('Credit'), 'class': 'number o_account_coa_column_contrast'},
         ]
-
-    @api.model
-    def _get_super_columns(self, options):
-        date_cols = options.get('date') and [options['date']] or []
-        date_cols += (options.get('comparison') or {}).get('periods', [])
-
-        columns = [{'string': _('Initial Balance')}]
-        columns += reversed(date_cols)
-        columns += [{'string': _('Total')}]
-
-        return {'columns': columns, 'x_offset': 1, 'merge': 2}
+        return [header1, header2]
 
     @api.model
     def _get_lines(self, options, line_id=None):
@@ -109,23 +109,23 @@ class AccountChartOfAccountReport(models.AbstractModel):
                 columns.append({'name': self.format_value(value, blank_if_zero=True), 'class': 'number', 'no_format_name': value})
 
             name = account.name_get()[0][1]
-            if len(name) > 40 and not self._context.get('print_mode'):
-                name = name[:40]+'...'
 
             lines.append({
-                'id': account.id,
+                'id': self._get_generic_line_id('account.account', account.id),
                 'name': name,
+                'code': account.code,
                 'title_hover': name,
                 'columns': columns,
                 'unfoldable': False,
                 'caret_options': 'account.account',
+                'class': 'o_account_searchable_line o_account_coa_column_contrast',
             })
 
         # Total report line.
         lines.append({
-             'id': 'grouped_accounts_total',
+             'id': self._get_generic_line_id(None, None, markup='grouped_accounts_total'),
              'name': _('Total'),
-             'class': 'total',
+             'class': 'total o_account_coa_column_contrast',
              'columns': [{'name': self.format_value(total), 'class': 'number'} for total in totals],
              'level': 1,
         })

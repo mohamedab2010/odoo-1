@@ -9,21 +9,31 @@
                 <form>
                     <sheet>
                         <group>
-                            <field name="period_lock_date"/>
-                            <field name="fiscalyear_lock_date"/>
-                            <field name="tax_lock_date"/>
+                            <group string="Management Closing">
+                                <div class="text-muted mb-3">
+                                    <i>Lock specific journal entries</i>
+                                </div>
+                                <field name="period_lock_date" placeholder="Pick a date to lock"/>
+                                <field name="tax_lock_date" placeholder="Pick a date to lock"/>
+                            </group>
+                            <group string="Accounting Period Closing">
+                                <div class="text-muted mb-3">
+                                    <i>Lock all journal entries</i>
+                                </div>
+                                <field name="fiscalyear_lock_date" placeholder="Pick a date to lock"/>
+                            </group>
                         </group>
                     </sheet>
                     <footer>
-                        <button string="Save" name="change_lock_date" type="object" class="btn-primary"/>
-                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                        <button string="Save" name="change_lock_date" type="object" class="btn-primary" data-hotkey="q"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z"/>
                     </footer>
                </form>
             </field>
         </record>
 
         <record id="action_view_account_change_lock_date" model="ir.actions.act_window">
-            <field name="name">Lock your Fiscal Period</field>
+            <field name="name">Accounting closing dates</field>
             <field name="res_model">account.change.lock.date</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="view_account_change_lock_date"/>

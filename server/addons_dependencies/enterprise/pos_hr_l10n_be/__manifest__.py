@@ -3,6 +3,7 @@
 
 {
     'name': "Belgian Registered Cash Register Employee module",
+    'icon': '/l10n_be/static/description/icon.png',
     'category': "Hidden",
     'summary': 'Link module between Pos Blackbox Be and Pos HR',
 
@@ -19,5 +20,5 @@ This module allows Employees (and not users) to log in to the Point of Sale appl
     ],
     'installable': False,
     'auto_install': False,
-    'qweb': [],
+    'license': 'OEEL-1',
 }

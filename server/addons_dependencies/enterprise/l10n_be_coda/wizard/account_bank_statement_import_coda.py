@@ -6,7 +6,7 @@
 import time
 import re
 
-from odoo import models, fields, tools, _
+from odoo import models, fields, tools, _, _lt
 from odoo.exceptions import UserError
 
 
@@ -20,295 +20,295 @@ class safedict(dict):
 
 
 # Mappings for the structured communication formats
-minimum = safedict({'1': _('minimum applicable'), '2': _('minimum not applicable')})
-card_scheme = safedict({'1': _('Bancontact/Mister Cash'), '2': _('Maestro'), '3': _('Private'), '5': _('TINA'), '9': _('Other')})
-transaction_type = safedict({'0': _('cumulative'), '1': _('withdrawal'), '2': _('cumulative on network'), '4': _('reversal of purchases'), '5': _('POS others'), '7': _('distribution sector'), '8': _('teledata'), '9': _('fuel')})
-product_code = safedict({'00': _('unset'), '01': _('premium with lead substitute'), '02': _('europremium'), '03': _('diesel'), '04': _('LPG'), '06': _('premium plus 98 oct'), '07': _('regular unleaded'), '08': _('domestic fuel oil'), '09': _('lubricants'), '10': _('petrol'), '11': _('premium 99+'), '12': _('Avgas'), '16': _('other types')})
+minimum = safedict({'1': _lt('minimum applicable'), '2': _lt('minimum not applicable')})
+card_scheme = safedict({'1': _lt('Bancontact/Mister Cash'), '2': _lt('Maestro'), '3': _lt('Private'), '5': _lt('TINA'), '9': _lt('Other')})
+transaction_type = safedict({'0': _lt('cumulative'), '1': _lt('withdrawal'), '2': _lt('cumulative on network'), '4': _lt('reversal of purchases'), '5': _lt('POS others'), '7': _lt('distribution sector'), '8': _lt('teledata'), '9': _lt('fuel')})
+product_code = safedict({'00': _lt('unset'), '01': _lt('premium with lead substitute'), '02': _lt('europremium'), '03': _lt('diesel'), '04': _lt('LPG'), '06': _lt('premium plus 98 oct'), '07': _lt('regular unleaded'), '08': _lt('domestic fuel oil'), '09': _lt('lubricants'), '10': _lt('petrol'), '11': _lt('premium 99+'), '12': _lt('Avgas'), '16': _lt('other types')})
 issuing_institution = safedict({'1': 'Mastercard', '2': 'Visa', '3': 'American Express', '4': 'Diners Club', '9': 'Other'})
-type_direct_debit = safedict({'0': _('unspecified'), '1': _('recurrent'), '2': _('one-off'), '3': _('1-st (recurrent)'), '4': _('last (recurrent)')})
-direct_debit_scheme = safedict({'0': _('unspecified'), '1': _('SEPA core'), '2': _('SEPA B2B')})
-payment_reason = safedict({'0': _('paid'), '1': _('technical problem'), '2': _('reason not specified'), '3': _('debtor disagrees'), '4': _('debtor’s account problem')})
-sepa_type = safedict({'0': _('paid'), '1': _('reject'), '2': _('return'), '3': _('refund'), '4': _('reversal'), '5': _('cancellation')})
+type_direct_debit = safedict({'0': _lt('unspecified'), '1': _lt('recurrent'), '2': _lt('one-off'), '3': _lt('1-st (recurrent)'), '4': _lt('last (recurrent)')})
+direct_debit_scheme = safedict({'0': _lt('unspecified'), '1': _lt('SEPA core'), '2': _lt('SEPA B2B')})
+payment_reason = safedict({'0': _lt('paid'), '1': _lt('technical problem'), '2': _lt('reason not specified'), '3': _lt('debtor disagrees'), '4': _lt('debtor’s account problem')})
+sepa_type = safedict({'0': _lt('paid'), '1': _lt('reject'), '2': _lt('return'), '3': _lt('refund'), '4': _lt('reversal'), '5': _lt('cancellation')})
 
 
 sepa_transaction_type = safedict({
-    0: _('Simple amount without detailed data'),
-    1: _('Amount as totalised by the customer'),
-    2: _('Amount as totalised by the bank'),
-    3: _('Simple amount with detailed data'),
-    5: _('Detail of Amount as totalised by the customer'),
-    6: _('Detail of Amount as totalised by the bank'),
-    7: _('Detail of Amount as totalised by the bank'),
-    8: _('Detail of Simple amount with detailed data'),
-    9: _('Detail of Amount as totalised by the bank'),
+    0: _lt('Simple amount without detailed data'),
+    1: _lt('Amount as totalised by the customer'),
+    2: _lt('Amount as totalised by the bank'),
+    3: _lt('Simple amount with detailed data'),
+    5: _lt('Detail of Amount as totalised by the customer'),
+    6: _lt('Detail of Amount as totalised by the bank'),
+    7: _lt('Detail of Amount as totalised by the bank'),
+    8: _lt('Detail of Simple amount with detailed data'),
+    9: _lt('Detail of Amount as totalised by the bank'),
 })
 
 default_transaction_code = safedict({
-    '40': _('Codes proper to each bank'), '41': _('Codes proper to each bank'), '42': _('Codes proper to each bank'), '43': _('Codes proper to each bank'), '44': _('Codes proper to each bank'), '45': _('Codes proper to each bank'), '46': _('Codes proper to each bank'), '47': _('Codes proper to each bank'), '48': _('Codes proper to each bank'),
-    '49': _('Cancellation or correction'),
-    '87': _('Reimbursement of costs'),
-    '90': _('Codes proper to each bank'), '91': _('Codes proper to each bank'), '92': _('Codes proper to each bank'), '93': _('Codes proper to each bank'), '94': _('Codes proper to each bank'), '95': _('Codes proper to each bank'), '96': _('Codes proper to each bank'), '97': _('Codes proper to each bank'), '98': _('Codes proper to each bank'),
-    '99': _('Cancellation or correction'),
+    '40': _lt('Codes proper to each bank'), '41': _lt('Codes proper to each bank'), '42': _lt('Codes proper to each bank'), '43': _lt('Codes proper to each bank'), '44': _lt('Codes proper to each bank'), '45': _lt('Codes proper to each bank'), '46': _lt('Codes proper to each bank'), '47': _lt('Codes proper to each bank'), '48': _lt('Codes proper to each bank'),
+    '49': _lt('Cancellation or correction'),
+    '87': _lt('Reimbursement of costs'),
+    '90': _lt('Codes proper to each bank'), '91': _lt('Codes proper to each bank'), '92': _lt('Codes proper to each bank'), '93': _lt('Codes proper to each bank'), '94': _lt('Codes proper to each bank'), '95': _lt('Codes proper to each bank'), '96': _lt('Codes proper to each bank'), '97': _lt('Codes proper to each bank'), '98': _lt('Codes proper to each bank'),
+    '99': _lt('Cancellation or correction'),
 })
 transaction_code = safedict(**{
     'return_val': ('', {}),
-    '01': (_('Domestic or local SEPA credit transfers'), {
-        '01': _('Individual transfer order'),
-        '02': _('Individual transfer order initiated by the bank'),
-        '03': _('Standing order'),
-        '05': _('Payment of wages, etc.'),
-        '07': _('Collective transfer'),
-        '13': _('Transfer from your account'),
-        '17': _('Financial centralisation'),
-        '37': _('Costs'),
-        '39': _('Your issue circular cheque'),
-        '50': _('Transfer in your favour'),
-        '51': _('Transfer in your favour – initiated by the bank'),
-        '52': _('Payment in your favour'),
-        '54': _('Unexecutable transfer order'),
-        '60': _('Non-presented circular cheque'),
-        '62': _('Unpaid postal order'),
-        '64': _('Transfer to your account'),
-        '66': _('Financial centralization'),
+    '01': (_lt('Domestic or local SEPA credit transfers'), {
+        '01': _lt('Individual transfer order'),
+        '02': _lt('Individual transfer order initiated by the bank'),
+        '03': _lt('Standing order'),
+        '05': _lt('Payment of wages, etc.'),
+        '07': _lt('Collective transfer'),
+        '13': _lt('Transfer from your account'),
+        '17': _lt('Financial centralisation'),
+        '37': _lt('Costs'),
+        '39': _lt('Your issue circular cheque'),
+        '50': _lt('Transfer in your favour'),
+        '51': _lt('Transfer in your favour – initiated by the bank'),
+        '52': _lt('Payment in your favour'),
+        '54': _lt('Unexecutable transfer order'),
+        '60': _lt('Non-presented circular cheque'),
+        '62': _lt('Unpaid postal order'),
+        '64': _lt('Transfer to your account'),
+        '66': _lt('Financial centralization'),
     }),
-    '02': (_('Instant SEPA credit transfer'), {
-        '01': _('Individual transfer order'),
-        '02': _('Individual transfer order initiated by the bank'),
-        '03': _('Standing order'),
-        '05': _('Payment of wages, etc.'),
-        '07': _('Collective transfer'),
-        '13': _('Transfer from your account'),
-        '17': _('Financial centralisation'),
-        '37': _('Costs'),
-        '50': _('Transfer in your favour'),
-        '51': _('Transfer in your favour – initiated by the bank'),
-        '52': _('Payment in your favour'),
-        '54': _('Unexecutable transfer order'),
-        '64': _('Transfer to your account'),
-        '66': _('Financial centralization'),
+    '02': (_lt('Instant SEPA credit transfer'), {
+        '01': _lt('Individual transfer order'),
+        '02': _lt('Individual transfer order initiated by the bank'),
+        '03': _lt('Standing order'),
+        '05': _lt('Payment of wages, etc.'),
+        '07': _lt('Collective transfer'),
+        '13': _lt('Transfer from your account'),
+        '17': _lt('Financial centralisation'),
+        '37': _lt('Costs'),
+        '50': _lt('Transfer in your favour'),
+        '51': _lt('Transfer in your favour – initiated by the bank'),
+        '52': _lt('Payment in your favour'),
+        '54': _lt('Unexecutable transfer order'),
+        '64': _lt('Transfer to your account'),
+        '66': _lt('Financial centralization'),
     }),
-    '03': (_('Cheques'), {
-        '01': _('Payment of your cheque'),
-        '05': _('Payment of voucher'),
-        '09': _('Unpaid voucher'),
-        '11': _('Department store cheque'),
-        '15': _('Your purchase bank cheque'),
-        '17': _('Your certified cheque'),
-        '37': _('Cheque-related costs'),
-        '38': _('Provisionally unpaid'),
-        '40': _('Codes proper to each bank'),
-        '52': _('First credit of cheques, vouchers, luncheon vouchers, postal orders, credit under usual reserve'),
-        '58': _('Remittance of cheques, vouchers, etc. credit after collection'),
-        '60': _('Reversal of voucher'),
-        '62': _('Reversal of cheque'),
-        '63': _('Second credit of unpaid cheque'),
-        '66': _('Remittance of cheque by your branch - credit under usual reserve'),
-        '87': _('Reimbursement of cheque-related costs'),
+    '03': (_lt('Cheques'), {
+        '01': _lt('Payment of your cheque'),
+        '05': _lt('Payment of voucher'),
+        '09': _lt('Unpaid voucher'),
+        '11': _lt('Department store cheque'),
+        '15': _lt('Your purchase bank cheque'),
+        '17': _lt('Your certified cheque'),
+        '37': _lt('Cheque-related costs'),
+        '38': _lt('Provisionally unpaid'),
+        '40': _lt('Codes proper to each bank'),
+        '52': _lt('First credit of cheques, vouchers, luncheon vouchers, postal orders, credit under usual reserve'),
+        '58': _lt('Remittance of cheques, vouchers, etc. credit after collection'),
+        '60': _lt('Reversal of voucher'),
+        '62': _lt('Reversal of cheque'),
+        '63': _lt('Second credit of unpaid cheque'),
+        '66': _lt('Remittance of cheque by your branch - credit under usual reserve'),
+        '87': _lt('Reimbursement of cheque-related costs'),
     }),
-    '04': (_('Cards'), {
-        '01': _('Loading a GSM card'),
-        '02': _('Payment by means of a payment card within the Eurozone'),
-        '03': _('Settlement credit cards'),
-        '04': _('Cash withdrawal from an ATM'),
-        '05': _('Loading Proton'),
-        '06': _('Payment with tank card'),
-        '07': _('Payment by GSM'),
-        '08': _('Payment by means of a payment card outside the Eurozone'),
-        '09': _('Upload of prepaid card'),
-        '10': _('Correction for prepaid card'),
-        '37': _('Costs'),
-        '50': _('Credit after a payment at a terminal'),
-        '51': _('Unloading Proton'),
-        '52': _('Loading GSM cards'),
-        '53': _('Cash deposit at an ATM'),
-        '54': _('Download of prepaid card'),
-        '55': _('Income from payments by GSM'),
-        '56': _('Correction for prepaid card'),
-        '68': _('Credit after Proton payments'),
+    '04': (_lt('Cards'), {
+        '01': _lt('Loading a GSM card'),
+        '02': _lt('Payment by means of a payment card within the Eurozone'),
+        '03': _lt('Settlement credit cards'),
+        '04': _lt('Cash withdrawal from an ATM'),
+        '05': _lt('Loading Proton'),
+        '06': _lt('Payment with tank card'),
+        '07': _lt('Payment by GSM'),
+        '08': _lt('Payment by means of a payment card outside the Eurozone'),
+        '09': _lt('Upload of prepaid card'),
+        '10': _lt('Correction for prepaid card'),
+        '37': _lt('Costs'),
+        '50': _lt('Credit after a payment at a terminal'),
+        '51': _lt('Unloading Proton'),
+        '52': _lt('Loading GSM cards'),
+        '53': _lt('Cash deposit at an ATM'),
+        '54': _lt('Download of prepaid card'),
+        '55': _lt('Income from payments by GSM'),
+        '56': _lt('Correction for prepaid card'),
+        '68': _lt('Credit after Proton payments'),
     }),
-    '05': (_('Direct debit'), {
-        '01': _('Payment'),
-        '03': _('Unpaid debt'),
-        '05': _('Reimbursement'),
-        '37': _('Costs'),
-        '50': _('Credit after collection'),
-        '52': _('Credit under usual reserve'),
-        '54': _('Reimbursement'),
-        '56': _('Unexecutable reimbursement'),
-        '58': _('Reversal'),
+    '05': (_lt('Direct debit'), {
+        '01': _lt('Payment'),
+        '03': _lt('Unpaid debt'),
+        '05': _lt('Reimbursement'),
+        '37': _lt('Costs'),
+        '50': _lt('Credit after collection'),
+        '52': _lt('Credit under usual reserve'),
+        '54': _lt('Reimbursement'),
+        '56': _lt('Unexecutable reimbursement'),
+        '58': _lt('Reversal'),
     }),
-    '07': (_('Domestic commercial paper'), {
-        '01': _('Payment commercial paper'),
-        '05': _('Commercial paper claimed back'),
-        '06': _('Extension of maturity date'),
-        '07': _('Unpaid commercial paper'),
-        '08': _('Payment in advance'),
-        '09': _('Agio on supplier\'s bill'),
-        '37': _('Costs related to commercial paper'),
-        '39': _('Return of an irregular bill of exchange'),
-        '50': _('Remittance of commercial paper - credit after collection'),
-        '52': _('Remittance of commercial paper - credit under usual reserve'),
-        '54': _('Remittance of commercial paper for discount'),
-        '56': _('Remittance of supplier\'s bill with guarantee'),
-        '58': _('Remittance of supplier\'s bill without guarantee'),
+    '07': (_lt('Domestic commercial paper'), {
+        '01': _lt('Payment commercial paper'),
+        '05': _lt('Commercial paper claimed back'),
+        '06': _lt('Extension of maturity date'),
+        '07': _lt('Unpaid commercial paper'),
+        '08': _lt('Payment in advance'),
+        '09': _lt('Agio on supplier\'s bill'),
+        '37': _lt('Costs related to commercial paper'),
+        '39': _lt('Return of an irregular bill of exchange'),
+        '50': _lt('Remittance of commercial paper - credit after collection'),
+        '52': _lt('Remittance of commercial paper - credit under usual reserve'),
+        '54': _lt('Remittance of commercial paper for discount'),
+        '56': _lt('Remittance of supplier\'s bill with guarantee'),
+        '58': _lt('Remittance of supplier\'s bill without guarantee'),
     }),
-    '09': (_('Counter transactions'), {
-        '01': _('Cash withdrawal'),
-        '05': _('Purchase of foreign bank notes'),
-        '07': _('Purchase of gold/pieces'),
-        '09': _('Purchase of petrol coupons'),
-        '13': _('Cash withdrawal by your branch or agents'),
-        '17': _('Purchase of fiscal stamps'),
-        '19': _('Difference in payment'),
-        '25': _('Purchase of traveller’s cheque'),
-        '37': _('Costs'),
-        '50': _('Cash payment'),
-        '52': _('Payment night safe'),
-        '58': _('Payment by your branch/agents'),
-        '60': _('Sale of foreign bank notes'),
-        '62': _('Sale of gold/pieces under usual reserve'),
-        '68': _('Difference in payment'),
-        '70': _('Sale of traveller’s cheque'),
+    '09': (_lt('Counter transactions'), {
+        '01': _lt('Cash withdrawal'),
+        '05': _lt('Purchase of foreign bank notes'),
+        '07': _lt('Purchase of gold/pieces'),
+        '09': _lt('Purchase of petrol coupons'),
+        '13': _lt('Cash withdrawal by your branch or agents'),
+        '17': _lt('Purchase of fiscal stamps'),
+        '19': _lt('Difference in payment'),
+        '25': _lt('Purchase of traveller’s cheque'),
+        '37': _lt('Costs'),
+        '50': _lt('Cash payment'),
+        '52': _lt('Payment night safe'),
+        '58': _lt('Payment by your branch/agents'),
+        '60': _lt('Sale of foreign bank notes'),
+        '62': _lt('Sale of gold/pieces under usual reserve'),
+        '68': _lt('Difference in payment'),
+        '70': _lt('Sale of traveller’s cheque'),
     }),
-    '11': (_('Securities'), {
-        '01': _('Purchase of securities'),
-        '02': _('Tenders'),
-        '03': _('Subscription to securities'),
-        '04': _('Issues'),
-        '05': _('Partial payment subscription'),
-        '06': _('Share option plan – exercising an option'),
-        '09': _('Settlement of securities'),
-        '11': _('Payable coupons/repayable securities'),
-        '13': _('Your repurchase of issue'),
-        '15': _('Interim interest on subscription'),
-        '17': _('Management fee'),
-        '19': _('Regularisation costs'),
-        '37': _('Costs'),
-        '50': _('Sale of securities'),
-        '51': _('Tender'),
-        '52': _('Payment of coupons from a deposit or settlement of coupons delivered over the counter - credit under usual reserve'),
-        '58': _('Repayable securities from a deposit or delivered at the counter - credit under usual reserve'),
-        '62': _('Interim interest on subscription'),
-        '64': _('Your issue'),
-        '66': _('Retrocession of issue commission'),
-        '68': _('Compensation for missing coupon'),
-        '70': _('Settlement of securities'),
-        '99': _('Cancellation or correction'),
+    '11': (_lt('Securities'), {
+        '01': _lt('Purchase of securities'),
+        '02': _lt('Tenders'),
+        '03': _lt('Subscription to securities'),
+        '04': _lt('Issues'),
+        '05': _lt('Partial payment subscription'),
+        '06': _lt('Share option plan – exercising an option'),
+        '09': _lt('Settlement of securities'),
+        '11': _lt('Payable coupons/repayable securities'),
+        '13': _lt('Your repurchase of issue'),
+        '15': _lt('Interim interest on subscription'),
+        '17': _lt('Management fee'),
+        '19': _lt('Regularisation costs'),
+        '37': _lt('Costs'),
+        '50': _lt('Sale of securities'),
+        '51': _lt('Tender'),
+        '52': _lt('Payment of coupons from a deposit or settlement of coupons delivered over the counter - credit under usual reserve'),
+        '58': _lt('Repayable securities from a deposit or delivered at the counter - credit under usual reserve'),
+        '62': _lt('Interim interest on subscription'),
+        '64': _lt('Your issue'),
+        '66': _lt('Retrocession of issue commission'),
+        '68': _lt('Compensation for missing coupon'),
+        '70': _lt('Settlement of securities'),
+        '99': _lt('Cancellation or correction'),
     }),
-    '13': (_('Credit'), {
-        '01': _('Short-term loan'),
-        '02': _('Long-term loan'),
-        '05': _('Settlement of fixed advance'),
-        '07': _('Your repayment instalment credits'),
-        '11': _('Your repayment mortgage loan'),
-        '13': _('Settlement of bank acceptances'),
-        '15': _('Your repayment hire-purchase and similar claims'),
-        '19': _('Documentary import credits'),
-        '21': _('Other credit applications'),
-        '37': _('Credit-related costs'),
-        '50': _('Settlement of instalment credit'),
-        '54': _('Fixed advance – capital and interest'),
-        '55': _('Fixed advance – interest only'),
-        '56': _('Subsidy'),
-        '60': _('Settlement of mortgage loan'),
-        '62': _('Term loan'),
-        '68': _('Documentary export credits'),
-        '70': _('Settlement of discount bank acceptance'),
+    '13': (_lt('Credit'), {
+        '01': _lt('Short-term loan'),
+        '02': _lt('Long-term loan'),
+        '05': _lt('Settlement of fixed advance'),
+        '07': _lt('Your repayment instalment credits'),
+        '11': _lt('Your repayment mortgage loan'),
+        '13': _lt('Settlement of bank acceptances'),
+        '15': _lt('Your repayment hire-purchase and similar claims'),
+        '19': _lt('Documentary import credits'),
+        '21': _lt('Other credit applications'),
+        '37': _lt('Credit-related costs'),
+        '50': _lt('Settlement of instalment credit'),
+        '54': _lt('Fixed advance – capital and interest'),
+        '55': _lt('Fixed advance – interest only'),
+        '56': _lt('Subsidy'),
+        '60': _lt('Settlement of mortgage loan'),
+        '62': _lt('Term loan'),
+        '68': _lt('Documentary export credits'),
+        '70': _lt('Settlement of discount bank acceptance'),
     }),
-    '30': (_('Various transactions'), {
-        '01': _('Spot purchase of foreign exchange'),
-        '03': _('Forward purchase of foreign exchange'),
-        '05': _('Capital and/or interest term investment'),
-        '33': _('Value (date) correction'),
-        '37': _('Costs'),
-        '39': _('Undefined transaction'),
-        '50': _('Spot sale of foreign exchange'),
-        '52': _('Forward sale of foreign exchange'),
-        '54': _('Capital and/or interest term investment'),
-        '55': _('Interest term investment'),
-        '83': _('Value (date) correction'),
-        '89': _('Undefined transaction'),
+    '30': (_lt('Various transactions'), {
+        '01': _lt('Spot purchase of foreign exchange'),
+        '03': _lt('Forward purchase of foreign exchange'),
+        '05': _lt('Capital and/or interest term investment'),
+        '33': _lt('Value (date) correction'),
+        '37': _lt('Costs'),
+        '39': _lt('Undefined transaction'),
+        '50': _lt('Spot sale of foreign exchange'),
+        '52': _lt('Forward sale of foreign exchange'),
+        '54': _lt('Capital and/or interest term investment'),
+        '55': _lt('Interest term investment'),
+        '83': _lt('Value (date) correction'),
+        '89': _lt('Undefined transaction'),
     }),
-    '35': (_('Closing (periodical settlements for interest, costs,...)'), {
-        '01': _('Closing'),
-        '37': _('Costs'),
-        '50': _('Closing'),
+    '35': (_lt('Closing (periodical settlements for interest, costs,...)'), {
+        '01': _lt('Closing'),
+        '37': _lt('Costs'),
+        '50': _lt('Closing'),
     }),
-    '41': (_('International credit transfers - non-SEPA credit transfers'), {
-        '01': _('Transfer'),
-        '03': _('Standing order'),
-        '05': _('Collective payments of wages'),
-        '07': _('Collective transfers'),
-        '13': _('Transfer from your account'),
-        '17': _('Financial centralisation (debit)'),
-        '37': _('Costs relating to outgoing foreign transfers and non-SEPA transfers'),
-        '38': _('Costs relating to incoming foreign and non-SEPA transfers'),
-        '50': _('Transfer'),
-        '64': _('Transfer to your account'),
-        '66': _('Financial centralisation (credit)'),
+    '41': (_lt('International credit transfers - non-SEPA credit transfers'), {
+        '01': _lt('Transfer'),
+        '03': _lt('Standing order'),
+        '05': _lt('Collective payments of wages'),
+        '07': _lt('Collective transfers'),
+        '13': _lt('Transfer from your account'),
+        '17': _lt('Financial centralisation (debit)'),
+        '37': _lt('Costs relating to outgoing foreign transfers and non-SEPA transfers'),
+        '38': _lt('Costs relating to incoming foreign and non-SEPA transfers'),
+        '50': _lt('Transfer'),
+        '64': _lt('Transfer to your account'),
+        '66': _lt('Financial centralisation (credit)'),
     }),
-    '43': (_('Foreign cheques'), {
-        '01': _('Payment of a foreign cheque'),
-        '07': _('Unpaid foreign cheque'),
-        '15': _('Purchase of an international bank cheque'),
-        '37': _('Costs relating to payment of foreign cheques'),
-        '52': _('Remittance of foreign cheque credit under usual reserve'),
-        '58': _('Remittance of foreign cheque credit after collection'),
-        '62': _('Reversal of cheques'),
+    '43': (_lt('Foreign cheques'), {
+        '01': _lt('Payment of a foreign cheque'),
+        '07': _lt('Unpaid foreign cheque'),
+        '15': _lt('Purchase of an international bank cheque'),
+        '37': _lt('Costs relating to payment of foreign cheques'),
+        '52': _lt('Remittance of foreign cheque credit under usual reserve'),
+        '58': _lt('Remittance of foreign cheque credit after collection'),
+        '62': _lt('Reversal of cheques'),
     }),
-    '47': (_('Foreign commercial paper'), {
-        '01': _('Payment of foreign bill'),
-        '05': _('Bill claimed back'),
-        '06': _('Extension'),
-        '07': _('Unpaid foreign bill'),
-        '11': _('Payment documents abroad'),
-        '13': _('Discount foreign supplier\'s bills'),
-        '14': _('Warrant fallen due'),
-        '37': _('Costs relating to the payment of a foreign bill'),
-        '50': _('Remittance of foreign bill credit after collection'),
-        '52': _('Remittance of foreign bill credit under usual reserve'),
-        '54': _('Discount abroad'),
-        '56': _('Remittance of guaranteed foreign supplier\'s bill'),
-        '58': _('Idem without guarantee'),
-        '60': _('Remittance of documents abroad - credit under usual reserve'),
-        '62': _('Remittance of documents abroad - credit after collection'),
-        '64': _('Warrant'),
+    '47': (_lt('Foreign commercial paper'), {
+        '01': _lt('Payment of foreign bill'),
+        '05': _lt('Bill claimed back'),
+        '06': _lt('Extension'),
+        '07': _lt('Unpaid foreign bill'),
+        '11': _lt('Payment documents abroad'),
+        '13': _lt('Discount foreign supplier\'s bills'),
+        '14': _lt('Warrant fallen due'),
+        '37': _lt('Costs relating to the payment of a foreign bill'),
+        '50': _lt('Remittance of foreign bill credit after collection'),
+        '52': _lt('Remittance of foreign bill credit under usual reserve'),
+        '54': _lt('Discount abroad'),
+        '56': _lt('Remittance of guaranteed foreign supplier\'s bill'),
+        '58': _lt('Idem without guarantee'),
+        '60': _lt('Remittance of documents abroad - credit under usual reserve'),
+        '62': _lt('Remittance of documents abroad - credit after collection'),
+        '64': _lt('Warrant'),
     }),
-    '80': (_('Separately charged costs and provisions'), {
-        '02': _('Costs relating to electronic output'),
-        '04': _('Costs for holding a documentary cash credit'),
-        '06': _('Damage relating to bills and cheques'),
-        '07': _('Insurance costs'),
-        '08': _('Registering compensation for savings accounts'),
-        '09': _('Postage'),
-        '10': _('Purchase of Smartcard'),
-        '11': _('Costs for the safe custody of correspondence'),
-        '12': _('Costs for opening a bank guarantee'),
-        '13': _('Renting of safes'),
-        '14': _('Handling costs instalment credit'),
-        '15': _('Night safe'),
-        '16': _('Bank confirmation to revisor or accountant'),
-        '17': _('Charge for safe custody'),
-        '18': _('Trade information'),
-        '19': _('Special charge for safe custody'),
-        '20': _('Drawing up a certificate'),
-        '21': _('Pay-packet charges'),
-        '22': _('Management/custody'),
-        '23': _('Research costs'),
-        '24': _('Participation in and management of interest refund system'),
-        '25': _('Renting of direct debit box'),
-        '26': _('Travel insurance premium'),
-        '27': _('Subscription fee'),
-        '29': _('Information charges'),
-        '31': _('Writ service fee'),
-        '33': _('Miscellaneous fees and commissions'),
-        '35': _('Costs'),
-        '37': _('Access right to database'),
-        '39': _('Surety fee'),
-        '41': _('Research costs'),
-        '43': _('Printing of forms'),
-        '45': _('Documentary credit charges'),
-        '47': _('Charging fees for transactions'),
+    '80': (_lt('Separately charged costs and provisions'), {
+        '02': _lt('Costs relating to electronic output'),
+        '04': _lt('Costs for holding a documentary cash credit'),
+        '06': _lt('Damage relating to bills and cheques'),
+        '07': _lt('Insurance costs'),
+        '08': _lt('Registering compensation for savings accounts'),
+        '09': _lt('Postage'),
+        '10': _lt('Purchase of Smartcard'),
+        '11': _lt('Costs for the safe custody of correspondence'),
+        '12': _lt('Costs for opening a bank guarantee'),
+        '13': _lt('Renting of safes'),
+        '14': _lt('Handling costs instalment credit'),
+        '15': _lt('Night safe'),
+        '16': _lt('Bank confirmation to revisor or accountant'),
+        '17': _lt('Charge for safe custody'),
+        '18': _lt('Trade information'),
+        '19': _lt('Special charge for safe custody'),
+        '20': _lt('Drawing up a certificate'),
+        '21': _lt('Pay-packet charges'),
+        '22': _lt('Management/custody'),
+        '23': _lt('Research costs'),
+        '24': _lt('Participation in and management of interest refund system'),
+        '25': _lt('Renting of direct debit box'),
+        '26': _lt('Travel insurance premium'),
+        '27': _lt('Subscription fee'),
+        '29': _lt('Information charges'),
+        '31': _lt('Writ service fee'),
+        '33': _lt('Miscellaneous fees and commissions'),
+        '35': _lt('Costs'),
+        '37': _lt('Access right to database'),
+        '39': _lt('Surety fee'),
+        '41': _lt('Research costs'),
+        '43': _lt('Printing of forms'),
+        '45': _lt('Documentary credit charges'),
+        '47': _lt('Charging fees for transactions'),
     }),
 })
 
@@ -338,7 +338,7 @@ class AccountBankStatementImport(models.TransientModel):
             return "{hour}:{minute}".format(hour=s[:2], minute=s[2:])
 
         def parsefloat(s, precision):
-            return str(float(rmspaces(s)) / (10 ** precision))
+            return str(float(rmspaces(s) or 0) / (10 ** precision))
 
         def parse_terminal(s):
             return _('Name: {name}, Town: {city}').format(name=rmspaces(s[:16]), city=rmspaces(s[16:]))
@@ -503,7 +503,7 @@ class AccountBankStatementImport(models.TransientModel):
                 o_idx = p_idx; p_idx +=  1; note.append(_('Detail') + ': ' + _('Type of R transaction') + ': ' + sepa_type[communication[o_idx:p_idx]])
                 o_idx = p_idx; p_idx +=  4; note.append(_('Detail') + ': ' + _('Reason') + ': ' + rmspaces(communication[o_idx:p_idx]))
             else:
-                structured_com = _('Type of structured communication not supported: ' + type)
+                structured_com = _('Type of structured communication not supported: ') + type
                 note.append(communication)
             return structured_com, note
 
@@ -529,7 +529,7 @@ class AccountBankStatementImport(models.TransientModel):
                 statements.append(statement)
                 statement['version'] = line[127]
                 if statement['version'] not in ['1', '2']:
-                    raise UserError(_('Error') + ' R001: ' + _('CODA V%s statements are not supported, please contact your bank') % statement['version'])
+                    raise UserError(_('Error') + ' R001: ' + _('CODA V%s statements are not supported, please contact your bank', statement['version']))
                 statement['globalisation_stack'] = []
                 statement['lines'] = []
                 statement['date'] = time.strftime(tools.DEFAULT_SERVER_DATE_FORMAT, time.strptime(rmspaces(line[5:11]), '%d%m%y'))
@@ -604,14 +604,14 @@ class AccountBankStatementImport(models.TransientModel):
                     statement['lines'].append(statementLine)
                 elif line[1] == '2':
                     if statement['lines'][-1]['ref'][0:4] != line[2:6]:
-                        raise UserError(_('Error') + 'R2004: ' + _('CODA parsing error on movement data record 2.2, seq nr %s! Please report this issue via your Odoo support channel.') % line[2:10])
+                        raise UserError(_('Error') + 'R2004: ' + _('CODA parsing error on movement data record 2.2, seq nr %s! Please report this issue via your Odoo support channel.', line[2:10]))
                     statement['lines'][-1]['communication'] += line[10:63]
                     statement['lines'][-1]['payment_reference'] = rmspaces(line[63:98])
                     statement['lines'][-1]['counterparty_bic'] = rmspaces(line[98:109])
                     # TODO 113, 114-117, 118-121, 122-125
                 elif line[1] == '3':
                     if statement['lines'][-1]['ref'][0:4] != line[2:6]:
-                        raise UserError(_('Error') + 'R2005: ' + _('CODA parsing error on movement data record 2.3, seq nr %s! Please report this issue via your Odoo support channel.') % line[2:10])
+                        raise UserError(_('Error') + 'R2005: ' + _('CODA parsing error on movement data record 2.3, seq nr %s! Please report this issue via your Odoo support channel.', line[2:10]))
                     if statement['version'] == '1':
                         statement['lines'][-1]['counterpartyNumber'] = rmspaces(line[10:22])
                         statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:73])
@@ -628,7 +628,7 @@ class AccountBankStatementImport(models.TransientModel):
                         statement['lines'][-1]['communication'] += line[82:125]
                 else:
                     # movement data record 2.x (x != 1,2,3)
-                    raise UserError(_('Error') + 'R2006: ' + _('\nMovement data records of type 2.%s are not supported ') % line[1])
+                    raise UserError(_('Error') + 'R2006: ' + _('\nMovement data records of type 2.%s are not supported ', line[1]))
             elif line[0] == '3':
                 if line[1] == '1':
                     infoLine = {}
@@ -636,6 +636,8 @@ class AccountBankStatementImport(models.TransientModel):
                     infoLine['type'] = 'information'
                     infoLine['sequence'] = len(statement['lines']) + 1
                     infoLine['ref'] = rmspaces(line[2:10])
+                    infoLine['ref_move'] = rmspaces(line[2:6])
+                    infoLine['ref_move_detail'] = rmspaces(line[6:10])
                     infoLine['transactionRef'] = rmspaces(line[10:31])
                     infoLine['transaction_family'] = rmspaces(line[32:34])
                     infoLine['transaction_code'] = rmspaces(line[34:36])
@@ -652,17 +654,19 @@ class AccountBankStatementImport(models.TransientModel):
                     statement['lines'].append(infoLine)
                 elif line[1] == '2':
                     if infoLine['ref'] != rmspaces(line[2:10]):
-                        raise UserError(_('Error') + 'R3004: ' + _('CODA parsing error on information data record 3.2, seq nr %s! Please report this issue via your Odoo support channel.') % line[2:10])
+                        raise UserError(_('Error') + 'R3004: ' + _('CODA parsing error on information data record 3.2, seq nr %s! Please report this issue via your Odoo support channel.', line[2:10]))
                     statement['lines'][-1]['communication'] += rmspaces(line[10:115])
                 elif line[1] == '3':
                     if infoLine['ref'] != rmspaces(line[2:10]):
-                        raise UserError(_('Error') + 'R3005: ' + _('CODA parsing error on information data record 3.3, seq nr %s! Please report this issue via your Odoo support channel.') % line[2:10])
+                        raise UserError(_('Error') + 'R3005: ' + _('CODA parsing error on information data record 3.3, seq nr %s! Please report this issue via your Odoo support channel.', line[2:10]))
                     statement['lines'][-1]['communication'] += rmspaces(line[10:100])
             elif line[0] == '4':
                     comm_line = {}
                     comm_line['type'] = 'communication'
                     comm_line['sequence'] = len(statement['lines']) + 1
                     comm_line['ref'] = rmspaces(line[2:10])
+                    comm_line['ref_move'] = rmspaces(line[2:6])
+                    comm_line['ref_move_detail'] = rmspaces(line[6:10])
                     comm_line['communication'] = line[32:112]
                     statement['lines'].append(comm_line)
             elif line[0] == '8':
@@ -690,12 +694,12 @@ class AccountBankStatementImport(models.TransientModel):
             }
             temp_data = {}
             for line in statement['lines']:
-                to_add = statement_line and statement_line[-1]['ref'] == line.get('ref_move') and statement_line[-1] or temp_data
+                to_add = statement_line and statement_line[-1]['ref'][:4] == line.get('ref_move') and statement_line[-1] or temp_data
                 if line['type'] == 'information':
                     if line['communication_struct']:
-                        to_add['note'] = "\n".join([to_add.get('note', ''), 'Communication: '] + parse_structured_communication(line['communication_type'], line['communication'])[1])
+                        to_add['narration'] = "\n".join([to_add.get('narration', ''), 'Communication: '] + parse_structured_communication(line['communication_type'], line['communication'])[1])
                     else:
-                        to_add['note'] = "\n".join([to_add.get('note', ''), line['communication']])
+                        to_add['narration'] = "\n".join([to_add.get('narration', ''), line['communication']])
                 elif line['type'] == 'communication':
                     statement['coda_note'] = "%s[%s] %s\n" % (statement['coda_note'], str(line['ref']), line['communication'])
                 elif line['type'] == 'normal'\
@@ -724,13 +728,13 @@ class AccountBankStatementImport(models.TransientModel):
                         note.extend(extend_notes)
                     elif line.get('communication'):
                         note.append(_('Communication') + ': ' + rmspaces(line['communication']))
-                    if not self.split_transactions and statement_line and line['ref_move'] == statement_line[-1]['ref']:
+                    if not self.split_transactions and statement_line and line['ref_move'] == statement_line[-1]['ref'][:4]:
                         to_add['amount'] = to_add.get('amount', 0) + line['amount']
-                        to_add['note'] = to_add.get('note', '') + "\n" + "\n".join(note)
+                        to_add['narration'] = to_add.get('narration', '') + "\n" + "\n".join(note)
                     else:
                         line_data = {
-                            'name': structured_com or line.get('communication', '') or '/',
-                            'note': "\n".join(note),
+                            'payment_ref': structured_com or line.get('communication', '') or '/',
+                            'narration': "\n".join(note),
                             'transaction_type': parse_operation(line['transaction_type'], line['transaction_family'], line['transaction_code'], line['transaction_category']),
                             'date': line['entryDate'],
                             'amount': line['amount'],
@@ -740,8 +744,8 @@ class AccountBankStatementImport(models.TransientModel):
                             'sequence': line['sequence'],
                             'unique_import_id': str(statement['codaSeqNumber']) + '-' + str(statement['date']) + '-' + str(line['ref']),
                         }
-                        if temp_data.get('note'):
-                            line_data['note'] = temp_data.pop('note') + '\n' + line_data['note']
+                        if temp_data.get('narration'):
+                            line_data['narration'] = temp_data.pop('narration') + '\n' + line_data['narration']
                         if temp_data.get('amount'):
                             line_data['amount'] += temp_data.pop('amount')
                         statement_line.append(line_data)

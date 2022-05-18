@@ -45,9 +45,9 @@
         <field name="name">marketing.trace.view.graph</field>
         <field name="model">marketing.trace</field>
         <field name="arch" type="xml">
-            <graph>
-                <field name="activity_id" type="row"/>
-                <field name="state" type="row"/>
+            <graph sample="1">
+                <field name="activity_id"/>
+                <field name="state"/>
             </graph>
         </field>
     </record>
@@ -56,7 +56,7 @@
         <field name="name">marketing.trace.view.pivot</field>
         <field name="model">marketing.trace</field>
         <field name="arch" type="xml">
-            <pivot>
+            <pivot sample="1">
                 <field name="state" type="row"/>
                 <field name="activity_id" type="col"/>
             </pivot>
@@ -72,7 +72,9 @@
                 <field name="participant_id"/>
                 <filter string="Running" name="running" domain="[('state', '=', 'running')]" />
                 <filter string="Completed" name="completed" domain="[('state', '=', 'completed')]" />
-                <separator />
+                <separator/>
+                <filter name="filter_schedule_date" date="schedule_date"/>
+                <separator/>
                 <filter string="Exclude Test" name="exclude_test" domain="[('is_test', '=', False)]" />
             </search>
         </field>
@@ -82,6 +84,13 @@
         <field name="name">Traces</field>
         <field name="res_model">marketing.trace</field>
         <field name="view_mode">graph,pivot,tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No data yet!
+            </p><p>
+                Here you will be able to check the results of your mailings from all Marketing Automation Campaigns.
+            </p>
+        </field>
     </record>
 
     <menuitem id="marketing_trace_menu"

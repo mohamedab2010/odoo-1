@@ -9,7 +9,7 @@ class ResCompany(models.Model):
 
     def _domain_company(self):
         company = self.env.company
-        return ['|', ('company_id', '=', False), ('company_id', '=', company)]
+        return ['|', ('company_id', '=', False), ('company_id', '=', company.id)]
 
     documents_recruitment_settings = fields.Boolean(default=False)
     recruitment_folder_id = fields.Many2one('documents.folder', string="Recruitment Workspace", domain=_domain_company,

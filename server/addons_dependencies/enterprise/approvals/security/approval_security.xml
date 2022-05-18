@@ -43,7 +43,7 @@
             <field name="perm_write" eval="0"/>
             <field name="perm_create" eval="0"/>
             <field name="perm_unlink" eval="1"/>
-            <field name="domain_force">[('request_owner_id.id', '=', user.id), ('request_status','=','cancel')]</field>
+            <field name="domain_force">[('request_owner_id.id', '=', user.id), ('request_status', 'in', ['cancel', 'new'])]</field>
         </record>
 
         <record id="approval_request_approvers_rule" model="ir.rule">
@@ -77,6 +77,28 @@
             <field name="perm_create" eval="0"/>
             <field name="perm_unlink" eval="1"/>
             <field name="domain_force">[('request_status','=','cancel')]</field>
+        </record>
+
+        <!-- Multi-company rules -->
+        <record model="ir.rule" id="approval_request_rule">
+            <field name="name">approval_request multi-company</field>
+            <field name="model_id" search="[('model','=','approval.request')]" model="ir.model"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record model="ir.rule" id="approval_category_rule">
+            <field name="name">approval_category multi-company</field>
+            <field name="model_id" search="[('model','=','approval.category')]" model="ir.model"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record model="ir.rule" id="approval_approver_rule">
+            <field name="name">approval_approver multi-company</field>
+            <field name="model_id" search="[('model','=','approval.approver')]" model="ir.model"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+        <record model="ir.rule" id="approval_product_line_rule">
+            <field name="name">approval_product_line multi-company</field>
+            <field name="model_id" search="[('model','=','approval.product.line')]" model="ir.model"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         </record>
     </data>
 </odoo>

@@ -2,6 +2,7 @@ odoo.define('project_timeshee.ui', function (require ) {
     "use strict";
 
     var ajax = require('web.ajax');
+    var config = require('web.config');
     var Context = require('web.Context');
     var core = require('web.core');
     var session = require('web.session');
@@ -9,6 +10,8 @@ odoo.define('project_timeshee.ui', function (require ) {
     var time_module = require('web.time');
     var local_storage = require('web.local_storage');
     var ServiceProviderMixin = require('web.ServiceProviderMixin');
+
+    var _t = core._t;
 
     var MAX_AGE = 21; // Age limit in days for activities before they are removed from the app
     var DEFAULT_TIME_UNIT = 0.25;
@@ -26,13 +29,7 @@ odoo.define('project_timeshee.ui', function (require ) {
 
     // Mobile device detection
     // Awesome Timesheet is used in Android/iOS native app.
-    var isMobile = navigator.userAgent.match(/Android/i) ||
-                   navigator.userAgent.match(/webOS/i) ||
-                   navigator.userAgent.match(/iPhone/i) ||
-                   navigator.userAgent.match(/iPad/i) ||
-                   navigator.userAgent.match(/iPod/i) ||
-                   navigator.userAgent.match(/BlackBerry/i) ||
-                   navigator.userAgent.match(/Windows Phone/i);
+    var isMobile = config.device.isMobileDevice;
     // Desktop detection
     // In Odoo, Awesome Timesheet is embedded inside an iframe.
     var isDesktop = !isMobile && window.location.origin.indexOf("chrome-extension://") === -1;
@@ -177,6 +174,10 @@ odoo.define('project_timeshee.ui', function (require ) {
 
             return Promise.all(sync_defs);
         },
+        destroy: function() {
+            $(document).off('backbutton');
+            this._super.apply(this, arguments)
+        },
         /**
          * Attempts to restore the data of the user related to the username and server address given.
          * If no data is available for the user, creates a minimal data object for the user to be able to use the app
@@ -312,11 +313,13 @@ odoo.define('project_timeshee.ui', function (require ) {
                                 self.data.tasks.push({
                                     id : sv_task[0],
                                     project_id : sv_task[1],
-                                    name : sv_task[3]
+                                    name : sv_task[3],
+                                    remaining_hours: parseFloat(sv_task[4]),
                                 });
                             }
                             else {
                                 ls_task.name = sv_task[3];
+                                ls_task.remaining_hours = parseFloat(sv_task[4]);
                             }
                         });
                         self.save_user_data();
@@ -1372,13 +1375,19 @@ odoo.define('project_timeshee.ui', function (require ) {
         // Initialization of select2 for tasks
         initialize_task_selector: function() {
             var self = this;
-            function format(item) {return item.name;}
+            function format(item) { return item.name; }
             function formatRes(item) {
                 if (item.isNew) {
-                    return "Create Task : " + item.name;
+                    return _t("Create Task : ") + item.name;
                 }
                 else {
-                    return item.name;
+                    var name = item.name;
+                    if(item.remaining_hours){
+                        var hours = Math.trunc(item.remaining_hours);
+                        var minutes = Math.abs(Math.floor((item.remaining_hours - hours) * 60));
+                        name += " ‒ (" + hours.toString().padStart(2, 0) + ":" + minutes.toString().padStart(2, 0) + " " + _t("remaining)");
+                    }
+                    return name;
                 }
             }
             self.task_list = _.where(self.getParent().data.tasks, {project_id : self.activity.project_id});
@@ -1506,6 +1515,13 @@ odoo.define('project_timeshee.ui', function (require ) {
                 window.chrome.storage.local.set({ "isTimerOn": false }, function () {});
             }
             var self = this;
+            // Update remaining_hours
+            if(this.activity.task_id && this.activity.unit_amount){
+                var task = _.findWhere(this.getParent().data.tasks, {id: this.activity.task_id});
+                if(task.remaining_hours){
+                    task.remaining_hours -= this.activity.unit_amount;
+                }
+            }
             // Validation step
             if (_.isUndefined(this.activity.project_id)) {
                 // TODO Might be better if we find a way to style select2 fields
@@ -2086,7 +2102,7 @@ odoo.define('project_timeshee.ui', function (require ) {
         init: function(parent) {
             this._super(parent);
             this.show_iframe = true;
-            self.odoo_is_online = false;
+            this.odoo_is_online = false;
             window.addEventListener("message", this.received_message, false);
             core.bus.on('db_created', this, this.on_db_creation_success);
         },

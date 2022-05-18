@@ -11,10 +11,11 @@
 
 {
     'name': 'Spain - Accounting (PGCE 2008) Reports',
+    'icon': '/l10n_es/static/description/icon.png',
     'version': '4.1',
     'author': 'Spanish Localization Team',
     'website': 'https://launchpad.net/openerp-spain',
-    'category': 'Accounting/Accounting',
+    'category': 'Accounting/Localizations/Reporting',
     'description': """
         Accounting reports for Spain
     """,
@@ -22,6 +23,7 @@
         'l10n_es', 'account_reports',
     ],
     'data': [
+        'security/ir.model.access.csv',
         'views/account_financial_report_views.xml',
         'views/tax_report_views.xml',
         'views/account_invoice_views.xml',

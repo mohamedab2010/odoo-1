@@ -3,19 +3,19 @@
 # 	* planning
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Link Up링크업 <linkup.way@gmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# Seongseok Shin <shinss61@hotmail.com>, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# JH CHOI <hwangtog@gmail.com>, 2021
+# Link Up링크업 <linkup.way@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
+# Seongseok Shin <shinss61@hotmail.com>, 2021
+# Martin Trigaux, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-18 10:09+0000\n"
-"PO-Revision-Date: 2019-09-09 12:35+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2022-01-24 08:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:41+0000\n"
+"Last-Translator: Martin Trigaux, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -24,237 +24,238 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
-msgid "&amp;times;"
-msgstr "&amp;times;"
+#. openerp-web
+#: code:addons/planning/static/src/xml/widgets.xml:0
+#, python-format
+msgid "&nbsp;"
+msgstr "&nbsp;"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
-msgid ""
-"<br/>\n"
-"                                    <span>Some changes were made since this shift was published</span>"
+#: code:addons/planning/models/planning_template.py:0
+#, python-format
+msgid "(%s days span)"
+msgstr "(%s일 범위)"
+
+#. module: planning
+#: model_terms:digest.tip,tip_description:planning.digest_tip_planning_0
+msgid "<b class=\"tip_title\">Tip: Record your planning faster</b>"
 msgstr ""
-"<br/>\n"
-"                                    <span>이 변화가 게시된 이후에 일부 변경이 있었습니다.</span>"
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
+msgid ""
+"<b>Drag & drop</b> your shift to reschedule it. <i>Tip: hit CTRL (or Cmd) to"
+" duplicate it instead.</i> <b>Adjust the size</b> of the shift to modify its"
+" period."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
+msgid ""
+"<b>Publish & send</b> your planning to make it available to your employees."
+msgstr ""
 
 #. module: planning
 #: model:mail.template,body_html:planning.email_template_planning_planning
 msgid ""
 "<div>\n"
-"                    % if ctx.get('employee'):\n"
-"                        <p>Dear ${ctx['employee'].name},</p>\n"
-"                    % else:\n"
-"                        <p>Hello,</p>\n"
-"                    % endif\n"
 "                    <p>\n"
+"                    <t t-if=\"ctx.get('employee')\">\n"
+"                        Dear <t t-out=\"ctx['employee'].name or ''\"/>,\n"
+"                    </t>\n"
+"                    <t t-else=\"\">\n"
+"                        Hello,\n"
+"                    </t>\n"
+"                        <br/><br/>\n"
+"                    <t t-if=\"ctx.get('assigned_new_shift')\">\n"
 "                        You have been assigned new shifts:\n"
+"                    </t>\n"
+"                    <t t-else=\"\">\n"
+"                        Please, find your planning for the following period:\n"
+"                    </t>\n"
 "                    </p>\n"
+"                    <br/>\n"
 "\n"
 "                    <table style=\"table-layout: fixed; width: 80%; margin: auto;\">\n"
 "                        <tr>\n"
 "                            <th style=\"padding: 5px;text-align: left; width: 15%;\">From</th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.start_datetime, tz=ctx.get('employee').tz or 'UTC', dt_format='short')}</td>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"format_date(ctx.get('start_datetime')) or ''\">05/05/2021</td>\n"
 "                        </tr>\n"
 "                        <tr>\n"
 "                            <th style=\"padding: 5px;text-align: left; width: 15%;\">To</th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.end_datetime, tz=ctx.get('employee').tz or 'UTC', dt_format='short')}</td>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"format_date(ctx.get('end_datetime')) or ''\">05/05/2021</td>\n"
 "                        </tr>\n"
-"                        % if object.project_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">Project</th>\n"
-"                            <td style=\"padding: 5px;\">${object.project_id.name or ''}</td>\n"
-"                        </tr>\n"
-"                        % endif\n"
 "                    </table>\n"
 "\n"
-"                    % if ctx.get('planning_url'):\n"
-"                        <div style=\"margin: 15px;\">\n"
-"                            <a href=\"${ctx.get('planning_url')}\" target=\"_blank\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">View Your Planning</a>\n"
-"                        </div>\n"
-"                    % endif\n"
+"                    <div t-if=\"ctx.get('planning_url')\" style=\"margin: 15px;\">\n"
+"                        <a t-att-href=\"ctx.get('planning_url')\" target=\"_blank\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">View Your Planning</a>\n"
+"                    </div>\n"
 "\n"
-"                    % if ctx.get('slot_unassigned_count'):\n"
-"                        <p>There are new open shifts available. Please assign yourself if you are available.</p>\n"
-"                    % endif\n"
+"                    <div t-if=\"ctx.get('slot_unassigned_count')\">\n"
+"                        <p>There are new open shifts available. Please, assign yourself if you are available.</p>\n"
+"                    </div>\n"
+"                    <br/>\n"
 "\n"
-"                    % if ctx.get('message'):\n"
-"                        <p>${ctx['message']}</p>\n"
-"                    % endif\n"
+"                    <t t-if=\"ctx.get('message')\">\n"
+"                        <p t-out=\"ctx['message'] or ''\"/>\n"
+"                    </t>\n"
+"\n"
+"                    <p t-if=\"hasattr(object, 'allow_self_unassign') and object.allow_self_unassign and hasattr(object, 'self_unassign_days_before') and object.self_unassign_days_before\">\n"
+"                        As a small reminder, you have <t t-out=\"object.self_unassign_days_before or ''\">5</t>day(s) before the beginning of a shift to unassign yourself if you are unavailable. Thank you for your understanding.\n"
+"                    </p>\n"
 "                </div>\n"
 "            "
 msgstr ""
-"<div>\n"
-"                    % if ctx.get('employee'):\n"
-"                        <p>${ctx['employee'].name}님.</p>\n"
-"                    % else:\n"
-"                        <p>안녕하세요.</p>\n"
-"                    % endif\n"
-"                    <p>\n"
-"                        새로운 교대 근무가 할당되었습니다 :\n"
-"                    </p>\n"
-"\n"
-"                    <table style=\"table-layout: fixed; width: 80%; margin: auto;\">\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">시작 </th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.start_datetime, tz=ctx.get('employee').tz or 'UTC', dt_format='short')}</td>\n"
-"                        </tr>\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">종료 </th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.end_datetime, tz=ctx.get('employee').tz or 'UTC', dt_format='short')}</td>\n"
-"                        </tr>\n"
-"                        % if object.project_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">프로젝트</th>\n"
-"                            <td style=\"padding: 5px;\">${object.project_id.name or ''}</td>\n"
-"                        </tr>\n"
-"                        % endif\n"
-"                    </table>\n"
-"\n"
-"                    % if ctx.get('planning_url'):\n"
-"                        <div style=\"margin: 15px;\">\n"
-"                            <a href=\"${ctx.get('planning_url')}\" target=\"_blank\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">귀하의 계획 보기</a>\n"
-"                        </div>\n"
-"                    % endif\n"
-"\n"
-"                    % if ctx.get('slot_unassigned_count'):\n"
-"                        <p>새로운 공개 교대 근무가 가능합니다. 가능하다면 자신을 할당하십시오.</p>\n"
-"                    % endif\n"
-"\n"
-"                    % if ctx.get('message'):\n"
-"                        <p>${ctx['message']}</p>\n"
-"                    % endif\n"
-"                </div>\n"
-"            "
 
 #. module: planning
 #: model:mail.template,body_html:planning.email_template_slot_single
 msgid ""
 "<div>\n"
-"                    <p>Dear ${object.employee_id.name or ''},</p><br/>\n"
-"                    <p>You have been assigned the following schedule:</p><br/>\n"
-"                    <table style=\"table-layout: fixed; width: 80%; margin: auto;\">\n"
+"                    <p>Dear <t t-out=\"ctx.get('employee_name', '')\">Anita Oliver</t>,<br/><br/></p>\n"
+"                    <t t-if=\"ctx.get('open_shift_available')\">\n"
+"                        <p>A new open shift is available:</p>\n"
+"                    </t>\n"
+"                    <t t-else=\"\">\n"
+"                        <p>You have been assigned the following schedule:</p>\n"
+"                    </t>\n"
+"                    <br/>\n"
+"                    <table style=\"width: 80%; margin: auto;\">\n"
 "                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">From</th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.start_datetime, tz=object.employee_id.tz)}</td>\n"
+"                            <th style=\"padding: 5px;text-align: left;\">From</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"ctx.get('start_datetime') or ''\">05/31/2021 08:00:00</td>\n"
 "                        </tr>\n"
 "                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">To</th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.end_datetime, tz=object.employee_id.tz)}</td>\n"
+"                            <th style=\"padding: 5px;text-align: left;\">To</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"ctx.get('end_datetime') or ''\">05/31/2021 16:00:00</td>\n"
 "                        </tr>\n"
-"                        % if object.role_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">Role</th>\n"
-"                            <td style=\"padding: 5px;\">${object.role_id.name or ''}</td>\n"
+"                        <tr t-if=\"object.role_id\">\n"
+"                            <th style=\"padding: 5px;text-align: left;\">Role</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"object.role_id.name or ''\">Bartender</td>\n"
 "                        </tr>\n"
-"                        % endif\n"
-"                        % if object.project_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">Project</th>\n"
-"                            <td style=\"padding: 5px;\">${object.project_id.name or ''}</td>\n"
+"                        <tr t-if=\"hasattr(object, 'sale_line_id') and object.sale_line_id\">\n"
+"                            <th style=\"padding: 5px;text-align: left;\">Sale Order Item</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"object.sudo().sale_line_id.name or ''\"/>\n"
 "                        </tr>\n"
-"                        % endif\n"
-"                        % if object.name\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">Note</th>\n"
-"                            <td style=\"padding: 5px;\">${object.name or ''}</td>\n"
+"                        <tr t-if=\"hasattr(object, 'project_id') and object.project_id\">\n"
+"                            <th style=\"padding: 5px;text-align: left;\">Project</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"object.sudo().project_id.name or ''\">Gathering</td>\n"
 "                        </tr>\n"
-"                        % endif\n"
+"                        <tr t-if=\"hasattr(object, 'task_id') and object.task_id\">\n"
+"                            <th style=\"padding: 5px;text-align: left;\">Task</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"object.sudo().task_id.name or ''\">Chef</td>\n"
+"                        </tr>\n"
+"                        <tr t-if=\"hasattr(object, 'name') and object.name\">\n"
+"                            <th style=\"padding: 5px;text-align: left;\">Note</th>\n"
+"                            <td style=\"padding: 5px;\" t-out=\"object.name or ''\">/</td>\n"
+"                        </tr>\n"
 "                    </table>\n"
-"                    <div style=\"text-align: center\">\n"
-"                        % if ctx.get('render_link')\n"
-"                        <div style=\"display: inline-block; margin: 15px; text-align: center\">\n"
-"                            <a href=\"${ctx.unavailable_path}${object.employee_id.employee_token}\" target=\"_blank\" style=\"padding: 5px 10px; color: #875A7B; text-decoration: none; background-color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 3px\">I am unavailable</a>\n"
-"                        </div>\n"
-"                        % endif\n"
-"                        % if ctx.get('render_link')\n"
-"                        <div style=\"display: inline-block; margin: 15px; text-align: center\">\n"
-"                            <a href=\"/web?#action=${ctx.get('action_id')}&amp;model=planning.slot&amp;menu_id=${ctx.get('menu_id')}&amp;db=${'dbname' in ctx and ctx['dbname'] or '' }\" target=\"_blank\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">View Planning</a>\n"
-"                        </div>\n"
-"                        % endif\n"
-"                    </div>\n"
 "                </div>\n"
 "            "
 msgstr ""
-"<div>\n"
-"                    <p>${object.employee_id.name or ''}님.</p><br/>\n"
-"                    <p>다음 일정이 지정되었습니다 :</p><br/>\n"
-"                    <table style=\"table-layout: fixed; width: 80%; margin: auto;\">\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">시작 </th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.start_datetime, tz=object.employee_id.tz)}</td>\n"
-"                        </tr>\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">종료 </th>\n"
-"                            <td style=\"padding: 5px;\">${format_datetime(object.end_datetime, tz=object.employee_id.tz)}</td>\n"
-"                        </tr>\n"
-"                        % if object.role_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">역할</th>\n"
-"                            <td style=\"padding: 5px;\">${object.role_id.name or ''}</td>\n"
-"                        </tr>\n"
-"                        % endif\n"
-"                        % if object.project_id\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">프로젝트</th>\n"
-"                            <td style=\"padding: 5px;\">${object.project_id.name or ''}</td>\n"
-"                        </tr>\n"
-"                        % endif\n"
-"                        % if object.name\n"
-"                        <tr>\n"
-"                            <th style=\"padding: 5px;text-align: left; width: 15%;\">노트</th>\n"
-"                            <td style=\"padding: 5px;\">${object.name or ''}</td>\n"
-"                        </tr>\n"
-"                        % endif\n"
-"                    </table>\n"
-"                    <div style=\"text-align: center\">\n"
-"                        % if ctx.get('render_link')\n"
-"                        <div style=\"display: inline-block; margin: 15px; text-align: center\">\n"
-"                            <a href=\"${ctx.unavailable_path}${object.employee_id.employee_token}\" target=\"_blank\" style=\"padding: 5px 10px; color: #875A7B; text-decoration: none; background-color: #FFFFFF; border: 1px solid #FFFFFF; border-radius: 3px\">불가능합니다.</a>\n"
-"                        </div>\n"
-"                        % endif\n"
-"                        % if ctx.get('render_link')\n"
-"                        <div style=\"display: inline-block; margin: 15px; text-align: center\">\n"
-"                            <a href=\"/web?#action=${ctx.get('action_id')}&amp;model=planning.slot&amp;menu_id=${ctx.get('menu_id')}&amp;db=${'dbname' in ctx and ctx['dbname'] or '' }\" target=\"_blank\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">계획 보기</a>\n"
-"                        </div>\n"
-"                        % endif\n"
-"                    </div>\n"
-"                </div>\n"
-"            "
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
+msgid ""
+"<i class=\"fa fa-check-circle text-success\"/> This shift is no longer "
+"assigned to you."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
+msgid ""
+"<i class=\"fa fa-check-circle text-success\"/> You were successfully "
+"assigned this open shift."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_kanban
+msgid "<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Date\" title=\"Date\"/>"
+msgstr "<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Date\" title=\"Date\"/>"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_kanban
+msgid "<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Hours\" title=\"Hours\"/>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_kanban
+msgid "<i class=\"fa fa-ellipsis-v\" aria-label=\"Manage\" title=\"Manage\"/>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
+msgid ""
+"<i class=\"fa fa-exclamation-circle text-warning\"/> This shift is already "
+"assigned to another employee."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
+msgid ""
+"<i class=\"fa fa-exclamation-circle text-warning\"/> You can no longer "
+"unassign yourself from this shift."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+msgid ""
+"<i class=\"fa fa-long-arrow-right mx-1\" aria-label=\"Arrow icon\" "
+"title=\"Arrow\"/>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
+msgid "<i class=\"fa fa-long-arrow-right\" title=\"Arrow\"/>"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "<span aria-label=\"Close\">&amp;times;</span>"
-msgstr "<span aria-label=\"Close\">&amp;times;</span>"
+msgid "<span aria-label=\"Close\">×</span>"
+msgstr "<span aria-label=\"Close\">×</span>"
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form
-msgid "<span class=\"align-middle\">for this employee at the same time.</span>"
-msgstr "<span class=\"align-middle\">동시에 이 직원에게.</span>"
+msgid ""
+"<span class=\"align-middle\" attrs=\"{'invisible': [('overlap_slot_count', "
+"'=', 0)]}\">for this resource at the same time.</span>"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form
-msgid "<span>week(s)</span>"
-msgstr "<span>주</span>"
+msgid "<span class=\"mr-3\">Weeks</span>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+msgid ""
+"<span class=\"o_form_label\" name=\"project_forecast_msg\">\n"
+"                                    Recurring Shifts\n"
+"                                </span>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
+msgid ""
+"<span id=\"alloc_hours\"/>\n"
+"                                            <span id=\"alloc_perc\">\n"
+"                                                (<span id=\"alloc_perc_value\"/>%)\n"
+"                                            </span>"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+msgid "<span>months ahead</span>"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
-msgid "<strong>Allocated Hours: </strong>"
-msgstr "<strong>할당된 시간 : </strong>"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt_inherit
-msgid "<strong>Allocated Time (%): </strong>"
-msgstr "<strong>할당된 시간(%) : </strong>"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
-msgid "<strong>Start Date: </strong>"
-msgstr "<strong>시작일 : </strong>"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
-msgid "<strong>Stop Date: </strong>"
-msgstr "<strong>만료일 : </strong>"
+msgid "<strong>Allocated Hours — </strong>"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.constraint,message:planning.constraint_planning_recurrency_check_until_limit
@@ -268,18 +269,10 @@ msgid "ASSIGN ME THIS SHIFT"
 msgstr "이 교대 근무 나에게 배정"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Add"
-msgstr "추가하기"
-
-#. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Add record"
-msgstr "레코드 추가하기"
+#: model:ir.model.fields,field_description:planning.field_planning_role__active
+#: model:ir.model.fields,field_description:planning.field_planning_slot_template__active
+msgid "Active"
+msgstr "활성"
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
@@ -292,14 +285,26 @@ msgid "Additional message displayed in the email sent to employees"
 msgstr "직원에게 보낸 이메일에 추가 메시지가 표시됨"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__number_hours
-msgid "Allocated Hours"
-msgstr "할당된 시간"
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+msgid "Additional note"
+msgstr ""
 
 #. module: planning
+#: model:res.groups,name:planning.group_planning_manager
+msgid "Administrator"
+msgstr "관리자"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+msgid ""
+"All subsequent shifts will be deleted. Are you sure you want to continue?"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__allocated_hours
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "Allocated Hours:"
-msgstr "할당된 시간 :"
+msgid "Allocated Hours"
+msgstr "할당된 시간"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__allocated_percentage
@@ -307,14 +312,14 @@ msgid "Allocated Time (%)"
 msgstr "할당된 시간 (%)"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_slot__allocated_hours
-msgid "Allocated hours"
-msgstr "할당된 시간"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__allocation_type
 msgid "Allocation Type"
 msgstr "할당 유형"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__allow_template_creation
+msgid "Allow Template Creation"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_res_config_settings__planning_allow_self_unassign
@@ -328,14 +333,42 @@ msgid "An shift must be in the same company as its recurrency."
 msgstr "교대 근무는 반복되도록 같은 회사에 있어야 합니다."
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
-msgid "Are you sure you want to do delete this shift?"
-msgstr "이 교대 근무를 삭제 하시겠습니까?"
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_search
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_search
+msgid "Archived"
+msgstr "보관됨"
 
 #. module: planning
-#: model:ir.ui.menu,name:planning.planning_menu_schedule_by_employee
-msgid "By Employee"
-msgstr "직원별"
+#. openerp-web
+#: code:addons/planning/static/src/js/planning_gantt_controller.js:0
+#, python-format
+msgid "Are you sure you want to delete this shift?"
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
+msgid ""
+"Assign this shift to your <b>resource</b>, or leave it open for the moment."
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_resource_resource__avatar_128
+msgid "Avatar 128"
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_hr_employee_base
+msgid "Basic Employee"
+msgstr "기본 직원"
+
+#. module: planning
+#: model:ir.ui.menu,name:planning.planning_menu_schedule_by_resource
+msgid "By Resource"
+msgstr ""
 
 #. module: planning
 #: model:ir.ui.menu,name:planning.planning_menu_schedule_by_role
@@ -343,32 +376,26 @@ msgid "By Role"
 msgstr "역할별"
 
 #. module: planning
-#: model:ir.ui.menu,name:planning.planning_menu_calendar
-msgid "Calendar"
-msgstr "일정표"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_res_company__planning_allow_self_unassign
-msgid "Can employee un-assign themselves?"
-msgstr "직원이 자신을 배정 해제할 수 있습니까?"
+msgid "Can Employee Un-Assign Themselves?"
+msgstr ""
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
-msgid "Close"
-msgstr "닫기"
-
-#. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Collapse rows"
-msgstr "행 축소"
+#: model_terms:ir.ui.view,arch_db:planning.hr_employee_view_form_simplified
+msgid "Chat"
+msgstr "채팅"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_role__color
 #: model:ir.model.fields,field_description:planning.field_planning_slot__color
+#: model:ir.model.fields,field_description:planning.field_resource_resource__color
 msgid "Color"
 msgstr "색상"
+
+#. module: planning
+#: model:planning.role,name:planning.planning_role_cm
+msgid "Community Manager"
+msgstr ""
 
 #. module: planning
 #: model:ir.model,name:planning.model_res_company
@@ -378,10 +405,8 @@ msgstr "회사"
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__company_id
 #: model:ir.model.fields,field_description:planning.field_planning_recurrency__company_id
-#: model:ir.model.fields,field_description:planning.field_planning_send__company_id
 #: model:ir.model.fields,field_description:planning.field_planning_slot__company_id
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__company_id
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__company_id
 msgid "Company"
 msgstr "회사"
 
@@ -393,7 +418,24 @@ msgstr "설정 구성"
 #. module: planning
 #: model:ir.ui.menu,name:planning.planning_menu_settings
 msgid "Configuration"
-msgstr "환경 설정"
+msgstr "구성"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__confirm_delete
+msgid "Confirm Slots Deletion"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__conflicting_slot_ids
+msgid "Conflicting Slot"
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/xml/planning_gantt.xml:0
+#, python-format
+msgid "Copy previous"
+msgstr ""
 
 #. module: planning
 #. openerp-web
@@ -403,13 +445,9 @@ msgid "Copy previous week"
 msgstr "지난 주 복사"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/js/tours/planning.js:0
-#, python-format
-msgid ""
-"Create your first shift by clicking on Add. Alternatively, you can use the "
-"(+) on the Gantt view."
-msgstr "추가를 클릭하여 첫 번째 교대 근무를 작성하십시오. 또는 간트 화면에서 (+)를 사용할 수 있습니다."
+#: model_terms:ir.actions.act_window,help:planning.planning_report_action_analysis
+msgid "Create shifts to get statistics."
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__create_uid
@@ -418,8 +456,9 @@ msgstr "추가를 클릭하여 첫 번째 교대 근무를 작성하십시오. �
 #: model:ir.model.fields,field_description:planning.field_planning_send__create_uid
 #: model:ir.model.fields,field_description:planning.field_planning_slot__create_uid
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__create_uid
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__create_uid
 msgid "Created by"
-msgstr "작성인"
+msgstr "작성자"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__create_date
@@ -428,19 +467,60 @@ msgstr "작성인"
 #: model:ir.model.fields,field_description:planning.field_planning_send__create_date
 #: model:ir.model.fields,field_description:planning.field_planning_slot__create_date
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__create_date
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__create_date
 msgid "Created on"
-msgstr "작성일"
+msgstr "작성일자"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__entry_date
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
 msgid "Date"
-msgstr "날짜"
+msgstr "일자"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_hr_employee__planning_role_id
+#: model:ir.model.fields,field_description:planning.field_planning_planning__date_end
+msgid "Date End"
+msgstr "마감 날짜"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_planning__date_start
+msgid "Date Start"
+msgstr "시작 날짜"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_planning__self_unassign_days_before
+#: model:ir.model.fields,field_description:planning.field_planning_slot__self_unassign_days_before
+#: model:ir.model.fields,field_description:planning.field_res_company__planning_self_unassign_days_before
+#: model:ir.model.fields,field_description:planning.field_res_config_settings__planning_self_unassign_days_before
+msgid "Days before shift for unassignment"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+msgid "Deadline"
+msgstr "마감 시한"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__unassign_deadline
+msgid "Deadline for unassignment"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,help:planning.field_planning_planning__self_unassign_days_before
+#: model:ir.model.fields,help:planning.field_planning_slot__self_unassign_days_before
+#: model:ir.model.fields,help:planning.field_res_company__planning_self_unassign_days_before
+#: model:ir.model.fields,help:planning.field_res_config_settings__planning_self_unassign_days_before
+msgid "Deadline in days for shift unassignment"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_hr_employee__default_planning_role_id
 msgid "Default Planning Role"
 msgstr "기본 계획 역할"
+
+#. module: planning
+#: model_terms:ir.actions.act_window,help:planning.planning_action_roles
+msgid "Define the different roles filled by your employees."
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,help:planning.field_res_company__planning_generation_interval
@@ -454,13 +534,27 @@ msgid "Delay for the rate at which recurring shifts should be generated"
 msgstr "반복되는 교대 근무를 생성해야 하는 지연 시간"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_kanban
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_kanban
 msgid "Delete"
 msgstr "삭제"
 
 #. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__department_id
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Department"
+msgstr "부서"
+
+#. module: planning
+#: model:planning.role,name:planning.planning_role_developer
+msgid "Developer"
+msgstr ""
+
+#. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_form_in_gantt
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+#: model_terms:ir.ui.view,arch_db:planning.slot_planning_select_send_view_form
 msgid "Discard"
 msgstr "작성 취소"
 
@@ -470,33 +564,76 @@ msgstr "작성 취소"
 #: model:ir.model.fields,field_description:planning.field_planning_role__display_name
 #: model:ir.model.fields,field_description:planning.field_planning_send__display_name
 #: model:ir.model.fields,field_description:planning.field_planning_slot__display_name
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__display_name
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__display_name
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__display_name
 msgid "Display Name"
-msgstr "표시 이름"
+msgstr "표시명"
+
+#. module: planning
+#: model:ir.model.fields.selection,name:planning.selection__planning_slot__state__draft
+msgid "Draft"
+msgstr "임시"
+
+#. module: planning
+#: model_terms:digest.tip,tip_description:planning.digest_tip_planning_0
+msgid ""
+"Drag a shift to another day to reschedule it, or to another row to reassign "
+"the shift. If the shift was published, the user will automatically be "
+"notified of the change. Press CTRL (or Cmd on Mac) while dragging a shift to"
+" duplicate it."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_kanban
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_kanban
+#: model_terms:ir.ui.view,arch_db:planning.resource_resource_kanban_view
+msgid "Dropdown menu"
+msgstr "드롭다운 메뉴"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__duration
+msgid "Duration"
+msgstr "기간"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__duration
-msgid "Duration (hours)"
-msgstr "기간 (시간)"
+msgid "Duration (Hours)"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_role_view_kanban
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_kanban
+msgid "Edit"
+msgstr "편집하기"
 
 #. module: planning
 #: model:ir.model,name:planning.model_hr_employee
 #: model:ir.model.fields,field_description:planning.field_planning_slot__employee_id
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__employee_id
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+#: model:ir.model.fields,field_description:planning.field_resource_resource__employee_id
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__employee_ids
 msgid "Employee"
-msgstr "직원"
+msgstr "임직원"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.hr_employee_view_form_simplified
+msgid "Employee Name"
+msgstr "직원 이름"
+
+#. module: planning
+#: model:ir.model.fields,help:planning.field_planning_send__employee_ids
+msgid ""
+"Employees who will receive planning by email if you click on publish & send."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.actions.act_window,help:planning.planning_action_shift_template
+msgid "Encode your shifts in one click by using templates."
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__end_datetime
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
 msgid "End Date"
-msgstr "종료일"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
-msgid "End date"
 msgstr "종료일"
 
 #. module: planning
@@ -505,17 +642,15 @@ msgid "Error: each employee token must be unique"
 msgstr "오류 : 각 직원 토큰은 고유해야 합니다"
 
 #. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+msgid "Every"
+msgstr ""
+
+#. module: planning
 #: code:addons/planning/models/planning_recurrency.py:0
 #, python-format
 msgid "Every %s week(s) until %s"
 msgstr "%s주마다 %s까지"
-
-#. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Expand rows"
-msgstr "행 확장"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_send__note
@@ -542,7 +677,7 @@ msgstr "영원히 %s주마다"
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
 msgid "From"
-msgstr "시작"
+msgstr "출발"
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
@@ -550,26 +685,52 @@ msgid "Future"
 msgstr "향후"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
+#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+msgid "Generate shifts"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.brand_promotion
+msgid "Give depth to your"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_search
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
 msgid "Group By"
 msgstr "그룹별"
 
 #. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot_template__name
+msgid "Hours"
+msgstr "시간"
+
+#. module: planning
 #: model:ir.filters,name:planning.planning_filter_by_employee
-msgid "Hours per Employee"
-msgstr "직원당 시간"
+msgid "Hours per Resource"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Human"
+msgstr "사람"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+msgid "I Am Unavailable"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+msgid "I Take It"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
 msgid "I am unavailable"
 msgstr "사용할 수 없습니다"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
-msgid "I take it"
-msgstr "내가 가져갈게"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__id
@@ -577,8 +738,8 @@ msgstr "내가 가져갈게"
 #: model:ir.model.fields,field_description:planning.field_planning_role__id
 #: model:ir.model.fields,field_description:planning.field_planning_send__id
 #: model:ir.model.fields,field_description:planning.field_planning_slot__id
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__id
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__id
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__id
 msgid "ID"
 msgstr "ID"
 
@@ -590,13 +751,6 @@ msgid ""
 msgstr "이 옵션을 선택하면 마지막 게시 이후 교대 근무 포함이 변경되었음을 의미합니다."
 
 #. module: planning
-#: model:ir.model.fields,help:planning.field_planning_slot__is_published
-msgid ""
-"If checked, this means the planning entry has been sent to the employee. "
-"Modifying the planning entry will mark it as not sent."
-msgstr "이 옵션을 선택하면 계획 항목이 직원에게 전송되었음을 의미합니다. 계획 항목을 수정하면 전송되지 않은 것으로 표시됩니다."
-
-#. module: planning
 #: model:ir.model.fields,help:planning.field_planning_slot__repeat_until
 msgid ""
 "If set, the recurrence stop at that date. Otherwise, the recurrence is "
@@ -604,20 +758,49 @@ msgid ""
 msgstr "설정된 경우 해당 날짜에 반복이 중지됩니다. 그렇지 않으면 반복이 무기한으로 적용됩니다."
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_planning__include_unassigned
-#: model:ir.model.fields,field_description:planning.field_planning_send__include_unassigned
-msgid "Includes Open shifts"
-msgstr "개방 교대 근무 포함"
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
+msgid ""
+"If you are happy with your planning, you can now <b>send</b> it to your "
+"employees."
+msgstr ""
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_slot__is_published
-msgid "Is the shift sent"
-msgstr "교대 근무 전송 여부"
+#: model:ir.model.fields,field_description:planning.field_planning_send__include_unassigned
+msgid "Include Open Shifts"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_planning__include_unassigned
+msgid "Includes Open Shifts"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__is_hatched
+msgid "Is Hatched"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__is_assigned_to_me
-msgid "Is this shift assigned to the current user"
-msgstr "이 교대를 현재 사용자에게 할당할지 여부"
+msgid "Is This Shift Assigned To The Current User"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__is_past
+msgid "Is This Shift In The Past?"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__is_unassign_deadline_passed
+msgid "Is unassignement deadline not past"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__job_title
+#: model_terms:ir.ui.view,arch_db:planning.hr_employee_view_form_simplified
+msgid "Job Title"
+msgstr "직함"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_recurrency__last_generated_end_datetime
@@ -630,8 +813,8 @@ msgstr "마지막으로 생성된 종료 날짜"
 #: model:ir.model.fields,field_description:planning.field_planning_role____last_update
 #: model:ir.model.fields,field_description:planning.field_planning_send____last_update
 #: model:ir.model.fields,field_description:planning.field_planning_slot____last_update
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis____last_update
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template____last_update
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send____last_update
 msgid "Last Modified on"
 msgstr "최근 수정일"
 
@@ -642,6 +825,7 @@ msgstr "최근 수정일"
 #: model:ir.model.fields,field_description:planning.field_planning_send__write_uid
 #: model:ir.model.fields,field_description:planning.field_planning_slot__write_uid
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__write_uid
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__write_uid
 msgid "Last Updated by"
 msgstr "최근 갱신한 사람"
 
@@ -652,18 +836,15 @@ msgstr "최근 갱신한 사람"
 #: model:ir.model.fields,field_description:planning.field_planning_send__write_date
 #: model:ir.model.fields,field_description:planning.field_planning_slot__write_date
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__write_date
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__write_date
 msgid "Last Updated on"
-msgstr "최근 갱신일"
+msgstr "최근 갱신 일자"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_planning__last_sent_date
-msgid "Last sent date"
-msgstr "마지막으로 보낸 날짜"
-
-#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_planning__allow_self_unassign
 #: model:ir.model.fields,field_description:planning.field_planning_slot__allow_self_unassign
-msgid "Let employee unassign themselves"
-msgstr "직원이 자신을 할당 해제하도록 하십시오"
+msgid "Let Employee Unassign Themselves"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
@@ -671,6 +852,7 @@ msgid "Let employees unassign themselves from shifts"
 msgstr "직원들이 교대 근무에서 자신을 할당 해제하도록 허용"
 
 #. module: planning
+#: model:ir.model.fields,help:planning.field_planning_planning__allow_self_unassign
 #: model:ir.model.fields,help:planning.field_planning_slot__allow_self_unassign
 #: model:ir.model.fields,help:planning.field_res_company__planning_allow_self_unassign
 #: model:ir.model.fields,help:planning.field_res_config_settings__planning_allow_self_unassign
@@ -681,22 +863,47 @@ msgstr "직원이 교대 근무할 수 없을 때 교대 근무를 할당 해제
 #. openerp-web
 #: code:addons/planning/static/src/js/tours/planning.js:0
 #, python-format
+msgid ""
+"Let's create your first <b>shift</b> by clicking on Add. <i>Tip: use the (+)"
+" shortcut available on each cell of the Gantt view to save time.</i>"
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
 msgid "Let's start managing your employees' schedule!"
 msgstr "직원 일정 관리를 시작합시다!"
 
 #. module: planning
-#: model:res.groups,name:planning.group_planning_manager
+#: model_terms:ir.actions.act_window,help:planning.planning_action_schedule_by_resource
+#: model_terms:ir.actions.act_window,help:planning.planning_action_schedule_by_role
+msgid "Let's start your planning by adding a new shift."
+msgstr ""
+
+#. module: planning
+#: model:planning.role,name:planning.planning_role_management
+msgid "Management"
+msgstr "관리"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__manager_id
 msgid "Manager"
 msgstr "관리자"
 
 #. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Material"
+msgstr "물건"
+
+#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__publication_warning
-msgid "Modified since last publication"
-msgstr "마지막 게시 이후 수정"
+msgid "Modified Since Last Publication"
+msgstr ""
 
 #. module: planning
 #: model:ir.actions.act_window,name:planning.planning_action_my_calendar
-#: model:ir.actions.act_window,name:planning.planning_action_my_gantt
+#: model:ir.actions.act_window,name:planning.planning_action_open_shift
 #: model:ir.ui.menu,name:planning.planning_menu_my_planning
 msgid "My Planning"
 msgstr "내 계획"
@@ -707,23 +914,36 @@ msgid "My Shifts"
 msgstr "내 교대 근무"
 
 #. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "My Team"
+msgstr "나의 팀"
+
+#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_role__name
 msgid "Name"
 msgstr "이름"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Next"
-msgstr "다음"
+#: model_terms:ir.actions.act_window,help:planning.planning_report_action_analysis
+msgid "No data yet!"
+msgstr "아직 정보가 없습니다!"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/field_colorpicker.xml:0
-#, python-format
-msgid "No color"
-msgstr "무색"
+#: model_terms:ir.actions.act_window,help:planning.planning_action_roles
+msgid "No roles found. Let's create one!"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.actions.act_window,help:planning.planning_action_shift_template
+msgid "No shift templates found. Let's create one!"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.actions.act_window,help:planning.planning_action_my_calendar
+#: model_terms:ir.actions.act_window,help:planning.planning_action_schedule_by_resource
+#: model_terms:ir.actions.act_window,help:planning.planning_action_schedule_by_role
+msgid "No shifts found. Let's create one!"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__name
@@ -732,26 +952,20 @@ msgid "Note"
 msgstr "노트"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "Note:"
-msgstr "노트 :"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__working_days_count
-msgid "Number of working days"
-msgstr "근무일수"
+msgid "Number of Working Days"
+msgstr ""
 
 #. module: planning
 #. openerp-web
 #: code:addons/planning/static/src/js/planning_gantt_controller.js:0
 #, python-format
 msgid "Open"
-msgstr "개설"
+msgstr "열기"
 
 #. module: planning
 #. openerp-web
 #: code:addons/planning/static/src/js/planning_gantt_model.js:0
-#: model:ir.actions.act_window,name:planning.planning_action_open_shift
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
 #, python-format
 msgid "Open Shifts"
@@ -759,13 +973,26 @@ msgstr "개방 교대 근무"
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "Open shifts available"
-msgstr "개방 교대 근무 가능"
+msgid "Open Shifts Available"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Open Shifts for my Roles"
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid ""
+"Operation not supported, you should always compare overlap_slot_count to 0 "
+"value with = or > operator."
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__overlap_slot_count
-msgid "Overlapping slots"
-msgstr "겹치는 슬롯"
+msgid "Overlapping Slots"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
@@ -778,19 +1005,28 @@ msgid "Percentage of time the employee is supposed to work during the shift."
 msgstr "근무 시간 동안 직원이 근무해야 하는 시간의 백분율입니다."
 
 #. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_send__start_datetime
+#: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
+msgid "Period"
+msgstr "기간"
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
 #: model:ir.model.fields.selection,name:planning.selection__planning_slot__allocation_type__planning
 #: model:ir.ui.menu,name:planning.planning_menu_root
 #: model_terms:ir.ui.view,arch_db:planning.hr_employee_view_form_inherit
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_calendar
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_my_calendar
 #: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+#, python-format
 msgid "Planning"
 msgstr "계획 관리"
 
 #. module: planning
+#: model:ir.actions.act_window,name:planning.planning_report_action_analysis
 #: model:ir.ui.menu,name:planning.planning_menu_planning_analysis
 #: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_graph
 #: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_pivot
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_graph
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_pivot
 msgid "Planning Analysis"
@@ -813,47 +1049,14 @@ msgid "Planning Role List"
 msgstr "계획 역할 목록"
 
 #. module: planning
-#: model:ir.actions.act_window,name:planning.planning_action_roles
+#: model:ir.model.fields,field_description:planning.field_hr_employee__planning_role_ids
 msgid "Planning Roles"
 msgstr "계획 역할"
-
-#. module: planning
-#: model:ir.actions.act_window,name:planning.planning_action_schedule_by_employee
-#: model:ir.actions.act_window,name:planning.planning_action_schedule_by_role
-msgid "Planning Schedule"
-msgstr "계획 일정표"
 
 #. module: planning
 #: model:ir.model,name:planning.model_planning_slot
 msgid "Planning Shift"
 msgstr "교대 근무 계획"
-
-#. module: planning
-#: model:ir.model,name:planning.model_planning_slot_report_analysis
-msgid "Planning Statistics"
-msgstr "계획 통계"
-
-#. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_slot__template_id
-msgid "Planning Templates"
-msgstr "계획 서식"
-
-#. module: planning
-#: model:ir.model.constraint,message:planning.constraint_planning_planning_check_start_date_lower_stop_date
-#: model:ir.model.constraint,message:planning.constraint_planning_send_check_start_date_lower_stop_date
-msgid "Planning end date should be greater than its start date"
-msgstr "계획 종료 날짜는 시작 날짜보다 커야 합니다."
-
-#. module: planning
-#: code:addons/planning/models/planning.py:0
-#, python-format
-msgid "Planning of %s days"
-msgstr "%s일의 계획"
-
-#. module: planning
-#: model:ir.model,name:planning.model_planning_planning
-msgid "Planning sent by email"
-msgstr "이메일로 계획 전송"
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
@@ -868,35 +1071,67 @@ msgid "Planning: generate next recurring shifts"
 msgstr "계획 : 다음 번 반복 교대 근무 생성"
 
 #. module: planning
-#: model:mail.template,subject:planning.email_template_slot_single
-msgid "Planning: new schedule (single shift)"
-msgstr "계획 : 새 일정표 (단일 교대 근무)"
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "Planning: new open shift available on"
+msgstr ""
+
+#. module: planning
+#: model:mail.template,name:planning.email_template_planning_planning
+msgid "Planning: new schedule (multiple shifts)"
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "Planning: new shift on"
+msgstr ""
+
+#. module: planning
+#: model:mail.template,name:planning.email_template_slot_single
+msgid "Planning: new single shift"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.brand_promotion
+msgid "Plans"
+msgstr "계획"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__previous_template_id
+msgid "Previous Template"
+msgstr ""
 
 #. module: planning
 #. openerp-web
 #: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Previous"
-msgstr "이전"
-
-#. module: planning
+#: model:ir.actions.server,name:planning.model_planning_slot_action_publish
 #: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+#, python-format
 msgid "Publish"
-msgstr "게시하기"
+msgstr "발행"
 
 #. module: planning
+#: model:ir.actions.server,name:planning.model_planning_slot_action_publish_and_send
 #: model_terms:ir.ui.view,arch_db:planning.planning_send_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
 msgid "Publish & Send"
 msgstr "게시 및 보내기"
 
 #. module: planning
+#: model:ir.model.fields.selection,name:planning.selection__planning_slot__state__published
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Published"
+msgstr "게시 됨"
+
+#. module: planning
 #: model:ir.model.fields,field_description:planning.field_res_company__planning_generation_interval
 #: model:ir.model.fields,field_description:planning.field_res_config_settings__planning_generation_interval
-#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
-msgid "Rate of shift generation"
-msgstr "교대 근무 생성 속도"
+msgid "Rate Of Shift Generation"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__recurrency_id
@@ -910,8 +1145,8 @@ msgstr "반복 간격은 1 이상이어야 합니다."
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_recurrency__slot_ids
-msgid "Related planning entries"
-msgstr "관련 계획 항목"
+msgid "Related Planning Entries"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,help:planning.field_planning_slot__user_id
@@ -924,7 +1159,7 @@ msgid "Repeat"
 msgstr "반복"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_interval
 msgid "Repeat Every"
 msgstr "계속 반복"
 
@@ -934,20 +1169,15 @@ msgid "Repeat Type"
 msgstr "반복 유형"
 
 #. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_until
 #: model:ir.model.fields,field_description:planning.field_planning_slot__repeat_until
 msgid "Repeat Until"
 msgstr "다음 지정일까지만 반복"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_interval
 #: model:ir.model.fields,field_description:planning.field_planning_slot__repeat_interval
 msgid "Repeat every"
 msgstr "계속 반복"
-
-#. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_until
-msgid "Repeat until"
-msgstr "다음 지정일까지만 반복"
 
 #. module: planning
 #: model:ir.ui.menu,name:planning.planning_menu_reporting
@@ -955,16 +1185,38 @@ msgid "Reporting"
 msgstr "보고"
 
 #. module: planning
+#: model:ir.actions.server,name:planning.model_planning_slot_action_reset_to_draft
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+msgid "Reset to Draft"
+msgstr "초안으로 재설정"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__resource_id
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Resource"
+msgstr "리소스"
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.planning_action_resources
+#: model:ir.model,name:planning.model_resource_resource
+#: model:ir.model.fields,field_description:planning.field_planning_role__employee_ids
+#: model:ir.model.fields,field_description:planning.field_planning_send__employee_ids
+#: model:ir.ui.menu,name:planning.planning_menu_settings_resource
+msgid "Resources"
+msgstr "자원"
+
+#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__role_id
-#: model:ir.model.fields,field_description:planning.field_planning_slot_report_analysis__role_id
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__role_id
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
-#: model_terms:ir.ui.view,arch_db:planning.planning_slot_report_view_search
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_search
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
 msgid "Role"
 msgstr "역할"
 
 #. module: planning
+#: model:ir.actions.act_window,name:planning.planning_action_roles
 #: model:ir.ui.menu,name:planning.planning_menu_settings_role
 msgid "Roles"
 msgstr "역할"
@@ -976,33 +1228,66 @@ msgstr "저장"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__template_creation
-msgid "Save as a Template"
-msgstr "서식으로 저장"
+msgid "Save as Template"
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/tours/planning.js:0
+#, python-format
+msgid "Save this shift once it is ready."
+msgstr ""
+
+#. module: planning
+#: model:ir.model,name:planning.model_planning_planning
+#: model:ir.ui.menu,name:planning.planning_menu_schedule
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
+msgid "Schedule"
+msgstr "예약"
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.planning_action_schedule_by_resource
+msgid "Schedule by Resource"
+msgstr ""
+
+#. module: planning
+#: model:ir.actions.act_window,name:planning.planning_action_schedule_by_role
+msgid "Schedule by Role"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_hr_employee__employee_token
+#: model:ir.model.fields,field_description:planning.field_planning_planning__access_token
+#: model:ir.model.fields,field_description:planning.field_planning_slot__access_token
+msgid "Security Token"
+msgstr "보안 토큰"
+
+#. module: planning
+#: model:ir.model,name:planning.model_slot_planning_select_send
+msgid "Select Employees and Send One Slot"
+msgstr ""
 
 #. module: planning
 #. openerp-web
 #: code:addons/planning/static/src/js/tours/planning.js:0
 #, python-format
 msgid ""
-"Save this shift as a template to reuse it, or make it recurrent. This will "
-"greatly ease your encoding process."
-msgstr "이 교대 근무를 서식으로 저장하여 재사용하거나 반복하십시오. 이렇게 하면 인코딩 프로세스가 크게 쉬워집니다."
+"Select the <b>role</b> your employee will have (<i>e.g. Chef, Bartender, "
+"Waiter, etc.</i>)."
+msgstr ""
 
 #. module: planning
-#: model:ir.ui.menu,name:planning.planning_menu_schedule
-msgid "Schedule"
-msgstr "일정표"
+#: code:addons/planning/wizard/planning_send.py:0
+#, python-format
+msgid "Select the employees you would like to send the planning to."
+msgstr ""
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
-msgid "Schedule your employee shifts"
-msgstr "귀하 직원의 교대 근무 일정표"
-
-#. module: planning
-#: model:ir.model.fields,field_description:planning.field_hr_employee__employee_token
-#: model:ir.model.fields,field_description:planning.field_planning_planning__access_token
-msgid "Security Token"
-msgstr "보안 토큰"
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_form_in_gantt
+#: model_terms:ir.ui.view,arch_db:planning.slot_planning_select_send_view_form
+msgid "Send"
+msgstr "보내기"
 
 #. module: planning
 #: model:ir.model,name:planning.model_planning_send
@@ -1011,8 +1296,8 @@ msgstr "계획 보내기"
 
 #. module: planning
 #: model:ir.actions.act_window,name:planning.planning_send_action
-msgid "Send Planning Shifts"
-msgstr "교대 근무 계획 보내기"
+msgid "Send Planning By Email"
+msgstr ""
 
 #. module: planning
 #. openerp-web
@@ -1022,18 +1307,10 @@ msgid "Send schedule"
 msgstr "일정표 보내기"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/js/tours/planning.js:0
-#, python-format
-msgid "Send the schedule and mark the shifts as published. Congratulations!"
-msgstr "일정표를 보내고 교대 근무를 공개된 것으로 표시하십시오. 축하합니다!"
-
-#. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/js/tours/planning.js:0
-#, python-format
-msgid "Send the schedule to your employees once it is ready."
-msgstr "준비가 되면 직원에게 일정을 보냅니다."
+#: model:ir.model.fields,field_description:planning.field_planning_role__sequence
+#: model:ir.model.fields,field_description:planning.field_planning_slot_template__sequence
+msgid "Sequence"
+msgstr "순서"
 
 #. module: planning
 #: model:ir.actions.act_window,name:planning.planning_action_settings
@@ -1042,7 +1319,9 @@ msgid "Settings"
 msgstr "설정"
 
 #. module: planning
+#: code:addons/planning/controllers/main.py:0
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form
+#, python-format
 msgid "Shift"
 msgstr "교대 근무"
 
@@ -1068,6 +1347,7 @@ msgstr "교대 근무 서식 목록"
 
 #. module: planning
 #: model:ir.actions.act_window,name:planning.planning_action_shift_template
+#: model:ir.model.fields,field_description:planning.field_planning_slot__template_id
 #: model:ir.ui.menu,name:planning.planning_menu_settings_shift_template
 msgid "Shift Templates"
 msgstr "교대 근무 서식"
@@ -1078,53 +1358,72 @@ msgid "Shift end date should be greater than its start date"
 msgstr "교대 근무 종료 날짜는 시작 날짜보다 커야 합니다."
 
 #. module: planning
-#: model:ir.actions.act_window,name:planning.planning_action_analysis
-msgid "Shifts Analysis"
-msgstr "교대 근무 분석"
+#: model:ir.model.fields,field_description:planning.field_slot_planning_select_send__slot_id
+msgid "Shifts"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.actions.act_window,help:planning.planning_action_my_calendar
+msgid ""
+"Shifts are periods allocated to your resources for a specific role. "
+"Together, they constitute your resources' planning."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
+msgid "Shifts from"
+msgstr ""
 
 #. module: planning
 #: code:addons/planning/models/planning.py:0
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
 #, python-format
-msgid "Shifts in conflict"
-msgstr "충돌이 일어난 교대 근무"
+msgid "Shifts in Conflict"
+msgstr ""
 
 #. module: planning
-#: model:res.groups,name:planning.group_planning_show_percentage
-msgid "Show Allocated Percentage"
-msgstr "할당율 표시"
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Shifts of Your Team Member"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__slot_ids
+#: model:ir.model.fields,field_description:planning.field_planning_send__slot_ids
 msgid "Slot"
 msgstr "슬롯"
 
 #. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
+msgid "Some changes were made since this shift was published."
+msgstr "이 교대 근무가 게시된 이후에 일부 변경 사항이 있습니다."
+
+#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__start_datetime
-#: model:ir.model.fields,field_description:planning.field_planning_send__start_datetime
 #: model:ir.model.fields,field_description:planning.field_planning_slot__start_datetime
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_search
 msgid "Start Date"
 msgstr "시작일"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "Start Date:"
-msgstr "시작일 :"
-
-#. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_view_form
-msgid "Start date"
-msgstr "시작일"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot_template__start_time
-msgid "Start hour"
-msgstr "시작 시간"
+msgid "Start Hour"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_slot_template_view_search
+msgid "Start Time"
+msgstr ""
 
 #. module: planning
 #: model:ir.model.constraint,message:planning.constraint_planning_slot_template_check_start_time_positive
 msgid "Start hour must be a positive number"
 msgstr "시작 시간은 양수여야 합니다"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__state
+msgid "Status"
+msgstr "상태"
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_planning__end_datetime
@@ -1133,14 +1432,20 @@ msgid "Stop Date"
 msgstr "중지일"
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.period_report_template
-msgid "Stop Date:"
-msgstr "중지일 :"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__template_autocomplete_ids
 msgid "Template Autocomplete"
 msgstr "서식 자동 완성"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__template_reset
+msgid "Template Reset"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.constraint,message:planning.constraint_res_company_planning_self_unassign_days_before_positive
+msgid ""
+"The amount of days before unassignment must be positive or equal to zero."
+msgstr ""
 
 #. module: planning
 #: code:addons/planning/models/planning.py:0
@@ -1149,31 +1454,147 @@ msgid "The company does not allow you to self unassign."
 msgstr "회사는 귀하에게 자기 할당을 허용하지 않습니다."
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
-msgid "This shift is not assigned to you anymore."
-msgstr "이 교대 근무는 더 이상 할당되지 않았습니다."
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The deadline for unassignment has passed."
+msgstr ""
 
 #. module: planning
-#: model_terms:ir.ui.view,arch_db:planning.planning_shift_notification
-msgid "This shift is now assigned to you."
-msgstr "이 교대 근무가 귀하에게 할당되었습니다."
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The recurrence until date should be after the shift start date"
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/wizard/planning_send.py:0
+#, python-format
+msgid "The schedule was successfully sent to your employees."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The shift has successfully been sent."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/planning_gantt_controller.js:0
+#, python-format
+msgid "The shifts from the previous week have successfully been copied."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The shifts have been successfully reset to draft."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The shifts have successfully been published and sent."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "The shifts have successfully been published."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/planning_gantt_controller.js:0
+#, python-format
+msgid ""
+"There are no shifts to copy or the previous shifts were already copied."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "There are no shifts to publish and send."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "There are no shifts to publish."
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "There are no shifts to reset to draft."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/planning_gantt_controller.js:0
+#, python-format
+msgid "There are no shifts to send or publish."
+msgstr ""
 
 #. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__was_copied
-msgid "This shift was copied from previous week"
-msgstr "이 교대 근무는 지난 주에서 복사되었습니다"
+msgid "This Shift Was Copied From Previous Week"
+msgstr ""
+
+#. module: planning
+#: code:addons/planning/wizard/planning_send.py:0
+#, python-format
+msgid ""
+"This action is not allowed as there are no shifts planned for the selected "
+"time period."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/widgets/employee_m2o_with_planned_hours.js:0
+#, python-format
+msgid ""
+"This employee isn't expected to work during this period. Planned hours : %s "
+"hours"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
+msgid ""
+"This open shift is no longer available, or the planning has been updated in "
+"the meantime. Please contact your manager for further information."
+msgstr ""
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/js/planning_gantt_controller.js:0
+#, python-format
+msgid "This shift was successfully saved as a template."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.resource_resource_kanban_view
+msgid "Timezone:"
+msgstr ""
+
+#. module: planning
+#: model:digest.tip,name:planning.digest_tip_planning_0
+msgid "Tip: Record your planning faster"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.period_report_template
 msgid "To"
-msgstr "종료"
+msgstr "도착"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/xml/planning_gantt.xml:0
-#, python-format
-msgid "Today"
-msgstr "오늘"
+#: model:ir.model.fields,field_description:planning.field_planning_slot__resource_type
+msgid "Type"
+msgstr "유형"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_search
+msgid "Unpublished"
+msgstr "게시 안 함"
 
 #. module: planning
 #: model:ir.model.fields.selection,name:planning.selection__planning_recurrency__repeat_type__until
@@ -1187,30 +1608,45 @@ msgid "Up to which date should the plannings be repeated"
 msgstr "계획들이 반복되어야 하는 날짜까지"
 
 #. module: planning
-#. openerp-web
-#: code:addons/planning/static/src/js/tours/planning.js:0
-#: code:addons/planning/static/src/js/tours/planning.js:0
-#, python-format
-msgid "Use this menu to visualize and schedule shifts"
-msgstr "이 메뉴를 사용하여 교대 근무를 시각화하고 예약하십시오"
-
-#. module: planning
 #: model:ir.model.fields,field_description:planning.field_planning_slot__user_id
 #: model:res.groups,name:planning.group_planning_user
 msgid "User"
 msgstr "사용자"
 
 #. module: planning
+#: code:addons/planning/models/hr.py:0
+#: model_terms:ir.ui.view,arch_db:planning.view_employee_public_tree_inherit_planning
+#: model_terms:ir.ui.view,arch_db:planning.view_employee_tree_inherit_planning
+#, python-format
+msgid "View Planning"
+msgstr ""
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_type
+msgid "Weeks"
+msgstr "주"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__work_address_id
+msgid "Work Address"
+msgstr "업무 주소"
+
+#. module: planning
+#: model:ir.model.fields,field_description:planning.field_planning_slot__work_email
+msgid "Work Email"
+msgstr "업무 이메일"
+
+#. module: planning
+#: code:addons/planning/models/planning.py:0
+#, python-format
+msgid "You are not allowed to reset to draft shifts."
+msgstr ""
+
+#. module: planning
 #: code:addons/planning/models/planning.py:0
 #, python-format
 msgid "You can not assign yourself to an already assigned shift."
 msgstr "이미 할당된 교대 근무에는 자신을 할당할 수 없습니다."
-
-#. module: planning
-#: code:addons/planning/controllers/main.py:0
-#, python-format
-msgid "You can not assign yourself to this shift."
-msgstr "이 교대 근무에는 자신을 할당 할 수 없습니다."
 
 #. module: planning
 #: code:addons/planning/models/planning.py:0
@@ -1234,22 +1670,50 @@ msgid "You cannot have negative shift"
 msgstr "당신은 마이너스 교대 근무를 가질 수 없습니다"
 
 #. module: planning
+#: code:addons/planning/wizard/slot_planning_select_send.py:0
+#, python-format
+msgid "You cannot send a past unassigned slot"
+msgstr ""
+
+#. module: planning
 #: code:addons/planning/models/planning.py:0
 #, python-format
-msgid "You don't the right to self assign."
-msgstr "귀하는 스스로 할당할 권리가 없습니다."
+msgid "You don't have the right to self assign."
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.slot_unassign
+msgid "You have been successfully unassigned from this shift"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.slot_unassign
+msgid "Your Planning"
+msgstr ""
 
 #. module: planning
 #: model:mail.template,subject:planning.email_template_planning_planning
 msgid ""
-"Your planning from ${format_datetime(object.start_datetime, "
-"tz=ctx.get('employee').tz or 'UTC', dt_format='short')} to "
-"${format_datetime(object.end_datetime, tz=employee.tz if employee else "
-"'UTC', dt_format='short')}"
+"Your planning from {{ format_date(ctx.get('start_datetime')) }} to {{ "
+"format_date(ctx.get('end_datetime')) }}"
 msgstr ""
-"당신의 계획은 ${format_datetime(object.start_datetime, tz=ctx.get('employee').tz "
-"or 'UTC', dt_format='short')}에서 ${format_datetime(object.end_datetime, "
-"tz=employee.tz if employee else 'UTC', dt_format='short')}까지입니다."
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.res_config_settings_view_form
+msgid "days before the beginning of the shift"
+msgstr ""
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.hr_employee_view_form_simplified
+msgid "e.g. John Doe"
+msgstr "예시 : 홍길동"
+
+#. module: planning
+#. openerp-web
+#: code:addons/planning/static/src/xml/widgets.xml:0
+#, python-format
+msgid "h&nbsp;/&nbsp;"
+msgstr ""
 
 #. module: planning
 #: model_terms:ir.ui.view,arch_db:planning.planning_view_form
@@ -1257,6 +1721,16 @@ msgid "other shift(s)"
 msgstr "다른 교대 근무"
 
 #. module: planning
-#: model:ir.model.fields,field_description:planning.field_planning_recurrency__repeat_type
-msgid "weeks"
-msgstr "주"
+#: model_terms:ir.ui.view,arch_db:planning.planning_view_gantt
+msgid "other shift(s) in conflict."
+msgstr "충돌이 일어난 다른 교대 근무"
+
+#. module: planning
+#: model_terms:ir.ui.view,arch_db:planning.period_report_template
+msgid "to"
+msgstr "종료"
+
+#. module: planning
+#: model:mail.template,subject:planning.email_template_slot_single
+msgid "{{ ctx.get('mail_subject', '') }} {{ ctx.get('start_datetime' , '') }}"
+msgstr ""

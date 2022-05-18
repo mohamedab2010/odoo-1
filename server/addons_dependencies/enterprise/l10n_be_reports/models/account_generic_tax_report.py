@@ -1,26 +1,16 @@
 from odoo import models, api, fields, _
 from odoo.exceptions import UserError
-from odoo.addons.web.controllers.main import clean_action
 import calendar
-
-
-class AccountTaxReportActivity(models.Model):
-    _inherit = "mail.activity"
-
-    def _get_vat_report_action_to_open(self, company_id):
-        if company_id.country_id.code == 'BE':
-            return self.env.ref('l10n_be_reports.action_account_report_be_vat').read()[0]
-        else:
-            return super(AccountTaxReportActivity, self)._get_vat_report_action_to_open(company_id)
+from markupsafe import Markup
 
 
 class AccountGenericTaxReport(models.AbstractModel):
     _inherit = 'account.generic.tax.report'
 
-    def _get_reports_buttons(self):
-        buttons = super(AccountGenericTaxReport, self)._get_reports_buttons()
-        if self.env.company.country_id.code == 'BE':
-            buttons += [{'name': _('Export (XML)'), 'sequence': 3, 'action': 'l10n_be_print_xml', 'file_export_type': _('XML')}]
+    def _get_reports_buttons(self, options):
+        buttons = super(AccountGenericTaxReport, self)._get_reports_buttons(options)
+        if self._get_report_country_code(options) == 'BE':
+            buttons += [{'name': _('XML'), 'sequence': 3, 'action': 'l10n_be_print_xml', 'file_export_type': _('XML')}]
         return buttons
 
     def l10n_be_print_xml(self, options):
@@ -42,29 +32,25 @@ class AccountGenericTaxReport(models.AbstractModel):
 
     def get_xml(self, options):
         # Check
-        if self.env.company.country_id.code != 'BE':
+        if self._get_report_country_code(options) != 'BE':
             return super(AccountGenericTaxReport, self).get_xml(options)
-        company = self.env.company
-        if not company.partner_id.vat:
-            raise UserError(_('No VAT number associated with your company.'))
-        vat_no, country_from_vat = self._check_vat_number(company.partner_id.vat)
 
-        default_address = company.partner_id.address_get()
-        address = self.env['res.partner'].browse(default_address.get("default")) or company.partner_id
+        vat_no, country_from_vat = self._split_vat_number_and_country_code(self.get_vat_for_export(options))
+
+        sender_company = self._get_sender_company_for_export(options)
+        default_address = sender_company.partner_id.address_get()
+        address = self.env['res.partner'].browse(default_address.get("default")) or sender_company.partner_id
         if not address.email:
-            raise UserError(_('No email address associated with the company.'))
+            raise UserError(_('No email address associated with company %s.', sender_company.name))
         if not address.phone:
-            raise UserError(_('No phone associated with the company.'))
+            raise UserError(_('No phone associated with company %s.', sender_company.name))
 
         # Compute xml
-
-        default_address = company.partner_id.address_get()
-        address = self.env['res.partner'].browse(default_address.get("default", company.partner_id.id))
 
         issued_by = vat_no
         dt_from = options['date'].get('date_from')
         dt_to = options['date'].get('date_to')
-        send_ref = str(company.partner_id.id) + str(dt_from[5:7]) + str(dt_to[:4])
+        send_ref = str(sender_company.partner_id.id) + str(dt_from[5:7]) + str(dt_to[:4])
         starting_month = dt_from[5:7]
         ending_month = dt_to[5:7]
         quarter = str(((int(starting_month) - 1) // 3) + 1)
@@ -79,13 +65,14 @@ class AccountGenericTaxReport(models.AbstractModel):
                         'issued_by': issued_by,
                         'vat_no': complete_vat,
                         'only_vat': vat_no,
-                        'cmpny_name': company.name,
+                        # Company name can contain only latin characters
+                        'cmpny_name': sender_company.name,
                         'address': "%s %s" % (address.street or "", address.street2 or ""),
                         'post_code': address.zip or "",
                         'city': address.city or "",
                         'country_code': address.country_id and address.country_id.code or "",
                         'email': address.email or "",
-                        'phone': address.phone.replace('.', '').replace('/', '').replace('(', '').replace(')', '').replace(' ', ''),
+                        'phone': self._raw_phonenumber(address.phone),
                         'send_ref': send_ref,
                         'quarter': quarter,
                         'month': starting_month,
@@ -94,10 +81,12 @@ class AccountGenericTaxReport(models.AbstractModel):
                         'ask_restitution': (data['ask_restitution'] and 'YES' or 'NO'),
                         'ask_payment': (data['ask_payment'] and 'YES' or 'NO'),
                         'comments': self._get_report_manager(options).summary or '',
+                        'representative_node': self._get_belgian_xml_export_representative_node(),
                      }
 
-        rslt = """<?xml version="1.0"?>
+        rslt = Markup(f"""<?xml version="1.0"?>
 <ns2:VATConsignment xmlns="http://www.minfin.fgov.be/InputCommon" xmlns:ns2="http://www.minfin.fgov.be/VATConsignment" VATDeclarationsNbr="1">
+    %(representative_node)s
     <ns2:VATDeclaration SequenceNumber="1" DeclarantReference="%(send_ref)s">
         <ns2:Declarant>
             <VATNumber xmlns="http://www.minfin.fgov.be/InputCommon">%(only_vat)s</VATNumber>
@@ -110,17 +99,10 @@ class AccountGenericTaxReport(models.AbstractModel):
             <Phone>%(phone)s</Phone>
         </ns2:Declarant>
         <ns2:Period>
-    """ % (file_data)
-
-        if starting_month != ending_month:
-            # starting month and ending month of selected period are not the same
-            # it means that the accounting isn't based on periods of 1 month but on quarters
-            rslt += '\t\t<ns2:Quarter>%(quarter)s</ns2:Quarter>\n\t\t' % (file_data)
-        else:
-            rslt += '\t\t<ns2:Month>%(month)s</ns2:Month>\n\t\t' % (file_data)
-        rslt += '\t<ns2:Year>%(year)s</ns2:Year>' % (file_data)
-        rslt += '\n\t\t</ns2:Period>\n'
-        rslt += '\t\t<ns2:Data>\t'
+            {"<ns2:Quarter>%(quarter)s</ns2:Quarter>" if starting_month != ending_month else "<ns2:Month>%(month)s</ns2:Month>"}
+            <ns2:Year>%(year)s</ns2:Year>
+        </ns2:Period>
+        <ns2:Data>""") % file_data
 
         grids_list = []
         currency_id = self.env.company.currency_id
@@ -130,38 +112,62 @@ class AccountGenericTaxReport(models.AbstractModel):
         lines = self.with_context(ctx)._get_lines(options)
 
         # Create a mapping between report line ids and actual grid names
-        non_compound_rep_lines = self.env['account.tax.report.line'].search([('tag_name', 'not in', ('48s44', '48s46L', '48s46T', '46L', '46T')), ('country_id.code', '=', 'BE')])
+        non_compound_rep_lines = self.env['account.tax.report.line'].search([('tag_name', 'not in', ('48s44', '48s46L', '48s46T', '46L', '46T')), ('report_id.country_id.code', '=', 'BE')])
         lines_grids_map = {line.id: line.tag_name for line in non_compound_rep_lines}
-        lines_grids_map['section_' + str(self.env.ref('l10n_be.tax_report_title_operations_sortie_46').id)] = '46'
-        lines_grids_map['section_' + str(self.env.ref('l10n_be.tax_report_title_operations_sortie_48').id)] = '48'
-        lines_grids_map['total_' + str(self.env.ref('l10n_be.tax_report_line_71').id)] = '71'
-        lines_grids_map['total_' + str(self.env.ref('l10n_be.tax_report_line_72').id)] = '72'
+        lines_grids_map[self.env.ref('l10n_be.tax_report_title_operations_sortie_46').id] = '46'
+        lines_grids_map[self.env.ref('l10n_be.tax_report_title_operations_sortie_48').id] = '48'
+        lines_grids_map[self.env.ref('l10n_be.tax_report_line_71').id] = '71'
+        lines_grids_map[self.env.ref('l10n_be.tax_report_line_72').id] = '72'
 
         # Iterate on the report lines, using this mapping
         for line in lines:
-            if line['id'] in lines_grids_map and not currency_id.is_zero(line['columns'][0]['name']):
-                grids_list.append((lines_grids_map[line['id']], line['columns'][0]['name']))
+            model, line_id = self._parse_line_id(line['id'])[-1][1:]
+            if (
+                    model == 'account.tax.report.line'
+                    and line_id in lines_grids_map
+                    and not currency_id.is_zero(line['columns'][0]['name'])
+            ):
+                grids_list.append((lines_grids_map[line_id],
+                                   line['columns'][0]['name'],
+                                   line['columns'][0].get('carryover_bounds', False),
+                                   line.get('tax_report_line', False)))
 
         if options.get('grid91') and not currency_id.is_zero(options['grid91']):
-            grids_list.append(('91', options['grid91']))
+            grids_list.append(('91', options['grid91'], False, None))
+
+        # We are ignoring all grids that have 0 as values, but the belgian government always require a value at
+        # least in either the grid 71 or 72. So in the case where both are set to 0, we are adding the grid 71 in the
+        # xml with 0 as a value.
+        if len([item for item in grids_list if item[0] == '71' or item[0] == '72']) == 0:
+            grids_list.append(('71', 0, False, None))
 
         grids_list = sorted(grids_list, key=lambda a: a[0])
-        for item in grids_list:
-            grid_amount_data = {
-                    'code': item[0],
-                    'amount': '%.2f' % abs(item[1]),
-                    }
-            rslt += '\n\t\t\t<ns2:Amount GridNumber="%(code)s">%(amount)s</ns2:Amount''>' % (grid_amount_data)
+        for code, amount, carryover_bounds, tax_line in grids_list:
+            if carryover_bounds:
+                amount, dummy = self.get_amounts_after_carryover(tax_line, amount,
+                                                                 carryover_bounds, options, 0)
+                # Do not add grids that became 0 after carry over
+                if amount == 0:
+                    continue
 
-        rslt += '\n\t\t</ns2:Data>'
-        rslt += '\n\t\t<ns2:ClientListingNihil>%(client_nihil)s</ns2:ClientListingNihil>' % (file_data)
-        rslt += '\n\t\t<ns2:Ask Restitution="%(ask_restitution)s" Payment="%(ask_payment)s"/>' % (file_data)
-        rslt += '\n\t\t<ns2:Comment>%(comments)s</ns2:Comment>' % (file_data)
-        rslt += '\n\t</ns2:VATDeclaration> \n</ns2:VATConsignment>'
+            grid_amount_data = {
+                    'code': code,
+                    'amount': '%.2f' % amount,
+                    }
+            rslt += Markup("""
+            <ns2:Amount GridNumber="%(code)s">%(amount)s</ns2:Amount>""") % grid_amount_data
+
+        rslt += Markup("""
+        </ns2:Data>
+        <ns2:ClientListingNihil>%(client_nihil)s</ns2:ClientListingNihil>
+        <ns2:Ask Restitution="%(ask_restitution)s" Payment="%(ask_payment)s"/>
+        <ns2:Comment>%(comments)s</ns2:Comment>
+    </ns2:VATDeclaration>
+</ns2:VATConsignment>""") % file_data
 
         return rslt.encode()
 
-    def _check_vat_number(self, vat_number):
+    def _split_vat_number_and_country_code(self, vat_number):
         """
         Even with base_vat, the vat number doesn't necessarily starts
         with the country code
@@ -178,44 +184,24 @@ class AccountGenericTaxReport(models.AbstractModel):
 
         return vat_number, country_code
 
-    # https://eservices.minfin.fgov.be/intervat/static/help/FR/regles_de_validation_d_une_declaration.htm
-    # The numerotation in the comments is extended here if it wasn't done in the
-    # source document: ... X, Y, Z, AA, AB, AC, ...
-    def get_checks_to_perform(self, d):
-        if self.env.company.country_id.code == 'BE':
-            return [
-                # code 13
-                ('No negative number',
-                    not all(v >= 0 for v in d.values())),
-                # Code C
-                ('[55] > 0 if [86] > 0 or [88] > 0',
-                    min(0.0, d['c55']) if d['c86'] > 0 or d['c88'] > 0 else False),
-                # Code D
-                ('[56] + [57] > 0 if [87] > 0',
-                    min(0.0, d['c55']) if d['c86'] > 0 or d['c88'] > 0 else False),
-                # Code O
-                ('[01] * 6% + [02] * 12% + [03] * 21% = [54]',
-                    d['c01'] * 0.06 + d['c02'] * 0.12 + d['c03'] * 0.21 - d['c54'] if abs(d['c01'] * 0.06 + d['c02'] * 0.12 + d['c03'] * 0.21 - d['c54']) > 62 else False),
-                # Code P
-                ('([84] + [86] + [88]) * 21% >= [55]',
-                    min(0.0, (d['c84'] + d['c86'] + d['c88']) * 0.21 - d['c55']) if min(0.0, (d['c84'] + d['c86'] + d['c88']) * 0.21 - d['c55']) < -62 else False),
-                # Code Q
-                ('([85] + [87]) * 21% >= ([56] + [57])',
-                    min(0.0, (d['c85'] + d['c87']) * 0.21 - (d['c56'] + d['c57'])) if min(0.0, (d['c85'] + d['c87']) * 0.21 - (d['c56'] + d['c57'])) < -62 else False),
-                # Code S
-                ('([81] + [82] + [83] + [84] + [85]) * 50% >= [59]',
-                    min(0.0, (d['c81'] + d['c82'] + d['c83'] + d['c84'] + d['c85']) * 0.5 - d['c59'])),
-                # Code T
-                ('[85] * 21% >= [63]',
-                    min(0.0, d['c85'] * 0.21 - d['c63']) if min(0.0, d['c85'] * 0.21 - d['c63']) < -62 else False),
-                # Code U
-                ('[49] * 21% >= [64]',
-                    min(0.0, d['c49'] * 0.21 - d['c64']) if min(0.0, d['c49'] * 0.21 - d['c64']) < -62 else False),
-                # Code AC
-                ('[88] < ([81] + [82] + [83] + [84]) * 100 if [88] > 99.999',
-                    max(0.0, d['c88'] - (d['c81'] + d['c82'] + d['c83'] + d['c84']) * 100) if d['c88'] > 99999 else False),
-                # Code AD
-                ('[44] < ([00] + [01] + [02] + [03] + [45] + [46] + [47] + [48] + [49]) * 200 if [88] > 99.999',
-                    max(0.0, d['c44'] - (d['c00'] + d['c01'] + d['c02'] + d['c03'] + d['c45'] + d['c46'] + d['c47'] + d['c48'] + d['c49']) * 200) if d['c44'] > 99999 else False),
-            ]
-        return super(AccountGenericTaxReport, self).get_checks_to_perform(d)
+    def _get_popup_messages(self, line_balance, carryover_balance, options, tax_report_line):
+        country_id = self.env['account.tax.report'].browse(options['tax_report']).country_id
+        if country_id.code != 'BE':
+            return super()._get_popup_messages(line_balance, carryover_balance, options, tax_report_line)
+        return {
+            'positive': {
+                'description1': _("This amount in the XML file will be increased by the positive amount from"),
+                'description2': _(" past period(s), previously stored on the corresponding tax line."),
+                'description3': _("The amount in the xml will be : %s", self.format_value(line_balance)),
+            },
+            'negative': {
+                'description1': _("This amount in the XML file will be reduced by the negative amount from"),
+                'description2': _(" past period(s), previously stored on the corresponding tax line."),
+                'description3': _("The amount in the xml will be : %s", self.format_value(line_balance)),
+            },
+            'out_of_bounds': {
+                'description1': _("This amount in the XML file will be set to %s.", self.format_value(line_balance)),
+                'description2': _("The difference will be carried over to the next period's declaration."),
+            },
+            'balance': _("The carried over balance will be : %s", carryover_balance),
+        }

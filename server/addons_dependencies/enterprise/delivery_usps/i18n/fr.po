@@ -3,18 +3,16 @@
 # 	* delivery_usps
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Eloïse Stilmant <est@odoo.com>, 2019
-# Cécile Collart <cco@odoo.com>, 2019
-# Laura Piraux <lap@odoo.com>, 2020
+# Martin Trigaux, 2021
+# Camille Dantinne <cmd@odoo.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-13 11:38+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Laura Piraux <lap@odoo.com>, 2020\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Camille Dantinne <cmd@odoo.com>, 2021\n"
 "Language-Team: French (https://www.transifex.com/odoo/teams/41243/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -119,6 +117,11 @@ msgid "International"
 msgstr "Internationale"
 
 #. module: delivery_usps
+#: model_terms:ir.ui.view,arch_db:delivery_usps.view_delivery_carrier_form_with_provider_usps
+msgid "Label Format"
+msgstr "Format d'étiquette"
+
+#. module: delivery_usps
 #: model:ir.model.fields.selection,name:delivery_usps.selection__delivery_carrier__usps_size_container__large
 msgid "Large"
 msgstr "Grand"
@@ -171,6 +174,11 @@ msgid "Non-rectangular"
 msgstr "Non rectangulaire"
 
 #. module: delivery_usps
+#: model_terms:ir.ui.view,arch_db:delivery_usps.view_delivery_carrier_form_with_provider_usps
+msgid "Options"
+msgstr "Options"
+
+#. module: delivery_usps
 #: model:ir.model.fields.selection,name:delivery_usps.selection__delivery_carrier__usps_label_file_type__pdf
 msgid "PDF"
 msgstr "PDF"
@@ -178,7 +186,22 @@ msgstr "PDF"
 #. module: delivery_usps
 #: model:ir.model.fields.selection,name:delivery_usps.selection__delivery_carrier__usps_mail_type__package
 msgid "Package"
-msgstr "Colis"
+msgstr "Package"
+
+#. module: delivery_usps
+#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_girth
+msgid "Package Girth"
+msgstr "Circonférence du colis"
+
+#. module: delivery_usps
+#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_height
+msgid "Package Height"
+msgstr "Hauteur du paquet"
+
+#. module: delivery_usps
+#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_length
+msgid "Package Length"
+msgstr "Longueur du paquet"
 
 #. module: delivery_usps
 #: model:ir.model.fields.selection,name:delivery_usps.selection__delivery_carrier__usps_first_class_mail_type__package_service
@@ -186,24 +209,9 @@ msgid "Package Service"
 msgstr "Package Service"
 
 #. module: delivery_usps
-#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_girth
-msgid "Package girth (in inches)"
-msgstr "Circonférence du paquet (en pouces)"
-
-#. module: delivery_usps
-#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_height
-msgid "Package height (in inches)"
-msgstr "Hauteur du paquet (en pouces)"
-
-#. module: delivery_usps
-#: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_length
-msgid "Package length (in inches)"
-msgstr "Longueur du paquet (en pouces)"
-
-#. module: delivery_usps
 #: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_custom_container_width
-msgid "Package width (in inches)"
-msgstr "Largeur du colis (en pouces)"
+msgid "Package Width"
+msgstr "Largeur du colis"
 
 #. module: delivery_usps
 #: model:ir.model.fields.selection,name:delivery_usps.selection__delivery_carrier__usps_domestic_regular_container__padded_flat_rate_envelope
@@ -273,7 +281,7 @@ msgstr "Priorité"
 #. module: delivery_usps
 #: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__delivery_type
 msgid "Provider"
-msgstr "Fournisseur"
+msgstr "Transporteur"
 
 #. module: delivery_usps
 #: code:addons/delivery_usps/models/usps_request.py:0
@@ -329,8 +337,8 @@ msgstr "Échantillon"
 #. module: delivery_usps
 #: code:addons/delivery_usps/models/delivery_usps.py:0
 #, python-format
-msgid "Shipment N° %s has been cancelled"
-msgstr "La livraison n° %s a été annulée"
+msgid "Shipment #%s has been cancelled"
+msgstr "L'expédition #%s à été annulée"
 
 #. module: delivery_usps
 #: code:addons/delivery_usps/models/delivery_usps.py:0
@@ -373,11 +381,11 @@ msgstr ""
 #: code:addons/delivery_usps/models/usps_request.py:0
 #, python-format
 msgid ""
-"The estimated price cannot be computed because the weight of your product is"
-" missing."
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
 msgstr ""
-"Le prix estimé ne peut être calculé parce que le poids de votre article est "
-"manquant."
+"Le prix d'expédition estimé ne peut pas être calculé car le poids est manquant pour le(s) produit(s) suivant(s) : \n"
+" %s"
 
 #. module: delivery_usps
 #: code:addons/delivery_usps/models/usps_request.py:0
@@ -493,7 +501,7 @@ msgstr "Identifiant de l'utilisateur USPS"
 #: model:product.template,uom_name:delivery_usps.product_product_delivery_usps_domestic_product_template
 #: model:product.template,uom_name:delivery_usps.product_product_delivery_usps_international_product_template
 msgid "Units"
-msgstr "Unités"
+msgstr "Unité(s)"
 
 #. module: delivery_usps
 #: model:ir.model.fields,field_description:delivery_usps.field_delivery_carrier__usps_size_container
@@ -505,3 +513,8 @@ msgstr "Dimension du conteneur USPS"
 #, python-format
 msgid "Your company or recipient ZIP code is incorrect."
 msgstr "Le code postal de votre société ou du destinataire est incorrect."
+
+#. module: delivery_usps
+#: model_terms:ir.ui.view,arch_db:delivery_usps.view_delivery_carrier_form_with_provider_usps
+msgid "inch"
+msgstr "pouce"

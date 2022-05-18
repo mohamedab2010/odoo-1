@@ -66,7 +66,10 @@ class HmrcService(models.AbstractModel):
                     if response.get('error'):
                         self._clean_tokens()
                         self._cr.commit() # Even with the raise, we want to commit the cleaning of the tokens in the db
-                        raise UserError(_('There was a problem refreshing the tokens.  Please log in again. ') + response.get('message'))
+                        raise UserError(_(
+                            'There was a problem refreshing the tokens.  Please log in again. %(error)s',
+                            error=response.get('message'),
+                        ))
         else:
             # if no user_token, ask for one
             url = PROXY_SERVER + '/onlinesync/l10n_uk/get_user'
@@ -136,7 +139,7 @@ class HmrcService(models.AbstractModel):
             if hashed_license:
                 gov_dict['Gov-Vendor-License-IDs'] = "Odoo=" + hashed_license
         except Exception:
-            _logger.warning(_("Could not construct fraud prevention headers"), exc_info=True)
+            _logger.warning("Could not construct fraud prevention headers", exc_info=True)
         return gov_dict
 
     @api.model

@@ -69,38 +69,31 @@
   </record>
 
   <!-- Set available meeting room serial numbers -->
-  <record id="rental_stock_inventory_0" model="stock.inventory">
-      <field name="name">Starting Rental Inventory</field>
+  <record id="rental_stock_inventory_1" model="stock.quant">
+    <field name="product_id" ref="rental_stock_product_1"/>
+    <field name="location_id" model="stock.location" eval="obj().env.ref('stock.warehouse0').lot_stock_id.id"/>
+    <field name="inventory_quantity">1.00</field>
+    <field name="lot_id" ref="rental_stock_lot_1"/>
+  </record>
+  <record id="rental_stock_inventory_2" model="stock.quant">
+    <field name="product_id" ref="rental_stock_product_1"/>
+    <field name="location_id" model="stock.location" eval="obj().env.ref('stock.warehouse0').lot_stock_id.id"/>
+    <field name="inventory_quantity">1.00</field>
+    <field name="lot_id" ref="rental_stock_lot_2"/>
+  </record>
+  <record id="rental_stock_inventory_3" model="stock.quant">
+    <field name="product_id" ref="rental_stock_product_1"/>
+    <field name="location_id" model="stock.location" eval="obj().env.ref('stock.warehouse0').lot_stock_id.id"/>
+    <field name="inventory_quantity">1.00</field>
+    <field name="lot_id" ref="rental_stock_lot_3"/>
   </record>
 
-  <record id="rental_stock_inventory_line_1" model="stock.inventory.line">
-      <field name="product_id" ref="rental_stock_product_1"/>
-      <field name="product_uom_id" ref="uom.product_uom_unit"/>
-      <field name="prod_lot_id" ref="rental_stock_lot_1"/>
-      <field name="inventory_id" ref="rental_stock_inventory_0"/>
-      <field name="product_qty">1.00</field>
-      <field name="location_id" ref="stock.stock_location_14"/>
-  </record>
-  <record id="rental_stock_inventory_line_2" model="stock.inventory.line">
-      <field name="product_id" ref="rental_stock_product_1"/>
-      <field name="product_uom_id" ref="uom.product_uom_unit"/>
-      <field name="prod_lot_id" ref="rental_stock_lot_2"/>
-      <field name="inventory_id" ref="rental_stock_inventory_0"/>
-      <field name="product_qty">1.00</field>
-      <field name="location_id" ref="stock.stock_location_14"/>
-  </record>
-  <record id="rental_stock_inventory_line_3" model="stock.inventory.line">
-      <field name="product_id" ref="rental_stock_product_1"/>
-      <field name="product_uom_id" ref="uom.product_uom_unit"/>
-      <field name="prod_lot_id" ref="rental_stock_lot_3"/>
-      <field name="inventory_id" ref="rental_stock_inventory_0"/>
-      <field name="product_qty">1.00</field>
-      <field name="location_id" ref="stock.stock_location_14"/>
-  </record>
-
-  <!-- VALIDATE inventory -->
-  <function model="stock.inventory" name="_action_start" eval="[[ref('rental_stock_inventory_0')]]"/>
-  <function model="stock.inventory" name="action_validate" eval="[[ref('rental_stock_inventory_0')]]"/>
+  <function model="stock.quant" name="action_apply_inventory">
+    <function eval="[[('id', 'in', (ref('rental_stock_inventory_1'),
+                                    ref('rental_stock_inventory_2'),
+                                    ref('rental_stock_inventory_3'),
+                                    ))]]" model="stock.quant" name="search"/>
+  </function>
 
   <record id="rental_stock_order_1" model="sale.order">
       <field name="partner_id" ref="base.res_partner_2"/>

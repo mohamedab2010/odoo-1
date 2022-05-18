@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import models, fields, api
+from odoo import _, models, fields, api
+from odoo.http import request
 
 
 class SocialAccount(models.Model):
@@ -18,6 +19,23 @@ class SocialAccount(models.Model):
     _name = 'social.account'
     _description = 'Social Account'
     _inherits = {'utm.medium': 'utm_medium_id'}
+
+    def _get_default_company(self):
+        """When the user is redirected to the callback URL of the different media,
+        the company in the environment is always the company of the current user and not
+        necessarily the selected company.
+
+        So, before the authentication process, we store the selected company in the
+        user session (see <social.media>::action_add_account) to be able to retrieve it
+        here.
+        """
+        if request and 'social_company_id' in request.session:
+            company_id = request.session['social_company_id']
+            if not company_id:  # All companies
+                return False
+            if company_id in self.env.companies.ids:
+                return company_id
+        return self.env.company
 
     active = fields.Boolean("Active", default=True)
     media_id = fields.Many2one('social.media', string="Social Media", required=True, readonly=True,
@@ -45,7 +63,11 @@ class SocialAccount(models.Model):
     has_account_stats = fields.Boolean("Has Account Stats", default=True, required=True,
         help="""Defines whether this account has Audience/Engagements/Stories stats.
         Account with stats are displayed on the dashboard.""")
-    utm_medium_id = fields.Many2one('utm.medium', string="UTM Medium", required=True, help="Every time an account is created, a utm.medium is also created and linked to the account")
+    utm_medium_id = fields.Many2one('utm.medium', string="UTM Medium", required=True, ondelete='restrict',
+        help="Every time an account is created, a utm.medium is also created and linked to the account")
+    company_id = fields.Many2one('res.company', 'Company', default=_get_default_company,
+                                 domain=lambda self: [('id', 'in', self.env.companies.ids)],
+                                 help="Link an account to a company to restrict its usage or keep empty to let all companies use it.")
 
     def _compute_statistics(self):
         """ Every social module should override this method if it 'has_account_stats'.
@@ -57,7 +79,8 @@ class SocialAccount(models.Model):
         """ Every social module should override this method.
         The 'stats_link' is an external link to the actual social.media statistics for this account.
         Ex: https://www.facebook.com/Odoo-Social-557894618055440/insights """
-        pass
+        for account in self:
+            account.stats_link = False
 
     def name_get(self):
         """ ex: [Facebook] Odoo Social, [Twitter] Mitchell Admin, ... """
@@ -86,5 +109,33 @@ class SocialAccount(models.Model):
             'stories_trend': account.stories_trend,
             'has_trends': account.has_trends,
             'media_id': [account.media_id.id],
+            'media_type': account.media_id.media_type,
             'stats_link': account.stats_link
         } for account in all_accounts]
+
+    def _compute_trend(self, value, delta_30d):
+        return 0.0 if value - delta_30d <= 0 else (delta_30d / (value - delta_30d)) * 100
+
+    def _filter_by_media_types(self, media_types):
+        return self.filtered(lambda account: account.media_type in media_types)
+
+    def _get_multi_company_error_message(self):
+        """Return an error message if the social accounts information can not be updated by the current user."""
+        if not self.env.user.has_group('base.group_multi_company'):
+            return
+
+        cids = request.httprequest.cookies.get('cids')
+        if cids:
+            allowed_company_ids = {int(cid) for cid in cids.split(',')}
+        else:
+            allowed_company_ids = {self.env.company.id}
+
+        accounts_other_companies = self.filtered(
+            lambda account: account.company_id and account.company_id.id not in allowed_company_ids)
+
+        if accounts_other_companies:
+            return _(
+                'Create other accounts for %(media_names)s for this company or ask %(company_names)s to share their accounts',
+                media_names=', '.join(accounts_other_companies.mapped('media_id.name')),
+                company_names=', '.join(accounts_other_companies.mapped('company_id.name')),
+            )

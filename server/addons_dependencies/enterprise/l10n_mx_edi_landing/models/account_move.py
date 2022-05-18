@@ -7,10 +7,12 @@ from odoo import api, models
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    def post(self):
+    def _post(self, soft=True):
         # OVERRIDE
         for move in self.filtered(lambda move: move.is_invoice()):
             for line in move.line_ids:
+                if line.l10n_mx_edi_customs_number:
+                    continue
                 stock_moves = line.mapped('sale_line_ids.move_ids').filtered(lambda r: r.state == 'done' and not r.scrapped)
                 if not stock_moves:
                     continue
@@ -21,4 +23,4 @@ class AccountMove(models.Model):
                 if not landed_costs:
                     continue
                 line.l10n_mx_edi_customs_number = ','.join(list(set(landed_costs.mapped('l10n_mx_edi_customs_number'))))
-        super(AccountMove, self).post()
+        return super()._post(soft)

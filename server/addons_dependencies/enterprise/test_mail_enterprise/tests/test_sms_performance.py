@@ -3,13 +3,13 @@
 
 from odoo.addons.sms.tests import common as sms_common
 from odoo.addons.test_mail.tests.test_performance import BaseMailPerformance
-from odoo.tests.common import TransactionCase, users, warmup
+from odoo.tests.common import users, warmup
 from odoo.tests import tagged
 from odoo.tools import mute_logger
 
 
 @tagged('mail_performance')
-class TestSMSPerformance(BaseMailPerformance, sms_common.MockSMS):
+class TestSMSPerformance(BaseMailPerformance, sms_common.SMSCase):
 
     def setUp(self):
         super(TestSMSPerformance, self).setUp()
@@ -42,8 +42,7 @@ class TestSMSPerformance(BaseMailPerformance, sms_common.MockSMS):
                 'country_id': self.env.ref('base.be').id,
             })
 
-        # patch registry to simulate a ready environment
-        self.patch(self.env.registry, 'ready', True)
+        self._init_mail_gateway()
 
     @mute_logger('odoo.addons.sms.models.sms_sms')
     @users('employee')
@@ -51,7 +50,7 @@ class TestSMSPerformance(BaseMailPerformance, sms_common.MockSMS):
     def test_message_sms_record_1_partner(self):
         record = self.test_record.with_user(self.env.user)
         pids = self.customer.ids
-        with self.mockSMSGateway(), self.assertQueryCount(employee=23):  # test_mail_enterprise: 22
+        with self.mockSMSGateway(), self.assertQueryCount(employee=21):
             messages = record._message_sms(
                 body='Performance Test',
                 partner_ids=pids,

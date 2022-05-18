@@ -53,9 +53,9 @@
         <field name="arch" type="xml">
             <tree editable="bottom">
                 <field name="company_id" invisible="1"/>
-                <field name="journal_id" domain="[('company_id', '=', company_id)]"/>
+                <field name="journal_id" domain="[('company_id', '=', company_id), ('type', 'not in', ['cash', 'bank'])]"/>
                 <field name="folder_id" domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]"/>
-                <field name="tag_ids" widget="many2many_tags" domain="[('folder_id', 'child_of', folder_id)]"/>
+                <field name="tag_ids" widget="many2many_tags" domain="[('folder_id', 'parent_of', folder_id)]"/>
             </tree>
         </field>
     </record>
@@ -70,7 +70,7 @@
                         <field name="company_id" readonly="1"/>
                         <field name="journal_id" domain="[('company_id', '=', company_id)]"/>
                         <field name="folder_id" domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]"/>
-                        <field name="tag_ids" widget="many2many_tags" domain="[('folder_id', 'child_of', folder_id)]"/>
+                        <field name="tag_ids" widget="many2many_tags" domain="[('folder_id', 'parent_of', folder_id)]"/>
                     </group>
                 </sheet>
             </form>

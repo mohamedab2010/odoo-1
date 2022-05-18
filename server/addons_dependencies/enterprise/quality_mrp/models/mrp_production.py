@@ -32,33 +32,28 @@ class MrpProduction(models.Model):
             production.quality_check_fail = fail
             production.quality_check_todo = todo
 
-    def _get_quality_point_domain(self):
-        return [('picking_type_id', '=', self.picking_type_id.id),
-                ('company_id', '=', self.company_id.id),
-                '|', ('product_id', '=', self.product_id.id),
-                '&', ('product_id', '=', False),
-                ('product_tmpl_id', '=', self.product_id.product_tmpl_id.id)]
-
-    def _get_quality_check_values(self, quality_point):
-        return {
-                    'production_id': self.id,
-                    'point_id': quality_point.id,
-                    'team_id': quality_point.team_id.id,
-                    'product_id': self.product_id.id,
-                    'company_id': self.company_id.id,
-                }
-
-    def action_confirm(self):
+    # Crap but we should remove it after freeze due to brutal modification it will bring
+    def write(self, vals):
+        res = super(MrpProduction, self).write(vals)
         for production in self:
-            points = self.env['quality.point'].search(production._get_quality_point_domain())
-            for point in points:
-                if point.check_execute_now():
-                    self.env['quality.check'].create(production._get_quality_check_values(point))
-        return super(MrpProduction, self).action_confirm()
+            if production.state in ['confirmed', 'to_close', 'progress'] and ('lot_producing_id' in vals or 'qty_producing' in vals):
+                finished_product_move = production.move_finished_ids.filtered(
+                    lambda move: move.product_id == production.product_id)
+                if not finished_product_move.move_line_ids:
+                    move_line_vals = finished_product_move._prepare_move_line_vals()
+                    move_line_vals.update({
+                        'lot_id': vals.get('lot_producing_id'),
+                        'production_id': production.id,
+                    })
+                    self.env['stock.move.line'].create(move_line_vals)
+                elif 'lot_producing_id' in vals:
+                    finished_product_move.move_line_ids.write(
+                        {'lot_id': vals.get('lot_producing_id')})
+        return res
 
     def button_quality_alert(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
         action['views'] = [(False, 'form')]
         action['context'] = {
             'default_company_id': self.company_id.id,
@@ -70,13 +65,13 @@ class MrpProduction(models.Model):
 
     def button_mark_done(self):
         for order in self:
-            if any([(x.quality_state == 'none') for x in order.check_ids]):
+            if any(x.quality_state == 'none' for x in order.check_ids):
                 raise UserError(_('You still need to do the quality checks!'))
         return super(MrpProduction, self).button_mark_done()
 
     def open_quality_alert_mo(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
         action['context'] = {
             'default_company_id': self.company_id.id,
             'default_product_id': self.product_id.id,
@@ -94,12 +89,7 @@ class MrpProduction(models.Model):
         self.ensure_one()
         checks = self.check_ids.filtered(lambda x: x.quality_state == 'none')
         if checks:
-            action_rec = self.env.ref('quality_control.quality_check_action_small')
-            if action_rec:
-                action = action_rec.read([])[0]
-                action['context'] = self.env.context
-                action['res_id'] = checks[0].id
-                return action
+            return checks.action_open_quality_check_wizard()
 
     def action_cancel(self):
         res = super(MrpProduction, self).action_cancel()

@@ -79,7 +79,7 @@ defined by the SAT.
     this document not funge as Certificate of Origin.
 
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/InvoiceET.png
+    .. figure:: ../l10n_mx_edi/static/src/InvoiceET.png
 
 - In the product:
 
@@ -97,7 +97,7 @@ defined by the SAT.
     of each product.
 
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/Product_CET.png
+    .. figure:: ../l10n_mx_edi/static/src/Product_CET.png
 
 - In Unit of measurement
 
@@ -106,7 +106,7 @@ defined by the SAT.
     related. Link_
 
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/Code_Aduana.png
+    .. figure:: ../l10n_mx_edi/static/src/Code_Aduana.png
 
 - In the invoice lines:
 
@@ -139,7 +139,7 @@ defined by the SAT.
     product of the line.
 
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/invoice_line_ET.png
+    .. figure:: ../l10n_mx_edi/static/src/invoice_line_ET.png
       :width: 700pt
 
 - In the partner:
@@ -149,7 +149,7 @@ defined by the SAT.
     then the add-on is added to the CFDIs for this client.
 
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/partnerET2.png
+    .. figure:: ../l10n_mx_edi/static/src/partnerET2.png
 
   - **Locality**: Field used to indicate the locality of the emitter and
     receiver in the CFDI
@@ -160,7 +160,7 @@ defined by the SAT.
     the partners that are used as branch address in multi-branch enviroments.
     c_colonia_
 
-    .. figure:: ../l10n_mx_edi_external_trade/static/src/partnerET.png
+    .. figure:: ../l10n_mx_edi/static/src/partnerET.png
 
 - In the Company
 

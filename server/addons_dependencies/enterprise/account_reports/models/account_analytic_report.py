@@ -28,12 +28,22 @@ class analytic_report(models.AbstractModel):
     def _get_report_name(self):
         return _('Analytic Report')
 
+    def _init_filter_hierarchy(self, options, previous_options=None):
+        # Override because we don't depend on account.group
+        if previous_options and 'hierarchy' in previous_options:
+            options['hierarchy'] = previous_options['hierarchy']
+        else:
+            options['hierarchy'] = self.filter_hierarchy
+
     def open_analytic_entries(self, options, params):
-        action = self.env.ref('analytic.account_analytic_line_action').read()[0]
-        action = clean_action(action)
+        date = options.get('date', {})
+        action = self.env["ir.actions.actions"]._for_xml_id("analytic.account_analytic_line_action")
+        action = clean_action(action, env=self.env)
+        active_id = int(params['id'].split('analytic_account_')[1])
         action['context'] = {
-            'active_id': int(params['id'].split('analytic_account_')[1]),
+            'active_id': active_id,
         }
+        action['domain'] = [('account_id','=',active_id),('date', '>=', date.get('date_from')), ('date', '<=', date.get('date_to'))]
         return action
 
     def _get_amount_of_parents(self, group):
@@ -48,10 +58,10 @@ class analytic_report(models.AbstractModel):
             analytic_line_domain_for_group += [('group_id', '=', False)]
 
         currency_obj = self.env['res.currency']
-        user_currency = self.env.company.currency_id
+        company_currency = self.env.company.currency_id
         analytic_lines = self.env['account.analytic.line'].read_group(analytic_line_domain_for_group, ['amount', 'currency_id'], ['currency_id'])
         balance = sum([currency_obj.browse(row['currency_id'][0])._convert(
-            row['amount'], user_currency, self.env.company, fields.Date.today()) for row in analytic_lines])
+            row['amount'], company_currency, self.env.company, fields.Date.today()) for row in analytic_lines])
         return balance
 
     def _generate_analytic_group_line(self, group, analytic_line_domain, unfolded=False):
@@ -105,20 +115,18 @@ class analytic_report(models.AbstractModel):
     def _get_lines(self, options, line_id=None):
         AccountAnalyticGroup = self.env['account.analytic.group']
         lines = []
-        parent_group = AccountAnalyticGroup
         date_from = options['date']['date_from']
         date_to = options['date']['date_to']
+        company_ids = [self.env.company.id]
 
         # context is set because it's used for the debit, credit and balance computed fields
-        AccountAnalyticAccount = self.env['account.analytic.account'].with_context(from_date=date_from,
-                                                                                   to_date=date_to)
+        AccountAnalyticAccount = self.env['account.analytic.account']\
+            .with_context(from_date=date_from, to_date=date_to, active_test=False)
         # The options refer to analytic entries. So first determine
         # the subset of analytic categories we have to search in.
         analytic_entries_domain = [('date', '>=', date_from),
                                    ('date', '<=', date_to)]
         analytic_account_domain = []
-        analytic_account_ids = []
-        analytic_tag_ids = []
 
         if options['analytic_accounts']:
             analytic_account_ids = [int(id) for id in options['analytic_accounts']]
@@ -131,11 +139,35 @@ class analytic_report(models.AbstractModel):
             AccountAnalyticAccount = AccountAnalyticAccount.with_context(tag_ids=analytic_tag_ids)
 
         if options.get('multi_company'):
-            company_ids = [company['id'] for company in options['multi_company'] if company['selected']]
-            if company_ids:
-                analytic_entries_domain += [('company_id', 'in', company_ids)]
-                analytic_account_domain += ['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]
-                AccountAnalyticAccount = AccountAnalyticAccount.with_context(company_ids=company_ids)
+            company_ids = self.env.companies.ids
+        else:
+            company_ids = self.env.company.ids
+
+        analytic_account_domain += ['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]
+
+        # Archived accounts that aren't used on that period shouldn't be displayed
+        account_ids_to_not_display = self._context.get('account_ids_to_not_display')
+        if account_ids_to_not_display is None:
+            self.env.cr.execute(
+                """
+                    SELECT COALESCE(ARRAY_AGG(account.id),'{}')
+                      FROM account_analytic_account account
+                     WHERE account.active IS FALSE
+                       AND account.company_id = ANY(%(company_ids)s)
+                       AND NOT EXISTS (
+                        SELECT line.id
+                          FROM account_analytic_line AS line
+                         WHERE line.account_id = account.id
+                           AND line.date BETWEEN %(date_from)s AND %(date_to)s
+                    )
+                """, {
+                    'company_ids': company_ids,
+                    'date_from': date_from,
+                    'date_to': date_to
+                }
+            )
+            account_ids_to_not_display = self.env.cr.fetchone()[0]
+        analytic_account_domain += ['!', ('id', 'in', account_ids_to_not_display)]
 
         if not options['hierarchy']:
             return self._generate_analytic_account_lines(AccountAnalyticAccount.search(analytic_account_domain))
@@ -170,14 +202,16 @@ class analytic_report(models.AbstractModel):
         if line_id != self.DUMMY_GROUP_ID:
             for group in AccountAnalyticGroup.search(domain):
                 if group.id in options.get('unfolded_lines') or options.get('unfold_all'):
-                    lines += self._get_lines(options, line_id=str(group.id))
+                    lines += self.with_context(account_ids_to_not_display=account_ids_to_not_display)\
+                        ._get_lines(options, line_id=str(group.id))
                 else:
                     lines.append(self._generate_analytic_group_line(group, analytic_entries_domain))
 
         # finally append a 'dummy' group which contains the accounts that do not have an analytic group
         if not line_id and any(not account.group_id for account in analytic_accounts):
             if self.DUMMY_GROUP_ID in options.get('unfolded_lines'):
-                lines += self._get_lines(options, line_id=self.DUMMY_GROUP_ID)
+                lines += self.with_context(account_ids_to_not_display=account_ids_to_not_display)\
+                    ._get_lines(options, line_id=self.DUMMY_GROUP_ID)
             else:
                 lines.append(self._generate_analytic_group_line(AccountAnalyticGroup, analytic_entries_domain))
 

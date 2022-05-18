@@ -18,8 +18,9 @@ class StockPicking(models.Model):
         for picking in self:
             todo = False
             fail = False
+            checkable_products = picking.mapped('move_line_ids').mapped('product_id')
             for check in picking.check_ids:
-                if check.quality_state == 'none':
+                if check.quality_state == 'none' and check.product_id in checkable_products:
                     todo = True
                 elif check.quality_state == 'fail':
                     fail = True
@@ -34,38 +35,62 @@ class StockPicking(models.Model):
 
     def check_quality(self):
         self.ensure_one()
-        checks = self.check_ids.filtered(lambda check: check.quality_state == 'none')
+        checkable_products = self.mapped('move_line_ids').mapped('product_id')
+        checks = self.check_ids.filtered(lambda check: check.quality_state == 'none' and check.product_id in checkable_products)
         if checks:
-            action = self.env.ref('quality_control.quality_check_action_small').read()[0]
-            action['context'] = self.env.context
-            action['res_id'] = checks.ids[0]
-            return action
+            return checks.action_open_quality_check_wizard()
         return False
 
     def _create_backorder(self):
         res = super(StockPicking, self)._create_backorder()
         if self.env.context.get('skip_check'):
             return res
-        # remove quality check of unreceived product
-        self.sudo().mapped('check_ids').filtered(lambda x: x.quality_state == 'none').unlink()
-        res.mapped('move_lines')._create_quality_checks()
+        for backorder in res:
+            backorder.backorder_id.check_ids.filtered(lambda qc: qc.quality_state == 'none').unlink()
+            backorder.move_lines._create_quality_checks()
         return res
 
-    def action_done(self):
+    def _action_done(self):
         # Do the check before transferring
         product_to_check = self.mapped('move_line_ids').filtered(lambda x: x.qty_done != 0).mapped('product_id')
         if self.mapped('check_ids').filtered(lambda x: x.quality_state == 'none' and x.product_id in product_to_check):
             raise UserError(_('You still need to do the quality checks!'))
-        return super(StockPicking, self).action_done()
+        return super(StockPicking, self)._action_done()
+
+    def _pre_action_done_hook(self):
+        res = super()._pre_action_done_hook()
+        if res is True:
+            pickings_to_check_quality = self._check_for_quality_checks()
+            if pickings_to_check_quality:
+                return pickings_to_check_quality[0].with_context(pickings_to_check_quality=pickings_to_check_quality.ids).check_quality()
+        return res
+
+    def _check_for_quality_checks(self):
+        quality_pickings = self.env['stock.picking']
+        for picking in self:
+            product_to_check = picking.mapped('move_line_ids').filtered(lambda ml: ml.qty_done != 0).mapped('product_id')
+            if picking.mapped('check_ids').filtered(lambda qc: qc.quality_state == 'none' and qc.product_id in product_to_check):
+                quality_pickings |= picking
+        return quality_pickings
 
     def action_cancel(self):
         res = super(StockPicking, self).action_cancel()
         self.sudo().mapped('check_ids').filtered(lambda x: x.quality_state == 'none').unlink()
         return res
 
+    def action_open_quality_check_picking(self):
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_check_action_picking")
+        action['context'] = self.env.context.copy()
+        action['context'].update({
+            'search_default_picking_id': [self.id],
+            'default_picking_id': self.id,
+            'show_lots_text': self.show_lots_text,
+        })
+        return action
+
     def button_quality_alert(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
         action['views'] = [(False, 'form')]
         action['context'] = {
             'default_product_id': self.product_id.id,
@@ -76,7 +101,7 @@ class StockPicking(models.Model):
 
     def open_quality_alert_picking(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
         action['context'] = {
             'default_product_id': self.product_id.id,
             'default_product_tmpl_id': self.product_id.product_tmpl_id.id,

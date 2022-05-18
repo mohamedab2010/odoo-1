@@ -3,6 +3,7 @@
 # Based on the module developped by Richard de Meester, from Willdoo IT
 {
     'name': "ABA Credit Transfer",
+    'icon': '/l10n_au/static/description/icon.png',
     'summary': """Export payments as ABA Credit Transfer files""",
     'description': """
 ABA Credit Transfer
@@ -15,7 +16,7 @@ to many Australian banks.
 Setup
 -----
 
-- *Configuration > Journals*
+- *Account > Configuration > invoicing > Journals*
 
     If needed, create new journal or choose an existing journal with **Type**
     set to *“Bank”*.
@@ -24,28 +25,9 @@ Setup
 
     On the **Bank Account** tab, enter the **Account Number**.
 
-- *Configuration > Bank Accounts*
-
-    Account will show up in list as the journal name.
-
-    Editing will show the **Account Number**.  This is important as it is used by
-    the ABA process.
-
-    **Bank** is optional.
-
-- *Sales > Configuration > Bank Accounts > Bank Accounts*
-
-    Account will show up in list as the account number.
-
-    **ABA Payments** - Set to *“Account for Making ABA Payments”*.
+    On the same tab, ensure the ABA transfer information is set up.
 
     **BSB** - Required, 6 digits, and will be auto formatted.
-
-    **Account Holder** - Optional.
-
-    **Account / Payee Name** - Required.  Generally not validated by the banks
-    on ABA file transfers, and may show up on the payee bank statement against
-    the payment.
 
     **Financial Institution Code** - Required (provided by bank or can be found
     on Google).  It is three uppercase 3 characters.
@@ -54,30 +36,42 @@ Setup
     may reject the ABA file if the Supplying User Name is not as expected.  It
     cannot be longer than 26 characters.
 
-    **Identification Number (APCA)** - User Identification number is bank
+    **APCA Identification Number** - User Identification number is bank
     allocated.  It is 6 digits.
 
     **Include Self Balancing Transaction** - Some institutions require that the
     last be a self balancing transaction which is used as a verification.
 
+- *Accounting > Configuration > Payments > Bank Accounts*
+
+    Account will show up in list as the journal name.
+
+    Editing will show the **Account Number**.  This is important as it is used by
+    the ABA process.
+
+    **Bank** is optional.
+
+- *Contacts > Configuration > Bank Accounts > Bank Accounts*
+
+    Paying account will show up in list as the account number.
+
+    **Account Holder Name** - Can be entered here, if Required.  Generally not
+    validated by the banks on ABA file transfers, but may show up on the payee
+    bank statement against the payment.
+
 - Vendor bank accounts can be set up in the same place, however, it is
   generally easier to set them up from the partner from for the Vendor.
 
-- *Accounting > Purchases > Vendors*
+- *Accounting > Vendors > Vendors*
 
-    On **Sales & Purchases** tab, click on *"Bank account(s)"* from where a
+    On **Accounting** tab, click on *"View accounts detail"* from where a
     vendor bank account can be created or edited.
 
-    **Account Number** - Required.
-
-    **ABA Payments** - Set to *“Allow ABA Payments to this Account”*.
+    **Account Number** - Required, must be less than 9 digits.
 
     **BSB** - Required, 6 digits, and will be auto formatted.
 
-    **Account Holder** - Optional.
-
-    **Account / Payee Name** - Required.  Generally not validated by the
-    banks.
+    **Account Holder Name** - Optional.
 
 Use
 ---
@@ -91,20 +85,24 @@ Use
     Select **ABA Credit Transfer** radio button.
 
     If the vendor has multiple bank account, you may need to select the
-    correct **Recipient Bank Account**.
+    correct **Recipient Bank Account**.  Or if paying a vendor bill, it may
+    need the correct bank account associated with it.
 
     Enter payment amount, etc.
 
-- *Purchases > Payments*
+- *Vendors > Payments*
 
     After payment(s) are confirmed, they will show up in the payments list.
 
     Using filters, or sorting, select the payments to be included.  Under
-    *Actions* choose *Download ABA Payment*.  A pop up appears with the ABA
-    file from which you can click on the file to download locally.  This
-    file can then be uploaded to the bank.
+    *Actions* choose *Create batch payment*.
+
+- *Vendors > Batch Payments*
+
+    When validating a batch payment, the ABA file will be generated.  It can
+    be regenerated.  This file can then be uploaded to the bank.
 """,
-    'category': 'Accounting/Accounting',
+    'category': 'Accounting/Localizations/EDI',
     'version': '1.0',
     'depends': ['account_batch_payment', 'l10n_au'],
     'data': [

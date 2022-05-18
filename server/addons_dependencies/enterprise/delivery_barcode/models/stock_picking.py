@@ -9,11 +9,11 @@ class StockPicking(models.Model):
     _description = 'Transfer'
     _inherit = ['stock.picking', 'barcodes.barcode_events_mixin']
 
-    delivery_packaging_ids = fields.One2many('product.packaging', compute='_compute_delivery_packaging', store=False)
+    delivery_package_type_ids = fields.One2many('stock.package.type', compute='_compute_delivery_package_type', store=False)
 
     @api.depends('carrier_id')
-    def _compute_delivery_packaging(self):
+    def _compute_delivery_package_type(self):
         for picking in self:
-            picking.delivery_packaging_ids = self.env['product.packaging'].search(
+            picking.delivery_package_type_ids = self.env['stock.package.type'].search(
                 [('package_carrier_type', '=', picking.carrier_id.delivery_type)]
             )

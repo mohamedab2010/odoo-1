@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import ast
 import json
 from itertools import groupby
-from odoo import api, models, fields, _
-from odoo.tools.safe_eval import safe_eval
 from collections import OrderedDict
+from odoo import api, models, _
+from odoo.addons.web.controllers.main import clean_action
+
 
 class L10nInReportAccount(models.AbstractModel):
     _name = "l10n.in.report.account"
@@ -15,6 +17,9 @@ class L10nInReportAccount(models.AbstractModel):
     filter_date = {'mode': 'range', 'filter': 'this_month'}
     filter_partner = True
     filter_journals = True
+
+    def _get_country_for_fiscal_position_filter(self, options):
+        return self.env.ref('base.in')
 
     def _get_options(self, previous_options=None):
         options = super(L10nInReportAccount, self)._get_options(previous_options)
@@ -30,10 +35,10 @@ class L10nInReportAccount(models.AbstractModel):
             ctx['gst_section'] = options['gst_section']
         return ctx
 
-    def _get_reports_buttons(self):
+    def _get_reports_buttons(self, options):
         return [
-            {'name': _('Print Preview'), 'action': 'print_pdf'},
-            {'name': _('Export (CSV)'), 'action': 'print_csv'}]
+            {'name': _('PDF'), 'action': 'print_pdf'},
+            {'name': _('CSV'), 'action': 'print_csv'}]
 
     def print_csv(self, options):
         return {
@@ -98,10 +103,9 @@ class L10nInReportAccount(models.AbstractModel):
         gst_section = options.get('gst_section')
         filter_domain = [
             ('date', '>=', options['date'].get('date_from')),
-            ('date', '<=', options['date'].get('date_to'))]
+            ('date', '<=', options['date'].get('date_to')),
+            ('company_id', 'in', self.env.companies.ids)]
         context = self.env.context
-        if context.get('company_ids'):
-            filter_domain += [('company_id', 'in', context['company_ids'])]
         if context.get('partner_ids'):
             filter_domain += [
                 ('partner_id', 'in', context['partner_ids'].ids)]
@@ -111,8 +115,8 @@ class L10nInReportAccount(models.AbstractModel):
         filter_domain += self._get_options_journals_domain(options)
         if gst_section:
             model_domain = self.get_gst_section_model_domain(gst_return_type, gst_section)
-            fields_values = self.env[model_domain.get('model')].search_read(
-                filter_domain + model_domain.get('domain'))
+            fields_values = self.env[model_domain.get('model')].search(
+                filter_domain + model_domain.get('domain')).union().read()
             lines += self.set_gst_section_lines(
                 gst_return_type,
                 gst_section,
@@ -123,7 +127,7 @@ class L10nInReportAccount(models.AbstractModel):
                 move_count_dict = {}
                 model_domain = self.get_gst_section_model_domain(gst_return_type, gst_section)
                 domain = filter_domain + model_domain.get('domain')
-                for read_data in self.env[model_domain.get('model')].search_read(domain, model_domain.get('sum_fields')):
+                for read_data in self.env[model_domain.get('model')].search(domain).union().read(model_domain.get('sum_fields')):
                     total_cess += read_data.get('cess_amount', 0)
                     total_igst += read_data.get('igst_amount', 0)
                     total_cgst += read_data.get('cgst_amount', 0)
@@ -158,7 +162,6 @@ class L10nInReportAccount(models.AbstractModel):
                 gst_section_lines.append({
                     'id': groups_line.get(first_section['name']),
                     'name': groups_line.get(first_section['name']),
-                    'class': 'top-vertical-align',
                     'level': 2,
                     'colspan': 0,
                     'columns': self.set_columns(gst_section_fields, groups_line),
@@ -171,9 +174,9 @@ class L10nInReportAccount(models.AbstractModel):
                 for fields_value in fields_values:
                     gst_section_lines.append({
                         'id': fields_value.get('id'),
-                        'caret_options': 'account.invoice.out',
+                        'caret_options': 'account.move',
                         'name': fields_value.get('account_move_id')[1],
-                        'class': 'top-vertical-align o_account_reports_level2',
+                        'class': 'o_account_reports_level2',
                         'level': 1,
                         'colspan': 0,
                         'columns': self.set_columns(gst_section_fields, fields_value),
@@ -223,7 +226,7 @@ class L10nInReportAccount(models.AbstractModel):
     def group_report_lines(self, group_fields, fields_values, fields):
         res = []
         fields_values = sorted(fields_values, key=lambda s: [s.get(g, '') for g in group_fields])
-        for key, grouped_values in groupby(fields_values, lambda x: [x.get(g, '') for g in group_fields]):
+        for _, grouped_values in groupby(fields_values, lambda x: [x.get(g, '') for g in group_fields]):
             vals = {}
             first_grouped_value = {}
             for grouped_value in grouped_values:
@@ -240,8 +243,9 @@ class L10nInReportAccount(models.AbstractModel):
         gst_id = params.get('id').split('_')
         gst_return_type = gst_id[0]
         gst_section = gst_id[1] if len(gst_id) > 1 else None
-        [action_read] = self.env['ir.actions.client'].browse(int(params.get('actionId'))).read()
-        context = action_read.get('context') and safe_eval(action_read['context']) or {}
+        [action_read] = self.env['ir.actions.client'].browse(int(params.get('actionId'))).sudo().read()
+        action_read = clean_action(action_read, env=self.env)
+        context = action_read.get('context') and ast.literal_eval(action_read['context']) or {}
         context.update({'gst_return_type': gst_return_type, 'gst_section': gst_section})
         action_read['context'] = context
         display_name = gst_return_type.upper()
@@ -283,20 +287,21 @@ class L10nInReportAccount(models.AbstractModel):
         if gst_return_type == 'gstr1':
             domain += [('journal_id.type', '=', 'sale')]
             if gst_section == 'b2b':
-                domain += [
+                domain = [
+                    '|', ('journal_id.type', '=', 'sale'), ('is_reverse_charge', '=', 'Y'),
                     ('partner_vat', '!=', False),
-                    ('l10n_in_export_type', 'in', ['regular', 'deemed', 'sale_from_bonded_wh', 'sez_with_igst', 'sez_without_igst']),
-                    ('move_type', 'not in', ('out_refund', 'in_refund'))]
+                    ('move_type', 'not in', ('out_refund', 'in_refund')),
+                    ('l10n_in_gst_treatment', 'not in', ['overseas'])]
             elif gst_section == 'b2cl':
                 domain += [
                     ('partner_vat', '=', False),
                     ('total', '>', '250000'),
                     ('supply_type', '=', 'Inter State'),
-                    ('journal_id.l10n_in_import_export', '!=', True),
+                    ('l10n_in_gst_treatment', 'not in', ['overseas']),
                     ('move_type', 'not in', ('out_refund', 'in_refund'))]
             elif gst_section == 'b2cs':
                 domain += [
-                    '&', '&', '&', ('partner_vat', '=', False), ('journal_id.l10n_in_import_export', '!=', True), ('move_type', 'not in', ('out_refund', 'in_refund')),
+                    '&', '&', ('partner_vat', '=', False), ('l10n_in_gst_treatment', 'not in', ['overseas']),
                     '|', ('supply_type', '=', 'Intra State'),
                     '&', ('total', '<=', '250000'), ('supply_type', '=', 'Inter State')]
             elif gst_section == 'cdnr':
@@ -306,10 +311,13 @@ class L10nInReportAccount(models.AbstractModel):
             elif gst_section == 'cdnur':
                 domain += [
                     ('partner_vat', '=', False),
-                    ('move_type', 'in', ['out_refund', 'in_refund'])]
+                    ('total', '>', '250000'),
+                    ('supply_type', '=', 'Inter State'),
+                    ('l10n_in_gst_treatment', 'not in', ['overseas']),
+                    ('move_type', 'in', ('out_refund', 'in_refund'))]
             elif gst_section == 'exp':
                 domain += [
-                    ('journal_id.l10n_in_import_export', '=', True),
+                    ('l10n_in_gst_treatment', 'in', ['overseas','special_economic_zone']),
                     ('move_type', 'not in', ('out_refund', 'in_refund'))]
             elif gst_section == 'at':
                 model = 'l10n_in.advances.payment.report'

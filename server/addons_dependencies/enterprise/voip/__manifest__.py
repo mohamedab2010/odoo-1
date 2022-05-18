@@ -11,11 +11,12 @@
 Allows to make call from next activities or with click-to-dial.
     """,
 
-    'category': 'Tools',
+    'category': 'Productivity/VOIP',
+    'sequence': 280,
     'version': '2.0',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mail', 'web', 'phone_validation'],
+    'depends': ['base', 'mail', 'web', 'phone_validation', 'web_mobile'],
 
     # always loaded
     'data': [
@@ -24,12 +25,42 @@ Allows to make call from next activities or with click-to-dial.
         'views/res_partner_views.xml',
         'views/res_users_views.xml',
         'views/voip_phonecall_views.xml',
-        'views/voip_templates.xml',
-        'wizard/voip_phonecall_transfer_wizard_views.xml',
-        'data/mail_activity_data.xml',
     ],
-    'qweb': ['static/src/xml/*.xml'],
     'application': True,
     'license': 'OEEL-1',
-    'uninstall_hook': "uninstall_hook",
+    'assets': {
+        'mail.assets_discuss_public': [
+            'voip/static/src/components/*/*',
+            'voip/static/src/models/*/*.js',
+        ],
+        'web.assets_backend': [
+            'voip/static/lib/sip.js',
+            'voip/static/src/components/*/*.js',
+            'voip/static/src/js/call_center_field.js',
+            'voip/static/src/js/dialing_panel.js',
+            'voip/static/src/js/phone_call.js',
+            'voip/static/src/js/phone_call_activities_tab.js',
+            'voip/static/src/js/phone_call_contacts_tab.js',
+            'voip/static/src/js/phone_call_details.js',
+            'voip/static/src/js/phone_call_recent_tab.js',
+            'voip/static/src/js/phone_call_tab.js',
+            'voip/static/src/js/phone_field.js',
+            'voip/static/src/js/dialing_panel_container.js',
+            'voip/static/src/js/voip_systray_item.js',
+            'voip/static/src/js/voip_service.js',
+            'voip/static/src/js/legacy_compatibility.js',
+            'voip/static/src/js/user_agent.js',
+            'voip/static/src/models/*/*.js',
+            'voip/static/src/scss/call_center_field.scss',
+            'voip/static/src/scss/voip.scss',
+        ],
+        'web.qunit_suite_tests': [
+            'voip/static/src/components/*/tests/*.js',
+            'voip/static/tests/**/*.js',
+        ],
+        'web.assets_qweb': [
+            'voip/static/src/components/*/*.xml',
+            'voip/static/src/xml/*.xml',
+        ],
+    }
 }

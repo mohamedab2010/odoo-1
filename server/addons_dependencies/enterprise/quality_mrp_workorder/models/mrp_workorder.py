@@ -32,12 +32,25 @@ class MrpProductionWorkcenterLine(models.Model):
         old_check_id = self.current_quality_check_id
         result = super(MrpProductionWorkcenterLine, self)._next(continue_production=continue_production)
         if old_check_id.quality_state == 'fail':
-            return old_check_id.show_failure_message()
+            return {
+                'name': _('Quality Check Failed'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'quality.check.wizard',
+                'views': [(self.env.ref('quality_control.quality_check_wizard_form_failure').id, 'form')],
+                'target': 'new',
+                'context': {**self.env.context, **{
+                    'default_check_ids': [old_check_id.id],
+                    'default_current_check_id': old_check_id.id,
+                    'default_test_type': old_check_id.test_type,
+                    'default_failure_message': old_check_id.failure_message,
+                    'default_warning_message': old_check_id.warning_message,
+                }},
+            }
         return result
 
     def button_quality_alert(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
         action['target'] = 'new'
         action['views'] = [(False, 'form')]
         action['context'] = {
@@ -50,3 +63,15 @@ class MrpProductionWorkcenterLine(models.Model):
             'discard_on_footer_button': True,
         }
         return action
+
+    def button_finish(self):
+        """ When using the Done button of the simplified view, validate directly some types of quality checks
+        """
+        for check in self.check_ids:
+            if check.quality_state in ['pass', 'fail']:
+                continue
+            if check.test_type in ['register_consumed_materials', 'register_byproducts', 'instructions']:
+                check.quality_state = 'pass'
+            else:
+                raise UserError(_("You first need to complete the Quality Check using the Tablet View before marking the Operation as Done."))
+        return super().button_finish()

@@ -3,18 +3,18 @@
 # 	* sale_amazon
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Link Up링크업 <linkup.way@gmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# Martin Trigaux, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
+# Link Up링크업 <linkup.way@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:38+0000\n"
-"PO-Revision-Date: 2019-08-26 09:38+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-10-05 11:16+0000\n"
+"PO-Revision-Date: 2021-09-14 12:42+0000\n"
+"Last-Translator: Linkup <link-up@naver.com>, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25,7 +25,8 @@ msgstr ""
 #. module: sale_amazon
 #: model:mail.template,body_html:sale_amazon.order_sync_failure
 msgid ""
-"<p>The synchronization of the Amazon order with reference ${ctx['amazon_order_ref']} encountered an error and was not completed.</p>\n"
+"<div>\n"
+"            <p>The synchronization of the Amazon order with reference <t t-out=\"ctx.get('amazon_order_ref') or ''\">REF</t> encountered an error and was not completed.</p>\n"
 "            <p>Unless the order is canceled in SellerCentral, no other synchronization will be attempted.</p>\n"
 "            <p>To schedule a new synchronization attempt, proceed as follows:\n"
 "                <ol>\n"
@@ -37,21 +38,9 @@ msgid ""
 "                </ol>\n"
 "            </p>\n"
 "            <p>If the problem persists, contact <a href=\"https://www.odoo.com/help/\">Odoo support</a>.</p>\n"
+"        </div>\n"
 "        "
 msgstr ""
-"<p>참조 ${ctx['amazon_order_ref']}와의 Amazon 주문 동기화에 오류가 발생하여 완료되지 않았습니다.</p>\n"
-"            <p>SellerCentral에서 주문이 취소되지 않으면 다른 동기화는 시도되지 않습니다.</p>\n"
-"            <p>새로운 동기화 시도를 예약하려면 다음과 같이 진행하십시오. :\n"
-"                <ol>\n"
-"                    <li>개발자 도구를 입력하십시오.</li>\n"
-"                    <li>주문한 아마존 계정의 양식을 엽니 다.</li>\n"
-"                    <li>주문 후속 탭으로 이동합니다.</li>\n"
-"                    <li>주문의 마지막 상태 업데이트보다 앞선 <em>마지막 주문 동기화</em> 날짜를 설정합니다.</li>\n"
-"                    <li>변경 내용을 저장하고 <em>주문 동기화</em> 버튼을 클릭합니다.</li>\n"
-"                </ol>\n"
-"            </p>\n"
-"            <p>문제가 지속되면  <a href=\"https://www.odoo.com/help/\">Odoo 지원팀</a>에 문의합니다.</p>\n"
-"        "
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_account__name
@@ -64,15 +53,15 @@ msgid "API Identifier"
 msgstr "API 식별자"
 
 #. module: sale_amazon
-#: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__access_key
-msgid "Access Key"
-msgstr "액세스 키"
-
-#. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__account_id
 #: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_search
 msgid "Account"
 msgstr "계정"
+
+#. module: sale_amazon
+#: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_form
+msgid "Account Name"
+msgstr "계정 이름"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__active
@@ -103,11 +92,6 @@ msgstr "아마존 계정"
 #: model_terms:ir.ui.view,arch_db:sale_amazon.res_config_settings_view_form
 msgid "Amazon Accounts"
 msgstr "아마존 계정"
-
-#. module: sale_amazon
-#: model:ir.model.fields,field_description:sale_amazon.field_sale_order__amazon_cancellation_pending
-msgid "Amazon Cancellation Pending"
-msgstr "아마존 취소 보류"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_res_partner__amazon_email
@@ -189,16 +173,31 @@ msgid "Amazon move : %s"
 msgstr "아마존 이동 : %s"
 
 #. module: sale_amazon
+#: code:addons/sale_amazon/models/stock_picking.py:0
+#, python-format
+msgid ""
+"Amazon requires that a tracking reference is provided with each delivery. "
+"Since the current carrier doesn't automatically provide a tracking "
+"reference, you need to set one manually."
+msgstr ""
+
+#. module: sale_amazon
+#: code:addons/sale_amazon/models/stock_picking.py:0
+#, python-format
+msgid ""
+"Amazon requires that a tracking reference is provided with each delivery. "
+"You need to assign a carrier to this delivery."
+msgstr ""
+
+#. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_sale_order_line__amazon_item_ref
 msgid "Amazon-defined item reference"
 msgstr "아마존 정의 아이템 참조"
 
 #. module: sale_amazon
-#: model:ir.actions.server,name:sale_amazon.ir_cron_sync_amazon_cancellations_ir_actions_server
-#: model:ir.cron,cron_name:sale_amazon.ir_cron_sync_amazon_cancellations
-#: model:ir.cron,name:sale_amazon.ir_cron_sync_amazon_cancellations
-msgid "Amazon: sync order cancellations"
-msgstr "아마존 : 동기화 주문 취소"
+#: model:mail.template,name:sale_amazon.order_sync_failure
+msgid "Amazon: Order Synchronization Failure"
+msgstr ""
 
 #. module: sale_amazon
 #: model:ir.actions.server,name:sale_amazon.ir_cron_sync_amazon_orders_ir_actions_server
@@ -226,7 +225,6 @@ msgstr "Amazon ID %s를 가진 주문의 배송을 확인할 때 오류가 발�
 #: code:addons/sale_amazon/models/amazon_account.py:0
 #: code:addons/sale_amazon/models/amazon_account.py:0
 #: code:addons/sale_amazon/models/amazon_account.py:0
-#: code:addons/sale_amazon/models/sale.py:0
 #: code:addons/sale_amazon/models/stock_picking.py:0
 #, python-format
 msgid "An error was encountered when preparing the connection to Amazon."
@@ -245,12 +243,9 @@ msgid "An error was encountered when synchronizing Amazon orders."
 msgstr "Amazon 주문을 동기화할 때 오류가 발생했습니다."
 
 #. module: sale_amazon
-#: code:addons/sale_amazon/models/sale.py:0
-#, python-format
-msgid ""
-"An error was encountered when updating the status of the order with amazon "
-"ref %s."
-msgstr "Amazon Ref %s로 주문 상태를 업데이트 할 때 오류가 발생했습니다."
+#: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__auth_token
+msgid "Authorization Token"
+msgstr "인증토큰"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__available_marketplace_ids
@@ -288,14 +283,14 @@ msgstr "연락처"
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__create_uid
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__create_uid
 msgid "Created by"
-msgstr "작성인"
+msgstr "작성자"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__create_date
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__create_date
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__create_date
 msgid "Created on"
-msgstr "작성일"
+msgstr "작성일자"
 
 #. module: sale_amazon
 #: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_form
@@ -314,7 +309,7 @@ msgstr "기본 제품"
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__display_name
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__display_name
 msgid "Display Name"
-msgstr "표시 이름"
+msgstr "표시명"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__domain
@@ -407,22 +402,17 @@ msgstr "이 계정으로 새로운 마켓 플레이스에 액세스 한 경우 �
 #. module: sale_amazon
 #: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_search
 msgid "Inactive"
-msgstr "비활성화"
+msgstr "비활성"
 
 #. module: sale_amazon
 #: model:ir.model,name:sale_amazon.model_stock_location
 msgid "Inventory Locations"
-msgstr "재고 공간(위치)"
+msgstr "재고 공간"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__is_follow_up_displayed
 msgid "Is Follow Up Displayed"
 msgstr "후속 조치 여부"
-
-#. module: sale_amazon
-#: model:ir.model.fields,help:sale_amazon.field_sale_order__amazon_cancellation_pending
-msgid "Is True if the order cancellation must be notified to Amazon"
-msgstr "주문 취소를 아마존에 알려야 하는 경우 True"
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_stock_picking__amazon_sync_pending
@@ -458,7 +448,7 @@ msgstr "최근 갱신한 사람"
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__write_date
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__write_date
 msgid "Last Updated on"
-msgstr "최근 갱신일"
+msgstr "최근 갱신 일자"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__marketplace_id
@@ -480,6 +470,11 @@ msgstr "멕시코"
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__name
 msgid "Name"
 msgstr "이름"
+
+#. module: sale_amazon
+#: model:amazon.marketplace,name:sale_amazon.marketplace_NL
+msgid "Netherlands"
+msgstr "네덜란드"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__offer_count
@@ -526,13 +521,22 @@ msgstr "주문"
 #: model:ir.model,name:sale_amazon.model_product_product
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__product_id
 msgid "Product"
-msgstr "상품"
+msgstr "품목"
 
 #. module: sale_amazon
 #: model:ir.model,name:sale_amazon.model_product_template
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_offer__product_template_id
 msgid "Product Template"
-msgstr "상품 서식"
+msgstr "품목 양식"
+
+#. module: sale_amazon
+#: code:addons/sale_amazon/models/stock_picking.py:0
+#, python-format
+msgid ""
+"Products delivered to Amazon customers must have their respective parts in "
+"the same package. Operations related to the product %s were not all "
+"confirmed at once."
+msgstr ""
 
 #. module: sale_amazon
 #: model_terms:ir.actions.act_window,help:sale_amazon.list_amazon_account_action
@@ -562,7 +566,7 @@ msgstr "판매 주문"
 #. module: sale_amazon
 #: model:ir.model,name:sale_amazon.model_sale_order_line
 msgid "Sales Order Line"
-msgstr "판매 주문 명세"
+msgstr "판매 주문 내역"
 
 #. module: sale_amazon
 #: model:ir.model,name:sale_amazon.model_crm_team
@@ -574,11 +578,6 @@ msgstr "영업팀"
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__user_id
 msgid "Salesperson"
 msgstr "영업사원"
-
-#. module: sale_amazon
-#: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__secret_key
-msgid "Secret Key"
-msgstr "비밀 키"
 
 #. module: sale_amazon
 #: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_form
@@ -607,18 +606,13 @@ msgstr "스페인"
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__location_id
 msgid "Stock Location"
-msgstr "재고 공간(위치)"
+msgstr "재고 공간"
 
 #. module: sale_amazon
 #: code:addons/sale_amazon/models/amazon_account.py:0
 #, python-format
 msgid "Successfully updated the marketplaces available to this account !"
 msgstr "이 계정으로 이용 가능한 마켓 플레이스를 성공적으로 업데이트했습니다!"
-
-#. module: sale_amazon
-#: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_form
-msgid "Sync Cancellations"
-msgstr "동기화 취소"
 
 #. module: sale_amazon
 #: model:ir.model.fields,field_description:sale_amazon.field_amazon_account__active_marketplace_ids
@@ -639,18 +633,18 @@ msgstr "선별 동기화"
 #. module: sale_amazon
 #: model:mail.template,subject:sale_amazon.order_sync_failure
 msgid ""
-"Synchronization of Amazon order ${ctx.get('amazon_order_ref')} has failed"
-msgstr "아마존 주문 ${ctx.get('amazon_order_ref')}의 동기화에 실패했습니다"
+"Synchronization of Amazon order {{ ctx.get('amazon_order_ref') }} has failed"
+msgstr ""
+
+#. module: sale_amazon
+#: model:ir.model.fields,field_description:sale_amazon.field_amazon_marketplace__tax_included
+msgid "Tax Included"
+msgstr "세금 포함"
 
 #. module: sale_amazon
 #: model_terms:ir.ui.view,arch_db:sale_amazon.amazon_account_view_form
 msgid "Test Credentials"
 msgstr "자격 증명 테스트"
-
-#. module: sale_amazon
-#: model:ir.model.fields,help:sale_amazon.field_amazon_account__access_key
-msgid "The Access Key ID of the Amazon Seller Central account"
-msgstr "Amazon Seller Central 계정의 액세스 키 ID"
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_marketplace__api_ref
@@ -663,19 +657,38 @@ msgid "The Amazon-defined order reference"
 msgstr "아마존 정의 주문 참조"
 
 #. module: sale_amazon
+#: model:ir.model.fields,help:sale_amazon.field_amazon_account__auth_token
+msgid ""
+"The MWS Authorization Token of the Amazon Seller Central account for Odoo"
+msgstr "Odoo 용 Amazon Seller Central 계정의 MWS 인증 토큰"
+
+#. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_account__seller_key
 msgid "The Merchant ID of the Amazon Seller Central account"
 msgstr "Amazon Seller Central 계정의 판매자 ID"
 
 #. module: sale_amazon
+#: code:addons/sale_amazon/models/mws_connector.py:0
+#, python-format
+msgid "The Odoo proxy encountered an internal server error."
+msgstr "Odoo 프록시에 내부 서버 오류가 발생했습니다."
+
+#. module: sale_amazon
+#: code:addons/sale_amazon/models/mws_connector.py:0
+#, python-format
+msgid "The Odoo proxy encountered an unhandled error."
+msgstr "Odoo 프록시에 처리되지 않은 오류가 발생했습니다."
+
+#. module: sale_amazon
+#: code:addons/sale_amazon/models/mws_connector.py:0
+#, python-format
+msgid "The Odoo proxy received a malformed request."
+msgstr "Odoo 프록시가 잘못된 요청을 받았습니다."
+
+#. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_account__team_id
 msgid "The Sales Team assigned to Amazon orders for reporting"
 msgstr "보고를 위해 아마존 주문에 지정된 영업 팀"
-
-#. module: sale_amazon
-#: model:ir.model.fields,help:sale_amazon.field_amazon_account__secret_key
-msgid "The Secret Key of the Amazon Seller Central account"
-msgstr "아마존 셀러 센트럴 계정의 비밀 키"
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_offer__sku
@@ -749,11 +762,25 @@ msgid "The marketplaces this account sells on"
 msgstr "이 계정이 판매되는 마켓 플레이스"
 
 #. module: sale_amazon
+#: code:addons/sale_amazon/models/sale.py:0
+#, python-format
+msgid ""
+"The order has been canceled by the Amazon customer while some products have "
+"already been delivered. Please create a return for this order to adjust the "
+"stock."
+msgstr ""
+
+#. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_account__base_marketplace_id
 msgid ""
 "The original sign-up marketplace of this account. Used for authentication "
 "only."
 msgstr "이 계정의 원래 가입 마켓 플레이스 인증에만 사용됩니다."
+
+#. module: sale_amazon
+#: model:ir.model.fields,help:sale_amazon.field_amazon_marketplace__tax_included
+msgid "The price includes the tax amount"
+msgstr ""
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_amazon_offer__account_id
@@ -780,7 +807,7 @@ msgstr "지정된 Amazon Item Reference에 대해 하나의 판매 주문 내역
 #. module: sale_amazon
 #: model:ir.model,name:sale_amazon.model_stock_picking
 msgid "Transfer"
-msgstr "이동"
+msgstr "전송"
 
 #. module: sale_amazon
 #: model:ir.model.fields,help:sale_amazon.field_stock_location__amazon_location
@@ -827,6 +854,12 @@ msgstr "셀러 센트럴에서 보기"
 #, python-format
 msgid "Warning"
 msgstr "경고"
+
+#. module: sale_amazon
+#: code:addons/sale_amazon/models/mws_connector.py:0
+#, python-format
+msgid "You don't have an active subscription. Please buy one here: %s"
+msgstr "활성 구독이 없습니다. 여기에서 구입하십시오 : %s"
 
 #. module: sale_amazon
 #: code:addons/sale_amazon/models/amazon_account.py:0

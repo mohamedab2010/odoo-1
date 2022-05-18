@@ -3,20 +3,22 @@
 # 	* social_facebook
 # 
 # Translators:
-# Ediz Duman <neps1192@gmail.com>, 2019
-# Martin Trigaux, 2019
-# Gökhan Erdoğdu <gokhan.erdogdu@mechsoft.com.tr>, 2019
-# Umur Akın <umura@projetgrup.com>, 2019
-# Buket Şeker <buket_skr@hotmail.com>, 2019
-# Tugay Hatıl <tugayh@projetgrup.com>, 2020
+# Ediz Duman <neps1192@gmail.com>, 2021
+# Martin Trigaux, 2021
+# Murat Kaplan <muratk@projetgrup.com>, 2021
+# Gökhan Erdoğdu <gokhan.erdogdu@mechsoft.com.tr>, 2021
+# Umur Akın <umura@projetgrup.com>, 2021
+# Nadir Gazioglu <nadirgazioglu@gmail.com>, 2021
+# abc Def <hdogan1974@gmail.com>, 2021
+# Tugay Hatıl <tugayh@projetgrup.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: Tugay Hatıl <tugayh@projetgrup.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Tugay Hatıl <tugayh@projetgrup.com>, 2021\n"
 "Language-Team: Turkish (https://www.transifex.com/odoo/teams/41243/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -45,6 +47,12 @@ msgid "Actual Facebook ID of the post"
 msgstr "Gönderilerin gerçek Facebook ID'si"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "An error occurred."
+msgstr "Bir hata oluştu."
+
+#. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "App ID"
 msgstr "Uygulama ID'si"
@@ -63,6 +71,13 @@ msgid "Author Image"
 msgstr "Üretici Resmi"
 
 #. module: social_facebook
+#: model:ir.model.fields,help:social_facebook.field_res_config_settings__facebook_use_own_account
+msgid ""
+"Check this if you want to use your personal Facebook Developer Account "
+"instead of the provided one."
+msgstr ""
+
+#. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_comments_count
 msgid "Comments"
 msgstr "Yorumlar"
@@ -70,10 +85,11 @@ msgstr "Yorumlar"
 #. module: social_facebook
 #: model:ir.model,name:social_facebook.model_res_config_settings
 msgid "Config Settings"
-msgstr "Konfigürasyon Ayarları"
+msgstr "Yapılandırma Ayarları"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__display_facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__display_facebook_preview
 msgid "Display Facebook Preview"
 msgstr "Facebook Önizlemesini Görüntüle"
 
@@ -145,8 +161,27 @@ msgstr "Facebook Gönderi ID'si"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__facebook_preview
 msgid "Facebook Preview"
 msgstr "Facebook Önizleme"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token or it may have expired."
+msgstr ""
+"Facebook geçerli bir erişim belirteci sağlamadı veya süresi dolmuş olabilir."
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token."
+msgstr "Facebook, geçerli bir erişim belirteci sağlamadı."
+
+#. module: social_facebook
+#: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_is_event_post
+msgid "Is event post"
+msgstr "Etkinlik gönderisi"
 
 #. module: social_facebook
 #. openerp-web
@@ -175,6 +210,16 @@ msgstr "Sayfa Gönderileri"
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
 msgid "Post Image"
 msgstr "Gönderi Resmi"
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid ""
+"Post not found. It could be because the post has been deleted on the Social "
+"Platform."
+msgstr ""
+"Gönderi bulunamadı. Bunun nedeni, gönderinin Sosyal Platform'da silinmiş "
+"olması olabilir."
 
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
@@ -216,6 +261,11 @@ msgid "Social Post"
 msgstr "Sosyal Gönderi"
 
 #. module: social_facebook
+#: model:ir.model,name:social_facebook.model_social_post_template
+msgid "Social Post Template"
+msgstr ""
+
+#. module: social_facebook
 #: model:ir.model,name:social_facebook.model_social_stream
 msgid "Social Stream"
 msgstr "Sosyal Medya Akışı"
@@ -224,6 +274,25 @@ msgstr "Sosyal Medya Akışı"
 #: model:ir.model,name:social_facebook.model_social_stream_post
 msgid "Social Stream Post"
 msgstr "Sosyal Medya Yayını"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "There is no page linked to this account"
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator. "
+msgstr "Yetkisiz. Lütfen yöneticinizle iletişime geçin."
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "Unknown"
+msgstr "Bilinmeyen"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_res_config_settings__facebook_use_own_account
@@ -258,10 +327,26 @@ msgid "Views"
 msgstr "Görünümler"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_live_post.py:0
+#: code:addons/social_facebook/models/social_post.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+
+#. module: social_facebook
 #: code:addons/social_facebook/models/social_media.py:0
 #, python-format
 msgid "You don't have an active subscription. Please buy one here: %s"
-msgstr "Aktif bir aboneliğiniz yok. Lütfen buradan bir tane satın alın: %s"
+msgstr ""
+"Hesap bağlantısı kurulamıyor, lütfen sistem yöneticinize başvurun. Daha "
+"Fazla Bilgi İçin : %s"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.social_stream_post_view_kanban
+msgid "added an event"
+msgstr "bir etkinlik ekledi"
 
 #. module: social_facebook
 #. openerp-web
@@ -269,3 +354,8 @@ msgstr "Aktif bir aboneliğiniz yok. Lütfen buradan bir tane satın alın: %s"
 #, python-format
 msgid "comment/reply"
 msgstr "Yorum / Cevap"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
+msgid "• <i class=\"fa fa-globe\"/>"
+msgstr ""

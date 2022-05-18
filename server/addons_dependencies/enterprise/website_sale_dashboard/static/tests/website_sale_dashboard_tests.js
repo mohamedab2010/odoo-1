@@ -1,39 +1,38 @@
-odoo.define('website_sale_dashboard.website_sale_dashboard_tests', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var testUtils = require('web.test_utils');
-var WebsiteSaleDashboardView = require('website_sale_dashboard.WebsiteSaleDashboardView');
+import { dialogService } from "@web/core/dialog/dialog_service";
+import { makeView } from "@web/../tests/views/helpers";
+import { setupControlPanelServiceRegistry } from "@web/../tests/search/helpers";
+import { registry } from "@web/core/registry";
 
-var createView = testUtils.createView;
+const serviceRegistry = registry.category("services");
 
-QUnit.module('Views', {
-    beforeEach: function () {
-        this.data = {
-            test_report : {
-                fields: {},
-                records: [],
+let serverData;
+QUnit.module("Views", (hooks) => {
+    hooks.beforeEach(async () => {
+        serverData = {
+            models: {
+                test_report : {
+                    fields: {},
+                    records: [],
+                },
             },
         };
-    }
-}, function () {
+        setupControlPanelServiceRegistry();
+        serviceRegistry.add("dialog", dialogService);
+    });
 
     QUnit.module('WebsiteSaleDashboardView');
 
-    QUnit.test('The website sale dashboard view has a "Go to Website" Button', async function (assert) {
+    QUnit.test('basic rendering of the website sale dashboard view', async function (assert) {
         assert.expect(1);
-
-        var dashboard = await createView({
-            View: WebsiteSaleDashboardView,
-            model: 'test_report',
-            data: this.data,
-            arch: '<dashboard js_class="website_sale_dashboard"></dashboard>',
+        const dashboard = await makeView({
+            serverData,
+            resModel: "test_report",
+            type: "dashboard",
+            arch: `<dashboard js_class="website_sale_dashboard"/>`,
         });
-
-        assert.containsOnce(dashboard.$buttons, '.btn-primary[title="Go to Website"]',
+        assert.containsOnce(dashboard.el, '.btn-primary[title="Go to Website"]',
             "the control panel should contain a 'Go to Website' button");
-
-        dashboard.destroy();
     });
-});
-
 });

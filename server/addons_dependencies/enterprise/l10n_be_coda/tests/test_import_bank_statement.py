@@ -4,57 +4,53 @@
 # Copyright (c) 2012 Noviat nv/sa (www.noviat.be). All rights reserved.
 import base64
 
-from odoo.addons.account.tests.account_test_classes import AccountingTestCase
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.modules.module import get_module_resource
 from odoo.tests import tagged
-from odoo.tools import convert_file, float_compare
 
 
-@tagged('post_install', '-at_install')
-class TestCodaFile(AccountingTestCase):
-    """Tests for import bank statement coda file format (account.bank.statement.import)
-    """
-    def _load(self, module, *args):
-        convert_file(self.cr, 'account',
-                           get_module_resource(module, *args),
-                           {}, 'init', False, 'test', self.registry._assertion_report)
+@tagged('post_install_l10n', 'post_install', '-at_install')
+class TestCodaFile(AccountTestInvoicingCommon):
 
-    def setUp(self):
-        super(TestCodaFile, self).setUp()
-        self._load('account', 'test', 'account_minimal_test.xml')
+    @classmethod
+    def setUpClass(cls, chart_template_ref='l10n_be.l10nbe_chart_template'):
+        super().setUpClass(chart_template_ref=chart_template_ref)
 
-        self.statement_import_model = self.env['account.bank.statement.import']
-        self.bank_statement_model = self.env['account.bank.statement']
+        cls.bank_journal = cls.company_data['default_journal_bank']
+
         coda_file_path = get_module_resource('l10n_be_coda', 'test_coda_file', 'Ontvangen_CODA.2013-01-11-18.59.15.txt')
-        self.coda_file = base64.b64encode(open(coda_file_path, 'rb').read())
-        self.env['account.journal'].browse(self.ref('account.bank_journal')).currency_id = self.env['res.currency'].search([('name', '=', 'EUR')], limit=1).id
-        self.context = {
-            'journal_id': self.ref('account.bank_journal')
-        }
-        self.bank_statement = self.statement_import_model.create({'attachment_ids': [(0, 0, {
-            'name': 'test file',
-            'datas': self.coda_file,
-        })]
-        })
+        cls.coda_file = base64.b64encode(open(coda_file_path, 'rb').read())
+
+        cls.statement_import_model = cls.env['account.bank.statement.import']
+        cls.bank_statement_model = cls.env['account.bank.statement']
 
     def test_coda_file_import(self):
-        self.bank_statement.with_context(self.context).import_file()
-        bank_st_record = self.bank_statement_model.search([('name', '=', '135')], limit=1)
-        self.assertEqual(float_compare(bank_st_record.balance_start, 11812.70, precision_digits=2), 0)
-        self.assertEqual(float_compare(bank_st_record.balance_end_real, 13646.05, precision_digits=2), 0)
+        self.env['account.bank.statement.import']\
+            .with_context(journal_id=self.company_data['default_journal_bank'].id)\
+            .create({'attachment_ids': [(0, 0, {'name': 'test file', 'datas': self.coda_file})]})\
+            .import_file()
+
+        imported_statement = self.env['account.bank.statement'].search([('company_id', '=', self.env.company.id)])
+        self.assertRecordValues(imported_statement, [{
+            'balance_start': 11812.70,
+            'balance_end_real': 13646.05,
+        }])
 
     def test_coda_file_import_twice(self):
-        self.bank_statement.with_context(self.context).import_file()
+        self.env['account.bank.statement.import']\
+            .with_context(journal_id=self.company_data['default_journal_bank'].id)\
+            .create({'attachment_ids': [(0, 0, {'name': 'test file', 'datas': self.coda_file})]})\
+            .import_file()
+
         with self.assertRaises(Exception):
-            self.statement_import_model.with_context(self.context).import_file([self.bank_statement_id])
+            self.env['account.bank.statement.import']\
+                .with_context(journal_id=self.company_data['default_journal_bank'].id)\
+                .create({'attachment_ids': [(0, 0, {'name': 'test file', 'datas': self.coda_file})]})\
+                .import_file()
 
     def test_coda_file_wrong_journal(self):
-        """ The demo account used by the CODA file is linked to the demo bank_journal """
-        bank_statement_id = self.statement_import_model.create({'attachment_ids': [(0, 0, {
-            'name': 'test file',
-            'datas': self.coda_file,
-        })]
-        })
-        self.context['journal_id'] = self.ref('account.miscellaneous_journal')
         with self.assertRaises(Exception):
-            self.statement_import_model.with_context(self.context).import_file([bank_statement_id])
+            self.env['account.bank.statement.import']\
+                .with_context(journal_id=self.company_data['default_journal_misc'].id)\
+                .create({'attachment_ids': [(0, 0, {'name': 'test file', 'datas': self.coda_file})]})\
+                .import_file()

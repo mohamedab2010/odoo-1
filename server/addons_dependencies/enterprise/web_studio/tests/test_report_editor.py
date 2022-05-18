@@ -1,7 +1,16 @@
+from odoo.addons.web_studio.controllers.main import WebStudioController
+from odoo.http import _request_stack
 from odoo.tests.common import TransactionCase
+from odoo.tools import DotDict
 
 
 class TestReportEditor(TransactionCase):
+
+    def setUp(self):
+        super(TestReportEditor, self).setUp()
+        self.session = DotDict({'debug': False})
+        _request_stack.push(self)
+        self.WebStudioController = WebStudioController()
 
     def test_copy_inherit_report(self):
         report = self.env['ir.actions.report'].create({
@@ -43,7 +52,7 @@ class TestReportEditor(TransactionCase):
         })
 
         # check original report render to expected output
-        report_html = report.render_template(report.report_name).decode('utf-8')
+        report_html = report._render_template(report.report_name).decode()
         self.assertEqual(''.join(report_html.split()), 'hi!hi!!')
 
         # duplicate original report
@@ -53,7 +62,7 @@ class TestReportEditor(TransactionCase):
         ])
 
         # check duplicated report render to expected output
-        copy_report_html = copy_report.render_template(copy_report.report_name).decode('utf-8')
+        copy_report_html = copy_report._render_template(copy_report.report_name).decode()
         self.assertEqual(''.join(copy_report_html.split()), 'hi!hi!!')
 
         # check that duplicated view is inheritance combination of original view
@@ -105,7 +114,7 @@ class TestReportEditor(TransactionCase):
             ''' % copy1.report_name,})
 
         # Assert the duplicated view renders "bar" then unlink the report
-        copy1_html = copy1.render_template(copy1.report_name).decode('utf-8')
+        copy1_html = copy1._render_template(copy1.report_name).decode()
         self.assertEqual(''.join(copy1_html.split()), 'bar')
         copy1.unlink()
 
@@ -113,7 +122,7 @@ class TestReportEditor(TransactionCase):
         report.copy_report_and_template()
         copy2 = self.env['ir.actions.report'].search(duplicate_domain)
         copy2.ensure_one()
-        copy2_html = copy2.render_template(copy2.report_name).decode('utf-8')
+        copy2_html = copy2._render_template(copy2.report_name).decode()
         self.assertEqual(''.join(copy2_html.split()), 'foo')
 
     def test_copy_custom_model_rendering(self):
@@ -142,6 +151,7 @@ class TestReportEditor(TransactionCase):
             'model': 'res.users',
         }).with_context(load_all_views=True)
 
+        self.env.ref('base.lang_fr').active = True
         views = report.env['ir.ui.view']
         views += create_view("a_")
         root = views[-1]
@@ -154,6 +164,12 @@ class TestReportEditor(TransactionCase):
         views += create_view("abb", inherit_id=target.id, mode="primary")
 
         self.env['ir.translation'].insert_missing(views._fields['arch_db'], views)
+        fr_translations = self.env['ir.translation'].search([
+            ('name', '=', 'ir.ui.view,arch_db'), ('res_id', 'in', views.ids), ('lang', '=', 'fr_FR')
+        ])
+        self.assertEqual(len(fr_translations), len(views) + 2)  # +2 for aba
+        for trans in fr_translations:
+            trans.value = "%s in fr" % trans.src
 
         combined_arch = '<div>a_<div>ab</div><div>a_</div>aba<div>ab</div></div>'
         self.assertEqual(target._read_template(target.id), combined_arch)
@@ -167,7 +183,34 @@ class TestReportEditor(TransactionCase):
 
         # translations of combined views have been copied to the new view
         translations = self.env['ir.translation'].search([
-            ('name', '=', 'ir.ui.view,arch_db'), ('res_id', '=', copy_view.id)
+            ('name', '=', 'ir.ui.view,arch_db'), ('res_id', '=', copy_view.id), ('lang', '=', 'fr_FR')
         ])
         self.assertEqual(len(translations), 3)
         self.assertEqual(set(translations.mapped('src')), set(['a_', 'ab', 'aba']))
+
+    def test_report_action_translations(self):
+        self.env['ir.actions.report'].create({
+            'name': 'test report in translations',
+            'report_name': 'web_studio.test_report_action_translations',
+            'model': 'res.users',
+        })
+        view = self.env['ir.ui.view'].create({
+            'type': 'qweb',
+            'name': 'test_report_action_translations_view',
+            'key': 'web_studio.test_report_action_translations_view',
+            'arch': '<div>hello test</div>',
+        })
+
+        model = self.env['ir.model'].search([('model', '=', 'res.users')], limit=1)
+        action = self.WebStudioController._get_studio_action_translations(model)
+
+        view_ids = next((leaf[2] for leaf in action['domain'] if leaf[0] == 'res_id'), [])
+        self.assertIn(view.id, view_ids)
+
+        translations = self.env['ir.translation'].search_read(action['domain'], ['src'])
+        translation = next(trans for trans in translations if trans["src"] == "hello test")
+        self.assertTrue(translation, 'report translations should shown in "Translations" action')
+
+    def tearDown(self):
+        super(TestReportEditor, self).tearDown()
+        _request_stack.pop()

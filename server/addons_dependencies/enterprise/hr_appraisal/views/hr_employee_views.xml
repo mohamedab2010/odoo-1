@@ -5,53 +5,58 @@
         <field name="model">hr.employee</field>
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
-        <xpath expr="//button[@name='%(hr.plan_wizard_action)d']" position="before">
-            <button name="action_send_appraisal_request"
-                string="Request Appraisal"
-                type="object"
-                class="btn btn-primary" attrs="{'invisible': &quot;[('parent_user_id', '!=', uid)]&quot;}"/>
-        </xpath>
-        <div name="button_box" position="inside">
-            <button name="%(open_view_hr_appraisal_tree2)d"
-                class="oe_stat_button"
-                icon="fa-star-half-o"
-                type="action"
-                >
-                <div class="o_field_widget o_stat_info">
-                    <span class="o_stat_value">
-                        <field name="appraisal_date" readonly="1"/>
-                    </span>
-                    <span class="o_stat_text">
-                        <span attrs="{'invisible': [('appraisal_date', '=', False)]}">Next</span> Appraisal
-                    </span>
-                </div>
-            </button>
-        </div>
-        <xpath expr="//page[@name='hr_settings']" position="inside">
-            <field name="parent_user_id" invisible="1"/>
-            <group string="Send Appraisals Form To" col="4">
-                <field name="appraisal_by_manager"/>
-                <field name="appraisal_manager_ids" nolabel="1" placeholder="Select Appraisal Reviewer..."
-                    widget="many2many_tags" options="{'color_field': 'color'}"
-                    attrs="{'required': [('appraisal_by_manager','=',True)], 'invisible':[('appraisal_by_manager','=',False)]}"
-                    readonly="0"/>
-
-                <field name="appraisal_self"/>
-                <field name="appraisal_employee" nolabel="1" attrs="{'invisible':[('appraisal_self','=',False)]}"/>
-
-                <field name="appraisal_by_collaborators"/>
-                <field name="appraisal_collaborators_ids" nolabel="1" placeholder="Select Appraisal Reviewer..."
-                    widget="many2many_tags" options="{'color_field': 'color'}"
-                    attrs="{'required': [('appraisal_by_collaborators','=',True)], 'invisible':[('appraisal_by_collaborators','=',False)]}"/>
-
-                <field name="appraisal_by_colleagues"/>
-                <field name="appraisal_colleagues_ids" nolabel="1" placeholder="Select Appraisal Reviewer..."
-                    widget="many2many_tags" options="{'color_field': 'color'}"
-                    attrs="{'required': [('appraisal_by_colleagues','=',True)], 'invisible':[('appraisal_by_colleagues','=',False)]}"
-                    readonly="0"/>
-                <field name="appraisal_date_related"/>
+            <xpath expr="//button[@name='%(hr.plan_wizard_action)d']" position="before">
+                <button name="action_send_appraisal_request"
+                    string="Request Appraisal"
+                    type="object"
+                    data-hotkey="g"
+                    groups="!hr_appraisal.group_hr_appraisal_user"
+                    class="btn btn-primary" attrs="{'invisible': &quot;[('parent_user_id', '!=', uid)]&quot;}"/>
+                <button name="action_send_appraisal_request"
+                    string="Request Appraisal"
+                    type="object"
+                    data-hotkey="g"
+                    groups="hr_appraisal.group_hr_appraisal_user"
+                    class="btn btn-primary"/>
+            </xpath>
+            <div name="button_box" position="inside">
+                <field name="appraisal_count" invisible="1"/>
+                <button name="action_open_last_appraisal"
+                    class="oe_stat_button" attrs="{'invisible': [('last_appraisal_id', '=', False)]}"
+                    icon="fa-star-half-o"
+                    type="object"
+                    >
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="last_appraisal_date" readonly="1"/>
+                        </span>
+                        <span class="o_stat_text">
+                            Last Appraisal
+                        </span>
+                    </div>
+                </button>
+            </div>
+            <group name="application_group" position="attributes">
+                <attribute name="string">Application Settings</attribute>
             </group>
-        </xpath>
+            <group name="application_group" position="inside">
+                <field name="parent_user_id" invisible="1"/>
+                <field name="next_appraisal_date" groups="base.group_no_one"/>
+                <field name="last_appraisal_id" invisible="1"/>
+            </group>
+        </field>
+    </record>
+
+    <record model="ir.actions.server" id="action_create_multi_appraisals">
+        <field name="name">Request Appraisals</field>
+        <field name="sequence">6</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="groups_id" eval="[(4, ref('hr_appraisal.group_hr_appraisal_user'))]"/>
+        <field name="code">
+             action = model._create_multi_appraisals()
         </field>
     </record>
 </odoo>

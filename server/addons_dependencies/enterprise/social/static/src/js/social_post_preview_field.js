@@ -1,20 +1,20 @@
-odoo.define('social.form_field_post_preview', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var FieldHtml = require('web_editor.field.html');
-var fieldRegistry = require('web.field_registry');
-var SocialEmojisMixin = require('social.emoji_mixin');
+import FieldHtml from 'web_editor.field.html';
+import fieldRegistry from 'web.field_registry';
+import MailEmojisMixin from '@mail/js/emojis_mixin';
+import SocialPostFormatterMixin from 'social.post_formatter_mixin';
 
 /**
  * Simple FieldHtml extension that will just wrap the emojis correctly.
- * See 'SocialEmojisMixin' documentation for more information.
+ * See 'MailEmojisMixin' documentation for more information.
  */
-var FieldPostPreview = FieldHtml.extend(SocialEmojisMixin, {
+var FieldPostPreview = FieldHtml.extend(MailEmojisMixin, SocialPostFormatterMixin, {
     _textToHtml: function (text) {
         var html = this._super.apply(this, arguments);
         var $html = $(html);
         var $previewMessage = $html.find('.o_social_preview_message');
-        $previewMessage.html(this._formatText($previewMessage.text().trim()));
+        $previewMessage.html(this._formatPost($previewMessage.text().trim()));
 
         return $html[0].outerHTML;
     }
@@ -22,6 +22,4 @@ var FieldPostPreview = FieldHtml.extend(SocialEmojisMixin, {
 
 fieldRegistry.add('social_post_preview', FieldPostPreview);
 
-return FieldPostPreview;
-
-});
+export default FieldPostPreview;

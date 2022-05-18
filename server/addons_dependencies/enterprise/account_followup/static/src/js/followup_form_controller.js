@@ -22,6 +22,7 @@ var FollowupFormController = FormController.extend({
         on_change_block: '_onChangeBlocked',
         on_change_trust: '_onChangeTrust',
         on_save_summary: '_onSaveSummary',
+        on_save_email_subject: '_onSaveEmailSubject',
         on_trigger_action: '_onTriggerAction'
     }),
     /**
@@ -31,7 +32,7 @@ var FollowupFormController = FormController.extend({
         this._super.apply(this, arguments);
         // force refresh search view on subsequent navigation
         delete this.searchView;
-        this.hasSidebar = false;
+        this.hasActionMenus = false;
     },
 
     //--------------------------------------------------------------------------
@@ -44,7 +45,39 @@ var FollowupFormController = FormController.extend({
         this.$buttons = $(QWeb.render("CustomerStatements.buttons", {
             widget: this
         }));
-        this.$buttons.appendTo($node);
+        if ($node) {
+            this.$buttons.appendTo($node);
+        }
+    },
+    /**
+     * Update the buttons according to followup_level.
+     *
+     * @override
+     */
+    updateButtons: function () {
+        let setButtonClass = (button, primary) => {
+            /* Set class 'btn-primary' if parameter `primary` is true
+             * 'btn-secondary' otherwise
+             */
+            let addedClass = primary ? 'btn-primary' : 'btn-secondary'
+            let removedClass = !primary ? 'btn-secondary' : 'btn-primary'
+            this.$buttons.find(`button.${button}`)
+                .removeClass(removedClass).addClass(addedClass);
+        }
+        if (!this.$buttons) {
+            return;
+        }
+        var followupLevel = this.model.localData[this.handle].data.followup_level;
+        setButtonClass('o_account_followup_print_letter_button', followupLevel.print_letter)
+        setButtonClass('o_account_followup_send_mail_button', followupLevel.send_email)
+        setButtonClass('o_account_followup_send_sms_button', followupLevel.send_sms)
+        if (followupLevel.manual_action) {
+            this.$buttons.find('button.o_account_followup_manual_action_button')
+                .html(followupLevel.manual_action_note);
+            setButtonClass('o_account_followup_manual_action_button', !followupLevel.manual_action_done)
+        } else {
+            this.$buttons.find('button.o_account_followup_manual_action_button').hide();
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -65,6 +98,7 @@ var FollowupFormController = FormController.extend({
                 type: 'rainbow_man',
                 fadeout: 'no',
                 message: message,
+                messageIsHtml: true,
             });
         }
     },
@@ -91,6 +125,9 @@ var FollowupFormController = FormController.extend({
         this.update(params);
         this.$buttons.find('button.o_account_followup_done_button').hide();
         this._checkDone();
+    },
+    _getPartner() {
+        return this.model.get(this.handle, {raw: true}).res_id;
     },
     /**
      * Remove the highlight on Send Email button.
@@ -120,38 +157,11 @@ var FollowupFormController = FormController.extend({
             .removeClass('btn-primary').addClass('btn-secondary');
     },
     /**
-     * @override
-     * @private
-     */
-    _update: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function () {
-            self._updateSearchView();
-            self._updateButtons();
-        });
-    },
-    /**
-     * Update the pager with the progress of the follow-ups.
-     *
-     * @private
-     * @override
-     */
-    _updatePager: function () {
-        if (this.pager) {
-            var progressInfo = this.model.getProgressInfos();
-            this.pager.updateState({
-                current_min: progressInfo.currentElementIndex + 1,
-                size: progressInfo.numberTodo,
-            });
-            this.pager.do_toggle(true);
-        }
-    },
-    /**
-     * Replace the search view with a progress bar.
+     * Render the custom search view.
      *
      * @private
      */
-    _updateSearchView: function () {
+    _renderSearchView: function () {
         var progressInfo = this.model.getProgressInfos();
         var total = progressInfo.numberDone + progressInfo.numberTodo;
         this.$searchview = $(QWeb.render("CustomerStatements.followupProgressbar", {
@@ -159,46 +169,30 @@ var FollowupFormController = FormController.extend({
             max: progressInfo.numberDone + progressInfo.numberTodo,
             percent: (progressInfo.numberDone / total * 100),
         }));
-        this.updateControlPanel({
-            cp_content: {
-                $searchview: this.$searchview,
-            }}, {
-            clear: false,
+    },
+    /**
+     * Update the pager with the progress of the follow-ups.
+     *
+     * @private
+     * @override
+     */
+    _updatePaging: function () {
+        const { currentElementIndex, numberTodo } = this.model.getProgressInfos();
+        const state = this.model.get();
+        return this._super(state, {
+            currentMinimum: currentElementIndex + 1,
+            size: numberTodo,
         });
     },
     /**
-     * Update the buttons according to followup_level.
+     * Replace the search view with a progress bar.
      *
-     * @private
+     * @override
      */
-    _updateButtons: function () {
-        let setButtonClass = (button, primary) => {
-            /* Set class 'btn-primary' if parameter `primary` is true
-             * 'btn-secondary' otherwise
-             */
-            let addedClass = primary ? 'btn-primary' : 'btn-secondary'
-            let removedClass = !primary ? 'btn-secondary' : 'btn-primary'
-            this.$buttons.find(`button.${button}`)
-                .removeClass(removedClass).addClass(addedClass);
-        }
-        if (!this.$buttons) {
-            return;
-        }
-        var followupLevel = this.model.localData[this.handle].data.followup_level;
-        setButtonClass('o_account_followup_print_letter_button', followupLevel.print_letter)
-        setButtonClass('o_account_followup_send_mail_button', followupLevel.send_email)
-        setButtonClass('o_account_followup_send_sms_button', followupLevel.send_sms)
-        if (followupLevel.manual_action) {
-            this.$buttons.find('button.o_account_followup_manual_action_button')
-                .html(followupLevel.manual_action_note);
-            setButtonClass('o_account_followup_manual_action_button', !followupLevel.manual_action_done)
-        } else {
-            this.$buttons.find('button.o_account_followup_manual_action_button').hide();
-        }
-    },
-
-    _getPartner() {
-        return this.model.get(this.handle, {raw: true}).res_id;
+    _updateControlPanelProps: function () {
+        this._super.apply(this, arguments);
+        this._renderSearchView();
+        this.controlPanelProps.cp_content.$searchview = this.$searchview;
     },
 
     //--------------------------------------------------------------------------
@@ -348,11 +342,6 @@ var FollowupFormController = FormController.extend({
             args: [options]
         })
         .then(function () {
-            self.renderer.chatter.trigger_up('reload_mail_fields', {
-                activity: true,
-                thread: true,
-                followers: true
-            });
             self._displayDone();
         });
     },
@@ -370,6 +359,19 @@ var FollowupFormController = FormController.extend({
         });
     },
     /**
+     * When the user save the title, we have to write it in DB.
+     *
+     * @private
+     * @param {OdooEvent} event
+     */
+    _onSaveEmailSubject: function (event) {
+        var self = this;
+        var text = event.data.text;
+        this.model.saveEmailSubject(this.handle, text).then(function (){
+            self.renderer.renderSavedEmailSubject(text);
+        });
+    },
+    /**
      * Send the mail server-side.
      *
      * @private
@@ -379,6 +381,7 @@ var FollowupFormController = FormController.extend({
         this.model.doSendMail(this.handle);
         this.options = {
             partner_id: this._getPartner(),
+            keep_summary: true,
         };
         this._rpc({
             model: 'account.followup.report',

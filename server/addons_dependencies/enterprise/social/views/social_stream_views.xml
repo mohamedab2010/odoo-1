@@ -8,10 +8,10 @@
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
-            Add a stream
+            No Social Streams yet!
           </p>
           <p>
-            Add stream to your dashboard to monitor your social media.
+            Go to the <a href="/web#action=social.action_social_stream_post">dashboard</a> to link your accounts and start posting.
           </p>
         </field>
     </record>
@@ -28,6 +28,7 @@
                 <field name="media_id" />
                 <field name="name" />
                 <field name="stream_type_id" />
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -45,6 +46,7 @@
                                 readonly="1"
                                 domain="[('media_id', '=', media_id)]"
                                 options="{'no_create': True, 'no_open': True}" />
+                            <field name="company_id" groups="base.group_multi_company"/>
                             <field name="stream_type_type" invisible="1" />
                             <field name="stream_type_id"
                                 widget="radio"
@@ -57,6 +59,19 @@
                     </group>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <record id="social_stream_view_search" model="ir.ui.view">
+        <field name="name">social.stream.view.search</field>
+        <field name="model">social.stream</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <group expand="1" string="Group By">
+                    <filter string="Company" name="filter_company_id" groups="base.group_multi_company" context="{'group_by':'company_id'}"/>
+                </group>
+            </search>
         </field>
     </record>
 </data>

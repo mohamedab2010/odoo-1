@@ -12,6 +12,7 @@
                     <div class="col-12 col-lg-6 o_setting_box">
                         <div class="o_setting_right_pane">
                             <span class="o_form_label">eBay Account</span>
+                            <a href="https://www.odoo.com/documentation/15.0/applications/sales/sales/ebay_connector/setup.html" title="Documentation" class="o_doc_link" target="_blank"></a>
                             <div class="text-muted">
                                 Mode and credentials
                             </div>
@@ -57,6 +58,23 @@
                     </div>
                     <div class="col-12 col-lg-6 o_setting_box">
                         <div class="o_setting_right_pane">
+                            <span class="o_form_label">eBay Marketplace Account Deletion/Closure Notifications</span>
+                            <div class="text-muted">
+                                eBay requires supporting customer account deletion/closure notifications.
+                                Please follow the <a href="https://www.odoo.com/r/MEb">eBay documentation</a>
+                                to setup this mechanism.
+                            </div>
+                            <label for="ebay_account_deletion_endpoint"/>
+                            <field name="ebay_account_deletion_endpoint" widget="CopyClipboardChar"/>
+                            <label for="ebay_verification_token"/>
+                            <button
+                                name="action_reset_token" type="object"
+                                string="Generate Token" class="oe_inline"/>
+                            <field name="ebay_verification_token" widget="CopyClipboardChar"/>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_right_pane">
                             <span class="o_form_label">eBay Options</span>
                             <div class="text-muted">
                                 eBay parameters
@@ -69,7 +87,7 @@
                                 <div class="row">
                                     <label for="ebay_currency" string="Currency" class="col-lg-4 o_light_label"/>
                                     <field name="ebay_currency" class="col-lg-8 oe_inline"/>
-                                    <button name="%(base.action_currency_all_form)d" icon="fa-arrow-right" type="action"
+                                    <button name="%(base.action_currency_form)d" icon="fa-arrow-right" type="action"
                                             string="Activate Other Currencies" style="margin-left: 150px;" class="btn-link"/>
                                 </div>
                                 <div class="row">
@@ -125,9 +143,6 @@
                                 <div class="row mt8">
                                     <div class="col-lg-6" title="Sync now">
                                         <button name="sync_policies" icon="fa-lg fa-refresh" type="object" string="Policies" class="btn-link"></button>
-                                    </div>
-                                    <div class="col-lg-6" title="Sync now">
-                                        <button name="button_sync_product_status" icon="fa-lg fa-refresh" type="object" string="Products &amp; Transactions" class="btn-link"></button>
                                     </div>
                                 </div>
                             </div>

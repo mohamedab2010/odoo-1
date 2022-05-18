@@ -4,7 +4,7 @@
 {
     'name': 'Belgian Registered Cash Register',
     'version': '1.0',
-    'category': 'Sales/Point Of Sale',
+    'category': 'Sales/Point of Sale',
     'sequence': 6,
     'summary': 'Implements the registered cash system, adhering to guidelines by FPS Finance.',
     'description': """
@@ -26,21 +26,25 @@ An obfuscated and certified version of the pos_blackbox_be may be provided on
 requests for on-premise installations.
 No modified version is certified and supported by Odoo SA.
     """,
-    'depends': ['pos_restaurant', 'l10n_be', 'web_enterprise', 'pos_iot'],
+    'depends': ['pos_restaurant_iot', 'l10n_be', 'web_enterprise'],
     'data': [
         'security/pos_blackbox_be_security.xml',
         'security/ir.model.access.csv',
         'views/pos_blackbox_be_views.xml',
-        'views/pos_blackbox_be_assets.xml',
         'data/pos_blackbox_be_data.xml'
     ],
     'demo': [
         'data/pos_blackbox_be_demo.xml',
     ],
-    'qweb': [
-        'static/src/xml/pos_blackbox_be.xml'
-    ],
     'installable': False,
     'auto_install': False,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_qweb': [
+            'pos_blackbox_be/static/src/xml/**/*',
+        ],
+        'point_of_sale.assets': [
+            'pos_blackbox_be/static/src/js/**/*',
+        ],
+    }
 }

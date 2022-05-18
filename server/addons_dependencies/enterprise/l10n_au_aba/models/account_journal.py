@@ -41,18 +41,7 @@ class AccountJournal(models.Model):
                 raise ValidationError(_('User number is not valid (expected format is "NNNNNN", only digits). Please check with your Financial Institution'))
 
     def _default_outbound_payment_methods(self):
-        methods = super(AccountJournal, self)._default_outbound_payment_methods()
-        return methods + self.env.ref('l10n_au_aba.account_payment_method_aba_ct')
-
-    @api.model
-    def _enable_aba_ct_on_bank_journals(self):
-        """ Enables aba credit transfer payment method on bank journals. Called upon module installation via data file.
-        """
-        aba_ct = self.env.ref('l10n_au_aba.account_payment_method_aba_ct')
-        aud = self.env.ref('base.AUD')
-        if self.env.company.currency_id == aud:
-            domain = ['&', ('type', '=', 'bank'), '|', ('currency_id', '=', aud.id), ('currency_id', '=', False)]
-        else:
-            domain = ['&', ('type', '=', 'bank'), ('currency_id', '=', aud.id)]
-        for bank_journal in self.search(domain):
-            bank_journal.write({'outbound_payment_method_ids': [(4, aba_ct.id, None)]})
+        res = super()._default_outbound_payment_methods()
+        if self._is_payment_method_available('aba_ct'):
+            res |= self.env.ref('l10n_au_aba.account_payment_method_aba_ct')
+        return res

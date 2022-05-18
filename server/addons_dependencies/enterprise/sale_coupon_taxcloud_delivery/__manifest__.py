@@ -6,7 +6,7 @@
     'description': """
     Manage discounts with deliveries in taxclouds computations.
     This module follows the same logic as "Account Taxcloud - Sale (coupon)".
-    More information can be found there on how dicount computations are made for TaxCloud.
+    More information can be found there on how discount computations are made for TaxCloud.
 
     There is an added option for discount (free shipping) on deliveries.
     With Sale coupon delivery, the discount computation does not apply on delivery lines.

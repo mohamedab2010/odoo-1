@@ -3,25 +3,16 @@
 # 	* hr_referral
 # 
 # Translators:
-# Pedro M. Baeza <pedro.baeza@gmail.com>, 2019
-# Rick Hunter <rick_hunter_ec@yahoo.com>, 2019
-# Luis M. Ontalba <luis.martinez@tecnativa.com>, 2019
-# Carlos rodriguez <carlosalbertor436@gmail.com>, 2019
-# Nicolás Broggi <rnbroggi@gmail.com>, 2019
-# Cristopher Cravioto <ccr@odoo.com>, 2019
-# Mariana Santos Romo <msn@odoo.com>, 2019
-# VivianMontana23 <vivianpvm@gmail.com>, 2019
-# Jesse Garza <jga@odoo.com>, 2019
-# Martin Trigaux, 2019
-# Jon Perez <jop@odoo.com>, 2020
+# Martin Trigaux, 2021
+# marcescu, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:36+0000\n"
-"Last-Translator: Jon Perez <jop@odoo.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 10:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:40+0000\n"
+"Last-Translator: marcescu, 2022\n"
 "Language-Team: Spanish (https://www.transifex.com/odoo/teams/41243/es/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,9 +21,46 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. module: hr_referral
+#: code:addons/hr_referral/models/hr_applicant.py:0
+#, python-format
+msgid ""
+" You've gained %(gained)s points with this progress.<br/>It makes you a new "
+"total of %(total)s points. Visit <a href=\"%(url)s\">this link</a> to pick a"
+" gift!"
+msgstr ""
+"Ganó %(gained)s puntos con este progreso. <br/>Ahora tiene un total nuevo de"
+" %(total)s puntos. Visite <a href=\"%(url)s\">este link</a> para elegir un "
+"regalo!"
+
+#. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_recruitment_report__referral_hired
+msgid "# Hired by Referral"
+msgstr "# Contratado por recomendación"
+
+#. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
 msgid "<b>Responsible: </b>"
 msgstr "<b>Responsable:</b>"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
+msgid "<i class=\"fa fa-check mr-2\" title=\"Hired\"/>"
+msgstr "<i class=\"fa fa-check mr-2\" title=\"Hired\"/>"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
+msgid "<i class=\"fa fa-square-o\" title=\"Open\"/>"
+msgstr "<i class=\"fa fa-square-o\" title=\"Open\"/>"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
+msgid "<i class=\"text-danger fa fa-times\" title=\"Closed\"/>"
+msgstr "<i class=\"text-danger fa fa-times\" title=\"Closed\"/>"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
+msgid "<i class=\"text-success fa fa-check\" title=\"Done\"/>"
+msgstr "<i class=\"text-success fa fa-check\" title=\"Done\"/>"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_level_form
@@ -48,8 +76,8 @@ msgid ""
 "                                </span>"
 msgstr ""
 "<span class=\"o_stat_text\">\n"
-"Otorgado(s)\n"
-"</span>"
+"                                    Otorgado\n"
+"                                    </span>"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
@@ -80,12 +108,23 @@ msgid "<span title=\"Send by Mail\">Refer Friend</span>"
 msgstr "<span title=\"Send by Mail\">Recomendar un amigo</span>"
 
 #. module: hr_referral
+#: code:addons/hr_referral/wizard/hr_referral_alert_mail_wizard.py:0
+#, python-format
+msgid ""
+"A new alert has been added to the Referrals app! Check your <a "
+"href=%(url)s>dashboard</a> now!"
+msgstr ""
+"¡Se agregó una alerta nueva en la aplicación de Referencias! !Revise su <a "
+"href=%(url)s>tablero</a> ahora!"
+
+#. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_needaction
 msgid "Action Needed"
 msgstr "Acción requerida"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__active
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__active
 msgid "Active"
 msgstr "Activo"
 
@@ -97,12 +136,17 @@ msgstr "Actividades"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_exception_decoration
 msgid "Activity Exception Decoration"
-msgstr "Decoración de Actividad  de Excepción"
+msgstr "Decoración de actividad  de excepción"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_state
 msgid "Activity State"
 msgstr "Estado de la actividad"
+
+#. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "Ícono de tipo de actvidad"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__name
@@ -112,7 +156,7 @@ msgstr "Alerta"
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_alert
 msgid "Alert in Referral App"
-msgstr "Alerta en la aplicación de referencias"
+msgstr "Alerta en la aplicación de recomendaciones"
 
 #. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.action_hr_referral_alert_configuration
@@ -139,17 +183,17 @@ msgstr "Candidato"
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_dashboard
 msgid "Applicant Referred"
-msgstr "Solicitante referido"
+msgstr "Solicitante recomendado"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_dashboard
 msgid "Applicant Referred Hired"
-msgstr "Solicitante Referido Contratado"
+msgstr "Solicitante recomendado contratado"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_dashboard
 msgid "Applicant Referred Refused"
-msgstr "Solicitante referido rechazado"
+msgstr "Solicitante recomendado rechazado"
 
 #. module: hr_referral
 #: code:addons/hr_referral/models/hr_applicant.py:0
@@ -166,7 +210,7 @@ msgstr "Archivado"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_attachment_count
 msgid "Attachment Count"
-msgstr "Conteo de archivos adjuntos"
+msgstr "Nº de archivos adjuntos"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
@@ -184,9 +228,10 @@ msgstr "Empleados premiados"
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_friend__position__back
 msgid "Back"
-msgstr "Atrás"
+msgstr "Volver"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__body
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_send_mail__body_html
 msgid "Body"
 msgstr "Contenido"
@@ -197,6 +242,7 @@ msgid "Campaign"
 msgstr "Campaña"
 
 #. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_alert_mail_wizard_view_form
 #: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_send_mail_view_form
 msgid "Cancel"
 msgstr "Cancelar"
@@ -218,7 +264,7 @@ msgstr "¡Elige un avatar para tu nuevo amigo!"
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
 msgid "Click to level up!"
-msgstr "¡Haga clic para subir de nivel!"
+msgstr "¡Haz clic para subir de nivel!"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_link_to_share_view_form
@@ -231,7 +277,7 @@ msgstr "Cerrar"
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_points__company_id
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__company_id
 msgid "Company"
-msgstr "Compañía"
+msgstr "Empresa"
 
 #. module: hr_referral
 #: model:ir.ui.menu,name:hr_referral.menu_hr_referral_configuration
@@ -242,7 +288,7 @@ msgstr "Configuración"
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__cost
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_form
 msgid "Cost"
-msgstr "Coste"
+msgstr "Costo"
 
 #. module: hr_referral
 #: model_terms:ir.actions.act_window,help:hr_referral.action_hr_referral_alert_configuration
@@ -251,6 +297,7 @@ msgstr "Crea nuevas alertas"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__create_uid
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__create_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__create_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__create_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__create_uid
@@ -263,6 +310,7 @@ msgstr "Creado por"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__create_date
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__create_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__create_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__create_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__create_date
@@ -312,8 +360,8 @@ msgid ""
 "must select Front, it will be placed in the front of the dashboard, above "
 "superhero."
 msgstr ""
-"Define la posición del amigo. Si se trata de un amigo pequeño como un perro,"
-" debe seleccionar Frente, se colocará en la parte delantera del tablero, "
+"Define el rango del amigo. Si se trata de un amigo pequeño como un perro, "
+"debes seleccionar Frente, se colocará en la parte delantera del tablero, "
 "sobre el superhéroe."
 
 #. module: hr_referral
@@ -339,7 +387,13 @@ msgid "Direct Referral"
 msgstr "Recomendación directa"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__dismissed_user_ids
+msgid "Dismissed User"
+msgstr "Usuario destituido"
+
+#. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__display_name
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__display_name
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__display_name
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__display_name
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__display_name
@@ -355,16 +409,14 @@ msgstr "Nombre mostrado"
 #: code:addons/hr_referral/wizard/hr_referral_send_mail.py:0
 #, python-format
 msgid "Do not have access"
-msgstr "No tiene acceso"
+msgstr "No tienes acceso"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
 msgid ""
-"Do you want to confirm this purchase? After comfirmation, a HR will contact "
+"Do you want to confirm this reward? After confirmation an HR will contact "
 "you."
-msgstr ""
-"¿Quieres confirmar esta compra? Después de la confirmación, alguien del "
-"departamento de recursos humanos se comunicará con usted."
+msgstr "¿Quieres confirmar esta recompensa?"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__earned_points
@@ -383,7 +435,7 @@ msgstr "Correo electrónico"
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
 msgid "Email a friend"
-msgstr "Escribe un correo a un amigo"
+msgstr "Escribe un correo electrónico a un amigo"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_search
@@ -393,12 +445,12 @@ msgstr "Empleado"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__employee_referral_hired
 msgid "Employee Referral Hired"
-msgstr "Recomendación de empleado contratado"
+msgstr "Empleado recomendado contratado"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__employee_referral_refused
 msgid "Employee Referral Refused"
-msgstr "Recomendación de empleado rechazada"
+msgstr "Empleado recomendado rechazado"
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_report
@@ -414,6 +466,7 @@ msgstr "Empleados"
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_graph
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_pivot
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_search
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_report_view_tree
 msgid "Employees Analysis"
 msgstr "Análisis de empleados"
 
@@ -447,14 +500,14 @@ msgid "Followers"
 msgstr "Seguidores"
 
 #. module: hr_referral
-#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_channel_ids
-msgid "Followers (Channels)"
-msgstr "Seguidores (Canales)"
-
-#. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_partner_ids
 msgid "Followers (Partners)"
-msgstr "Seguidores (Empresas)"
+msgstr "Seguidores (Contactos)"
+
+#. module: hr_referral
+#: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "Icono de Font Awesome ej. fa-tasks"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__friend_id
@@ -464,7 +517,7 @@ msgstr "Amigo"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__name
 msgid "Friend Name"
-msgstr "Nombre del amigo"
+msgstr "Nombre de tu amigo"
 
 #. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.action_hr_referral_friend_configuration
@@ -480,7 +533,7 @@ msgstr "Amigos para referencias"
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_friend__position__front
 msgid "Front"
-msgstr "Delantero"
+msgstr "Frente"
 
 #. module: hr_referral
 #. openerp-web
@@ -499,7 +552,7 @@ msgstr "¡Reúne a tu equipo!"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__gift_manager_id
 msgid "Gift Responsible"
-msgstr "Regalar a responsable"
+msgstr "Regalo para el responsable"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_points_filter
@@ -528,15 +581,25 @@ msgid "HR Referral Alert Search"
 msgstr "Búsqueda de alertas de recomendaciones de recursos humanos"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__has_message
+msgid "Has Message"
+msgstr "Tiene un mensaje"
+
+#. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_recruitment_report__has_referrer
+msgid "Has Referrer"
+msgstr "Está recomendado"
+
+#. module: hr_referral
 #: code:addons/hr_referral/wizard/hr_referral_send_mail.py:0
 #, python-format
 msgid ""
 "Hello,<br><br>There are some amazing job offers in my company! Have a look, "
 "they  can be interesting for you<br><a href=\"%s\">See Job Offers</a>"
 msgstr ""
-"Hola,<br><br>T¡Aquí hay algunas ofertas de trabajo increíbles en mi empresa!"
-" Echa un vistazo, pueden ser interesantes para ti<br><a href=\"%s\">Ver "
-"ofertas de trabajo</a>"
+"Hola,<br><br>¡Aquí hay algunas ofertas de trabajo increíbles en mi empresa! "
+"Echa un vistazo, te pueden interesar<br><a href=\"%s\">Ver ofertas de "
+"trabajo</a>"
 
 #. module: hr_referral
 #: code:addons/hr_referral/wizard/hr_referral_send_mail.py:0
@@ -545,8 +608,8 @@ msgid ""
 "Hello,<br><br>There is an amazing job offer for %s in my company! It will be"
 " a fit for you<br><a href=\"%s\">See Job Offer</a>"
 msgstr ""
-"Hola,<br><br>Hay una oferta de trabajo increíble para la posicion de%s en mi"
-" compañia! Será perfecta para ti<br><a href=\"%s\">Ver oferta de trabajo</a>"
+"Hola,<br><br>Hay una oferta de trabajo increíble para el puesto de%s en mi "
+"empresa! Será perfecta para ti<br><a href=\"%s\">Ver oferta de trabajo</a>"
 
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_applicant__referral_state__hired
@@ -563,15 +626,16 @@ msgstr "Nivel de recomendación de RRHH"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_res_users__hr_referral_onboarding_page
 msgid "Hr Referral Onboarding Page"
-msgstr "Página de incorporación de recomendaciones de RRHH"
+msgstr "Página de integración de recomendaciones de RRHH"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_points__hr_referral_reward_id
 msgid "Hr Referral Reward"
-msgstr "Recompensa por referencia de RRHH"
+msgstr "Recompensa por recomendación de RRHH"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__id
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__id
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__id
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__id
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__id
@@ -586,7 +650,7 @@ msgstr "ID"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_exception_icon
 msgid "Icon"
-msgstr "Icono"
+msgstr "Ícono"
 
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__activity_exception_icon
@@ -597,13 +661,14 @@ msgstr "Icono para indicar una actividad de excepción."
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_needaction
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_unread
 msgid "If checked, new messages require your attention."
-msgstr "Si está marcado hay nuevos mensajes que requieren su atención."
+msgstr ""
+"Si se encuentra seleccionado hay nuevos mensajes que requieren tu atención."
 
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_has_error
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
-msgstr "Si se encuentra marcado, algunos mensajes tienen error de envío."
+msgstr "Si se encuentra seleccionado, algunos mensajes tienen error de envío."
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__image_head
@@ -648,15 +713,16 @@ msgstr "Puestos de trabajo"
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
 msgid "Job Referral Program"
-msgstr "Programa de recomendaciones de trabajos"
+msgstr "Programa de referencias de trabajo"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_job__job_open_date
 msgid "Job Start Recruitment Date"
-msgstr "Fecha de de inicio de trabajo para reclutamiento "
+msgstr "Fecha de de inicio de inicio de reclutamiento para los puestos"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert____last_update
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard____last_update
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend____last_update
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level____last_update
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share____last_update
@@ -666,15 +732,16 @@ msgstr "Fecha de de inicio de trabajo para reclutamiento "
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward____last_update
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_send_mail____last_update
 msgid "Last Modified on"
-msgstr "Última modificación en"
+msgstr "Última modificación el"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__write_date
 msgid "Last Update Date"
-msgstr "Última Fecha de Actualización"
+msgstr "Última fecha de actualización"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__write_uid
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__write_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__write_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__write_uid
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__write_uid
@@ -687,6 +754,7 @@ msgstr "Última actualización por"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__write_date
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__write_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__write_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__write_date
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__write_date
@@ -696,6 +764,21 @@ msgstr "Última actualización por"
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_send_mail__write_date
 msgid "Last Updated on"
 msgstr "Última actualización el"
+
+#. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__last_valuable_stage_id
+msgid "Last Valuable Stage"
+msgstr "Última etapa significativa"
+
+#. module: hr_referral
+#: model_terms:ir.actions.act_window,help:hr_referral.action_hr_referral_reward_configuration
+msgid "Let's create Super Rewards to thank your employees."
+msgstr "Creemos una Super Recompensa para agradecerle a tus empleados."
+
+#. module: hr_referral
+#: model_terms:ir.actions.act_window,help:hr_referral.action_hr_referral_reward
+msgid "Let's create super Rewards to thank<br>your employees."
+msgstr "Creemos una Super Recompensa para agradecerle <br> a tus empleados."
 
 #. module: hr_referral
 #: model_terms:ir.actions.act_window,help:hr_referral.action_hr_applicant_employee_referral
@@ -712,12 +795,12 @@ msgstr "Nivel"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__name
 msgid "Level Name"
-msgstr "Nombre de Nivel"
+msgstr "Nombre de nivel"
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_level
 msgid "Level for referrals"
-msgstr "Nivel para referencias"
+msgstr "Nivel para las referencias"
 
 #. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.action_hr_referral_level_configuration
@@ -728,7 +811,7 @@ msgstr "Niveles"
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_link_to_share__channel__direct
 msgid "Link"
-msgstr "Vínculo"
+msgstr "Enlace"
 
 #. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.hr_referral_link_to_share_action
@@ -749,7 +832,7 @@ msgstr "Clics de Linkedin"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_main_attachment_id
 msgid "Main Attachment"
-msgstr "Adjuntos principales"
+msgstr "Archivos adjuntos principales"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__max_points
@@ -765,7 +848,7 @@ msgstr "Media"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_has_error
 msgid "Message Delivery error"
-msgstr "Error de Envío de Mensaje"
+msgstr "Error al enviar el mensaje"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_ids
@@ -773,15 +856,26 @@ msgid "Messages"
 msgstr "Mensajes"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "Mi fecha límite de actividad"
+
+#. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.action_hr_applicant_employee_referral
 msgid "My Referral"
 msgstr "Mi referencia"
 
 #. module: hr_referral
+#: code:addons/hr_referral/wizard/hr_referral_alert_mail_wizard.py:0
+#, python-format
+msgid "New Alert In Referrals App"
+msgstr "Nueva alerta en la aplicación de Referrals"
+
+#. module: hr_referral
 #: code:addons/hr_referral/models/hr_referral_reward.py:0
 #, python-format
 msgid "New gift awarded for %s"
-msgstr "Nuevo regalo otorgado para%s"
+msgstr "Nuevo regalo para %s"
 
 #. module: hr_referral
 #. openerp-web
@@ -789,6 +883,11 @@ msgstr "Nuevo regalo otorgado para%s"
 #, python-format
 msgid "Next"
 msgstr "Siguiente"
+
+#. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "Siguiente evento en el calendario de actividades."
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_date_deadline
@@ -820,7 +919,7 @@ msgstr "No se puede hacer clic"
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_report__referral_state__closed
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_filter
 msgid "Not Hired"
-msgstr "No contratado"
+msgstr "Rechazado"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_needaction_counter
@@ -830,7 +929,7 @@ msgstr "Número de acciones"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_has_error_counter
 msgid "Number of errors"
-msgstr "Numero de errores"
+msgstr "Número de errores"
 
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_needaction_counter
@@ -845,7 +944,7 @@ msgstr "Número de mensajes con error de envío"
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__message_unread_counter
 msgid "Number of unread messages"
-msgstr "Número de mensajes no leidos"
+msgstr "Número de mensajes sin leer"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert__onclick
@@ -856,7 +955,7 @@ msgstr "Al hacer clic"
 #: model:ir.actions.act_window,name:hr_referral.action_hr_referral_onboarding_configuration
 #: model:ir.ui.menu,name:hr_referral.menu_hr_referral_onboarding_configuration
 msgid "Onboarding"
-msgstr "Inducción"
+msgstr "Incorporación"
 
 #. module: hr_referral
 #. openerp-web
@@ -871,8 +970,11 @@ msgid "Open"
 msgstr "Abierto"
 
 #. module: hr_referral
-#. openerp-web
-#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
+msgid "Point icon"
+msgstr "Ícono de punto"
+
+#. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.action_hr_referral_points
 #: model:ir.model.fields,field_description:hr_referral.field_hr_recruitment_stage__points
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_level__points
@@ -883,19 +985,18 @@ msgstr "Abierto"
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_points_filter
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_backend_kanban
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
-#, python-format
 msgid "Points"
 msgstr "Puntos"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__points_not_hired
 msgid "Points Given For Not Hired"
-msgstr "Puntos dados por no contratados"
+msgstr "Puntos dados por recomendaciones sin contratar"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_dashboard
 msgid "Points Given For Refused"
-msgstr "Puntos dados por rechazados"
+msgstr "Puntos dados por rechazos"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__points_missing
@@ -903,19 +1004,30 @@ msgid "Points Missing"
 msgstr "Puntos faltantes"
 
 #. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_job_employee_referral_kanban
+msgid "Points icon"
+msgstr "Ícono de puntos"
+
+#. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_points
 msgid "Points line for referrals"
-msgstr "Línea de puntos para recomendaciones"
+msgstr "Línea de puntos por recomendaciones"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
 msgid "Points to buy this"
-msgstr "Puntos para comprar esto"
+msgstr "Puntos necesarios para comprar esto"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_friend__position
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_job_employee_referral_kanban
 msgid "Position"
-msgstr "Cargo"
+msgstr "Puesto"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_job_employee_referral_kanban
+msgid "Positions"
+msgstr "Puestos"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
@@ -930,7 +1042,12 @@ msgstr "Nombre del producto"
 #. module: hr_referral
 #: model_terms:ir.actions.act_window,help:hr_referral.action_hr_applicant_employee_referral
 msgid "Ready to receive points?"
-msgstr "Listo para recibir puntos?"
+msgstr "¿listo para recibir puntos?"
+
+#. module: hr_referral
+#: model:ir.model,name:hr_referral.model_hr_recruitment_report
+msgid "Recruitment Analysis Report"
+msgstr "Informe de análisis de selección"
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_recruitment_stage
@@ -938,9 +1055,19 @@ msgid "Recruitment Stages"
 msgstr "Etapas de reclutamiento"
 
 #. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_report_view_tree
+msgid "Referer"
+msgstr "Referir"
+
+#. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_points_filter
 msgid "Referral"
-msgstr "referencia"
+msgstr "Recomendación"
+
+#. module: hr_referral
+#: model:ir.model,name:hr_referral.model_hr_referral_alert_mail_wizard
+msgid "Referral Alert Mail Wizard"
+msgstr "Asistente de alerta por correo de referencia"
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_link_to_share
@@ -950,12 +1077,22 @@ msgstr "Enlace de recomendación para compartir"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_res_users__referral_point_ids
 msgid "Referral Point"
-msgstr "Punto de recomendación"
+msgstr "Puntos por recomendación"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__referral_points_ids
 msgid "Referral Points"
-msgstr "Puntos de recomendación"
+msgstr "Puntos por recomendación"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_recruitment_report_view_dashboard_inherit
+msgid "Referral Rate"
+msgstr "Tasa de recomendación"
+
+#. module: hr_referral
+#: model:res.groups,name:hr_referral.group_hr_referral_reward_responsible_user
+msgid "Referral Reward Responsible User"
+msgstr "Usuario responsable por el premio de la referencia"
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_send_mail
@@ -966,7 +1103,7 @@ msgstr "Mandar correo de recomendación"
 #: model:ir.model.fields,field_description:hr_referral.field_hr_applicant__referral_state
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__referral_state
 msgid "Referral State"
-msgstr "Estado de referencia"
+msgstr "Estado de recomendación"
 
 #. module: hr_referral
 #: model:res.groups,name:hr_referral.group_hr_recruitment_referral_user
@@ -1004,6 +1141,16 @@ msgid "Referred By User"
 msgstr "Recomendado por el usuario "
 
 #. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_recruitment_report_view_dashboard_inherit
+msgid "Referred Hired People"
+msgstr "Personas recomendadas contratadas"
+
+#. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_recruitment_report_view_dashboard_inherit
+msgid "Referrer People"
+msgstr "Personas recomendadas"
+
+#. module: hr_referral
 #: model:ir.ui.menu,name:hr_referral.menu_report_employee_referral_all
 msgid "Reporting"
 msgstr "Informes"
@@ -1017,6 +1164,13 @@ msgstr "Requerimientos"
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__activity_user_id
 msgid "Responsible User"
 msgstr "Usuario responsable"
+
+#. module: hr_referral
+#. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#, python-format
+msgid "Restart Onboarding"
+msgstr "Volver a comenzar la incorporación"
 
 #. module: hr_referral
 #. openerp-web
@@ -1048,7 +1202,7 @@ msgstr "Error de entrega del SMS"
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_points_filter
 msgid "Search Points / Gifts"
-msgstr "Buscar puntos / regalos"
+msgstr "Buscar puntos/regalos"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_filter
@@ -1056,19 +1210,26 @@ msgid "Search Referral"
 msgstr "Buscar recomendación"
 
 #. module: hr_referral
+#: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_alert_mail_wizard_view_form
+msgid "Send"
+msgstr "Enviar"
+
+#. module: hr_referral
 #: model:ir.actions.act_window,name:hr_referral.hr_referral_send_mail_action
 msgid "Send Job Offer by Mail"
-msgstr "Enviar oferta de trabajo por correo"
+msgstr "Enviar oferta de trabajo por correo electrónico"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_send_mail_view_form
 msgid "Send Job by Mail"
-msgstr "Enviar trabajo por correo"
+msgstr "Enviar trabajo por correo electrónico"
 
 #. module: hr_referral
+#: model:ir.actions.act_window,name:hr_referral.hr_referral_alert_mail_wizard_action
 #: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_send_mail_view_form
+#: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_alert_form
 msgid "Send Mail"
-msgstr "Enviar correo"
+msgstr "Enviar correo electrónico"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_onboarding__sequence
@@ -1109,6 +1270,11 @@ msgid "Shared Item Infos"
 msgstr "Información de artículos compartidos"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_recruitment_stage__use_in_referral
+msgid "Show in Referrals"
+msgstr "Mostrar en referencias"
+
+#. module: hr_referral
 #. openerp-web
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
@@ -1125,7 +1291,7 @@ msgstr "Saltar y comenzar"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_res_users__utm_source_id
 msgid "Source"
-msgstr "Fuente"
+msgstr "Origen"
 
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_alert__onclick__url
@@ -1139,6 +1305,8 @@ msgstr "Etapa"
 
 #. module: hr_referral
 #. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
 msgid "Start"
@@ -1165,11 +1333,12 @@ msgid ""
 "Planned: Future activities."
 msgstr ""
 "Estado basado en actividades\n"
-"Vencida: la fecha tope ya ha pasado\n"
-"Hoy: La fecha tope es hoy\n"
-"Planificada: futuras actividades."
+"Vencida: la fecha límite ya pasó\n"
+"Hoy: La fecha límite es hoy\n"
+"Planificada: actividades futuras."
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__subject
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_send_mail__subject
 msgid "Subject"
 msgstr "Asunto"
@@ -1192,7 +1361,7 @@ msgid ""
 "This field holds the image used as image for the friend on the dashboard, "
 "limited to 1024x1024px."
 msgstr ""
-"Este campo contiene la imagen utilizada como imagen para el amigo en el "
+"Este campo contiene la imagen utilizada como imagen para amigos en el "
 "tablero, limitada a 1024x1024px."
 
 #. module: hr_referral
@@ -1201,8 +1370,8 @@ msgid ""
 "This field holds the image used as image for the head's friend when the user"
 " must choose a new friend, limited to 1024x1024px."
 msgstr ""
-"Este campo contiene la imagen utilizada como imagen para el amigo de la "
-"cabeza cuando el usuario debe elegir un nuevo amigo, limitado a 1024x1024px."
+"Este campo contendrá una imagen por defecto para amigos principales cuando "
+"el usuario deba elegir un nuevo amigo, limitado a 1024x1024px."
 
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__image
@@ -1210,8 +1379,7 @@ msgid ""
 "This field holds the image used as image for the product, limited to "
 "1024x1024px."
 msgstr ""
-"Este campo contiene la imagen usada para el producto, limitada a 1024x1024 "
-"px."
+"Este campo contiene una imagen para el producto, limitada a 1024x1024 px."
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.hr_referral_link_to_share_view_form
@@ -1219,15 +1387,39 @@ msgid ""
 "This link contains a tracker so that people clicking on it will account to a"
 " referral for you, even if they apply on a position after a few days."
 msgstr ""
-"Este enlace contiene un rastreador para que las personas que hagan clic en "
-"él cuenten como una referencia para usted, incluso si se postulan en un "
-"puesto después de unos días."
+"Este es un enlace para que las personas que envíe a sus referencias y se "
+"tomen en cuenta de forma automática, no importa si se postulan a un puesto "
+"después de unos días."
+
+#. module: hr_referral
+#: model:ir.model.fields,help:hr_referral.field_hr_recruitment_stage__use_in_referral
+msgid ""
+"This option is used in app 'Referrals'. If checked, the stage is displayed "
+"in 'Referrals Dashboard' and points are given to the employee."
+msgstr ""
+"Esta opción es utilizada en la aplicación de 'Referrals'. Si se selecciona, "
+"la etapa se mostrará en el 'Referrals Dashboard' y se otorgarán puntos al "
+"empleado."
 
 #. module: hr_referral
 #: model_terms:ir.actions.act_window,help:hr_referral.employee_referral_report_action
 msgid "This report performs analysis on your employee referral."
 msgstr ""
-"Este informe realiza un análisis de las recomendaciones de sus empleados."
+"Este informe realiza un análisis de las recomendaciones de tus empleados."
+
+#. module: hr_referral
+#. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#, python-format
+msgid "To Spend"
+msgstr "Para gastar"
+
+#. module: hr_referral
+#. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#, python-format
+msgid "Total"
+msgstr "Total"
 
 #. module: hr_referral
 #: model:ir.model.fields.selection,name:hr_referral.selection__hr_referral_link_to_share__channel__twitter
@@ -1257,7 +1449,7 @@ msgstr "Mensajes sin leer"
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_reward__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr "Contador de mensajes sin leer"
+msgstr "Nº de mensajes sin leer"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_link_to_share__url
@@ -1265,6 +1457,7 @@ msgid "Url"
 msgstr "URL"
 
 #. module: hr_referral
+#: model:ir.model.fields,field_description:hr_referral.field_hr_referral_alert_mail_wizard__user_ids
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_points__ref_user_id
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_report__ref_user_id
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_points_filter
@@ -1274,7 +1467,7 @@ msgstr "Usuario"
 #. module: hr_referral
 #: model:ir.model.fields,help:hr_referral.field_hr_referral_reward__gift_manager_id
 msgid "User responsible of this gift."
-msgstr "Usuario responsable de este regalo."
+msgstr "Usuario responsable del regalo."
 
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_res_users
@@ -1284,7 +1477,7 @@ msgstr "Usuarios"
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.employee_referral_report_view_dashboard
 msgid "Users Referrer"
-msgstr "Persona quien recomendo el usuario"
+msgstr "Usuario recomendado"
 
 #. module: hr_referral
 #. openerp-web
@@ -1312,7 +1505,13 @@ msgstr "Historial de comunicaciones del sitio web"
 #. module: hr_referral
 #: model:ir.model,name:hr_referral.model_hr_referral_onboarding
 msgid "Welcome Onboarding in Referral App"
-msgstr "Onboarding de bienvenida en la aplicacion de recomendaciones"
+msgstr "Integración de bienvenida en la aplicacion de recomendaciones"
+
+#. module: hr_referral
+#: code:addons/hr_referral/models/hr_applicant.py:0
+#, python-format
+msgid "You are not allowed to access applicant records."
+msgstr "No se le permite acceder a los registros de los solicitantes."
 
 #. module: hr_referral
 #: code:addons/hr_referral/models/hr_referral_reward.py:0
@@ -1321,19 +1520,13 @@ msgid ""
 "You do not have enough points in this company to buy this product. In this "
 "company, you have %s points."
 msgstr ""
-"No tiene suficientes puntos en esta empresa para comprar este producto. En "
-"esta empresa, tienes %spuntos."
+"No tienes suficientes puntos en esta empresa para comprar este producto. En "
+"esta empresa tienes %spuntos."
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_applicant_employee_referral_kanban
 msgid "You earned"
-msgstr "Usted ganó"
-
-#. module: hr_referral
-#: code:addons/hr_referral/wizard/hr_referral_send_mail.py:0
-#, python-format
-msgid "You must configure a mail address for your user."
-msgstr "Debe configurar una dirección de correo para su usuario."
+msgstr "Ganaste"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_reward_kanban
@@ -1344,13 +1537,13 @@ msgstr "Necesitas otro"
 #: code:addons/hr_referral/models/hr_applicant.py:0
 #, python-format
 msgid "Your referrer got a step further!"
-msgstr "¡Su referente ha dado un paso adelante!"
+msgstr "¡Su recomendado avanzó a la siguiente etapa!"
 
 #. module: hr_referral
 #: code:addons/hr_referral/models/hr_applicant.py:0
 #, python-format
 msgid "Your referrer is hired!"
-msgstr "¡Su referente fue contratado!"
+msgstr "¡Tu recomendado fue contratado!"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_job_employee_referral_kanban
@@ -1362,12 +1555,26 @@ msgstr "clic(s)"
 #: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
 #, python-format
 msgid "has been hired!"
-msgstr "ha sido contratado!"
+msgstr "¡Fue contratado!"
 
 #. module: hr_referral
 #: model_terms:ir.ui.view,arch_db:hr_referral.view_hr_referral_alert_form
 msgid "https://www.google.com"
 msgstr "https://www.google.com"
+
+#. module: hr_referral
+#. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#, python-format
+msgid "reward"
+msgstr "recomendado"
+
+#. module: hr_referral
+#. openerp-web
+#: code:addons/hr_referral/static/src/xml/hr_referral_templates.xml:0
+#, python-format
+msgid "share"
+msgstr "compartir"
 
 #. module: hr_referral
 #: model:ir.model.fields,field_description:hr_referral.field_hr_referral_send_mail__url

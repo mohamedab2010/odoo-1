@@ -3,20 +3,25 @@
 from math import sqrt
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
+
 import random
 
-from odoo import api, models, fields, _, SUPERUSER_ID
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT
+from odoo import api, models, fields, _
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT, float_round
+from odoo.osv.expression import OR
 
 
 class QualityPoint(models.Model):
     _inherit = "quality.point"
 
     failure_message = fields.Html('Failure Message')
+    measure_on = fields.Selection([
+        ('operation', 'Operation'),
+        ('product', 'Product')], string="Control per", default='operation', required=True, help="Defines if the Quality Check is done at the Operation level or at a more granular Lot/SN level")
     measure_frequency_type = fields.Selection([
-        ('all', 'All Operations'),
+        ('all', 'All'),
         ('random', 'Randomly'),
-        ('periodical', 'Periodically')], string="Type of Frequency",
+        ('periodical', 'Periodically')], string="Control Frequency",
         default='all', required=True)
     measure_frequency_value = fields.Float('Percentage')  # TDE RENAME ?
     measure_frequency_unit_value = fields.Integer('Frequency Unit Value')  # TDE RENAME ?
@@ -24,6 +29,8 @@ class QualityPoint(models.Model):
         ('day', 'Days'),
         ('week', 'Weeks'),
         ('month', 'Months')], default="day")  # TDE RENAME ?
+    is_lot_tested_fractionally = fields.Boolean(string="Lot Tested Fractionally", help="Determines if only a fraction of the lot should be tested")
+    testing_percentage_within_lot = fields.Float(help="Defines the percentage within a lot that should be tested")
     norm = fields.Float('Norm', digits='Quality Tests')  # TDE RENAME ?
     tolerance_min = fields.Float('Min Tolerance', digits='Quality Tests')
     tolerance_max = fields.Float('Max Tolerance', digits='Quality Tests')
@@ -66,24 +73,23 @@ class QualityPoint(models.Model):
 
     def check_execute_now(self):
         self.ensure_one()
-        if self.test_type == 'measure':
-            if self.measure_frequency_type == 'all':
-                return True
-            elif self.measure_frequency_type == 'random':
-                return (random.random() < self.measure_frequency_value / 100.0)
-            elif self.measure_frequency_type == 'periodical':
-                delta = False
-                if self.measure_frequency_unit == 'day':
-                    delta = relativedelta(days=self.measure_frequency_unit_value)
-                elif self.measure_frequency_unit == 'week':
-                    delta = relativedelta(weeks=self.measure_frequency_unit_value)
-                elif self.measure_frequency_unit == 'month':
-                    delta = relativedelta(months=self.measure_frequency_unit_value)
-                date_previous = datetime.today() - delta
-                checks = self.env['quality.check'].search([
-                    ('point_id', '=', self.id),
-                    ('create_date', '>=', date_previous.strftime(DEFAULT_SERVER_DATETIME_FORMAT))], limit=1)
-                return not(bool(checks))
+        if self.measure_frequency_type == 'all':
+            return True
+        elif self.measure_frequency_type == 'random':
+            return (random.random() < self.measure_frequency_value / 100.0)
+        elif self.measure_frequency_type == 'periodical':
+            delta = False
+            if self.measure_frequency_unit == 'day':
+                delta = relativedelta(days=self.measure_frequency_unit_value)
+            elif self.measure_frequency_unit == 'week':
+                delta = relativedelta(weeks=self.measure_frequency_unit_value)
+            elif self.measure_frequency_unit == 'month':
+                delta = relativedelta(months=self.measure_frequency_unit_value)
+            date_previous = datetime.today() - delta
+            checks = self.env['quality.check'].search([
+                ('point_id', '=', self.id),
+                ('create_date', '>=', date_previous.strftime(DEFAULT_SERVER_DATETIME_FORMAT))], limit=1)
+            return not(bool(checks))
         return super(QualityPoint, self).check_execute_now()
 
     def _get_type_default_domain(self):
@@ -93,7 +99,7 @@ class QualityPoint(models.Model):
 
     def action_see_quality_checks(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_check_action_main').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_check_action_main")
         action['domain'] = [('point_id', '=', self.id)]
         action['context'] = {
             'default_company_id': self.company_id.id,
@@ -103,23 +109,11 @@ class QualityPoint(models.Model):
 
     def action_see_spc_control(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_check_action_spc').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_check_action_spc")
         if self.test_type == 'measure':
             action['context'] = {'group_by': ['name', 'point_id'], 'graph_measure': ['measure'], 'graph_mode': 'line'}
         action['domain'] = [('point_id', '=', self.id), ('quality_state', '!=', 'none')]
         return action
-
-
-class QualityAlertTeam(models.Model):
-    _inherit = "quality.alert.team"
-
-    def get_alias_model_name(self, vals):
-        return vals.get('alias_model', 'quality.alert')
-
-    def get_alias_values(self):
-        values = super(QualityAlertTeam, self).get_alias_values()
-        values['alias_defaults'] = {'team_id': self.id}
-        return values
 
 
 class QualityCheck(models.Model):
@@ -136,6 +130,20 @@ class QualityCheck(models.Model):
     tolerance_max = fields.Float('Max Tolerance', related='point_id.tolerance_max', readonly=True)
     warning_message = fields.Text(compute='_compute_warning_message')
     norm_unit = fields.Char(related='point_id.norm_unit', readonly=True)
+    qty_to_test = fields.Float(compute="_compute_qty_to_test", string="Quantity to Test", help="Quantity of product to test within the lot")
+    qty_tested = fields.Float(string="Quantity Tested", help="Quantity of product tested within the lot")
+    measure_on = fields.Selection([
+        ('operation', 'Operation'),
+        ('product', 'Product')], string="Control per", default='operation', required=True, help="Defines if the Quality Check is done at the Operation level or at a more granular Lot/SN level")
+    move_line_id = fields.Many2one('stock.move.line', 'Stock Move Line', check_company=True, help="In case of Quality Check by Lot/SN, Move Line on which the Quality Check applies")
+    lot_name = fields.Char('Lot/Serial Number Name')
+    lot_line_id = fields.Many2one('stock.production.lot', store=True, compute='_compute_lot_line_id')
+    qty_line = fields.Float(compute='_compute_qty_line', string="Quantity")
+    uom_id = fields.Many2one(related='product_id.uom_id', string="Product Unit of Measure")
+    show_lot_text = fields.Boolean(compute='_compute_show_lot_text')
+    is_lot_tested_fractionally = fields.Boolean(related='point_id.is_lot_tested_fractionally')
+    testing_percentage_within_lot = fields.Float(related="point_id.testing_percentage_within_lot")
+    product_tracking = fields.Selection(related='product_id.tracking')
 
     @api.depends('measure_success')
     def _compute_warning_message(self):
@@ -147,6 +155,18 @@ class QualityCheck(models.Model):
                 )
             else:
                 rec.warning_message = ''
+
+    @api.depends('move_line_id.qty_done')
+    def _compute_qty_line(self):
+        for qc in self:
+            qc.qty_line = qc.move_line_id.qty_done
+
+    @api.depends('move_line_id.lot_id')
+    def _compute_lot_line_id(self):
+        for qc in self:
+            qc.lot_line_id = qc.move_line_id.lot_id
+            if qc.lot_line_id:
+                qc.lot_id = qc.lot_line_id
 
     @api.depends('measure')
     def _compute_measure_success(self):
@@ -164,11 +184,35 @@ class QualityCheck(models.Model):
     def _compute_result(self):
         super(QualityCheck, self)._compute_result()
 
+    @api.depends('qty_line', 'testing_percentage_within_lot', 'is_lot_tested_fractionally')
+    def _compute_qty_to_test(self):
+        for qc in self:
+            if qc.is_lot_tested_fractionally:
+                qc.qty_to_test = float_round(qc.qty_line * qc.testing_percentage_within_lot / 100, precision_rounding=self.product_id.uom_id.rounding, rounding_method="UP")
+            else:
+                qc.qty_to_test = qc.qty_line
+
+    @api.depends('lot_line_id', 'move_line_id')
+    def _compute_show_lot_text(self):
+        for qc in self:
+            if qc.lot_line_id or not qc.move_line_id:
+                qc.show_lot_text = False
+            else:
+                qc.show_lot_text = True
+
+    def _is_pass_fail_applicable(self):
+        if self.test_type in ['passfail', 'measure']:
+            return True
+        return super()._is_pass_fail_applicable()
+
     def _get_check_result(self):
         if self.test_type == 'picture' and self.picture:
             return _('Picture Uploaded')
         else:
             return super(QualityCheck, self)._get_check_result()
+
+    def _check_to_unlink(self):
+        return True
 
     def do_measure(self):
         self.ensure_one()
@@ -222,44 +266,22 @@ class QualityCheck(models.Model):
                 'context': {'default_check_id': self.id},
             }
         else:
-            action = self.env.ref('quality_control.quality_alert_action_check').read()[0]
+            action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_alert_action_check")
             action['domain'] = [('id', 'in', self.alert_ids.ids)]
             action['context'] = dict(self._context, default_check_id=self.id)
             return action
 
-    def redirect_after_pass_fail(self):
-        check = self[0]
-        if check.quality_state =='fail' and check.test_type in ['passfail', 'measure']:
-            return self.show_failure_message()
-        if check.picking_id:
-            checks = self.picking_id.check_ids.filtered(lambda x: x.quality_state == 'none')
-            if checks:
-                action = self.env.ref('quality_control.quality_check_action_small').read()[0]
-                action['res_id'] = checks.ids[0]
-                return action
-        return super(QualityCheck, self).redirect_after_pass_fail()
+    def action_open_quality_check_wizard(self, current_check_id=None):
+        check_ids = sorted(self.ids)
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.action_quality_check_wizard")
+        action['context'] = self.env.context.copy()
+        action['context'].update({
+            'default_check_ids': check_ids,
+            'default_current_check_id': current_check_id or check_ids[0],
+        })
+        return action
 
-    def redirect_after_failure(self):
-        check = self[0]
-        if check.picking_id:
-            checks = self.picking_id.check_ids.filtered(lambda x: x.quality_state == 'none')
-            if checks:
-                action = self.env.ref('quality_control.quality_check_action_small').read()[0]
-                action['res_id'] = checks.ids[0]
-                return action
-        return super(QualityCheck, self).redirect_after_pass_fail()
 
-    def show_failure_message(self):
-        return {
-            'name': _('Quality Check Failed'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'quality.check',
-            'view_mode': 'form',
-            'view_id': self.env.ref('quality_control.quality_check_view_form_failure').id,
-            'target': 'new',
-            'res_id': self.id,
-            'context': self.env.context,
-        }
 class QualityAlert(models.Model):
     _inherit = "quality.alert"
 
@@ -274,14 +296,6 @@ class QualityAlert(models.Model):
             'target': 'current',
             'res_id': self.check_id.id,
         }
-
-    @api.model
-    def _read_group_stage_ids(self, stages, domain, order):
-        """ Read group customization in order to display all the stages of the ECO type
-        in the Kanban view, even if there is no ECO in that stage
-        """
-        stage_ids = stages._search([], order=order, access_rights_uid=SUPERUSER_ID)
-        return stages.browse(stage_ids)
 
     @api.depends('name', 'title')
     def name_get(self):
@@ -322,39 +336,25 @@ class ProductTemplate(models.Model):
 
     @api.depends('product_variant_ids')
     def _compute_quality_check_qty(self):
-        self.quality_fail_qty = 0
-        self.quality_pass_qty = 0
-        self.quality_control_point_qty = 0
-
         for product_tmpl in self:
-            quality_checks_by_state = self.env['quality.check'].read_group(
-                [('product_id', 'in', product_tmpl.product_variant_ids.ids), ('company_id', '=', self.env.company.id)],
-                ['product_id'],
-                ['quality_state']
-            )
-            for checks_data in quality_checks_by_state:
-                if checks_data['quality_state'] == 'fail':
-                    product_tmpl.quality_fail_qty = checks_data['quality_state_count']
-                elif checks_data['quality_state'] == 'pass':
-                    product_tmpl.quality_pass_qty = checks_data['quality_state_count']
-            product_tmpl.quality_control_point_qty = self.env['quality.point'].search_count([
-                ('product_tmpl_id', '=', product_tmpl.id), ('company_id', '=', self.env.company.id)
-            ])
+            product_tmpl.quality_fail_qty, product_tmpl.quality_pass_qty = product_tmpl.product_variant_ids._count_quality_checks()
+            product_tmpl.quality_control_point_qty = product_tmpl.with_context(active_test=product_tmpl.active).product_variant_ids._count_quality_points()
 
     def action_see_quality_control_points(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_point_action').read()[0]
-        action['context'] = dict(self.env.context)
-        action['context'].update({
-            'search_default_product_tmpl_id': self.id,
-            'default_product_tmpl_id': self.id,
-        })
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_point_action")
+        action['context'] = dict(self.env.context, default_product_ids=self.product_variant_ids.ids)
+
+        domain_in_products_or_categs = ['|', ('product_ids', 'in', self.product_variant_ids.ids), ('product_category_ids', 'parent_of', self.categ_id.ids)]
+        domain_no_products_and_categs = [('product_ids', '=', False), ('product_category_ids', '=', False)]
+        action['domain'] = OR([domain_in_products_or_categs, domain_no_products_and_categs])
         return action
 
     def action_see_quality_checks(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_check_action_main').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_check_action_main")
         action['context'] = dict(self.env.context, default_product_id=self.product_variant_id.id, create=False)
+        action['domain'] = [('product_id', 'in', self.product_variant_ids.ids)]
         return action
 
 
@@ -366,31 +366,77 @@ class ProductProduct(models.Model):
     quality_fail_qty = fields.Integer(compute='_compute_quality_check_qty', groups='quality.group_quality_user')
 
     def _compute_quality_check_qty(self):
-        self.quality_fail_qty = 0
-        self.quality_pass_qty = 0
-        self.quality_control_point_qty = 0
         for product in self:
-            quality_checks_by_state = self.env['quality.check'].read_group(
-                [('product_id', '=', product.id), ('company_id', '=', self.env.company.id)],
-                ['product_id'],
-                ['quality_state']
-            )
-            for checks_data in quality_checks_by_state:
-                if checks_data['quality_state'] == 'fail':
-                    product.quality_fail_qty = checks_data['quality_state_count']
-                elif checks_data['quality_state'] == 'pass':
-                    product.quality_pass_qty = checks_data['quality_state_count']
-            product.quality_control_point_qty = self.env['quality.point'].search_count([
-                ('product_id', '=', product.id), ('company_id', '=', self.env.company.id)
-            ])
+            product.quality_fail_qty, product.quality_pass_qty = product._count_quality_checks()
+            product.quality_control_point_qty = product._count_quality_points()
+
+    def _count_quality_checks(self):
+        quality_fail_qty = 0
+        quality_pass_qty = 0
+        quality_checks_by_state = self.env['quality.check'].read_group(
+            [('product_id', 'in', self.ids), ('company_id', '=', self.env.company.id), ('quality_state', '!=', 'none')],
+            ['product_id'],
+            ['quality_state']
+        )
+        for checks_data in quality_checks_by_state:
+            if checks_data['quality_state'] == 'fail':
+                quality_fail_qty = checks_data['quality_state_count']
+            elif checks_data['quality_state'] == 'pass':
+                quality_pass_qty = checks_data['quality_state_count']
+
+        return quality_fail_qty, quality_pass_qty
+
+    def _count_quality_points(self):
+        """ Compute the count of all related quality points, which means quality points that have either
+        the product in common, a product category parent of this product's category or no product/category
+        set at all.
+        """
+
+        query = self.env['quality.point']._where_calc([('company_id', '=', self.env.company.id)])
+        self.env['quality.point']._apply_ir_rules(query, 'read')
+        _, where_clause, where_clause_args = query.get_sql()
+        additional_where_clause = self._additional_quality_point_where_clause()
+        where_clause += additional_where_clause
+        parent_category_ids = [int(parent_id) for parent_id in self.categ_id.parent_path.split('/')[:-1]] if self.categ_id else []
+
+        self.env.cr.execute("""
+            SELECT COUNT(*)
+                FROM quality_point
+                WHERE %s
+                AND (
+                    (
+                        -- QP has at least one linked product and one is right
+                        EXISTS (SELECT 1 FROM product_product_quality_point_rel rel WHERE rel.quality_point_id = quality_point.id AND rel.product_product_id = ANY(%%s))
+                        -- Or QP has at least one linked product category and one is right
+                        OR EXISTS (SELECT 1 FROM product_category_quality_point_rel rel WHERE rel.quality_point_id = quality_point.id AND rel.product_category_id = ANY(%%s))
+                    )
+                    OR (
+                        -- QP has no linked products
+                        NOT EXISTS (SELECT 1 FROM product_product_quality_point_rel rel WHERE rel.quality_point_id = quality_point.id)
+                        -- And QP has no linked product categories
+                        AND NOT EXISTS (SELECT 1 FROM product_category_quality_point_rel rel WHERE rel.quality_point_id = quality_point.id)
+                    )
+                )
+        """ % (where_clause,), where_clause_args + [self.ids, parent_category_ids]
+        )
+        return self.env.cr.fetchone()[0]
 
     def action_see_quality_control_points(self):
         self.ensure_one()
         action = self.product_tmpl_id.action_see_quality_control_points()
+        action['context'].update(default_product_ids=self.ids)
+
+        domain_in_products_or_categs = ['|', ('product_ids', 'in', self.ids), ('product_category_ids', 'parent_of', self.categ_id.ids)]
+        domain_no_products_and_categs = [('product_ids', '=', False), ('product_category_ids', '=', False)]
+        action['domain'] = OR([domain_in_products_or_categs, domain_no_products_and_categs])
         return action
 
     def action_see_quality_checks(self):
         self.ensure_one()
-        action = self.env.ref('quality_control.quality_check_action_main').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("quality_control.quality_check_action_main")
         action['context'] = dict(self.env.context, default_product_id=self.id, create=False)
+        action['domain'] = [('product_id', '=', self.id)]
         return action
+
+    def _additional_quality_point_where_clause(self):
+        return ""

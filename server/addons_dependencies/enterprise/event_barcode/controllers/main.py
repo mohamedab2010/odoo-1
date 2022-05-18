@@ -1,35 +1,28 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, http, _
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
+
+from odoo import http, _
 from odoo.http import request
 
 
 class EventBarcode(http.Controller):
 
-    @http.route('/event_barcode/register_attendee', type='json', auth="user")
-    def register_attendee(self, barcode, event_id, **kw):
-        Registration = request.env['event.registration']
-        attendee = Registration.search([('barcode', '=', barcode), ('event_id', '=', event_id)], limit=1)
-        if not attendee:
-            return {'warning': _('This ticket is not valid for this event')}
-        res = {
-            'registration': dict(attendee.summary(), id=attendee.id, partner_id=attendee.partner_id.id),
-        }
-        attendee_name = attendee.name or _('Attendee')
-        if attendee.state == 'cancel':
-            res.update({'warning': _('Canceled registration')})
-        elif attendee.state != 'done':
-            attendee.write({'state': 'done', 'date_closed': fields.Datetime.now()})
-            res.update({'success': _('%s is successfully registered') % attendee_name})
+    @http.route(['/event/init_barcode_interface'], type='json', auth="user")
+    def init_barcode_interface(self, event_id):
+        event = request.env['event.event'].browse(event_id).exists() if event_id else False
+        if event:
+            return {
+                'name': event.name,
+                'country': event.address_id.country_id.name,
+                'city': event.address_id.city,
+                'company_name': event.company_id.name,
+                'company_id': event.company_id.id
+            }
         else:
-            res.update({'warning': _('%s is already registered') % attendee_name})
-        return res
-
-    @http.route(['/event_barcode/event'], type='json', auth="user")
-    def get_event_data(self, event_id):
-        event = request.env['event.event'].browse(event_id)
-        return {
-            'name': event.name,
-            'country': event.address_id.country_id.name,
-            'city': event.address_id.city,
-            'company_name': event.company_id.name
-        }
+            return {
+                'name': _('Registration Desk'),
+                'country': False,
+                'city': False,
+                'company_name': request.env.company.name,
+                'company_id': request.env.company.id
+            }

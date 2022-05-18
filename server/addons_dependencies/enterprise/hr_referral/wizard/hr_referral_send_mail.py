@@ -10,18 +10,14 @@ class HrReferralSendMail(models.TransientModel):
     _name = 'hr.referral.send.mail'
     _description = 'Referral Send Mail'
 
-    @api.model
-    def default_get(self, fields):
-        result = super(HrReferralSendMail, self).default_get(fields)
-        if 'job_id' not in result:
-            result['job_id'] = self.env.context.get('active_id')
-        return result
-
-    job_id = fields.Many2one('hr.job', readonly=True)
+    job_id = fields.Many2one(
+        'hr.job', readonly=True,
+        default=lambda self: self.env.context.get('active_id', None),
+    )
     url = fields.Char("url", compute='_compute_url', readonly=True)
-    email_to = fields.Char(type="char", string="Email", required=True)
+    email_to = fields.Char(string="Email", required=True)
     subject = fields.Char('Subject', default="Job for you")
-    body_html = fields.Html('Body')
+    body_html = fields.Html('Body', compute='_compute_body_html', store=True, readonly=False)
 
     @api.depends('job_id')
     def _compute_url(self):
@@ -31,25 +27,22 @@ class HrReferralSendMail(models.TransientModel):
             'channel': 'direct',
         }).url
 
-    @api.onchange('job_id', 'url')
-    def _onchange_body_html(self):
-        if not self.job_id:
-            self.body_html = _('Hello,<br><br>There are some amazing job offers in my company! Have a look, they  can be interesting for you<br><a href="%s">See Job Offers</a>') % (self.url)
-        else:
-            self.body_html = _('Hello,<br><br>There is an amazing job offer for %s in my company! It will be a fit for you<br><a href="%s">See Job Offer</a>') % (self.job_id.name, self.url)
+    @api.depends('job_id', 'url')
+    def _compute_body_html(self):
+        for wizard in self:
+            if not wizard.job_id:
+                wizard.body_html = _('Hello,<br><br>There are some amazing job offers in my company! Have a look, they  can be interesting for you<br><a href="%s">See Job Offers</a>') % (wizard.url)
+            else:
+                wizard.body_html = _('Hello,<br><br>There is an amazing job offer for %s in my company! It will be a fit for you<br><a href="%s">See Job Offer</a>') % (wizard.job_id.name, wizard.url)
 
     def send_mail_referral(self):
         if not self.env.user.has_group('hr_referral.group_hr_recruitment_referral_user'):
             raise AccessError(_("Do not have access"))
 
-        email = self.env.user.work_email or self.env.user.email
-        if not email:
-            raise ValidationError(_("You must configure a mail address for your user."))
-
-        self.env['mail.mail'].create({
+        self.env['mail.mail'].sudo().create({
             'body_html': self.body_html,
-            'state': 'outgoing',
-            'email_from': formataddr((self.env.user.name, email)),
+            'author_id': self.env.user.partner_id.id,
+            'email_from': self.env.user.email_formatted,
             'email_to': self.email_to,
             'subject': self.subject
         }).send()

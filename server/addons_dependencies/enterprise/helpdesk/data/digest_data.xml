@@ -8,18 +8,19 @@
 
     <data>
         <record id="digest_tip_helpdesk_0" model="digest.tip">
-            <field name="sequence">3</field>
+            <field name="name">Tip: Create tickets from incoming emails</field>
+            <field name="sequence">1800</field>
+            <field name="group_id" ref="helpdesk.group_helpdesk_manager" />
             <field name="tip_description" type="html">
 <div>
-    % set email_alias = object.env['helpdesk.team'].search([('alias_name','!=', False)],limit=1).alias_id.display_name
-    % if email_alias
-    <strong style="font-size: 16px;">Try the mail gateway</strong>
-    <div style="font-size: 14px;">Emails sent to <strong>${email_alias}</strong> generate new tickets in your Helpdesk funnel.<br/>
-        <div style="text-align:center;margin-top:5px;margin-bottom:2px;">
-            <a href="mailto:${email_alias}" style="background-color:#56b3b5;padding:2px;color:#FFFFFF;font-weight:bold;text-decoration:none;">Try Now</a>
-        </div>
-    </div>
-    % endif
+    <t t-set="record" t-value="object.env['helpdesk.team'].search([('alias_name', '!=', False)],limit=1)" />
+    <b class="tip_title">Tip: Create tickets from incoming emails</b>
+    <t t-if="record and record.alias_domain">
+        <p class="tip_content">Emails sent to <a t-attf-href="mailto:{{record.alias_id.display_name}}" target="_blank" style="color: #875a7b; text-decoration: none;"><t t-out="record.alias_id.display_name" /></a> generate tickets in your pipeline.</p>
+    </t>
+    <t t-else="">
+        <p class="tip_content">Emails sent to a Helpdesk Team alias generate tickets in your pipeline.</p>
+    </t>
 </div>
             </field>
         </record>

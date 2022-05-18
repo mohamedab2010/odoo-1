@@ -54,7 +54,7 @@ class account_analytic_line(models.Model):
             "project_id/id",
         ]
 
-        aals = aal_ids.with_context(tz='UTC').export_data(aals_fields)
+        aals = aal_ids.with_context(tz='UTC').sudo().export_data(aals_fields)
 
         # /!\ COMPATIBILITY HACK /!\
         # With hr_timesheet_sheet removal, the sheet concept (and its state) are obsolete. To avoid
@@ -72,7 +72,7 @@ class account_analytic_line(models.Model):
             '&',
                 '|',
                     '|',
-                        ("user_id", "=", self.env.uid),
+                        ("user_ids", "in", self.env.uid),
                     ("message_partner_ids", "=", self.env.user.partner_id.id),
                 ("id", "in", task_ids_list),
             ('active', '=', True),
@@ -82,8 +82,9 @@ class account_analytic_line(models.Model):
             "project_id/id",
             "project_id.id",
             "name",
+            "remaining_hours",
         ]
-        tasks = task_ids.with_context(tz='UTC').export_data(tasks_fields)
+        tasks = task_ids.with_context(tz='UTC').sudo().export_data(tasks_fields)
 
         project_ids_from_tasks_list = list(set([int(tasks['datas'][x][2]) for x in range(len(tasks['datas'])) if len(tasks['datas'][x][2]) > 0]))
         project_ids_list = list(set(project_ids_from_tasks_list + project_ids_list))
@@ -101,7 +102,7 @@ class account_analytic_line(models.Model):
             "id",
             "name",
         ]
-        projects = projects_ids.with_context(tz='UTC').export_data(projects_fields)
+        projects = projects_ids.with_context(tz='UTC').sudo().export_data(projects_fields)
 
         return {
             'aals': aals,
@@ -182,7 +183,7 @@ class account_analytic_line(models.Model):
             'id',
             'name',
             'project_id/id',
-            'user_id/.id',
+            'user_ids/.id',
         ]
         task_errors = self.load_wrapper(self.env["project.task"], tasks_fields, ls_tasks_to_import)
 
@@ -211,7 +212,7 @@ class account_analytic_line(models.Model):
         aals_on_hold = []
         for ls_aal in ls_aals:
             sv_aal = sv_aals.get(str(ls_aal['id']))
-            sv_project = str(ls_aal.get('project_id')) in sv_projects or self.env["ir.model.data"].xmlid_to_object(str(ls_aal['project_id']))  # Fallback condition: when the project created after the sql select and thus is not in the list.
+            sv_project = str(ls_aal.get('project_id')) in sv_projects or self.env.ref(str(ls_aal['project_id']), raise_if_not_found=False)  # Fallback condition: when the project created after the sql select and thus is not in the list.
 
             if sv_aal and sv_aal['user_id'] != self.env.uid:  # The user on the activity has been changed
                 ls_aals_to_remove.append(str(ls_aal['id']))

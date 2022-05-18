@@ -10,6 +10,7 @@ class CommissionPlan(models.Model):
     _description = 'Commission plan'
 
     name = fields.Char('Name', required=True)
+    active = fields.Boolean(default=True)
     product_id = fields.Many2one(
         'product.product',
         'Purchase Default Product',
@@ -17,6 +18,7 @@ class CommissionPlan(models.Model):
         default=lambda self: self.env.ref('partner_commission.product_commission'),
         required=True)
     commission_rule_ids = fields.One2many('commission.rule', 'plan_id', 'Rules', copy=True)
+    company_id = fields.Many2one('res.company')
 
     def _match_rules(self, product, template, pricelist):
         self.ensure_one()
@@ -65,12 +67,6 @@ class CommissionRule(models.Model):
     _sql_constraints = [
         ('check_rate', 'CHECK(rate >= 0 AND rate <= 100)', 'Rate should be between 0 and 100.'),
     ]
-
-    @api.constrains('rate')
-    def _check_rate(self):
-        for rule in self:
-            if rule.rate < 0 or rule.rate > 100:
-                raise ValidationError(_('Rate should be between 0 and 100'))
 
     @api.constrains('product_id', 'category_id')
     def _check_product_category(self):

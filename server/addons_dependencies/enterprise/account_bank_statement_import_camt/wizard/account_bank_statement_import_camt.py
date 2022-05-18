@@ -10,7 +10,8 @@ from functools import partial
 from lxml import etree
 
 from odoo import models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
+from odoo.addons.base.models.res_bank import sanitize_account_number
 
 _logger = logging.getLogger(__name__)
 
@@ -482,6 +483,7 @@ codes = {
     'OTHR': _('Other'),
     'MCOP': _('Miscellaneous Credit Operations'),
     'MDOP': _('Miscellaneous Debit Operations'),
+    'FCTI': _('Fees, Commission , Taxes, Charges and Interest'),
 }
 
 
@@ -494,8 +496,80 @@ def _generic_get(*nodes, xpath, namespaces, placeholder=None):
             return item[0]
     return False
 
-_get_amount = partial(_generic_get,
-    xpath='ns:Amt/text() | ns:AmtDtls/ns:TxAmt/ns:Amt/text()')
+# These are pair of getters: (getter for the amount, getter for the amount's currency)
+_amount_getters = [
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:Amt/text()'), partial(_generic_get, xpath='ns:Amt/@Ccy')),
+]
+
+_charges_getters = [
+    (partial(_generic_get, xpath='ns:Chrgs/ns:Rcrd/ns:Amt/text()'), partial(_generic_get, xpath='ns:Chrgs/ns:Rcrd/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:Chrgs/ns:Amt/text()'), partial(_generic_get, xpath='ns:Chrgs/ns:Amt/@Ccy')),
+]
+
+_amount_charges_getters = [
+    (partial(_generic_get, xpath='ns:Amt/text()'), partial(_generic_get, xpath='ns:Amt/@Ccy')),
+]
+
+# These are pair of getters: (getter for the exchange rate, getter for the target currency)
+_target_rate_getters = [
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:CcyXchg/ns:TrgtCcy/text()')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:CntrValAmt/ns:CcyXchg/ns:SrcCcy/text()')),
+]
+
+# These are pair of getters: (getter for the exchange rate, getter for the source currency)
+_source_rate_getters = [
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:CcyXchg/ns:SrcCcy/text()')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:CcyXchg/ns:SrcCcy/text()')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:CcyXchg/ns:TrgtCcy/text()')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:CcyXchg/ns:XchgRate/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:CcyXchg/ns:TrgtCcy/text()')),
+]
+
+# These are pair of getters: (getter for the amount, getter for the amount's currency)
+_currency_amount_getters = [
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:InstdAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:NtryDtls/ns:TxDtls/ns:AmtDtls/ns:InstdAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:NtryDtls/ns:TxDtls/ns:AmtDtls/ns:InstdAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:AmtDtls/ns:TxAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:NtryDtls/ns:TxDtls/ns:AmtDtls/ns:TxAmt/ns:Amt/text()'), partial(_generic_get, xpath='ns:NtryDtls/ns:TxDtls/ns:AmtDtls/ns:TxAmt/ns:Amt/@Ccy')),
+    (partial(_generic_get, xpath='ns:Amt/text()'), partial(_generic_get, xpath='ns:Amt/@Ccy')),
+]
+
+_total_amount_getters = [
+    (partial(_generic_get, xpath='ns:NtryDtls/ns:Btch/ns:TtlAmt/text()'), partial(_generic_get, xpath='ns:NtryDtls/ns:Btch/ns:TtlAmt/@Ccy'))
+]
+
+# Start Balance
+#   OPBD : Opening Booked
+#   PRCD : Previous Closing Balance
+#   OPAV : Opening Available
+#   ITBD : Interim Booked (in the case of preceeding pagination)
+# These are pair of getters: (getter for the amount, getter for the sign)
+_start_balance_getters = [
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='OPBD']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='OPBD']/../../ns:CdtDbtInd/text()")),
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='PRCD']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='PRCD']/../../ns:CdtDbtInd/text()")),
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='OPAV']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='OPAV']/../../ns:CdtDbtInd/text()")),
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:CdtDbtInd/text()")),
+]
+
+# Ending Balance
+#   CLBD : Closing Booked
+#   CLAV : Closing Available
+#   ITBD : Interim Booked
+# These are pair of getters: (getter for the amount, getter for the sign)
+_end_balance_getters = [
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD']/../../ns:CdtDbtInd/text()")),
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLAV']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLAV']/../../ns:CdtDbtInd/text()")),
+    (partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:Amt/text()"),
+     partial(_generic_get, xpath="ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:CdtDbtInd/text()")), 
+]
 
 _get_credit_debit_indicator = partial(_generic_get,
     xpath='ns:CdtDbtInd/text()')
@@ -504,6 +578,15 @@ _get_transaction_date = partial(_generic_get,
     xpath=('ns:ValDt/ns:Dt/text()'
            '| ns:BookgDt/ns:Dt/text()'
            '| ns:BookgDt/ns:DtTm/text()'))
+
+_get_statement_date = partial(_generic_get,
+    xpath=("ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD']/../../ns:Dt/ns:Dt/text()"
+           " | ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD']/../../ns:Dt/ns:DtTm/text()"
+           " | ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLAV']/../../ns:Dt/ns:Dt/text()"
+           " | ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLAV']/../../ns:Dt/ns:DtTm/text()"
+           " | ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:Dt/ns:Dt/text()"
+           " | ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='ITBD']/../../ns:Dt/ns:DtTm/text()"
+           ))
 
 _get_partner_name = partial(_generic_get,
     xpath='.//ns:RltdPties/ns:{placeholder}/ns:Nm/text()')
@@ -523,25 +606,111 @@ _get_other_ref = partial(_generic_get,
            '| {placeholder}ns:Refs/ns:MndtId/text()'
            '| {placeholder}ns:Refs/ns:ChqNb/text()'))
 
-_get_additional_entry_info = partial(_generic_get,
-    xpath='ns:AddtlNtryInf/text()')
+_get_additional_entry_info = partial(_generic_get, xpath='ns:AddtlNtryInf/text()')
+_get_additional_text_info = partial(_generic_get, xpath='ns:AddtlTxInf/text()')
+_get_transaction_id = partial(_generic_get, xpath='ns:Refs/ns:TxId/text()')
+_get_instruction_id = partial(_generic_get, xpath='ns:Refs/ns:InstrId/text()')
+_get_end_to_end_id = partial(_generic_get, xpath='ns:Refs/ns:EndToEndId/text()')
+_get_mandate_id = partial(_generic_get, xpath='ns:Refs/ns:MndtId/text()')
+_get_check_number = partial(_generic_get, xpath='ns:Refs/ns:ChqNb/text()')
 
-def _get_signed_amount(*nodes, namespaces):
-    amount = float(_get_amount(*nodes, namespaces=namespaces))
-    sign = _get_credit_debit_indicator(*nodes, namespaces=namespaces)
-    return amount if sign == 'CRDT' else -amount
+
+def _get_signed_balance(node, namespaces, getters):
+    for balance_getter, sign_getter in getters:
+        balance = balance_getter(node, namespaces=namespaces)
+        sign = sign_getter(node, namespaces=namespaces)
+        if balance and sign:
+            return -float(balance) if sign == 'DBIT'  else float(balance)
+    return None
+
+def _get_signed_amount(*nodes, namespaces, journal_currency=None):
+    def get_value_and_currency_name(node, getters, target_currency=None):
+        for value_getter, currency_getter in getters:
+            value = value_getter(node, namespaces=namespaces)
+            currency_name = currency_getter(node, namespaces=namespaces)
+            if value and (target_currency is None or currency_name == target_currency):
+                return float(value), currency_name
+        return None, None
+
+    def get_rate(*entries, target_currency):
+        for entry in entries:
+            rate = get_value_and_currency_name(entry, _source_rate_getters, target_currency=target_currency)[0]
+            if not rate:
+                rate = get_value_and_currency_name(entry, _target_rate_getters, target_currency=target_currency)[0]
+                rate = rate and 1 / rate
+            if rate:
+                return rate
+        return None
+
+    def get_charges(*entries, target_currency=None):
+        for entry in entries:
+            charges = get_value_and_currency_name(entry, _charges_getters, target_currency=target_currency)[0]
+            if charges:
+                return charges
+        return None
+
+    entry_details = nodes[0]
+    entry = nodes[1] if len(nodes) > 1 else nodes[0]
+    journal_currency_name = journal_currency.name if journal_currency else None
+    entry_amount = get_value_and_currency_name(entry, _amount_charges_getters, target_currency=journal_currency_name)[0]
+
+    charges = get_charges(entry_details, entry)
+    if charges:
+        amount, amount_currency_name = get_value_and_currency_name(entry, _amount_charges_getters)
+    else:
+        amount, amount_currency_name = get_value_and_currency_name(entry_details, _amount_getters)
+
+    if not amount:
+        amount, amount_currency_name = get_value_and_currency_name(entry, _amount_getters)
+
+    if not journal_currency or amount_currency_name == journal_currency_name:
+        rate = 1.0
+    else:
+        rate = get_rate(entry_details, entry, target_currency=journal_currency_name)
+        if not rate:
+            amount, amount_currency_name = get_value_and_currency_name(entry_details, _amount_getters, target_currency=journal_currency_name)
+            if not amount:
+                amount, amount_currency_name = get_value_and_currency_name(entry, _amount_getters, target_currency=journal_currency_name)
+            if amount_currency_name == journal_currency_name:
+                rate = 1.0
+        if not rate:
+            raise ValidationError(_("No exchange rate was found to convert an amount into the currency of the journal"))
+
+    sign = 1 if _get_credit_debit_indicator(*nodes, namespaces=namespaces) == "CRDT" else -1
+    total_amount, total_amount_currency = get_value_and_currency_name(entry, _total_amount_getters)
+    if total_amount and (not journal_currency or total_amount_currency == journal_currency_name):
+        if total_amount == entry_amount:
+            return sign * amount * rate
+    else:
+        if not total_amount or total_amount * rate == entry_amount:
+            return sign * amount * rate
+        elif journal_currency:
+            if journal_currency.compare_amounts(total_amount / rate, entry_amount) == 0:
+                return journal_currency.round(sign * amount / rate)
+    return sign * entry_amount
 
 def _get_counter_party(*nodes, namespaces):
     ind = _get_credit_debit_indicator(*nodes, namespaces=namespaces)
     return 'Dbtr' if ind == 'CRDT' else 'Cdtr'
 
+# DEPRECATED (Not used anymore) -> Remove me in master
 def _set_amount_currency_and_currency_id(node, path, entry_vals, currency, curr_cache, has_multi_currency, namespaces):
     instruc_amount = node.xpath('%s/text()' % path, namespaces=namespaces)
     instruc_curr = node.xpath('%s/@Ccy' % path, namespaces=namespaces)
     if (has_multi_currency and instruc_amount and instruc_curr and
-            instruc_curr[0] != currency and currency in curr_cache):
+            instruc_curr[0] != currency and instruc_curr[0] in curr_cache):
         entry_vals['amount_currency'] = math.copysign(abs(sum(map(float, instruc_amount))), entry_vals['amount'])
-        entry_vals['currency_id'] = curr_cache[instruc_curr[0]]
+        entry_vals['foreign_currency_id'] = curr_cache[instruc_curr[0]]
+
+def _set_amount_in_currency(node, getters, entry_vals, currency, curr_cache, has_multi_currency, namespaces):
+    for value_getter, currency_getter in getters:
+        instruc_amount = value_getter(node, namespaces=namespaces)
+        instruc_curr = currency_getter(node, namespaces=namespaces)
+        if (has_multi_currency and instruc_amount and instruc_curr and
+                instruc_curr != currency and instruc_curr in curr_cache):
+            entry_vals['amount_currency'] = math.copysign(abs(float(instruc_amount)), entry_vals['amount'])
+            entry_vals['foreign_currency_id'] = curr_cache[instruc_curr]
+            break
 
 def _get_transaction_name(node, namespaces):
     xpaths = ('.//ns:RmtInf/ns:Ustrd/text()',
@@ -631,11 +800,12 @@ class AccountBankStatementImport(models.TransientModel):
         unique_import_set = set([])
         currency = account_no = False
         has_multi_currency = self.env.user.user_has_groups('base.group_multi_currency')
+        journal = self.env['account.journal'].browse(self.env.context.get('journal_id'))
+        journal_currency = journal.currency_id or journal.company_id.currency_id
         for statement in root[0].findall('ns:Stmt', ns):
             statement_vals = {}
             statement_vals['name'] = statement.xpath('ns:Id/text()', namespaces=ns)[0]
-            statement_vals['date'] = statement.xpath("ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD' or ns:Cd='CLAV']/../../ns:Dt/ns:Dt/text()",
-                                                              namespaces=ns)[0]
+            statement_vals['date'] = _get_statement_date(statement, namespaces=ns)
 
             # Transaction Entries 0..n
             transactions = []
@@ -643,6 +813,9 @@ class AccountBankStatementImport(models.TransientModel):
 
             # Currency 0..1
             currency = statement.xpath('ns:Acct/ns:Ccy/text() | ns:Bal/ns:Amt/@Ccy', namespaces=ns)[0]
+
+            if currency and journal_currency and currency != journal_currency.name:
+                continue
 
             for entry in statement.findall('ns:Ntry', ns):
                 # Date 0..1
@@ -656,8 +829,8 @@ class AccountBankStatementImport(models.TransientModel):
                     entry_vals = {
                         'sequence': sequence,
                         'date': date,
-                        'amount': _get_signed_amount(entry_details, entry, namespaces=ns),
-                        'name': _get_transaction_name(entry_details, namespaces=ns),
+                        'amount': _get_signed_amount(entry_details, entry, namespaces=ns, journal_currency=journal_currency),
+                        'payment_ref': _get_transaction_name(entry_details, namespaces=ns),
                         'partner_name': partner_name,
                         'account_number': _get_account_number(entry_details, placeholder=counter_party, namespaces=ns),
                         'ref': _get_ref(entry_details, counter_party=counter_party, prefix='', namespaces=ns),
@@ -671,9 +844,9 @@ class AccountBankStatementImport(models.TransientModel):
                         unique_import_set=unique_import_set,
                         namespaces=ns)
 
-                    _set_amount_currency_and_currency_id(
+                    _set_amount_in_currency(
                         node=entry_details,
-                        path=transaction_details and 'ns:AmtDtls/ns:InstdAmt/ns:Amt' or 'ns:NtryDtls/ns:TxDtls/ns:AmtDtls/ns:InstdAmt/ns:Amt',
+                        getters=_currency_amount_getters,
                         entry_vals=entry_vals,
                         currency=currency,
                         curr_cache=curr_cache,
@@ -682,48 +855,46 @@ class AccountBankStatementImport(models.TransientModel):
 
                     BkTxCd = entry.xpath('ns:BkTxCd', namespaces=ns)[0]
                     entry_vals.update(_get_transaction_type(BkTxCd, namespaces=ns))
-                    notes = [_get_additional_entry_info(entry, namespaces=ns) or ""]
-                    partner_address = _get_partner_address(entry_details, ns, counter_party)
+                    notes = []
+                    entry_info = _get_additional_entry_info(entry, namespaces=ns)
+                    if entry_info:
+                        notes.append(_('Entry Info: %s', entry_info))
+                    text_info = _get_additional_text_info(entry_details, namespaces=ns)
+                    if text_info:
+                        notes.append(_('Additional Info: %s', text_info))
                     if partner_name:
-                        notes.append(_('Counter Party: ') + partner_name)
+                        notes.append(_('Counter Party: %(partner)s', partner=partner_name))
+                    partner_address = _get_partner_address(entry_details, ns, counter_party)
                     if partner_address:
                         notes.append(_('Address:\n') + partner_address)
-                    entry_vals['note'] = "\n".join(notes)
+                    transaction_id = _get_transaction_id(entry_details, namespaces=ns)
+                    if transaction_id:
+                        notes.append(_('Transaction ID: %s', transaction_id))
+                    instruction_id = _get_instruction_id(entry_details, namespaces=ns)
+                    if instruction_id:
+                        notes.append(_('Instruction ID: %s', instruction_id))
+                    end_to_end_id = _get_end_to_end_id(entry_details, namespaces=ns)
+                    if end_to_end_id:
+                        notes.append(_('End to end ID: %s', end_to_end_id))
+                    mandate_id = _get_mandate_id(entry_details, namespaces=ns)
+                    if mandate_id:
+                        notes.append(_('Mandate ID: %s', mandate_id))
+                    check_number = _get_check_number(entry_details, namespaces=ns)
+                    if check_number:
+                        notes.append(_('Check Number: %s', check_number))
+                    entry_vals['narration'] = "\n".join(notes)
 
                     unique_import_set.add(entry_vals['unique_import_id'])
                     transactions.append(entry_vals)
 
             statement_vals['transactions'] = transactions
-
-            # Start Balance
-            # any (OPBD, PRCD, ITBD):
-            #   OPBD : Opening Balance
-            #   PRCD : Previous Closing Balance
-            #   ITBD : Interim Balance (in the case of preceeding pagination)
-            start_amount = float(statement.xpath("ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='OPBD' or ns:Cd='PRCD' or ns:Cd='ITBD' or ns:Cd='OPAV']/../../ns:Amt/text()",
-                                                              namespaces=ns)[0])
-            # Credit Or Debit Indicator 1..1
-            sign = statement.xpath('ns:Bal/ns:CdtDbtInd/text()', namespaces=ns)[0]
-            if sign == 'DBIT':
-                start_amount *= -1
-            statement_vals['balance_start'] = start_amount
-            # Ending Balance
-            # Statement Date
-            # any 'CLBD', 'CLAV'
-            #   CLBD : Closing Balance
-            #   CLAV : Closing Available
-            end_amount = float(statement.xpath("ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD' or ns:Cd='CLAV']/../../ns:Amt/text()",
-                                                              namespaces=ns)[0])
-            sign = statement.xpath(
-                "ns:Bal/ns:Tp/ns:CdOrPrtry[ns:Cd='CLBD' or ns:Cd='CLAV']/../../ns:CdtDbtInd/text()", namespaces=ns
-            )[0]
-            if sign == 'DBIT':
-                end_amount *= -1
-            statement_vals['balance_end_real'] = end_amount
+            statement_vals['balance_start'] = _get_signed_balance(node=statement, namespaces=ns, getters=_start_balance_getters)
+            statement_vals['balance_end_real'] = _get_signed_balance(node=statement, namespaces=ns, getters=_end_balance_getters)
 
             # Account Number    1..1
             # if not IBAN value then... <Othr><Id> would have.
-            account_no = statement.xpath('ns:Acct/ns:Id/ns:IBAN/text() | ns:Acct/ns:Id/ns:Othr/ns:Id/text()', namespaces=ns)[0]
+            account_no = sanitize_account_number(statement.xpath('ns:Acct/ns:Id/ns:IBAN/text() | ns:Acct/ns:Id/ns:Othr/ns:Id/text()',
+                namespaces=ns)[0])
 
             # Save statements and currency
             statements_per_iban.setdefault(account_no, []).append(statement_vals)
@@ -731,7 +902,7 @@ class AccountBankStatementImport(models.TransientModel):
 
         # If statements target multiple journals, returns thoses targeting the current journal
         if len(statements_per_iban) > 1:
-            account_no = self.env['account.journal'].browse(self.env.context.get('journal_id')).bank_acc_number
+            account_no = sanitize_account_number(self.env['account.journal'].browse(self.env.context.get('journal_id')).bank_acc_number)
             _logger.warning("The following statements will not be imported because they are targeting another journal (current journal id: %s):\n- %s",
                             account_no, "\n- ".join("{}: {} statement(s)".format(iban, len(statements)) for iban, statements in statements_per_iban.items() if iban != account_no))
             if not account_no:

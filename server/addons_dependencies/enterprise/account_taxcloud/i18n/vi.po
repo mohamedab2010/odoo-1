@@ -3,18 +3,17 @@
 # 	* account_taxcloud
 # 
 # Translators:
-# Nancy Momoland <thanhnguyen.icsc@gmail.com>, 2019
-# Duy BQ <duybq86@gmail.com>, 2019
-# Chinh Chinh <trinhttp@trobz.com>, 2019
-# Dao Nguyen <trucdao.uel@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Dao Nguyen <trucdao.uel@gmail.com>, 2021
+# Trần Hà <tranthuha13590@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:04+0000\n"
-"PO-Revision-Date: 2019-08-26 09:34+0000\n"
-"Last-Translator: Dao Nguyen <trucdao.uel@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:57+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Trần Hà <tranthuha13590@gmail.com>, 2021\n"
 "Language-Team: Vietnamese (https://www.transifex.com/odoo/teams/41243/vi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -54,12 +53,12 @@ msgstr "Công ty"
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_res_config_settings
 msgid "Config Settings"
-msgstr "Cấu hình"
+msgstr "Thiết lập cấu hình"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__create_uid
 msgid "Created by"
-msgstr "Được tạo bởi"
+msgstr "Tạo bởi"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__create_date
@@ -88,6 +87,8 @@ msgid ""
 "Enable <b>Detect Automatically</b> to automatically use TaxCloud when "
 "selling to American customers."
 msgstr ""
+"Enable <b>Detect Automatically</b> to automatically use TaxCloud when "
+"selling to American customers."
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_fiscal_position
@@ -98,7 +99,7 @@ msgstr "Vị thế tài chính"
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_position_taxcloud_inherit_from_view
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.invoice_form_inherit
 msgid "Go to Settings."
-msgstr ""
+msgstr "Go to Settings."
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__id
@@ -106,31 +107,46 @@ msgid "ID"
 msgstr "ID"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_bank_statement_line__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_move__is_taxcloud_configured
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_payment__is_taxcloud_configured
 #: model:ir.model.fields,field_description:account_taxcloud.field_res_company__is_taxcloud_configured
 msgid "Is Taxcloud Configured"
-msgstr ""
+msgstr "Is Taxcloud Configured"
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_move
-msgid "Journal Entries"
-msgstr "Bút toán phát sinh"
+msgid "Journal Entry"
+msgstr "Bút toán sổ nhật ký"
+
+#. module: account_taxcloud
+#: model:ir.model,name:account_taxcloud.model_account_move_line
+msgid "Journal Item"
+msgstr "Bút toán"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category____last_update
 msgid "Last Modified on"
-msgstr "Sửa lần cuối"
+msgstr "Sửa lần cuối vào"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__write_uid
 msgid "Last Updated by"
-msgstr "Cập nhật gần đây bởi"
+msgstr "Cập nhật lần cuối bởi"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_product_tic_category__write_date
 msgid "Last Updated on"
-msgstr "Cập nhật gần đây vào"
+msgstr "Cập nhật lần cuối vào"
+
+#. module: account_taxcloud
+#: code:addons/account_taxcloud/models/taxcloud_request.py:0
+#, python-format
+msgid ""
+"Please configure taxcloud credentials on the current company or use a "
+"different fiscal position"
+msgstr ""
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_position_taxcloud_inherit_from_view
@@ -138,6 +154,7 @@ msgstr "Cập nhật gần đây vào"
 msgid ""
 "Please enter your Taxcloud credentials to compute tax rates automatically."
 msgstr ""
+"Please enter your Taxcloud credentials to compute tax rates automatically."
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_product_category
@@ -157,7 +174,7 @@ msgstr "Danh mục sản phẩm TIC"
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_product_template
 msgid "Product Template"
-msgstr "Bản mẫu sản phẩm"
+msgstr "Mẫu sản phẩm"
 
 #. module: account_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_res_company__tic_category_id
@@ -169,6 +186,11 @@ msgid ""
 "By default, TaxCloud relies on the TIC *[0] Uncategorized* default referring"
 " to general goods and services."
 msgstr ""
+"TIC (Taxability Information Codes) allow to get specific tax rates for each "
+"product type. This default value applies if no product is used in the "
+"order/invoice, or if no TIC is set on the product or its product category. "
+"By default, TaxCloud relies on the TIC *[0] Uncategorized* default referring"
+" to general goods and services."
 
 #. module: account_taxcloud
 #: model_terms:ir.ui.view,arch_db:account_taxcloud.account_taxcloud_tic_category_tree
@@ -223,25 +245,16 @@ msgid "TaxCloud Category"
 msgstr "Danh mục TaxCloud"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_bank_statement_line__is_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_account_move__is_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_payment__is_taxcloud
 msgid "Technical field to determine whether to hide taxes in views or not."
-msgstr ""
+msgstr "Technical field to determine whether to hide taxes in views or not."
 
 #. module: account_taxcloud
 #: model:ir.model,name:account_taxcloud.model_account_fiscal_position_template
 msgid "Template for Fiscal Position"
 msgstr "Biểu mẫu cho vị thế tài chính"
-
-#. module: account_taxcloud
-#: code:addons/account_taxcloud/models/account_invoice.py:0
-#: code:addons/account_taxcloud/models/account_invoice.py:0
-#, python-format
-msgid ""
-"The source document on the refund is not valid and thus the refunded cart "
-"won't be logged on your taxcloud account"
-msgstr ""
-"Tài liệu gốc về khoản hoàn trả không hợp lệ, do đó giỏ hàng được hoàn trả sẽ"
-" không được ghi vào tài khoản taxcloud của bạn"
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/account_invoice.py:0
@@ -258,6 +271,9 @@ msgid ""
 "TaxCloud to compute specific tax rates for each product type. The value set "
 "here prevails over the one set on the product category."
 msgstr ""
+"This refers to TIC (Taxability Information Codes), these are used by "
+"TaxCloud to compute specific tax rates for each product type. The value set "
+"here prevails over the one set on the product category."
 
 #. module: account_taxcloud
 #: model:ir.model.fields,help:account_taxcloud.field_product_category__tic_category_id
@@ -267,6 +283,10 @@ msgid ""
 "used when no TIC is set on the product. If no value is set here, the default"
 " value set in Invoicing settings is used."
 msgstr ""
+"This refers to TIC (Taxability Information Codes), these are used by "
+"TaxCloud to compute specific tax rates for each product type. This value is "
+"used when no TIC is set on the product. If no value is set here, the default"
+" value set in Invoicing settings is used."
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/account_invoice.py:0
@@ -276,19 +296,36 @@ msgid "Unable to retrieve taxes from TaxCloud: "
 msgstr "Không thể truy xuất thuế từ TaxCloud:"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_bank_statement_line__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_fiscal_position_template__is_taxcloud
 #: model:ir.model.fields,field_description:account_taxcloud.field_account_move__is_taxcloud
+#: model:ir.model.fields,field_description:account_taxcloud.field_account_payment__is_taxcloud
 msgid "Use TaxCloud API"
 msgstr "Sử dụng TaxCloud API"
 
 #. module: account_taxcloud
+#: model:ir.model.fields,help:account_taxcloud.field_account_bank_statement_line__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_account_fiscal_position__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_account_move__is_taxcloud_configured
+#: model:ir.model.fields,help:account_taxcloud.field_account_payment__is_taxcloud_configured
 #: model:ir.model.fields,help:account_taxcloud.field_res_company__is_taxcloud_configured
 msgid ""
 "Used to determine whether or not to warn the user to configure TaxCloud."
 msgstr ""
+"Used to determine whether or not to warn the user to configure TaxCloud."
+
+#. module: account_taxcloud
+#: code:addons/account_taxcloud/models/account_invoice.py:0
+#, python-format
+msgid ""
+"You cannot cancel an invoice sent to TaxCloud.\n"
+"You need to issue a refund (credit note) for it instead.\n"
+"This way the tax entries will be cancelled in TaxCloud."
+msgstr ""
+"You cannot cancel an invoice sent to TaxCloud.\n"
+"You need to issue a refund (credit note) for it instead.\n"
+"This way the tax entries will be cancelled in TaxCloud."
 
 #. module: account_taxcloud
 #: code:addons/account_taxcloud/models/product.py:0

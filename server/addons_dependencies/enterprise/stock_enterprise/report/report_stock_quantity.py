@@ -26,8 +26,8 @@ class ReportStockQuantity(models.Model):
         product = self.env['product.product'].browse(product_id)
         domain = [('product_id', '=', product_id)]
         if state in ('in', 'out'):
-            domain = expression.AND([domain, [('date_expected', '>=', date)]])
-        domain = expression.AND([domain, [('date_expected', '<', date_utils.add(date, days=1))]])
+            domain = expression.AND([domain, [('date', '>=', date)]])
+        domain = expression.AND([domain, [('date', '<', date_utils.add(date, days=1))]])
         domain = expression.AND([domain, [('state', 'not in', ['draft', 'cancel', 'done'])]])
         internal, loc_domain_in, loc_domain_out = product._get_domain_locations()
         if state == 'in':

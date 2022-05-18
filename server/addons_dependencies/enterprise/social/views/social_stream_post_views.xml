@@ -8,10 +8,10 @@
         <field name="view_mode">kanban</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
-            Add your first stream
+            No Stream added yet!
           </p>
           <p>
-            <a href="#" class="o_social_js_add_stream">Add your first stream</a> and start posting.
+            <a href="#" class="o_social_js_add_stream">Add a stream</a> to keep an eye on your own posts and monitor all social activities.
           </p>
         </field>
         <field name="context">{'search_default_group_by_stream': 1, 'search_default_search_my_streams': 1}</field>
@@ -50,23 +50,25 @@
                 <templates>
                     <t t-name="kanban-box">
                         <div class="o_social_stream_post_kanban_global p-0 mb-3">
-                            <div class="o_social_stream_post_message p-2">
-                                <div class="d-flex justify-content-between mb-2">
+                            <div class="o_social_stream_post_message py-2">
+                                <div class="d-flex justify-content-between mb-2 px-2">
                                     <t t-set="author_info">
                                         <span class="o_social_stream_post_author_image o_social_author_image position-relative rounded-circle overflow-hidden"/>
-                                        <span class="text-truncate ml-2" t-esc="record.author_name.value or 'Unknown'"/>
+                                        <span class="o_social_stream_post_author_name text-truncate ml-2" t-esc="record.author_name.value or 'Unknown'" t-att-title="record.author_name.value or 'Unknown'"/>
                                     </t>
 
-                                    <a t-if="record.author_link.value"
-                                        class="o_social_stream_post_author d-flex align-items-center"
-                                        t-att-href="record.author_link.value"
-                                        t-att-title="record.author_name.value or 'Unknown'"
-                                        t-raw="author_info"
-                                        target="_blank"/>
+                                    <div class="o_social_author_information d-flex align-items-center">
+                                        <a t-if="record.author_link.value"
+                                            class="o_social_stream_post_author d-flex align-items-center"
+                                            t-att-href="record.author_link.value"
+                                            t-att-title="record.author_name.value or 'Unknown'"
+                                            t-out="author_info"
+                                            target="_blank"/>
 
-                                    <div t-else=""
-                                        class="o_social_stream_post_author d-flex align-items-center"
-                                        t-raw="author_info"/>
+                                        <div t-else=""
+                                            class="o_social_stream_post_author d-flex align-items-center"
+                                            t-out="author_info"/>
+                                    </div>
 
                                     <a t-att-href="record.post_link.value" target="_blank">
                                         <time class="o_social_stream_post_published_date small"
@@ -75,12 +77,22 @@
                                     </a>
                                 </div>
                                 <t t-set="has_attachments" t-value="record.stream_post_image_ids.raw_value.length !== 0 || record.link_url.value"/>
-                                <div t-attf-class="o_social_stream_post_message_body pb-2 #{has_attachments ? 'o_social_stream_post_with_attachments' : 'mb-2 border-bottom'}">
+                                <div name="o_social_stream_post_message_body"
+                                    t-attf-class="o_social_stream_post_message_body px-2 pb-2 #{has_attachments ? 'o_social_stream_post_with_attachments' : 'mb-2 border-bottom'}">
 
                                     <div class="o_social_stream_post_message_text overflow-hidden mb-2">
-                                        <field name="message" widget="social_kanban_field_stream_post" />
+                                        <field t-if="record.message.raw_value" name="message" widget="social_kanban_field_stream_post" t-att-media_type="record.media_type.raw_value || ''" t-att-data-account-id="account_id"/>
                                     </div>
-
+                                    <a t-if="record.link_url.value"
+                                        class="o_social_stream_post_link p-2 d-flex bg-100"
+                                        t-att-href="record.link_url.raw_value"
+                                        target="_blank">
+                                        <img t-if="record.link_image_url.raw_value" class="mr-2 flex-shrink-0" t-att-src="record.link_image_url.raw_value" alt="Link Image"/>
+                                        <div class="o_social_stream_post_link_text">
+                                            <div class="o_social_stream_post_link_title font-weight-bold text-truncate" t-esc="record.link_title.value"/>
+                                            <div class="o_social_stream_post_link_description text-truncate" t-esc="record.link_description.value"/>
+                                        </div>
+                                    </a>
                                     <div t-if="has_attachments"
                                         class="o_social_stream_post_image d-flex mx-n2 overflow-hidden"
                                         t-att-data-images="record.stream_post_image_urls.raw_value">
@@ -98,16 +110,6 @@
                                             <img t-else="" class="o_social_stream_post_image_click" t-att-src="image_url" alt="Post Image" t-att-data-current-index="image_url_index" />
                                         </t>
                                     </div>
-                                    <a t-if="record.link_url.value"
-                                        class="o_social_stream_post_link p-2 d-flex bg-100"
-                                        t-att-href="record.link_url.raw_value"
-                                        target="_blank">
-                                        <img t-if="record.link_image_url.raw_value" class="mr-2 flex-shrink-0" t-att-src="record.link_image_url.raw_value" alt="Link Image"/>
-                                        <div class="o_social_stream_post_link_text">
-                                            <div class="o_social_stream_post_link_title font-weight-bold text-truncate" t-esc="record.link_title.value"/>
-                                            <div class="o_social_stream_post_link_description text-truncate" t-esc="record.link_description.value"/>
-                                        </div>
-                                    </a>
                                 </div>
                             </div>
                         </div>

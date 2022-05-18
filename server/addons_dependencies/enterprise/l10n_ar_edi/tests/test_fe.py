@@ -1,24 +1,17 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from odoo.tests import tagged
 from . import common
-import logging
-
-_logger = logging.getLogger(__name__)
 
 
-@tagged('fe', 'ri')
+@tagged('fe', 'ri', 'external_l10n', '-at_install', 'post_install', '-standard', 'external')
 class TestFe(common.TestEdi):
 
     @classmethod
     def setUpClass(cls):
-        super(TestFe, cls).setUpClass()
-
-        # Force user to be loggin in "Reponsable Inscripto" Argentinian Company
-        context = dict(cls.env.context, allowed_company_ids=[cls.company_ri.id])
-        cls.env = cls.env(context=context)
-
-        cls.partner = cls.partner_ri
+        super(TestFe, cls).setUpClass('wsfe')
+        cls.partner = cls.res_partner_adhoc
         cls.journal = cls._create_journal(cls, 'wsfe')
+        cls._create_test_invoices_like_demo(cls)
 
     def test_00_connection(self):
         self._test_connection()
@@ -68,35 +61,65 @@ class TestFe(common.TestEdi):
         invoice = self._test_case('invoice_b', 'product_service')
         self._test_case_credit_note('credit_note_b', invoice)
 
+    def test_14_corner_cases(self):
+        """ Mono partner of tipe Service and VAT 21 """
+        self._post(self.demo_invoices['test_invoice_1'])
+
+    def test_15_corner_cases(self):
+        """ Exento partner with multiple VAT types 21, 27 and 10,5 """
+        self._post(self.demo_invoices['test_invoice_2'])
+
+    def test_16_corner_cases(self):
+        """ RI partner with VAT 0 and 21 """
+        self._post(self.demo_invoices['test_invoice_3'])
+
+    def test_17_corner_cases(self):
+        """ RI partner with VAT exempt and 21 """
+        self._post(self.demo_invoices['test_invoice_4'])
+
+    def test_18_corner_cases(self):
+        """ RI partner with all type of taxes """
+        self._post(self.demo_invoices['test_invoice_5'])
+
+    def test_19_corner_cases(self):
+        """ Consumidor Final """
+        self._post(self.demo_invoices['test_invoice_8'])
+
     def test_20_corner_cases(self):
-        cases = {'demo_invoice_1': '"Mono" partner of tipe Service and VAT 21',
-                 'demo_invoice_2': '"Exento" partner with multiple VAT types 21, 27 and 10,5',
-                 'demo_invoice_3': '"RI" partner with VAT 0 and 21',
-                 'demo_invoice_4': '"RI" partner with VAT exempt and 21',
-                 'demo_invoice_5': '"RI" partner with all type of taxes',
-                 'demo_invoice_8': '"Consumidor Final"',
-                 'demo_invoice_11': '"RI" partner with many lines in order to prove rounding error, with 4'
-                 ' decimals of precision for the currency and 2 decimals for the product the error apperar',
-                 'demo_invoice_12': '"RI" partner with many lines in order to test rounding error, it is required'
-                 ' to use a 4 decimal precision in prodct in order to the error occur',
-                 'demo_invoice_13': '"RI" partner with many lines in order to test zero amount'
-                 ' invoices y rounding error. it is required to set the product decimal precision to 4 and change 260.59'
-                 ' for 260.60 in order to reproduce the error',
-                 'demo_invoice_17': '"RI" partner with 100%% of discount',
-                 'demo_invoice_18': '"RI" partner with 100%% of discount and with different VAT aliquots'}
-        self._test_demo_cases(cases)
+        """ RI partner with many lines in order to prove rounding error, with 4 decimals of precision for the currency
+        and 2 decimals for the product the error appears """
+        self._post(self.demo_invoices['test_invoice_11'])
 
-    def test_21_currency(self):
+    def test_21_corner_cases(self):
+        """ RI partner with many lines in order to test rounding error, it is required to use a 4 decimal precision in
+        product in order to the error occur """
+        self._post(self.demo_invoices['test_invoice_12'])
+
+    def test_22_corner_cases(self):
+        """ RI partner with many lines in order to test zero amount invoices y rounding error. it is required to set the
+        product decimal precision to 4 and change 260.59 for 260.60 in order to reproduce the error' """
+        self._post(self.demo_invoices['test_invoice_13'])
+
+    def test_23_corner_cases(self):
+        """ RI partner with 100%% of discount """
+        self._post(self.demo_invoices['test_invoice_17'])
+
+    def test_24_corner_cases(self):
+        """ RI partner with 100%% of discount and with different VAT aliquots """
+        self._post(self.demo_invoices['test_invoice_18'])
+
+    def test_25_currency(self):
+        """ RI in USD and VAT 21 """
         self._prepare_multicurrency_values()
-        self._test_demo_cases({'demo_invoice_10': '"Responsable Inscripto" in USD and VAT 21'})
+        self._post(self.demo_invoices['test_invoice_10'])
 
-    def test_22_iibb_sales_ars(self):
-        iibb_tax = self._search_tax('percepcion_iibb')
+    def test_26_iibb_sales_ars(self):
+        iibb_tax = self._search_tax('percepcion_iibb_ba')
         iibb_tax.active = True
 
-        product_27 = self.env.ref('l10n_ar.product_product_telefonia_product_template')
-        product_no_gravado = self.env.ref('l10n_ar.product_product_no_gravado')
-        product_exento = self.env.ref('l10n_ar.product_product_exento')
+        product_27 = self.service_iva_27
+        product_no_gravado = self.product_no_gravado
+        product_exento = self.product_iva_exento
 
         invoice = self._create_invoice(data={
             'lines': [{'product': product_27, 'price_unit': 100.0, 'quantity': 8},
@@ -108,42 +131,31 @@ class TestFe(common.TestEdi):
         invoice.invoice_line_ids.filtered(lambda x: x.product_id == product_exento).tax_ids = [(4, iibb_tax.id)]
 
         self.assertIn(iibb_tax.name, invoice.invoice_line_ids.mapped('tax_ids').mapped('name'))
-        self._edi_validate_and_review(invoice)
+        self._validate_and_review(invoice)
 
-    def test_23_iibb_sales_usd(self):
-        iibb_tax = self._search_tax('percepcion_iibb')
+    def test_27_iibb_sales_usd(self):
+        iibb_tax = self._search_tax('percepcion_iibb_ba')
         iibb_tax.active = True
 
         self._prepare_multicurrency_values()
         invoice = self._create_invoice({'currency': self.env.ref('base.USD')})
         invoice.invoice_line_ids.filtered(lambda x: x.tax_ids).tax_ids = [(4, iibb_tax.id)]
         self.assertIn(iibb_tax.name, invoice.invoice_line_ids.mapped('tax_ids').mapped('name'))
-        self._edi_validate_and_review(invoice)
+        self._validate_and_review(invoice)
 
+    def test_28_vendor_bill_verify(self):
 
-@tagged('vendor', 'ri', 'mono')
-class TestVendorBill(common.TestEdi):
+        # SetUp
+        self.partner = self.res_partner_adhoc
+        self.journal = self._create_journal('wsfe')
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestVendorBill, cls).setUpClass()
-
-        # Force user to be loggin in "Reponsable Inscripto" Argentinian Company
-        context = dict(cls.env.context, allowed_company_ids=[cls.company_ri.id])
-        cls.env = cls.env(context=context)
-
-        cls.partner = cls.partner_ri
-        cls.journal = cls._create_journal(cls, 'wsfe')
-
-    def test_01_vendor_bill_verify(self):
         # Create a customer invoice in "Responsable Inscripto" Company to "Monotributista" Company
-        mono_company = self.env.ref('l10n_ar.company_mono')
-        invoice = self._create_invoice({'partner': mono_company.partner_id})
-        self._edi_validate_and_review(invoice)
+        invoice = self._create_invoice({'partner': self.company_mono.partner_id})
+        self._validate_and_review(invoice)
 
         # Login in "Monotributista" Company
-        context = dict(self.env.context, allowed_company_ids=[mono_company.id])
-        self.env = self.env(context=context)
+        self.env.user.write({'company_id': self.company_mono.id})
+        self._create_afip_connections(self.company_mono, 'wscdc', 'test_cert2.crt')
 
         # Create a vendor bill with the same values of "Responsable Inscripto"
         bill = self._create_invoice({
@@ -156,10 +168,7 @@ class TestVendorBill(common.TestEdi):
 
         # Verify manually vendor bill in AFIP from "Responsable Inscripto" in "Monotributista" Company
         self.assertFalse(bill.l10n_ar_afip_verification_result)
-        bill.l10n_ar_verify_on_afip()
-        if 'Error interno de aplicación:' in ' '.join(bill.message_ids.mapped('body')):
-            _logger.warning('WSDC is not avaiable so we were not able to fully run the test')
-            return
+        self._l10n_ar_verify_on_afip(bill)
 
         self.assertTrue(bill.l10n_ar_afip_verification_result)
         # Need to use a real CUIT to be able to verify vendor bills in AFIP, that is why we receive Rejected

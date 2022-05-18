@@ -3,18 +3,16 @@
 # 	* account_consolidation
 # 
 # Translators:
-# Bohdan Lisnenko, 2019
-# Oleksandr Paziuk <o.paziuk@mobilunity.com>, 2019
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-27 09:18+0000\n"
-"PO-Revision-Date: 2019-09-27 12:00+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2021\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -54,6 +52,11 @@ msgid "% Ownership"
 msgstr "% власності"
 
 #. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.header_cell_template
+msgid "%<br/>"
+msgstr "%<br/>"
+
+#. module: account_consolidation
 #: code:addons/account_consolidation/report/builder/abstract.py:0
 #, python-format
 msgid "%s (%s Currency Conversion Method)"
@@ -64,23 +67,6 @@ msgstr "%s (%s Метод конвертації валюти)"
 #, python-format
 msgid "%s Consolidated Accounting"
 msgstr "%s Консолідований облік"
-
-#. module: account_consolidation
-#: code:addons/account_consolidation/report/trial_balance.py:0
-#, python-format
-msgid "%s<br /><span class=\"subtitle\">Conso Rate: %s%%</span><br/><br/>"
-msgstr ""
-"%s<br /><span class=\"subtitle\">Ставка консолідації: %s%%</span><br/><br/>"
-
-#. module: account_consolidation
-#: code:addons/account_consolidation/report/trial_balance.py:0
-#, python-format
-msgid ""
-"%s<br /><span class=\"subtitle\">Conso Rate: %s%%<br />Avg Rate: 1%s = %s%s "
-"/ End Rate: 1%s = %s%s</span>"
-msgstr ""
-"%s<br /><span class=\"subtitle\">Ставка консолідації: %s%%<br />Серед. "
-"ставка: 1%s = %s%s / Кінцева ставка: 1%s = %s%s</span>"
 
 #. module: account_consolidation
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_company_period_form
@@ -97,6 +83,11 @@ msgstr "(Пере)розрахувати"
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_period_kanban
 msgid "(Re)compute"
 msgstr "(Пере)розрахувати"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.header_cell_template
+msgid "/ End Rate: 1"
+msgstr "/ Кінцева ставка: 1"
 
 #. module: account_consolidation
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_period_kanban
@@ -124,6 +115,13 @@ msgid ""
 msgstr ""
 "<span class=\"fa fa-book\"/>\n"
 "                    Журнали:"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_company_period_form
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_journal_form
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_period_composition_form
+msgid "<span class=\"o_form_label oe_inline\">%</span>"
+msgstr "<span class=\"o_form_label oe_inline\">%</span>"
 
 #. module: account_consolidation
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_period_kanban
@@ -187,16 +185,26 @@ msgstr "Співставлення рахунків"
 
 #. module: account_consolidation
 #: code:addons/account_consolidation/models/consolidation_coa.py:0
+#, python-format
+msgid "Account Mapping: %(chart)s"
+msgstr "Співставлення рахунків: %(chart)s"
+
+#. module: account_consolidation
 #: code:addons/account_consolidation/models/res_company.py:0
 #, python-format
-msgid "Account Mapping: "
-msgstr "Співставлення рахунків: "
+msgid "Account Mapping: %(company)s"
+msgstr "Співставлення рахунків: %(company)s"
 
 #. module: account_consolidation
 #: code:addons/account_consolidation/models/consolidation_period.py:0
 #, python-format
 msgid "Account Mapping: %s (for %s)"
 msgstr "Співставлення рахунків: %s (для %s)"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_account_form
+msgid "Account Name"
+msgstr "Назва рахунку"
 
 #. module: account_consolidation
 #: model:ir.model,name:account_consolidation.model_account_consolidation_trial_balance_report
@@ -234,6 +242,7 @@ msgstr "Активно"
 
 #. module: account_consolidation
 #. openerp-web
+#: code:addons/account_consolidation/static/src/js/trial_balance_grid/controller.js:0
 #: code:addons/account_consolidation/static/src/js/trial_balance_grid/controller.js:0
 #, python-format
 msgid "Add a column"
@@ -339,6 +348,11 @@ msgstr "Середній курс валют"
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_company_period_form
 msgid "Average Rate"
 msgstr "Середній курс"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.header_cell_template
+msgid "Avg Rate: 1"
+msgstr "Сер. ставка: 1"
 
 #. module: account_consolidation
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_journal__balance
@@ -483,6 +497,11 @@ msgid "Configuration"
 msgstr "Налаштування"
 
 #. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.header_cell_template
+msgid "Conso Rate:"
+msgstr "Ставка консол-ії:"
+
+#. module: account_consolidation
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_journal_line__account_id
 msgid "Consolidated Account"
 msgstr "Консолідований рахунок"
@@ -535,6 +554,7 @@ msgstr "Консолідовано в"
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_account_search
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_account_tree
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_chart_form
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_group_search
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_period_search
 msgid "Consolidation"
 msgstr "Консолідація"
@@ -779,7 +799,6 @@ msgid "Display Dates"
 msgstr "Відображати дати"
 
 #. module: account_consolidation
-#: model:ir.model.fields,field_description:account_consolidation.field_account_consolidation_trial_balance_report__display_name
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_account__display_name
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_chart__display_name
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_company_period__display_name
@@ -866,11 +885,6 @@ msgid "Followers"
 msgstr "Підписники"
 
 #. module: account_consolidation
-#: model:ir.model.fields,field_description:account_consolidation.field_consolidation_period__message_channel_ids
-msgid "Followers (Channels)"
-msgstr "Підписники (Канали)"
-
-#. module: account_consolidation
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_period__message_partner_ids
 msgid "Followers (Partners)"
 msgstr "Підписники (Партнери)"
@@ -895,9 +909,19 @@ msgid "Group"
 msgstr "Група"
 
 #. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_group_form
+msgid "Group Name"
+msgstr "Назва групи"
+
+#. module: account_consolidation
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_chart_form
 msgid "Groups"
 msgstr "Групи"
+
+#. module: account_consolidation
+#: model:ir.model.fields,field_description:account_consolidation.field_consolidation_period__has_message
+msgid "Has Message"
+msgstr "Є повідомлення"
 
 #. module: account_consolidation
 #: model:ir.model.fields.selection,name:account_consolidation.selection__consolidation_account__currency_mode__hist
@@ -912,8 +936,8 @@ msgstr "Історія курсу"
 #. module: account_consolidation
 #: code:addons/account_consolidation/models/res_company.py:0
 #, python-format
-msgid "Historical Rates: "
-msgstr "Історія курсу: "
+msgid "Historical Rates: %(company)s"
+msgstr "Історичні ставки: %(company)s"
 
 #. module: account_consolidation
 #: model:ir.model.fields,help:account_consolidation.field_consolidation_company_period__currency_rate_avg
@@ -925,7 +949,6 @@ msgstr ""
 "плану"
 
 #. module: account_consolidation
-#: model:ir.model.fields,field_description:account_consolidation.field_account_consolidation_trial_balance_report__id
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_account__id
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_chart__id
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_company_period__id
@@ -984,11 +1007,6 @@ msgid "Journal Items"
 msgstr "Елементи журналу"
 
 #. module: account_consolidation
-#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_journal_form
-msgid "Journal Label"
-msgstr "Мітка журналу"
-
-#. module: account_consolidation
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_group__line_ids
 msgid "Journal lines"
 msgstr "Рядки журналу"
@@ -1011,7 +1029,6 @@ msgid "Just done"
 msgstr "Щойно завершено"
 
 #. module: account_consolidation
-#: model:ir.model.fields,field_description:account_consolidation.field_account_consolidation_trial_balance_report____last_update
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_account____last_update
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_chart____last_update
 #: model:ir.model.fields,field_description:account_consolidation.field_consolidation_company_period____last_update
@@ -1413,6 +1430,13 @@ msgid "Target Currency"
 msgstr "Цільова валюта"
 
 #. module: account_consolidation
+#: code:addons/account_consolidation/models/consolidation_period.py:0
+#, python-format
+msgid ""
+"The Composed Analysis Period must be different from the Analysis Period"
+msgstr "Складений період аналізу повинен відрізнятися від періоду аналізу"
+
+#. module: account_consolidation
 #: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_step
 msgid "The Scope of Consolidation"
 msgstr "Область консолідації валюти"
@@ -1543,6 +1567,12 @@ msgstr ""
 
 #. module: account_consolidation
 #: code:addons/account_consolidation/models/consolidation_journal.py:0
+#, python-format
+msgid "You can't delete an auto-generated journal entry."
+msgstr "Ви не можете видалити автоматично створений запис журналу."
+
+#. module: account_consolidation
+#: code:addons/account_consolidation/models/consolidation_journal.py:0
 #: code:addons/account_consolidation/models/consolidation_journal.py:0
 #, python-format
 msgid "You can't edit an auto-generated journal entry."
@@ -1553,6 +1583,16 @@ msgstr "Ви не можете редагувати автоматично ст�
 #, python-format
 msgid "You cannot add journals to a closed period !"
 msgstr "Ви не можете додати журнали у закритий період!"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_group_form
+msgid "e.g. Profit and Loss"
+msgstr "напр. Доходи та витрати"
+
+#. module: account_consolidation
+#: model_terms:ir.ui.view,arch_db:account_consolidation.consolidation_account_form
+msgid "e.g. Revenue"
+msgstr "напр. Прибуток"
 
 #. module: account_consolidation
 #: code:addons/account_consolidation/report/builder/comparison.py:0

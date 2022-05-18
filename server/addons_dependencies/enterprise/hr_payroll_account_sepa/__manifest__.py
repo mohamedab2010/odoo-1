@@ -8,7 +8,9 @@
     'version': '1.0',
     'depends': ['hr_payroll_account', 'account_sepa'],
     'data': [
+        'security/ir.model.access.csv',
         'views/hr_payroll_account_sepa_views.xml',
         'wizard/hr_payroll_account_sepa_wizard_views.xml',
     ],
+    'license': 'OEEL-1',
 }

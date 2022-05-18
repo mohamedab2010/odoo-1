@@ -3,32 +3,16 @@
 # 	* social
 # 
 # Translators:
-# Rodrigo de Almeida Sottomaior Macedo <rmsolucoeseminformatic4@gmail.com>, 2019
-# danimaribeiro <danimaribeiro@gmail.com>, 2019
-# Marcel Savegnago <marcel.savegnago@gmail.com>, 2019
-# Luiz Carlos de Lima <luiz.carlos@akretion.com.br>, 2019
-# grazziano <gra.negocia@gmail.com>, 2019
-# Silmar <pinheirosilmar@gmail.com>, 2019
-# guisantos23 <guisantos23@yahoo.com.br>, 2019
-# Martin Trigaux, 2019
-# Emanuel Martins <emanuel.breno@gmail.com>, 2019
-# Adriel Kotviski <kotviski@gmail.com>, 2019
-# falexandresilva <falexandresilva@gmail.com>, 2019
-# André Augusto Firmino Cordeiro <a.cordeito@gmail.com>, 2019
-# Hélio Dias de Brito Teixeira <helio.dbt@gmail.com>, 2019
-# Leonel Inocencio <leonel@voraztecnologia.com>, 2019
-# Keli Brugalli <kbr@odoo.com>, 2019
-# Mateus Lopes <mateus1@gmail.com>, 2019
-# Fernanda Marques <fem@odoo.com>, 2020
-# Luiz Fernando Gondin <lfpsgs@outlook.com>, 2020
+# Martin Trigaux, 2021
+# grazziano <gra.negocia@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:38+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: Luiz Fernando Gondin <lfpsgs@outlook.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 10:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: grazziano <gra.negocia@gmail.com>, 2021\n"
 "Language-Team: Portuguese (Brazil) (https://www.transifex.com/odoo/teams/41243/pt_BR/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -37,18 +21,21 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. module: social
-#. openerp-web
-#: code:addons/social/static/src/xml/social_templates.xml:0
-#, python-format
-msgid ""
-"It appears there is an issue with the Social Media link, click here to link "
-"the account again"
-msgstr ""
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__accounts_count
 msgid "# Accounts"
 msgstr "# Contas"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid ", you must first link a social media."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_http_error_view
+msgid "<b>An error occurred while trying to link your account</b>"
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
@@ -74,12 +61,24 @@ msgstr "Atividades"
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__activity_exception_decoration
 msgid "Activity Exception Decoration"
-msgstr ""
+msgstr "Decoração de atividade excepcional "
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__activity_state
 msgid "Activity State"
 msgstr "Estado de Atividade"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "Ícone do Tipo de Atividade"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "Add"
+msgstr "Adicionar"
 
 #. module: social
 #. openerp-web
@@ -99,17 +98,10 @@ msgstr "Adicione um stream desde uma conta existente"
 #. module: social
 #. openerp-web
 #: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#: model_terms:ir.actions.act_window,help:social.action_social_stream
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
 #, python-format
 msgid "Add a stream"
 msgstr "Adicione um stream"
-
-#. module: social
-#. openerp-web
-#: code:addons/social/static/src/xml/social_templates.xml:0
-#, python-format
-msgid "Add an emoji"
-msgstr "Adicione um emoji"
 
 #. module: social
 #. openerp-web
@@ -119,14 +111,11 @@ msgid "Add an image"
 msgstr "Adicione uma imagem"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream
-msgid "Add stream to your dashboard to monitor your social media."
-msgstr "Adicione um stream ao seu painel para monitorar a sua mídia social."
-
-#. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
-msgid "Add your first stream"
-msgstr "Adicione o seu primeiro stream"
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid "All Companies"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_utm_campaign__social_post_ids
@@ -134,12 +123,24 @@ msgid "All related social media posts"
 msgstr "Todas as postagens relacionadas a mídia social"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__account_allowed_ids
+msgid "Allowed Accounts"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+msgid "Archived"
+msgstr "Arquivado"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__has_active_accounts
+#: model:ir.model.fields,field_description:social.field_social_post_template__has_active_accounts
 msgid "Are Accounts Available?"
 msgstr "As contas estão disponíveis?"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__image_ids
+#: model:ir.model.fields,field_description:social.field_social_post_template__image_ids
 msgid "Attach Images"
 msgstr "Anexar imagens"
 
@@ -170,7 +171,7 @@ msgstr "Link do autor"
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__author_name
 msgid "Author Name"
-msgstr "Nome do autor"
+msgstr "Nome de Autor"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_stream_post__author_link
@@ -184,12 +185,20 @@ msgid "By Stream"
 msgstr ""
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__csrf_token
+msgid "CSRF Token"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__calendar_date
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
 msgid "Calendar Date"
 msgstr "Data do calendário"
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form_quick_create_social
 msgid "Campaign"
 msgstr "Campanha"
 
@@ -201,10 +210,12 @@ msgstr "Campanhas"
 
 #. module: social
 #: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
-msgid "Campaigns are the perfect tool to track your posts results."
+msgid ""
+"Campaigns are used to centralize your marketing efforts and track their "
+"results."
 msgstr ""
-"As campanhas são a ferramenta perfeita para acompanhar os seus resultados de"
-" suas postagens."
+"As campanhas são usadas para centralizar seus esforços de marketing e "
+"rastrear seus resultados."
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__can_link_accounts
@@ -218,6 +229,20 @@ msgstr ""
 #, python-format
 msgid "Cancel"
 msgstr "Cancelar"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Choose which <b>account</b> you would like to link first."
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_renderer.js:0
+#, python-format
+msgid "Click to refresh."
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
@@ -239,6 +264,23 @@ msgid "Comments"
 msgstr "Comentários"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_account__company_id
+#: model:ir.model.fields,field_description:social.field_social_live_post__company_id
+#: model:ir.model.fields,field_description:social.field_social_post__company_id
+#: model:ir.model.fields,field_description:social.field_social_stream__company_id
+#: model:ir.model.fields,field_description:social.field_social_stream_post__company_id
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_stream_view_search
+msgid "Company"
+msgstr "Empresa"
+
+#. module: social
+#: model:ir.model,name:social.model_res_config_settings
+msgid "Config Settings"
+msgstr "Definições de Configuração"
+
+#. module: social
 #: model:ir.ui.menu,name:social.menu_social_configuration
 msgid "Configuration"
 msgstr "Configuração"
@@ -251,6 +293,13 @@ msgid "Connecting Problem"
 msgstr "Problema de conexão"
 
 #. module: social
+#: model:ir.model.fields,help:social.field_social_live_post__message
+msgid ""
+"Content of the social post message that is post-processed (links are "
+"shortened, UTMs, ...)"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,help:social.field_social_media__has_streams
 msgid "Controls if social streams are handled on this social media."
 msgstr ""
@@ -261,13 +310,21 @@ msgid "Controls if we can link accounts or not."
 msgstr "Verifica se é possível linkar contas ou não."
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_post
-msgid "Create a new post"
-msgstr "Crie uma nova postagem"
+#: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
+msgid "Create a Campaign"
+msgstr ""
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
-msgid "Create your first campaign"
+#: model_terms:ir.actions.act_window,help:social.action_social_post
+msgid "Create a Post"
+msgstr ""
+
+#. module: social
+#: code:addons/social/models/social_account.py:0
+#, python-format
+msgid ""
+"Create other accounts for %(media_names)s for this company or ask "
+"%(company_names)s to share their accounts"
 msgstr ""
 
 #. module: social
@@ -275,6 +332,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:social.field_social_live_post__create_uid
 #: model:ir.model.fields,field_description:social.field_social_media__create_uid
 #: model:ir.model.fields,field_description:social.field_social_post__create_uid
+#: model:ir.model.fields,field_description:social.field_social_post_template__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__create_uid
@@ -287,6 +345,7 @@ msgstr "Criado por"
 #: model:ir.model.fields,field_description:social.field_social_live_post__create_date
 #: model:ir.model.fields,field_description:social.field_social_media__create_date
 #: model:ir.model.fields,field_description:social.field_social_post__create_date
+#: model:ir.model.fields,field_description:social.field_social_post_template__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__create_date
@@ -315,7 +374,12 @@ msgid "Delete Comment"
 msgstr ""
 
 #. module: social
-#: model:ir.model.fields,field_description:social.field_social_media__description
+#: model_terms:ir.ui.view,arch_db:social.res_config_settings_view_form
+msgid "Demo Mode"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__media_description
 msgid "Description"
 msgstr "Descrição"
 
@@ -324,6 +388,7 @@ msgstr "Descrição"
 #: model:ir.model.fields,field_description:social.field_social_live_post__display_name
 #: model:ir.model.fields,field_description:social.field_social_media__display_name
 #: model:ir.model.fields,field_description:social.field_social_post__display_name
+#: model:ir.model.fields,field_description:social.field_social_post_template__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream_post__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__display_name
@@ -348,6 +413,18 @@ msgstr "Provisório"
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "Edit Comment"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_res_config_settings__module_social_demo
+msgid "Enable Demo Mode"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.res_config_settings_view_form
+msgid ""
+"Enable this option and load demo data to test the social module.<br/>\n"
+"                                    This must never be used on a production database!"
 msgstr ""
 
 #. module: social
@@ -377,6 +454,7 @@ msgstr ""
 
 #. module: social
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__failed
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
 msgid "Failed"
 msgstr "Falhou"
 
@@ -410,16 +488,15 @@ msgid "Followers"
 msgstr "Seguidores"
 
 #. module: social
-#: model:ir.model.fields,field_description:social.field_social_media__message_channel_ids
-#: model:ir.model.fields,field_description:social.field_social_post__message_channel_ids
-msgid "Followers (Channels)"
-msgstr "Seguidores (Canais)"
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_partner_ids
 #: model:ir.model.fields,field_description:social.field_social_post__message_partner_ids
 msgid "Followers (Partners)"
 msgstr "Seguidores (Parceiros)"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_post__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "Ícone do Font Awesome. Ex: fa-tasks"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__formatted_published_date
@@ -433,13 +510,39 @@ msgid ""
 msgstr ""
 
 #. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_http_error_view
+msgid "Go back to Odoo"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "Go to the"
+msgstr "Vá para"
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
 #: model_terms:ir.ui.view,arch_db:social.social_stream_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_stream_view_search
 msgid "Group By"
 msgstr "Agrupar Por"
 
 #. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Happy with the result? Let's post it!"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__has_account_stats
 msgid "Has Account Stats"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__has_message
+#: model:ir.model.fields,field_description:social.field_social_post__has_message
+msgid "Has Message"
 msgstr ""
 
 #. module: social
@@ -452,6 +555,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:social.field_social_live_post__id
 #: model:ir.model.fields,field_description:social.field_social_media__id
 #: model:ir.model.fields,field_description:social.field_social_post__id
+#: model:ir.model.fields,field_description:social.field_social_post_template__id
 #: model:ir.model.fields,field_description:social.field_social_stream__id
 #: model:ir.model.fields,field_description:social.field_social_stream_post__id
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__id
@@ -479,7 +583,9 @@ msgstr "Se marcado novas mensagens solicitarão sua atenção."
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_media__message_has_error
+#: model:ir.model.fields,help:social.field_social_media__message_has_sms_error
 #: model:ir.model.fields,help:social.field_social_post__message_has_error
+#: model:ir.model.fields,help:social.field_social_post__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
 msgstr "Se marcado, algumas mensagens tem erro de entrega."
 
@@ -492,7 +598,7 @@ msgstr "Imagem"
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__image_url
 msgid "Image URL"
-msgstr ""
+msgstr "URL de Imagem"
 
 #. module: social
 #. openerp-web
@@ -503,6 +609,7 @@ msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__image_urls
+#: model:ir.model.fields,field_description:social.field_social_post_template__image_urls
 msgid "Images URLs"
 msgstr ""
 
@@ -525,6 +632,22 @@ msgid "Is Follower"
 msgstr "É um seguidor"
 
 #. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid ""
+"It appears there is an issue with the Social Media link, click here to link "
+"the account again"
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "It will appear in the Feed once it has posts to display."
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,help:social.field_social_stream_post__stream_post_image_urls
 msgid ""
 "JSON array capturing the URLs of the images to make it easy to display them "
@@ -536,6 +659,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:social.field_social_live_post____last_update
 #: model:ir.model.fields,field_description:social.field_social_media____last_update
 #: model:ir.model.fields,field_description:social.field_social_post____last_update
+#: model:ir.model.fields,field_description:social.field_social_post_template____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream_post____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image____last_update
@@ -548,6 +672,7 @@ msgstr "Última modificação em"
 #: model:ir.model.fields,field_description:social.field_social_live_post__write_uid
 #: model:ir.model.fields,field_description:social.field_social_media__write_uid
 #: model:ir.model.fields,field_description:social.field_social_post__write_uid
+#: model:ir.model.fields,field_description:social.field_social_post_template__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__write_uid
@@ -560,12 +685,34 @@ msgstr "Última atualização por"
 #: model:ir.model.fields,field_description:social.field_social_live_post__write_date
 #: model:ir.model.fields,field_description:social.field_social_media__write_date
 #: model:ir.model.fields,field_description:social.field_social_post__write_date
+#: model:ir.model.fields,field_description:social.field_social_post_template__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_type__write_date
 msgid "Last Updated on"
 msgstr "Última atualização em"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's <b>connect</b> to Facebook, LinkedIn or Twitter."
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's create your own <b>social media</b> dashboard."
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's start posting."
+msgstr "Vamos começar a postar."
 
 #. module: social
 #. openerp-web
@@ -579,7 +726,7 @@ msgstr ""
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "Likes"
-msgstr ""
+msgstr "Likes"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__link_description
@@ -616,7 +763,22 @@ msgid "Link account"
 msgstr ""
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "Link an Account"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_account__company_id
+#: model:ir.model.fields,help:social.field_social_live_post__company_id
+#: model:ir.model.fields,help:social.field_social_stream__company_id
+#: model:ir.model.fields,help:social.field_social_stream_post__company_id
+msgid ""
+"Link an account to a company to restrict its usage or keep empty to let all "
+"companies use it."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Link social accounts"
 msgstr ""
 
@@ -628,6 +790,11 @@ msgstr ""
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__is_media_disconnected
 msgid "Link with external Social Media is broken"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_post__account_allowed_ids
+msgid "List of the accounts which can be selected for this post."
 msgstr ""
 
 #. module: social
@@ -649,11 +816,6 @@ msgid "Main Attachment"
 msgstr "Anexo Principal"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_post
-msgid "Manage and edit your posts from here."
-msgstr "Gerencie e edite suas postagens desde aqui."
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__media_ids
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
 msgid "Media"
@@ -668,10 +830,12 @@ msgstr ""
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__name
 msgid "Medium Name"
-msgstr ""
+msgstr "Nome da Mídia"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_live_post__message
 #: model:ir.model.fields,field_description:social.field_social_post__message
+#: model:ir.model.fields,field_description:social.field_social_post_template__message
 #: model:ir.model.fields,field_description:social.field_social_stream_post__message
 msgid "Message"
 msgstr "Mensagem"
@@ -689,6 +853,13 @@ msgid "Message posted"
 msgstr ""
 
 #. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid ""
+"Message posted partially. These are the ones that couldn't be posted: <br>%s"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_ids
 #: model:ir.model.fields,field_description:social.field_social_post__message_ids
 msgid "Messages"
@@ -702,6 +873,16 @@ msgid ""
 msgstr ""
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+msgid "My Posts"
+msgstr "Minhas Postagens"
+
+#. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_stream_post_view_search
 msgid "My Streams"
 msgstr ""
@@ -710,6 +891,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:social.field_social_media__name
 #: model:ir.model.fields,field_description:social.field_social_stream_type__name
 #: model_terms:ir.ui.view,arch_db:social.social_account_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
 msgid "Name"
 msgstr "Nome"
 
@@ -719,6 +901,13 @@ msgstr "Nome"
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "New Post"
+msgstr "Nova Postagem"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_renderer.js:0
+#, python-format
+msgid "New content available."
 msgstr ""
 
 #. module: social
@@ -727,6 +916,11 @@ msgstr ""
 #, python-format
 msgid "Next"
 msgstr "Próximo"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__activity_date_deadline
@@ -744,6 +938,21 @@ msgid "Next Activity Type"
 msgstr "Tipo da Próxima Atividade"
 
 #. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "No Social Account yet!"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "No Social Streams yet!"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
+msgid "No Stream added yet!"
+msgstr ""
+
+#. module: social
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
@@ -754,16 +963,7 @@ msgstr ""
 #. openerp-web
 #: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
 #, python-format
-msgid ""
-"No social accounts currently configured, please contact your administrator."
-msgstr ""
-
-#. module: social
-#. openerp-web
-#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#, python-format
-msgid "Not allowed"
+msgid "No social accounts configured, please contact your administrator."
 msgstr ""
 
 #. module: social
@@ -887,9 +1087,8 @@ msgstr ""
 
 #. module: social
 #: code:addons/social/models/social_post.py:0
-#: code:addons/social/models/social_post.py:0
 #, python-format
-msgid "Please specify a message and at least one account to post into."
+msgid "Please specify at least one account to post into (for post ID(s) %s)."
 msgstr ""
 
 #. module: social
@@ -897,7 +1096,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 #, python-format
 msgid "Post"
-msgstr "Postar"
+msgstr "Lançar"
 
 #. module: social
 #. openerp-web
@@ -930,7 +1129,7 @@ msgstr ""
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 msgid "Post Now"
-msgstr ""
+msgstr "Postar Agora"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_stream_post__post_link
@@ -940,7 +1139,7 @@ msgid ""
 msgstr ""
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Post on"
 msgstr ""
 
@@ -948,7 +1147,7 @@ msgstr ""
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__posted
 #: model:ir.model.fields.selection,name:social.selection__social_post__state__posted
 msgid "Posted"
-msgstr "Postado"
+msgstr "Lançado"
 
 #. module: social
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__posting
@@ -957,6 +1156,7 @@ msgid "Posting"
 msgstr ""
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_stream__stream_post_ids
 #: model:ir.ui.menu,name:social.menu_social_post
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_kanban
@@ -977,11 +1177,11 @@ msgstr ""
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
-msgid "Press Enter to post."
-msgstr "Pressione enter para postar."
+msgid "Press Enter to post. Press Shift+Enter to insert a Line Break."
+msgstr ""
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Preview your post"
 msgstr "Visualização da sua postagem"
 
@@ -1004,6 +1204,10 @@ msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__published_date
+msgid "Published Date"
+msgstr "Data Publicada"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__published_date
 msgid "Published date"
 msgstr ""
@@ -1047,6 +1251,12 @@ msgid "Retry"
 msgstr "Repetir"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__message_has_sms_error
+#: model:ir.model.fields,field_description:social.field_social_post__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "Erro no envio de SMS"
+
+#. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 msgid "Schedule"
 msgstr "Agendar"
@@ -1063,8 +1273,14 @@ msgstr "Agendado"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__scheduled_date
-msgid "Scheduled post date"
-msgstr "Data de postagem programada"
+msgid "Scheduled Date"
+msgstr "Data Programada"
+
+#. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid "Selected accounts (%s) do not match the selected company (%s)"
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form
@@ -1083,7 +1299,7 @@ msgstr "Seqüência"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_stream__sequence
-msgid "Sequence used to order streams (mainly for the 'Feed' kanban view."
+msgid "Sequence used to order streams (mainly for the 'Feed' kanban view)"
 msgstr ""
 
 #. module: social
@@ -1104,6 +1320,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:social.action_social_account
 #: model:ir.model.fields,field_description:social.field_social_media__account_ids
 #: model:ir.model.fields,field_description:social.field_social_post__account_ids
+#: model:ir.model.fields,field_description:social.field_social_post_template__account_ids
 #: model:ir.ui.menu,name:social.menu_social_account
 #: model_terms:ir.ui.view,arch_db:social.social_account_view_list
 msgid "Social Accounts"
@@ -1112,7 +1329,7 @@ msgstr ""
 #. module: social
 #: model:ir.model,name:social.model_social_live_post
 msgid "Social Live Post"
-msgstr ""
+msgstr "Social Live Post"
 
 #. module: social
 #: model:res.groups,name:social.group_social_manager
@@ -1122,7 +1339,7 @@ msgstr ""
 #. module: social
 #: model:ir.ui.menu,name:social.menu_social_global
 msgid "Social Marketing"
-msgstr ""
+msgstr "Mídias Sociais"
 
 #. module: social
 #. openerp-web
@@ -1149,9 +1366,19 @@ msgstr "Postagens em Mídias Sociais"
 #: model:ir.model,name:social.model_social_post
 #: model:ir.model.fields,field_description:social.field_social_live_post__post_id
 #: model_terms:ir.ui.view,arch_db:social.social_live_post_view_form
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 msgid "Social Post"
 msgstr "Post social"
+
+#. module: social
+#: model:ir.model,name:social.model_social_post_template
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
+msgid "Social Post Template"
+msgstr ""
+
+#. module: social
+#: model:ir.actions.act_window,name:social.social_post_template_action
+msgid "Social Post Templates"
+msgstr ""
 
 #. module: social
 #: model:res.groups,name:social.group_social_user
@@ -1250,6 +1477,13 @@ msgid "Stories Trend"
 msgstr ""
 
 #. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "Stream Added (%s)"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__stream_post_id
 msgid "Stream Post"
 msgstr ""
@@ -1294,6 +1528,7 @@ msgstr "Sincronize"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__image_urls
+#: model:ir.model.fields,help:social.field_social_post_template__image_urls
 msgid ""
 "Technical JSON array capturing the URLs of the images to make it easy to "
 "display them in the kanban view."
@@ -1305,7 +1540,14 @@ msgid "Technical field for the calendar view."
 msgstr ""
 
 #. module: social
+#: code:addons/social/models/social_post_template.py:0
+#, python-format
+msgid "The 'message' field is required for post ID %s"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,help:social.field_social_post__account_ids
+#: model:ir.model.fields,help:social.field_social_post_template__account_ids
 msgid "The accounts on which this post will be published."
 msgstr ""
 
@@ -1350,6 +1592,13 @@ msgid "There are post errors on sub-posts"
 msgstr ""
 
 #. module: social
+#: model:ir.model.fields,help:social.field_social_media__csrf_token
+msgid ""
+"This token can be used to verify that an incoming request from a social "
+"provider has not been forged."
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream__name
 msgid "Title"
 msgstr "Título"
@@ -1358,7 +1607,7 @@ msgstr "Título"
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
-msgid "To add a stream, you must first link a social media."
+msgid "To add a stream"
 msgstr ""
 
 #. module: social
@@ -1369,7 +1618,7 @@ msgstr "Tipo"
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__activity_exception_decoration
 msgid "Type of the exception activity on record."
-msgstr ""
+msgstr "Tipo de atividade de exceção registrada."
 
 #. module: social
 #: model:ir.model,name:social.model_utm_campaign
@@ -1388,6 +1637,12 @@ msgid "UTM Source"
 msgstr ""
 
 #. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid "Unknown error"
+msgstr "Erro desconhecido"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_unread
 #: model:ir.model.fields,field_description:social.field_social_post__message_unread
 msgid "Unread Messages"
@@ -1400,7 +1655,7 @@ msgid "Unread Messages Counter"
 msgstr "Contador de mensagens não lidas"
 
 #. module: social
-#: code:addons/social/models/social_post.py:0
+#: code:addons/social/models/social_post_template.py:0
 #, python-format
 msgid "Uploaded file does not seem to be a valid image."
 msgstr ""
@@ -1422,6 +1677,18 @@ msgid "View"
 msgstr "Visualizações"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__website_message_ids
+#: model:ir.model.fields,field_description:social.field_social_post__website_message_ids
+msgid "Website Messages"
+msgstr "Mensagens do site"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_media__website_message_ids
+#: model:ir.model.fields,help:social.field_social_post__website_message_ids
+msgid "Website communication history"
+msgstr "Histórico de comunicação do site"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__post_method
 msgid "When"
 msgstr "Quando"
@@ -1435,6 +1702,7 @@ msgstr ""
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__image_ids
+#: model:ir.model.fields,help:social.field_social_post_template__image_ids
 msgid "Will attach images to your posts (if the social media supports it)."
 msgstr ""
 
@@ -1446,7 +1714,14 @@ msgid "Write a comment..."
 msgstr "Escrever um comentário"
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Write a message to get a preview of your post."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Write a message to see the preview."
 msgstr ""
 
@@ -1458,19 +1733,27 @@ msgid "Write a reply..."
 msgstr ""
 
 #. module: social
-#: code:addons/social/models/social_post.py:0
-#: code:addons/social/models/social_post.py:0
-#, python-format
+#: model_terms:ir.actions.act_window,help:social.action_social_post
 msgid ""
-"You are not allowed to create/update posts in a state other than \"Draft\"."
+"Write an enticing post, add images and schedule it to be posted later on "
+"multiple platforms at once."
 msgstr ""
 
 #. module: social
 #: code:addons/social/models/social_post.py:0
 #: code:addons/social/models/social_post.py:0
 #, python-format
-msgid "You are not allowed to do this operation."
+msgid ""
+"You are not allowed to create/update posts in a state other than \"Draft\"."
 msgstr ""
+"Você não tem permissão para criar/atualizar postagens em um estado diferente"
+" de \"Rascunho\"."
+
+#. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid "You are not allowed to do this operation."
+msgstr "Você não tem permissão para fazer esta operação."
 
 #. module: social
 #: code:addons/social/models/social_post.py:0
@@ -1479,23 +1762,45 @@ msgid "You can only move posts that are scheduled."
 msgstr "Você só pode modificar postagens que estão marcadas."
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Your Post"
 msgstr "Sua postagem"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
-msgid "and start posting."
-msgstr "e comece à postar."
-
-#. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "before posting."
 msgstr "antes de postar."
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "dashboard"
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid "for"
+msgstr "para"
 
 #. module: social
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "replies..."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
+msgid "to keep an eye on your own posts and monitor all social activities."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "to link your accounts and start posting."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "to start posting from Odoo."
 msgstr ""

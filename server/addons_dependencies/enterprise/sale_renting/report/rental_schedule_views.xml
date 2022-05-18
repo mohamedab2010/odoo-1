@@ -51,48 +51,45 @@
                  date_start="pickup_date"
                  date_stop="return_date"
                  default_group_by="product_id"
-                 create="false"
+                 create="true"
+                 on_create="sale_renting.action_create_rental_order"
+                 cell_create="false"
                  edit="false"
                  decoration-info="state in ['draft', 'sent']"
                  decoration-danger="late"
                  consolidation="product_uom_qty"
                  consolidation_max="{'product_id': 100000000000, 'lot_id': 100000000000, 'report_line_status': 100000000000, 'categ_id': 100000000000, 'company_id': 100000000000, 'partner_id': 100000000000, 'team_id': 100000000000, 'user_id': 100000000000}"
                  color="color"
-                 thumbnails="{'product_id': 'image_128', 'partner_id': 'image_128', 'user_id': 'image_128'}">
+                 thumbnails="{'product_id': 'image_128', 'partner_id': 'avatar_128', 'user_id': 'avatar_128'}"
+                 sample="1">
                  <templates>
-                     <div t-name="gantt-popover" class="container-fluid">
-                         <div class="row no-gutters">
-                             <div class="col">
-                                 <ul class="pl-1 mb-0">
-                                     <li><strong>Order #: </strong> <t t-esc="name"/></li>
-                                     <li><strong>Pickup : </strong> <t t-esc="userTimezoneStartDate.format('YYYY-MM-DD hh:mm A')"/></li>
-                                     <li><strong>Return : </strong> <t t-esc="userTimezoneStopDate.format('YYYY-MM-DD hh:mm A')"/></li>
-                                     <li><strong>Status : </strong> <t t-field="report_line_status"/>
-                                        <!-- t-field doesn't work, report_line_status isn't a field but a string -->
-                                        <t t-if="late">
-                                            Late
-                                            <t t-if="report_line_status == 'reserved'">
-                                                Pickup
-                                            </t>
-                                            <t t-elif="report_line_status == 'pickedup'">
-                                                Return
-                                            </t>
-                                        </t>
-                                        <t t-else="">
-                                          <t t-if="report_line_status == 'pickedup'">
-                                              Picked-Up
-                                          </t>
-                                          <t t-elif="report_line_status == 'returned'">
-                                              Returned
-                                          </t>
-                                          <t t-else="">
-                                              Reserved
-                                          </t>
-                                        </t>
-                                     </li>
-                                 </ul>
-                             </div>
-                         </div>
+                     <div t-name="gantt-popover">
+                      <div><strong>Order # — </strong> <t t-esc="name"/></div>
+                      <div><strong>Pickup  — </strong> <t t-esc="userTimezoneStartDate.format('L LT')"/></div>
+                      <div><strong>Return — </strong> <t t-esc="userTimezoneStopDate.format('L LT')"/></div>
+                      <div><strong>Status — </strong> <t t-field="report_line_status"/>
+                        <!-- t-field doesn't work, report_line_status isn't a field but a string -->
+                        <t t-if="late">
+                            Late
+                            <t t-if="report_line_status == 'reserved'">
+                                Pickup
+                            </t>
+                            <t t-elif="report_line_status == 'pickedup'">
+                                Return
+                            </t>
+                        </t>
+                        <t t-else="">
+                          <t t-if="report_line_status == 'pickedup'">
+                              Picked-Up
+                          </t>
+                          <t t-elif="report_line_status == 'returned'">
+                              Returned
+                          </t>
+                          <t t-else="">
+                              Reserved
+                          </t>
+                        </t>
+                      </div>
                      </div>
                  </templates>
               <field name="name"/>
@@ -111,7 +108,15 @@
       <field name="context">{'search_default_Rentals':1, 'group_by_no_leaf':1}</field>
   </record>
 
-  <menuitem id="menu_rental_schedule" name="Schedule" parent="rental_menu_root" sequence="3" groups="sales_team.group_sale_manager" action="action_rental_order_schedule"/>
+    <record id="action_create_rental_order" model="ir.actions.act_window">
+        <field name="name">Create Rental Orders</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">sale.order</field>
+        <field name="view_id" ref="sale_renting.rental_order_primary_form_view"/>
+        <field name="context">{'default_is_rental_order': 1, 'group_by_no_leaf': 0}</field>
+    </record>
+
+  <menuitem id="menu_rental_schedule" name="Schedule" parent="rental_menu_root" sequence="3" action="action_rental_order_schedule"/>
 
   <record id="product_template_form_view_rental_gantt" model="ir.ui.view">
     <field name="name">product.template.form.inherit.rental</field>
@@ -143,7 +148,6 @@
     <field name="inherit_id" ref="sale.product_form_view_sale_order_button"/>
     <field name="arch" type="xml">
       <xpath expr="//button[@name='action_view_sales']" position="after">
-        <field name="rent_ok" invisible="1" />
         <field name="qty_in_rent" invisible="1" />
         <button class="oe_stat_button" name="action_view_rentals"
             type="object" icon="fa-calendar" groups="sales_team.group_sale_salesman" attrs="{'invisible': [('rent_ok', '=', False)]}">
@@ -198,6 +202,9 @@
             </group>
           </group>
         </sheet>
+        <footer>
+          <button type="button" string="Ok" special="cancel" data-hotkey="z" class="btn-primary" close="1" />
+        </footer>
       </form>
     </field>
   </record>

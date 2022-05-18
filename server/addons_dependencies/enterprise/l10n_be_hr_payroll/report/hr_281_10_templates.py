@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import api, fields, models
+from odoo import api, models
 
 
 class ReportL10nBeHrPayroll28110(models.AbstractModel):
@@ -14,5 +14,5 @@ class ReportL10nBeHrPayroll28110(models.AbstractModel):
             'doc_ids' : docids,
             'doc_model' : self.env['hr.employee'],
             'data' : data,
-            'docs' : self.env['hr.employee'].browse(self.env.context.get('active_id')),
+            'docs' : self.env['hr.employee'].browse(docids),
         }

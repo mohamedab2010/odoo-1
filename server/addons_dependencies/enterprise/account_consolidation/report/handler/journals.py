@@ -19,7 +19,7 @@ class JournalsHandler(AbstractHandler):
     def get_selected_values(cls, options: dict) -> list:
         if options:
             options_journals = options.get('consolidation_journals', [])
-            at_least_one_selected = any([opt_journal['selected'] for opt_journal in options_journals])
+            at_least_one_selected = any(opt_journal['selected'] for opt_journal in options_journals)
             if options_journals is not None and len(options_journals) > 0:
                 return [journal['id'] for journal in options_journals if
                         not at_least_one_selected or journal['selected']]

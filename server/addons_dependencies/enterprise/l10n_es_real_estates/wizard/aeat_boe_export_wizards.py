@@ -7,7 +7,10 @@ from odoo import api, fields, models
 class Mod347BOEWizard(models.TransientModel):
     _inherit = 'l10n_es_reports.aeat.boe.mod347.export.wizard'
 
-    real_estates_vat_mod347_data = fields.One2many(comodel_name='l10n_es_reports.aeat.mod347.real.estates.vat', inverse_name='parent_wizard_id', relation='l10n_es_reports_mod347_boe_wizard_real_estates_vat_rel', string="Amount Perceived for Transfers of Real Estates Subject to VAT")
+    real_estates_vat_mod347_data = fields.One2many(
+        comodel_name='l10n_es_reports.aeat.mod347.real.estates.vat',
+        inverse_name='parent_wizard_id',
+        string="Amount Perceived for Transfers of Real Estates Subject to VAT")
 
     def get_partners_manual_parameters_map(self):
         rslt = super(Mod347BOEWizard, self).get_partners_manual_parameters_map()

@@ -4,12 +4,6 @@ odoo.define('voip.dialingPanel', function (require) {
 const core = require('web.core');
 const config = require('web.config');
 
-// As voip is not supported on mobile devices,
-// we want to keep the standard phone widget
-if (config.device.isMobile) {
-    return;
-}
-
 /**
  * @param {*} parent
  * @param {Object} action

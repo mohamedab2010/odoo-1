@@ -2,12 +2,10 @@ odoo.define('pos_loyalty.pos_loyalty', function (require) {
 "use strict";
 
 var models = require('point_of_sale.models');
-var screens = require('point_of_sale.screens');
 var core = require('web.core');
 var utils = require('web.utils');
 
 var round_pr = utils.round_precision;
-var QWeb     = core.qweb;
 
 var _t = core._t;
 
@@ -17,55 +15,34 @@ models.load_models([
     {
         model: 'loyalty.program',
         condition: function(self){ return !!self.config.loyalty_id[0]; },
-        fields: ['name','pp_currency','pp_product','pp_order','rounding'],
+        fields: ['name','points'],
         domain: function(self){ return [['id','=',self.config.loyalty_id[0]]]; },
-        loaded: function(self,loyalties){ 
-            self.loyalty = loyalties[0]; 
+        loaded: function(self,loyalties){
+            self.loyalty = loyalties[0];
+            self.loyalty.rules = [];
+            self.loyalty.rewards = [];
         },
     },{
         model: 'loyalty.rule',
-        condition: function(self){ return !!self.loyalty; },
-        fields: ['name','rule_type','product_id','category_id','cumulative','pp_product','pp_currency'],
+        condition: function(self){ return self.loyalty; },
+        fields: ['name','valid_product_ids','points_quantity','points_currency','loyalty_program_id'],
         domain: function(self){ return [['loyalty_program_id','=',self.loyalty.id]]; },
-        loaded: function(self,rules){ 
-
-            self.loyalty.rules = rules; 
-            self.loyalty.rules_by_product_id = {};
-            self.loyalty.rules_by_category_id = {};
-
-            for (var i = 0; i < rules.length; i++){
-                var rule = rules[i];
-                if (rule.rule_type === 'product') {
-                    if (!self.loyalty.rules_by_product_id[rule.product_id[0]]) {
-                        self.loyalty.rules_by_product_id[rule.product_id[0]] = [rule];
-                    } else if (rule.cumulative) {
-                        self.loyalty.rules_by_product_id[rule.product_id[0]].unshift(rule);
-                    } else {
-                        self.loyalty.rules_by_product_id[rule.product_id[0]].push(rule);
-                    }
-                } else if (rule.rule_type === 'category') {
-                    var category = self.db.get_category_by_id(rule.category_id[0]);
-                    if (!self.loyalty.rules_by_category_id[category.id]) {
-                        self.loyalty.rules_by_category_id[category.id] = [rule];
-                    } else if (rule.cumulative) {
-                        self.loyalty.rules_by_category_id[category.id].unshift(rule);
-                    } else {
-                        self.loyalty.rules_by_category_id[category.id].push(rule);
-                    }
-                }
-            }
+        loaded: function(self,rules){
+            rules.forEach(function(rule) {
+                self.loyalty.rules.push(rule);
+            });
         },
     },{
         model: 'loyalty.reward',
-        condition: function(self){ return !!self.loyalty; },
-        fields: ['name','reward_type','minimum_points','gift_product_id','point_cost','discount_product_id','discount','point_product_id'],
+        condition: function(self){ return self.loyalty; },
+        fields: ['name','reward_type','minimum_points','gift_product_id','point_cost','discount_product_id',
+                'discount_percentage', 'discount_fixed_amount', 'discount_apply_on', 'discount_type', 'discount_apply_on',
+                'discount_specific_product_ids', 'discount_max_amount', 'minimum_amount', 'loyalty_program_id'],
         domain: function(self){ return [['loyalty_program_id','=',self.loyalty.id]]; },
         loaded: function(self,rewards){
-            self.loyalty.rewards = rewards; 
-            self.loyalty.rewards_by_id = {};
-            for (var i = 0; i < rewards.length;i++) {
-                self.loyalty.rewards_by_id[rewards[i].id] = rewards[i];
-            }
+            rewards.forEach(function(reward) {
+                self.loyalty.rewards.push(reward);
+            });
         },
     },
 ],{'after': 'product.product'});
@@ -73,7 +50,8 @@ models.load_models([
 var _super_orderline = models.Orderline;
 models.Orderline = models.Orderline.extend({
     get_reward: function(){
-        return this.pos.loyalty.rewards_by_id[this.reward_id];
+        var reward_id = this.reward_id;
+        return this.pos.loyalty.rewards.find(function(reward){return reward.id === reward_id;});
     },
     set_reward: function(reward){
         this.reward_id = reward.id;
@@ -97,69 +75,27 @@ models.Order = models.Order.extend({
         if (!this.pos.loyalty || !this.get_client()) {
             return 0;
         }
-        
-        var orderLines = this.get_orderlines();
-        var rounding   = this.pos.loyalty.rounding;
-        
-        var product_sold = 0;
-        var total_sold   = 0;
         var total_points = 0;
-
-        for (var i = 0; i < orderLines.length; i++) {
-            var line = orderLines[i];
-            var product = line.get_product();
-            var rules  = this.pos.loyalty.rules_by_product_id[product.id] || [];
-            var overriden = false;
-
+        for (var line of this.get_orderlines()){
             if (line.get_reward()) {  // Reward products are ignored
                 continue;
             }
-            
-            for (var j = 0; j < rules.length; j++) {
-                var rule = rules[j];
-                total_points += round_pr(line.get_quantity() * rule.pp_product, rounding);
-                total_points += round_pr(line.get_price_with_tax() * rule.pp_currency, rounding);
-                // if affected by a non cumulative rule, skip the others. (non cumulative rules are put
-                // at the beginning of the list when they are loaded )
-                if (!rule.cumulative) { 
-                    overriden = true;
-                    break;
-                }
-            }
 
-            // Test the category rules
-            if ( product.pos_categ_id ) {
-                var category = this.pos.db.get_category_by_id(product.pos_categ_id[0]);
-                while (category && !overriden) {
-                    var rules = this.pos.loyalty.rules_by_category_id[category.id] || [];
-                    for (var j = 0; j < rules.length; j++) {
-                        var rule = rules[j];
-                        total_points += round_pr(line.get_quantity() * rule.pp_product, rounding);
-                        total_points += round_pr(line.get_price_with_tax() * rule.pp_currency, rounding);
-                        if (!rule.cumulative) {
-                            overriden = true;
-                            break;
-                        }
-                    }
-                    var _category = category;
-                    category = this.pos.db.get_category_by_id(this.pos.db.get_category_parent_id(category.id));
-                    if (_category === category) {
-                        break;
-                    }
+            var line_points = 0;
+            this.pos.loyalty.rules.forEach(function(rule) {
+                var rule_points = 0
+                if(rule.valid_product_ids.find(function(product_id) {return product_id === line.get_product().id})) {
+                    rule_points += rule.points_quantity * line.get_quantity();
+                    rule_points += rule.points_currency * line.get_price_with_tax();
                 }
-            }
+                if(Math.abs(rule_points) > Math.abs(line_points))
+                    line_points = rule_points;
+            });
 
-            if (!overriden) {
-                product_sold += line.get_quantity();
-                total_sold   += line.get_price_with_tax();
-            }
+            total_points += line_points;
         }
-
-        total_points += round_pr( total_sold * this.pos.loyalty.pp_currency, rounding );
-        total_points += round_pr( product_sold * this.pos.loyalty.pp_product, rounding );
-        total_points += round_pr( this.pos.loyalty.pp_order, rounding );
-
-        return total_points;
+        total_points += this.get_total_with_tax() * this.pos.loyalty.points;
+        return round_pr(total_points, 1);
     },
 
     /* The total number of points spent on rewards */
@@ -167,24 +103,14 @@ models.Order = models.Order.extend({
         if (!this.pos.loyalty || !this.get_client()) {
             return 0;
         } else {
-            var lines    = this.get_orderlines();
-            var rounding = this.pos.loyalty.rounding;
             var points   = 0;
 
-            for (var i = 0; i < lines.length; i++) {
-                var line = lines[i];
+            for (var line of this.get_orderlines()){
                 var reward = line.get_reward();
-                if (reward) {
-                    if (reward.reward_type === 'gift') {
-                        points += round_pr(line.get_quantity() * reward.point_cost, rounding);
-                    } else if (reward.reward_type === 'discount') {
-                        points += round_pr(-line.get_display_price() * reward.point_cost, rounding);
-                    } else if (reward.reward_type === 'resale') {
-                        points += (-line.get_quantity());
-                    }
+                if(reward) {
+                    points += round_pr(line.get_quantity() * reward.point_cost, 1);
                 }
             }
-
             return points;
         }
     },
@@ -193,8 +119,8 @@ models.Order = models.Order.extend({
     get_new_points: function() {
         if (!this.pos.loyalty || !this.get_client()) {
             return 0;
-        } else { 
-            return round_pr(this.get_won_points() - this.get_spent_points(), this.pos.loyalty.rounding);
+        } else {
+            return round_pr(this.get_won_points() - this.get_spent_points(), 1);
         }
     },
 
@@ -202,8 +128,13 @@ models.Order = models.Order.extend({
     get_new_total_points: function() {
         if (!this.pos.loyalty || !this.get_client()) {
             return 0;
-        } else { 
-            return round_pr(this.get_client().loyalty_points + this.get_new_points(), this.pos.loyalty.rounding);
+        } else {
+            if(this.state != 'paid'){
+                return round_pr(this.get_client().loyalty_points + this.get_new_points(), 1);
+            }
+            else{
+                return round_pr(this.get_client().loyalty_points, 1);
+            }
         }
     },
 
@@ -217,7 +148,7 @@ models.Order = models.Order.extend({
         if (!this.pos.loyalty || !this.get_client()) {
             return 0;
         } else {
-            return round_pr(this.get_client().loyalty_points - this.get_spent_points(), this.pos.loyalty.rounding);
+            return round_pr(this.get_client().loyalty_points - this.get_spent_points(), 1);
         }
     },
 
@@ -226,28 +157,27 @@ models.Order = models.Order.extend({
         var client = this.get_client();
         if (!client) {
             return [];
-        } 
+        }
 
+        var self = this;
         var rewards = [];
         for (var i = 0; i < this.pos.loyalty.rewards.length; i++) {
             var reward = this.pos.loyalty.rewards[i];
-            if (reward.minimum_points > this.get_spendable_points()) {
+            if (reward.minimum_points > self.get_spendable_points()) {
                 continue;
-            } else if(reward.reward_type === 'discount' && reward.point_cost > this.get_spendable_points()) {
+            } else if(reward.reward_type === 'discount' && reward.point_cost > self.get_spendable_points()) {
                 continue;
-            } else if(reward.reward_type === 'gift' && reward.point_cost > this.get_spendable_points()) {
+            } else if(reward.reward_type === 'gift' && reward.point_cost > self.get_spendable_points()) {
                 continue;
-            } else if(reward.reward_type === 'resale') {
-                if (this.get_spendable_points() <= 0) {
+            } else if(reward.reward_type === 'discount' && reward.discount_apply_on === 'specific_products' ) {
+                var found = false;
+                self.get_orderlines().forEach(function(line) {
+                    found |= reward.discount_specific_product_ids.find(function(product_id){return product_id === line.get_product().id;});
+                });
+                if(!found)
                     continue;
-                }
-                var reward_price = this.pos.db.get_product_by_id(reward.point_product_id[0]).get_price(this.pricelist, 1);
-                if (reward_price * this.pos.loyalty.rounding > this.get_total_with_tax()) {
-                    // If the total price of the lowest possible reward point is greater than
-                    // the order's total cost, it will result to negative order cost so do not add
-                    // to available rewards.
-                    continue;
-                }
+            } else if(reward.reward_type === 'discount' && reward.discount_type === 'fixed_amount' && self.get_total_with_tax() < reward.minimum_amount) {
+                continue;
             }
             rewards.push(reward);
         }
@@ -257,108 +187,100 @@ models.Order = models.Order.extend({
     apply_reward: function(reward){
         var client = this.get_client();
         var product, product_price, order_total, spendable;
-        var lrounding, crounding;
+        var crounding;
 
         if (!client) {
             return;
         } else if (reward.reward_type === 'gift') {
             product = this.pos.db.get_product_by_id(reward.gift_product_id[0]);
-            
-            if (!product) {
-                return;
-            }
-            
-            this.add_product(product, { 
-                price: 0, 
-                quantity: 1, 
-                merge: false, 
-                extras: { reward_id: reward.id },
-            });
-
-        } else if (reward.reward_type === 'discount') {
-            
-            lrounding = this.pos.loyalty.rounding;
-            crounding = this.pos.currency.rounding;
-            spendable = this.get_spendable_points();
-            order_total = this.get_total_with_tax();
-            var discount = round_pr(order_total * (reward.discount / 100), crounding);
-
-            if ( round_pr(discount * reward.point_cost,lrounding) > spendable ) { 
-                discount = round_pr(spendable / reward.point_cost, crounding);
-            }
-
-            product   = this.pos.db.get_product_by_id(reward.discount_product_id[0]);
 
             if (!product) {
-                return;
-            }
-
-            this.add_product(product, { 
-                price: -discount, 
-                quantity: 1, 
-                merge: false,
-                extras: { reward_id: reward.id },
-            });
-
-        } else if (reward.reward_type === 'resale') {
-
-            lrounding = this.pos.loyalty.rounding;
-            crounding = this.pos.currency.rounding;
-            spendable = this.get_spendable_points();
-            order_total = this.get_total_with_tax();
-            product = this.pos.db.get_product_by_id(reward.point_product_id[0]);
-
-            if (!product) {
-                return;
-            }
-
-            product_price = product.get_price(this.pricelist, 1);
-            if ( round_pr( spendable * product_price, crounding ) > order_total ) {
-                /**
-                 * round_pr returns the rounded value based on the precision provided.
-                 *  e.g. round_pr(6.3, 0.5) -> 6.5
-                 *
-                 * This, however, is not the behavior we want here. We want to round down
-                 * to the nearest multiple of the given precision. So in the above example,
-                 * we want to round down to 6.0.
-                 *
-                 * The reason for the round down is to prevent the reward price to exceed
-                 * the total order cost.
-                 *  e.g.
-                 *      order_total = 90
-                 *      product_price = 100 <- the reward per point
-                 *      lrounding = 0.5 <- meaning, it is allowed to spend 0.5 point at minimum
-                 *
-                 * - With normal rounding (using round_pr), `spendable` will result to
-                 *  round_pr(90 / 100, 0.5) -> 1.0. And if this reward is applied to the order,
-                 *  the order_total will become -10 (90 - 100 * 1.0) and we want to avoid
-                 *  negative order cost.
-                 * - With this implementation, `spendable` will be calculated as 0.5 resulting
-                 *  to order_total of 40 (90 - 100 * 0.5).
-                 */
-                spendable = Math.floor(order_total / product_price / lrounding) * lrounding;
-            }
-
-            if ( spendable < 0.00001 ) {
                 return;
             }
 
             this.add_product(product, {
-                quantity: -spendable,
+                price: 0,
+                quantity: 1,
                 merge: false,
                 extras: { reward_id: reward.id },
             });
+
+        } else if (reward.reward_type === 'discount') {
+
+            crounding = this.pos.currency.rounding;
+            spendable = this.get_spendable_points();
+            order_total = this.get_total_with_tax();
+            var discount = 0;
+
+            product = this.pos.db.get_product_by_id(reward.discount_product_id[0]);
+
+            if (!product) {
+                return;
+            }
+
+            if(reward.discount_type === "percentage") {
+                if(reward.discount_apply_on === "on_order"){
+                    discount += round_pr(order_total * (reward.discount_percentage / 100), crounding);
+                }
+
+                if(reward.discount_apply_on === "specific_products") {
+                    for (var prod of reward.discount_specific_product_ids){
+                        var specific_products = this.pos.db.get_product_by_id(prod);
+
+                        if (!specific_products)
+                            return;
+
+                        for (var line of this.get_orderlines()){
+                            if(line.product.id === specific_products.id)
+                                discount += round_pr(line.get_price_with_tax() * (reward.discount_percentage / 100), crounding);
+                        }
+                    }
+                }
+
+                if(reward.discount_apply_on === "cheapest_product") {
+                    var price;
+                    for (var line of this.get_orderlines()){
+                        if((!price || price > line.get_unit_price()) && line.product.id !== product.id) {
+                            discount = round_pr(line.get_price_with_tax() * (reward.discount_percentage / 100), crounding);
+                            price = line.get_unit_price();
+                        }
+                    }
+                }
+                if(reward.discount_max_amount !== 0 && discount > reward.discount_max_amount)
+                    discount = reward.discount_max_amount;
+
+                this.add_product(product, {
+                    price: -discount,
+                    quantity: 1,
+                    merge: false,
+                    extras: { reward_id: reward.id },
+                });
+            }
+            if (reward.discount_type == "fixed_amount") {
+                let discount_fixed_amount = reward.discount_fixed_amount;
+                let point_cost = reward.point_cost;
+                let quantity_to_apply = Math.floor(spendable/point_cost);
+                let amount_discounted = discount_fixed_amount * quantity_to_apply;
+
+                if (amount_discounted > order_total) {
+                    quantity_to_apply = Math.floor(order_total / discount_fixed_amount);
+                }
+
+                this.add_product(product, {
+                    price: - discount_fixed_amount,
+                    quantity: quantity_to_apply,
+                    merge: false,
+                    extras: { reward_id: reward.id },
+                });
+
+            }
         }
     },
-    
+
     finalize: function(){
         var client = this.get_client();
         if ( client ) {
             client.loyalty_points = this.get_new_total_points();
-            // The client list screen has a cache to avoid re-rendering
-            // the client lines, and so the point updates may not be visible ...
-            // We need a better GUI framework !
-            this.pos.gui.screen_instances.clientlist.partner_cache.clear_node(client.id);
         }
         _super.prototype.finalize.apply(this,arguments);
     },
@@ -367,12 +289,11 @@ models.Order = models.Order.extend({
         var json = _super.prototype.export_for_printing.apply(this,arguments);
         if (this.pos.loyalty && this.get_client()) {
             json.loyalty = {
-                rounding:     this.pos.loyalty.rounding || 1,
                 name:         this.pos.loyalty.name,
                 client:       this.get_client().name,
                 points_won  : this.get_won_points(),
                 points_spent: this.get_spent_points(),
-                points_total: this.get_new_total_points(), 
+                points_total: this.get_new_total_points(),
             };
         }
         return json;
@@ -382,95 +303,6 @@ models.Order = models.Order.extend({
         var json = _super.prototype.export_as_JSON.apply(this,arguments);
         json.loyalty_points = this.get_new_points();
         return json;
-    },
-});
-
-var LoyaltyButton = screens.ActionButtonWidget.extend({
-    template: 'LoyaltyButton',
-    button_click: function(){
-        var order  = this.pos.get_order();
-        var client = order.get_client(); 
-        if (!client) {
-            this.gui.show_screen('clientlist');
-            return;
-        }
-
-        var rewards = order.get_available_rewards();
-        if (rewards.length === 0) {
-            this.gui.show_popup('alert',{
-                'title': _t('No Rewards Available'),
-                'body':  _t('There are no rewards available for this customer as part of the loyalty program'),
-            });
-            return;
-        } else if (rewards.length === 1 && this.pos.loyalty.rewards.length === 1) {
-            order.apply_reward(rewards[0]);
-            return;
-        } else { 
-            var list = [];
-            for (var i = 0; i < rewards.length; i++) {
-                list.push({
-                    label: rewards[i].name,
-                    item:  rewards[i],
-                });
-            }
-            this.gui.show_popup('selection',{
-                'title': _t('Please select a reward'),
-                'list': list,
-                'confirm': function(reward){
-                    order.apply_reward(reward);
-                },
-            });
-        }
-    },
-});
-
-screens.define_action_button({
-    'name': 'loyalty',
-    'widget': LoyaltyButton,
-    'condition': function(){
-        return this.pos.loyalty && this.pos.loyalty.rewards.length;
-    },
-});
-
-screens.OrderWidget.include({
-    update_summary: function(){
-        this._super();
-
-        var order = this.pos.get_order();
-
-        var $loypoints = $(this.el).find('.summary .loyalty-points');
-
-        if(this.pos.loyalty && order.get_client()){
-            var points_won      = order.get_won_points();
-            var points_spent    = order.get_spent_points();
-            var points_total    = order.get_new_total_points(); 
-            $loypoints.replaceWith($(QWeb.render('LoyaltyPoints',{ 
-                widget: this, 
-                rounding: this.pos.loyalty.rounding,
-                points_won: points_won,
-                points_spent: points_spent,
-                points_total: points_total,
-            })));
-            $loypoints = $(this.el).find('.summary .loyalty-points');
-            $loypoints.removeClass('oe_hidden');
-
-            if(points_total < 0){
-                $loypoints.addClass('negative');
-            }else{
-                $loypoints.removeClass('negative');
-            }
-        }else{
-            $loypoints.empty();
-            $loypoints.addClass('oe_hidden');
-        }
-
-        if (this.pos.loyalty &&
-            this.getParent().action_buttons &&
-            this.getParent().action_buttons.loyalty) {
-
-            var rewards = order.get_available_rewards();
-            this.getParent().action_buttons.loyalty.highlight(!!rewards.length);
-        }
     },
 });
 

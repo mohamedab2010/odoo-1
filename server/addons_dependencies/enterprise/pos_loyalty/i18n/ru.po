@@ -3,16 +3,19 @@
 # 	* pos_loyalty
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Ivan Yelizariev <yelizariev@it-projects.info>, 2019
+# Martin Trigaux, 2021
+# Ivan Yelizariev // IEL <yelizariev@itpp.dev>, 2021
+# ILMIR <karamov@it-projects.info>, 2021
+# Irina Fedulova <istartlin@gmail.com>, 2021
+# Сергей Шебанин <sergey@shebanin.ru>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-23 11:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:37+0000\n"
-"Last-Translator: Ivan Yelizariev <yelizariev@it-projects.info>, 2019\n"
+"POT-Creation-Date: 2021-09-14 10:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:41+0000\n"
+"Last-Translator: Сергей Шебанин <sergey@shebanin.ru>, 2021\n"
 "Language-Team: Russian (https://www.transifex.com/odoo/teams/41243/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -21,19 +24,27 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
 
 #. module: pos_loyalty
-#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_kanban
-msgid "<span>Points per currency :</span>"
-msgstr "<span>Баллы за валюту:</span>"
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid ""
+"<span attrs=\"{'invisible': [('discount_type', '!=', "
+"'percentage')],'required': [('discount_type', '=', 'percentage')]}\" "
+"class=\"oe_inline\">%</span>"
+msgstr ""
+
+#. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "<span class=\"oe_grey\">if 0, no limit</span>"
+msgstr "<span class=\"oe_grey\">если 0, то без ограничений</span>"
 
 #. module: pos_loyalty
 #: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_kanban
-msgid "<strong>Points per order :</strong>"
-msgstr "<strong>Баллы за заказ:</strong>"
+msgid "<strong>Points:</strong>"
+msgstr ""
 
 #. module: pos_loyalty
-#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_kanban
-msgid "<strong>Points per product :</strong>"
-msgstr "<strong>Баллы за товар:</strong>"
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__active
+msgid "Active"
+msgstr "Активно"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__name
@@ -51,9 +62,20 @@ msgid "An internal identification for this loyalty reward"
 msgstr "Внутренняя идентификация этой награды за лояльность"
 
 #. module: pos_loyalty
-#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_rule__rule_type__category
-msgid "Category"
-msgstr "Категория"
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Apply Discount"
+msgstr "Применить скидку"
+
+#. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_form
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_search
+msgid "Archived"
+msgstr "Архивировано"
+
+#. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_rule_form
+msgid "Based on Products"
+msgstr "На основе товаров"
 
 #. module: pos_loyalty
 #: model:ir.model,name:pos_loyalty.model_res_partner
@@ -70,7 +92,7 @@ msgstr "Создайте новую программу лояльности"
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__create_uid
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__create_uid
 msgid "Created by"
-msgstr "Создано"
+msgstr "Создан"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__create_date
@@ -80,24 +102,20 @@ msgid "Created on"
 msgstr "Создан"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__cumulative
-msgid "Cumulative"
-msgstr "Совокупный"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_percentage
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__reward_type__discount
 msgid "Discount"
 msgstr "Скидка"
 
 #. module: pos_loyalty
-#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__reward_type__discount
-msgid "Discount (in %)"
-msgstr ""
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_apply_on
+msgid "Discount Apply On"
+msgstr "Скидка применена на"
 
 #. module: pos_loyalty
-#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__reward_type__resale
-msgid "Discount (in value)"
-msgstr ""
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_max_amount
+msgid "Discount Max Amount"
+msgstr "Максимальная сумма скидки"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_product_id
@@ -106,21 +124,28 @@ msgid "Discount Product"
 msgstr "Скидка продукта"
 
 #. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_type
+msgid "Discount Type"
+msgstr "Тип скидки"
+
+#. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__display_name
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__display_name
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__display_name
 msgid "Display Name"
-msgstr "Отображаемое Имя"
+msgstr "Отображаемое имя"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__rule_type
-msgid "Does this rule affects products, or a category of products ?"
-msgstr "Включает ли это правило продукты или категорию продуктов?"
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_fixed_amount
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__discount_type__fixed_amount
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Fixed Amount"
+msgstr "Фиксированная величина"
 
 #. module: pos_loyalty
 #: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__reward_type__gift
-msgid "Gift"
-msgstr "Подарок"
+msgid "Free Product"
+msgstr "Бесплатный товар"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__gift_product_id
@@ -128,40 +153,16 @@ msgid "Gift Product"
 msgstr "Подарочный продукт"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__pp_product
-msgid "How many loyalty points are given to the customer by product sold"
-msgstr ""
-"Сколько баллов лояльности предоставляется клиенту по продаваемому товару"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__pp_currency
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__points
 msgid "How many loyalty points are given to the customer by sold currency"
 msgstr "Сколько баллов лояльности предоставляется клиенту проданной валютой"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__pp_order
-msgid ""
-"How many loyalty points are given to the customer for each sale or order"
-msgstr ""
-"Сколько баллов лояльности предоставляется клиенту за каждую продажу или "
-"заказ"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__pp_product
-msgid "How many points the product will earn per product ordered"
-msgstr "Сколько баллов будет заработано для продукта"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__pp_currency
-msgid "How many points the product will earn per value sold"
-msgstr "Сколько баллов будет получать продукт за проданную стоимость"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__id
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__id
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__id
 msgid "ID"
-msgstr "Номер"
+msgstr "Идентификатор"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__point_cost
@@ -193,6 +194,13 @@ msgid "Last Updated on"
 msgstr "Последнее обновление"
 
 #. module: pos_loyalty
+#. openerp-web
+#: code:addons/pos_loyalty/static/src/xml/Loyalty.xml:0
+#, python-format
+msgid "Loyalty"
+msgstr ""
+
+#. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_pos_order__loyalty_points
 #: model:ir.model.fields,field_description:pos_loyalty.field_res_partner__loyalty_points
 #: model:ir.model.fields,field_description:pos_loyalty.field_res_users__loyalty_points
@@ -203,6 +211,8 @@ msgstr "баллы лояльности"
 #: model:ir.model,name:pos_loyalty.model_loyalty_program
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__loyalty_program_id
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__loyalty_program_id
+#: model:ir.model.fields,field_description:pos_loyalty.field_pos_config__module_pos_loyalty
+#: model:loyalty.program,name:pos_loyalty.program
 #: model_terms:ir.ui.view,arch_db:pos_loyalty.pos_config_view_form_inherit_pos_loyalty
 #: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_form
 msgid "Loyalty Program"
@@ -229,7 +239,7 @@ msgid ""
 "                    and rewards when doing business at your shops."
 msgstr ""
 "Программы лояльности позволяют клиенту зарабатывать баллы\n"
-"                     И вознаграждения при ведении бизнеса в ваших магазинах."
+"                     и вознаграждения при ведении бизнеса в ваших магазинах."
 
 #. module: pos_loyalty
 #: model:ir.model,name:pos_loyalty.model_loyalty_reward
@@ -244,9 +254,29 @@ msgid "Loyalty Rule"
 msgstr "Правило лояльности"
 
 #. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Max Discount Amount"
+msgstr "Максимальная сумма скидки"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_max_amount
+msgid "Maximum amount of discount that can be provided"
+msgstr "Максимальная сумма скидки, которая может быть предоставлена"
+
+#. module: pos_loyalty
 #: model:ir.model,name:pos_loyalty.model_base_partner_merge_automatic_wizard
 msgid "Merge Partner Wizard"
 msgstr "Помощник слияния партнеров"
+
+#. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Minimum Amount"
+msgstr "Минимальное количество"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__minimum_amount
+msgid "Minimum Order Amount"
+msgstr ""
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__minimum_points
@@ -261,22 +291,54 @@ msgstr "Название"
 
 #. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/js/loyalty.js:0
+#: code:addons/pos_loyalty/static/src/js/RewardButton.js:0
 #, python-format
 msgid "No Rewards Available"
 msgstr "награды отсутствуют"
 
 #. module: pos_loyalty
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__discount_apply_on__cheapest_product
+msgid "On Cheapest Product"
+msgstr "На самые дешевые товары"
+
+#. module: pos_loyalty
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__discount_apply_on__on_order
+msgid "On Order"
+msgstr "По заказу"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_apply_on
+msgid ""
+"On Order - Discount on whole order\n"
+"Cheapest product - Discount on cheapest product of the order\n"
+"Specific products - Discount on selected specific products"
+msgstr ""
+
+#. module: pos_loyalty
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__discount_apply_on__specific_products
+msgid "On Specific Products"
+msgstr "На определенные товары"
+
+#. module: pos_loyalty
+#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_reward__discount_type__percentage
+msgid "Percentage"
+msgstr "Процент"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_type
+msgid ""
+"Percentage - Entered percentage discount will be provided\n"
+"Amount - Entered fixed amount discount will be provided"
+msgstr ""
+"Процент - будет предоставлена скидка в процентах\n"
+" Сумма - будет предоставлена скидка на фиксированную сумму"
+
+#. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/js/loyalty.js:0
+#: code:addons/pos_loyalty/static/src/js/RewardButton.js:0
 #, python-format
 msgid "Please select a reward"
 msgstr "Пожалуйста, выберите награду"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__point_product_id
-msgid "Point Product"
-msgstr "Балл продукт"
 
 #. module: pos_loyalty
 #: model:ir.model,name:pos_loyalty.model_pos_config
@@ -289,49 +351,46 @@ msgid "Point of Sale Orders"
 msgstr "Заказы точки продажи"
 
 #. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__points
+msgid "Point per $ spent"
+msgstr ""
+
+#. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
+#: code:addons/pos_loyalty/static/src/xml/Loyalty.xml:0
+#: code:addons/pos_loyalty/static/src/xml/PointsCounter.xml:0
 #, python-format
 msgid "Points"
 msgstr "Баллы"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__rounding
-msgid "Points Rounding"
-msgstr "Округление баллов"
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_form
+msgid "Points Rules"
+msgstr ""
 
 #. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
+#: code:addons/pos_loyalty/static/src/xml/OrderReceipt.xml:0
 #, python-format
-msgid "Points Spent"
-msgstr "Потрачено баллов"
+msgid "Points Spent:"
+msgstr "Потрачено баллов:"
 
 #. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
+#: code:addons/pos_loyalty/static/src/xml/OrderReceipt.xml:0
 #, python-format
-msgid "Points Won"
-msgstr "Выиграно баллов"
+msgid "Points Won:"
+msgstr "Выиграно баллов:"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__pp_currency
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__pp_currency
-msgid "Points per currency"
-msgstr "Баллы за валюту"
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__points_currency
+msgid "Points per $ spent"
+msgstr ""
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__pp_order
-msgid "Points per order"
-msgstr "Баллов по заказу"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__pp_product
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__pp_product
-msgid "Points per product"
-msgstr "Баллов по продукту"
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__points_quantity
+msgid "Points per Unit"
+msgstr ""
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_pos_config__loyalty_id
@@ -339,9 +398,29 @@ msgid "Pos Loyalty Program"
 msgstr "Программа лояльности точки продаж"
 
 #. module: pos_loyalty
-#: model:ir.model.fields.selection,name:pos_loyalty.selection__loyalty_rule__rule_type__product
+#: model:ir.model,name:pos_loyalty.model_product_product
 msgid "Product"
 msgstr "Продукт"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__discount_specific_product_ids
+msgid "Products"
+msgstr "Продукты"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_specific_product_ids
+msgid ""
+"Products that will be discounted if the discount is applied on specific "
+"products"
+msgstr ""
+
+#. module: pos_loyalty
+#. openerp-web
+#: code:addons/pos_loyalty/static/src/xml/RewardButton.xml:0
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+#, python-format
+msgid "Reward"
+msgstr "Вознаграждение"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_reward__point_cost
@@ -364,23 +443,20 @@ msgid "Reward the customer with gifts or discounts for loyalty points"
 msgstr "Наградите клиента подарками или скидками за баллы лояльности"
 
 #. module: pos_loyalty
-#. openerp-web
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__reward_ids
 #: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_program_form
-#, python-format
 msgid "Rewards"
 msgstr "Награды"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__rule_domain
+msgid "Rule Domain"
+msgstr ""
 
 #. module: pos_loyalty
 #: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_rule_form
 msgid "Rule Name"
 msgstr "Название правила"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__rule_type
-msgid "Rule Type"
-msgstr "Тип правила"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_program__rule_ids
@@ -398,24 +474,30 @@ msgstr ""
 "продуктов или категорий"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__category_id
-msgid "Target Category"
-msgstr "Целевая категория"
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Select products"
+msgstr "Выберите товары"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__product_id
-msgid "Target Product"
-msgstr "Целевой продукт"
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "Select reward product"
+msgstr "Выберите товар вознаграждения"
+
+#. module: pos_loyalty
+#: model:product.product,name:pos_loyalty.simple_pen
+#: model:product.template,name:pos_loyalty.simple_pen_product_template
+msgid "Simple Pen"
+msgstr ""
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__loyalty_program_id
 msgid "The Loyalty Program this exception belongs to"
-msgstr "Программа лояльности это исключение принадлежит"
+msgstr "Программа лояльности, к которой принадлежит это исключение"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__loyalty_program_id
 msgid "The Loyalty Program this reward belongs to"
-msgstr "Программе лояльности это вознаграждение принадлежит"
+msgstr "Программа лояльности, к которой принадлежит это вознаграждение"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_pos_order__loyalty_points
@@ -425,14 +507,14 @@ msgstr ""
 "заказом"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__category_id
-msgid "The category affected by the rule"
-msgstr "Категория, на которую действует правило"
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_fixed_amount
+msgid "The discount in fixed amount"
+msgstr "Скидка в фиксированной сумме"
 
 #. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount
-msgid "The discount percentage"
-msgstr "Процент скидки"
+#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_percentage
+msgid "The discount in percentage, between 1 and 100"
+msgstr ""
 
 #. module: pos_loyalty
 #: code:addons/pos_loyalty/models/pos_loyalty.py:0
@@ -445,11 +527,6 @@ msgstr "Поле со скидкой является обязательным �
 #, python-format
 msgid "The gift product field is mandatory for gift rewards"
 msgstr "Поле подарочного продукта обязательно для подарочных наград"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_program__rounding
-msgid "The loyalty point amounts are rounded to multiples of this value."
-msgstr "Суммы баллов лояльности округлены до кратных этому значению."
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_res_partner__loyalty_points
@@ -473,34 +550,17 @@ msgstr ""
 "этой награды"
 
 #. module: pos_loyalty
-#: code:addons/pos_loyalty/models/pos_loyalty.py:0
+#: code:addons/pos_loyalty/models/product.py:0
 #, python-format
-msgid "The point product field is mandatory for point resale rewards"
+msgid ""
+"The product cannot be archived because it's used in a point of sales loyalty"
+" program."
 msgstr ""
-"Поле балл продукция является обязательным для вознаграждений за перепродажу "
-"по точкам"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__cumulative
-msgid "The points won from this rule will be won in addition to other rules"
-msgstr ""
-"Баллы, выигранные из этого правила, будут выиграны в дополнение к другим "
-"правилам"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_rule__product_id
-msgid "The product affected by the rule"
-msgstr "Продукт, на который действует правило"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__gift_product_id
 msgid "The product given as a reward"
 msgstr "Продукт, данный в качестве награды"
-
-#. module: pos_loyalty
-#: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__point_product_id
-msgid "The product that represents a point that is sold by the customer"
-msgstr "Продукт, представляющий точку, продаваемую клиентом"
 
 #. module: pos_loyalty
 #: model:ir.model.fields,help:pos_loyalty.field_loyalty_reward__discount_product_id
@@ -514,7 +574,7 @@ msgstr "Тип вознаграждения"
 
 #. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/js/loyalty.js:0
+#: code:addons/pos_loyalty/static/src/js/RewardButton.js:0
 #, python-format
 msgid ""
 "There are no rewards available for this customer as part of the loyalty "
@@ -523,7 +583,23 @@ msgstr "Для этого клиента нет наград, как части 
 
 #. module: pos_loyalty
 #. openerp-web
-#: code:addons/pos_loyalty/static/src/xml/loyalty.xml:0
+#: code:addons/pos_loyalty/static/src/xml/OrderReceipt.xml:0
 #, python-format
-msgid "Total Points"
-msgstr "Итого точек"
+msgid "Total Points:"
+msgstr "Итого точек:"
+
+#. module: pos_loyalty
+#: model:product.product,uom_name:pos_loyalty.simple_pen
+#: model:product.template,uom_name:pos_loyalty.simple_pen_product_template
+msgid "Units"
+msgstr "Единицы"
+
+#. module: pos_loyalty
+#: model:ir.model.fields,field_description:pos_loyalty.field_loyalty_rule__valid_product_ids
+msgid "Valid Product"
+msgstr ""
+
+#. module: pos_loyalty
+#: model_terms:ir.ui.view,arch_db:pos_loyalty.view_loyalty_reward_form
+msgid "e.g. Free Mug"
+msgstr ""

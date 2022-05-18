@@ -21,7 +21,7 @@ class AccountMove(models.Model):
                         actions.append({
                             'type': 'ir.actions.act_window',
                             'res_model': 'documents.request_wizard',
-                            'name': _("Request Document for %s") % line.name,
+                            'name': _("Request Document for %s", line.name),
                             'view_id': view_id,
                             'views': [(view_id, 'form')],
                             'target': 'new',
@@ -38,44 +38,50 @@ class AccountMove(models.Model):
         domain = super(AccountMove, self)._get_domain_matching_suspense_moves()
         return expression.OR([
             domain,
-            [('reconciliation_invoice_id', '=', self.id)]
+            [('id', '=', self.document_request_line_id.id)]
         ])
 
     def write(self, vals):
         main_attachment_id = vals.get('message_main_attachment_id')
-        # We assume that main_attachment_id is written on a single record,
-        # since the current flows are going this way. Ensuring that we have only one record will avoid performance issue
-        # when writing on invoices in batch.
-        # To make it work in batch if we want to update multiple main_attachment_ids simultaneously,
-        # most of this function may need to be rewritten.
-        if main_attachment_id and not self._context.get('no_document') and len(self) == 1:
-            previous_attachment_id = self.message_main_attachment_id.id
-            document = False
-            if previous_attachment_id:
-                document = self.env['documents.document'].sudo().search([('attachment_id', '=', previous_attachment_id)], limit=1)
-            if document:
-                document.attachment_id = main_attachment_id
-            elif self.is_invoice() and self.company_id.documents_account_settings:
-                setting = self.env['documents.account.folder.setting'].sudo().search(
-                    [('journal_id', '=', self.journal_id.id),
-                     ('company_id', '=', self.company_id.id)], limit=1)
-                if setting:
-                    values = {
-                        'folder_id': setting.folder_id.id,
-                        'partner_id': self.partner_id.id,
-                        'owner_id': self.create_uid.id,
-                        'tag_ids': [(6, 0, setting.tag_ids.ids if setting.tag_ids else [])],
-                    }
-                    Documents = self.env['documents.document'].with_context(default_type='empty').sudo()
-                    doc = Documents.search([('attachment_id', '=', main_attachment_id)], limit=1)
-                    if doc:
-                        doc.write(values)
-                    else:
-                        # backward compatibility with documents that may be not
-                        # registered as attachments yet
-                        values.update({'attachment_id' : main_attachment_id})
-                        doc.create(values)
-        return super(AccountMove, self).write(vals)
+        new_documents = [False for move in self]
+        journals_changed = [('journal_id' in vals  and move.journal_id.id != vals['journal_id']) for move in self]
+        for i, move in enumerate(self):
+            if main_attachment_id and not move.env.context.get('no_document') and move.move_type != 'entry':
+                previous_attachment_id = move.message_main_attachment_id.id
+                document = False
+                if previous_attachment_id:
+                    document = move.env['documents.document'].sudo().search([('attachment_id', '=', previous_attachment_id)], limit=1)
+                if document:
+                    document.attachment_id = main_attachment_id
+                else:
+                    new_documents[i] = True
+        res = super().write(vals)
+        for new_document, journal_changed, move in zip(new_documents, journals_changed, self):
+            if (new_document or journal_changed) and move.message_main_attachment_id:
+                move._update_or_create_document(move.message_main_attachment_id.id)
+        return res
+
+    def _update_or_create_document(self, attachment_id):
+        if self.company_id.documents_account_settings:
+            setting = self.env['documents.account.folder.setting'].sudo().search(
+                [('journal_id', '=', self.journal_id.id),
+                 ('company_id', '=', self.company_id.id)], limit=1)
+            if setting:
+                values = {
+                    'folder_id': setting.folder_id.id,
+                    'partner_id': self.partner_id.id,
+                    'owner_id': self.create_uid.id,
+                    'tag_ids': [(6, 0, setting.tag_ids.ids if setting.tag_ids else [])],
+                }
+                Documents = self.env['documents.document'].with_context(default_type='empty').sudo()
+                doc = Documents.search([('attachment_id', '=', attachment_id)], limit=1)
+                if doc:
+                    doc.write(values)
+                else:
+                    # backward compatibility with documents that may be not
+                    # registered as attachments yet
+                    values.update({'attachment_id': attachment_id})
+                    doc.create(values)
 
 
 class AccountMoveLine(models.Model):

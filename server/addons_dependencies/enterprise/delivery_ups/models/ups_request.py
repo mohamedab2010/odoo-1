@@ -71,7 +71,7 @@ UPS_ERROR_MAP = {
     '120412': _lt("Please provide a valid shipper Number/Carrier Account."),
     '121057': _lt("This measurement system is not valid for the selected country. Please switch from LBS/IN to KGS/CM (or vice versa). Configure it from delivery method"),
     '121210': _lt("The requested service is unavailable between the selected locations."),
-    '128089': _lt("Access License number is Invalid. Provide a valid number (Length sholuld be 0-35 alphanumeric characters)"),
+    '128089': _lt("Access License number is Invalid. Provide a valid number (Length should be 0-35 alphanumeric characters)"),
     '190001': _lt("Cancel shipment not available at this time , Please try again Later."),
     '190100': _lt("Provided Tracking Ref. Number is invalid."),
     '190109': _lt("Provided Tracking Ref. Number is invalid."),
@@ -97,9 +97,10 @@ class Package():
         self.name = name
         self.dimension_unit = carrier.ups_package_dimension_unit
         if quant_pack:
-            self.dimension = {'length': quant_pack.length, 'width': quant_pack.width, 'height': quant_pack.height}
+            self.width, self.height, self.length = carrier._ups_convert_size(quant_pack, self.dimension_unit)
         else:
-            self.dimension = {'length': carrier.ups_default_packaging_id.length, 'width': carrier.ups_default_packaging_id.width, 'height': carrier.ups_default_packaging_id.height}
+            self.width, self.height, self.length = carrier._ups_convert_size(carrier.ups_default_package_type_id, self.dimension_unit)
+        self.dimension = {'length': self.length, 'width': self.width, 'height': self.height}
         self.packaging_type = quant_pack and quant_pack.shipper_package_code or False
 
 
@@ -169,33 +170,39 @@ class UPSRequest():
         return re.sub('[^0-9]','', phone)
 
     def check_required_value(self, shipper, ship_from, ship_to, order=False, picking=False):
-        required_field = {'city': 'City', 'zip': 'ZIP code', 'country_id': 'Country', 'phone': 'Phone'}
+        required_field = {'city': 'City', 'country_id': 'Country', 'phone': 'Phone'}
         # Check required field for shipper
         res = [required_field[field] for field in required_field if not shipper[field]]
         if shipper.country_id.code in ('US', 'CA', 'IE') and not shipper.state_id.code:
             res.append('State')
         if not shipper.street and not shipper.street2:
             res.append('Street')
+        if shipper.country_id.code != 'HK' and not shipper.zip:
+            res.append('ZIP code')
         if res:
-            return _("The address of your company is missing or wrong.\n(Missing field(s) : %s)") % ",".join(res)
+            return _("The address of your company is missing or wrong.\n(Missing field(s) : %s)", ",".join(res))
         if len(self._clean_phone_number(shipper.phone)) < 10:
-            return _(UPS_ERROR_MAP.get('120115'))
+            return str(UPS_ERROR_MAP.get('120115'))
         # Check required field for warehouse address
         res = [required_field[field] for field in required_field if not ship_from[field]]
         if ship_from.country_id.code in ('US', 'CA', 'IE') and not ship_from.state_id.code:
             res.append('State')
         if not ship_from.street and not ship_from.street2:
             res.append('Street')
+        if ship_from.country_id.code != 'HK' and not ship_from.zip:
+            res.append('ZIP code')
         if res:
-            return _("The address of your warehouse is missing or wrong.\n(Missing field(s) : %s)") % ",".join(res)
+            return _("The address of your warehouse is missing or wrong.\n(Missing field(s) : %s)", ",".join(res))
         if len(self._clean_phone_number(ship_from.phone)) < 10:
-            return _(UPS_ERROR_MAP.get('120313'))
+            return str(UPS_ERROR_MAP.get('120313'))
         # Check required field for recipient address
         res = [required_field[field] for field in required_field if field != 'phone' and not ship_to[field]]
         if ship_to.country_id.code in ('US', 'CA', 'IE') and not ship_to.state_id.code:
             res.append('State')
         if not ship_to.street and not ship_to.street2:
             res.append('Street')
+        if ship_to.country_id.code != 'HK' and not ship_to.zip:
+            res.append('ZIP code')
         if len(ship_to.street or '') > 35 or len(ship_to.street2 or '') > 35:
             return _("UPS address lines can only contain a maximum of 35 characters. You can split the contacts addresses on multiple lines to try to avoid this limitation.")
         if picking and not order:
@@ -206,26 +213,27 @@ class UPSRequest():
         if order:
             if not order.order_line:
                 return _("Please provide at least one item to ship.")
-            for line in order.order_line.filtered(lambda line: not line.product_id.weight and not line.is_delivery and line.product_id.type not in ['service', 'digital', False]):
-                return _("The estimated price cannot be computed because the weight of your product is missing.")
+            error_lines = order.order_line.filtered(lambda line: not line.product_id.weight and not line.is_delivery and line.product_id.type != 'service' and not line.display_type)
+            if error_lines:
+                return _("The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n %s") % ", ".join(error_lines.product_id.mapped('name'))
         if picking:
             for ml in picking.move_line_ids.filtered(lambda ml: not ml.result_package_id and not ml.product_id.weight):
                 return _("The delivery cannot be done because the weight of your product is missing.")
             packages_without_weight = picking.move_line_ids.mapped('result_package_id').filtered(lambda p: not p.shipping_weight)
             if packages_without_weight:
-                return _('Packages %s do not have a positive shipping weight.') % (', '.join(packages_without_weight.mapped('display_name')))
+                return _('Packages %s do not have a positive shipping weight.', ', '.join(packages_without_weight.mapped('display_name')))
         if not phone:
             res.append('Phone')
         if res:
-            return _("The recipient address is missing or wrong.\n(Missing field(s) : %s)") % ",".join(res)
+            return _("The recipient address is missing or wrong.\n(Missing field(s) : %s)", ",".join(res))
         if len(self._clean_phone_number(phone)) < 10:
-            return _(UPS_ERROR_MAP.get('120213'))
+            return str(UPS_ERROR_MAP.get('120213'))
         return False
 
     def get_error_message(self, error_code, description):
         result = {}
-        result['error_message'] = UPS_ERROR_MAP.get(error_code)
-        if not result['error_message']:
+        result['error_message'] = str(UPS_ERROR_MAP.get(error_code))
+        if result['error_message'] == "None":
             result['error_message'] = description
         return result
 

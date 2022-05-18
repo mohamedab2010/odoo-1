@@ -1,82 +1,145 @@
-odoo.define('project_enterprise.TaskGanttModel', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var GanttModel = require('web_gantt.GanttModel');
-var _t = require('web.core')._t;
+import { device } from 'web.config';
+import { format } from 'web.field_utils';
+import GanttModel from 'web_gantt.GanttModel';
+import { _t } from 'web.core';
 
-var TaskGanttModel = GanttModel.extend({
+
+const TaskGanttModel = GanttModel.extend({
+    mapMany2manyFields: [{
+        many2many_field: 'personal_stage_type_ids',
+        many2one_field: 'personal_stage_type_id',
+    }],
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
     /**
      * @private
      * @override
-     * @returns {Object[]}
      */
-    _generateRows: function (params) {
-        // provide group for unassigned task
-        if(params.groupedBy.length) {
-            var groupedByField = params.groupedBy[0];
-            if (groupedByField === 'user_id') {
-                var empty_exists = _.some(params.groups, function(group) {return !group[groupedByField];});
-                if (!empty_exists) {
-                    var values = this._parsePath(params.parentPath);
-                    var new_group = _.clone(values);
-                    new_group = _.extend(new_group, {
-                        id: _.uniqueId('group'),
-                        fake: true,
-                        __count: 0,
-                        __domain: this._getDomain(), // TODO: add the domain part with the values
-                        user_id: false,
-                    });
-                    params.groups.push(new_group);
-                    this.ganttData.groups.push(new_group);
-                }
+    _fetchData() {
+        const proms = [];
+        proms.push(this._super(...arguments));
+        proms.push(this._fetchMilestoneData());
+        return Promise.all(proms);
+    },
+    /**
+     * Retrieve the milestone data based on the task domain.
+     *
+     * @private
+     */
+    _fetchMilestoneData() {
+        this.ganttData.milestones = [];
+        if (this.isSampleModel || device.isMobile) {
+            return Promise.resolve();
+        }
+        return this._rpc({
+            model: 'project.milestone',
+            method: 'search_milestone_from_task',
+            kwargs: {
+                task_domain: this.domain,
+                milestone_domain: [
+                    ['deadline', '<=', this.convertToServerTime(this.ganttData.stopDate)],
+                    ['deadline', '>=', this.convertToServerTime(this.ganttData.startDate)],
+                ],
+                fields: ['name', 'deadline', 'is_deadline_exceeded', 'is_reached', 'project_id'],
+                order: 'project_id ASC, deadline ASC',
+            },
+        }).then((milestones) => {
+            this.ganttData.milestones = milestones.map(milestone => {
+                return Object.assign(
+                    milestone,
+                    {
+                        'deadlineUserFormatted': format.date(moment(milestone.deadline)),
+                        // Ensure milestones are displayed at the end of the period.
+                        'deadline': moment(milestone.deadline).clone().add(1, 'd').subtract(1, 'ms'),
+                    },
+                );
+            });
+        });
+    },
+    /**
+     * @private
+     * @override
+     */
+    _generateRows(params) {
+        const { groupedBy, groups, parentPath } = params;
+        if (groupedBy.length) {
+            const groupedByField = groupedBy[0];
+            if (groupedByField === 'user_ids') {
+                // Here we are generating some rows under a common "parent" (if any).
+                // We make sure that a row with resId = false for "user_id"
+                // ('Unassigned Tasks') and same "parent" will be added by adding
+                // a suitable fake group to groups (a subset of the groups returned
+                // by read_group).
+                const fakeGroup = Object.assign({}, ...parentPath);
+                groups.push(fakeGroup);
             }
         }
-
-        var rows = this._super(params);
-
-        // rename undefined assigned to
-        _.each(rows, function(row){
-            if(row.groupedByField === 'user_id' && !row.resId){
-                row.name = _t('Unassigned Tasks');
-            }
-        });
-        // is the data grouped by?
-        if(params.groupedBy && params.groupedBy.length){
-            // in the last row is the grouped by field is null
-            if(rows && rows.length && rows[rows.length - 1] && !rows[rows.length - 1].resId){
-                // then make it the first one
-                rows.unshift(rows.pop());
-            }
+        const rows = this._super(params);
+        // always move an empty row to the head
+        if (groupedBy && groupedBy.length && rows.length > 1 && rows[0].resId) {
+            this._reorderEmptyRow(rows);
         }
         return rows;
     },
     /**
-     * Parse the path of a group, according to the groupedBy fields, in order to extract
-     * default value of a group.
+     * @private
+     * @override
+     */
+    _getRowName(groupedByField, value) {
+        if (groupedByField === "user_ids") {
+            const resId = Array.isArray(value) ? value[0] : value;
+            if (!resId) {
+                return _t("Unassigned Tasks");
+            }
+        }
+        return this._super(...arguments);
+    },
+    /**
+     * Find an empty row and move it at the head of the array.
      *
      * @private
+     * @param {Object[]} rows
      */
-    _parsePath: function(path) {
-        var values = {};
-        if (path) {
-            var pathParts = path.split('/');
-            var state = this.get();
-            var groupby = state.groupedBy;
-            _.each(groupby, function(fname, index) {
-                var val = pathParts[index];
-                if (val) {
-                    val = JSON.parse(val);
-                    if (state.fields[fname].type == 'many2one') {
-                        values[fname] = val[0];
-                    } else {
-                        values[fname] = val;
-                    }
-                }
-            });
+    _reorderEmptyRow(rows) {
+        let emptyIndex = null;
+        for (let i = 0; i < rows.length; ++i) {
+            if (!rows[i].resId) {
+                emptyIndex = i;
+                break;
+            }
         }
-        return values;
+        if (emptyIndex) {
+            const emptyRow = rows.splice(emptyIndex, 1)[0];
+            rows.unshift(emptyRow);
+        }
+    },
+    /**
+     * In the case of special Many2many Fields, like personal_stage_type_ids in project.task
+     * model, we don't want to write the many2many field but use the inverse method of the
+     * linked Many2one field, in this case the personal_stage_type_id, to create or update the
+     * record - here set the stage_id - in the personal_stage_type_ids.
+     *
+     * See @project/src/js/task_gantt_controller::_getDialogContext() for
+     * further explanation.
+     *
+     * @private
+     * @override
+     */
+    rescheduleData: function (schedule, isUTC) {
+        const data = this._super.apply(this, arguments);
+        for (let mapping of this.mapMany2manyFields) {
+            if (mapping.many2many_field in data) {
+                data[mapping.many2one_field] = data[mapping.many2many_field][0];
+                delete data[mapping.many2many_field];
+            }
+        }
+        return data;
     },
 });
 
-return TaskGanttModel;
-});
+export default TaskGanttModel;

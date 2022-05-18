@@ -21,7 +21,7 @@ class TestHelpdeskSaleCoupon(common.HelpdeskCommon):
             'partner_id': partner.id,
             'team_id': self.test_team.id,
         })
-        program = self.env['sale.coupon.program'].create({
+        program = self.env['coupon.program'].create({
             'name': 'test program',
             'promo_code_usage': 'code_needed',
             'discount_apply_on': 'on_order',
@@ -38,7 +38,7 @@ class TestHelpdeskSaleCoupon(common.HelpdeskCommon):
         sale_coupon = coupon_form.save()
         sale_coupon.generate_coupon()
 
-        coupon = self.env['sale.coupon'].search([
+        coupon = self.env['coupon.coupon'].search([
             ('partner_id', '=', partner.id),
             ('program_id', '=', program.id)
         ])

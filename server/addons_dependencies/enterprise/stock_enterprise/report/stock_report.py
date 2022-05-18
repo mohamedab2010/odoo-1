@@ -15,8 +15,8 @@ class StockReport(models.Model):
     date_done = fields.Datetime("Transfer Date", readonly=True)
     creation_date = fields.Datetime("Creation Date", readonly=True)
     scheduled_date = fields.Datetime("Expected Date", readonly=True)
-    delay = fields.Float("Delay (Days)", readonly=True)
-    cycle_time = fields.Float("Cycle Time (Days)", readonly=True)
+    delay = fields.Float("Delay (Days)", readonly=True, group_operator="avg")
+    cycle_time = fields.Float("Cycle Time (Days)", readonly=True, group_operator="avg")
     picking_type_code = fields.Selection([
         ('incoming', 'Vendors'),
         ('outgoing', 'Customers'),
@@ -26,7 +26,6 @@ class StockReport(models.Model):
     picking_name = fields.Char("Picking Name", readonly=True)
     reference = fields.Char("Reference", readonly=True)
     picking_id = fields.Many2one('stock.picking', 'Transfer Reference', readonly=True)
-    inventory_id = fields.Many2one('stock.inventory', 'Inventory Adjustment', readonly=True)
     state = fields.Selection([
         ('draft', 'New'), ('cancel', 'Cancelled'),
         ('waiting', 'Waiting Another Move'),
@@ -66,7 +65,6 @@ class StockReport(models.Model):
             p.id as product_id,
             sm.reference as reference,
             sm.picking_id as picking_id,
-            sm.inventory_id as inventory_id,
             sm.state as state,
             sm.product_qty as product_qty,
             sm.company_id as company_id,
@@ -87,8 +85,8 @@ class StockReport(models.Model):
                     scheduled_date,
                     partner_id,
                     backorder_id IS NOT NULL as is_backorder,
-                    extract(epoch from avg(date_trunc('day',date_done)-date_trunc('day',scheduled_date)))/(24*60*60)::decimal(16,2) as delay,
-                    extract(epoch from avg(date_trunc('day',date_done)-date_trunc('day',date)))/(24*60*60)::decimal(16,2) as cycle_time
+                    (extract(epoch from avg(date_done-scheduled_date))/(24*60*60))::decimal(16,2) as delay,
+                    (extract(epoch from avg(date_done-date))/(24*60*60))::decimal(16,2) as cycle_time
                 FROM
                     stock_picking
                 GROUP BY
@@ -104,6 +102,7 @@ class StockReport(models.Model):
             INNER JOIN product_product p ON sm.product_id = p.id
             INNER JOIN product_template t ON p.product_tmpl_id = t.id
             INNER JOIN product_category cat ON t.categ_id = cat.id
+            WHERE t.type = 'product'
         """
 
         return from_str
@@ -113,7 +112,6 @@ class StockReport(models.Model):
             sm.id,
             sm.reference,
             sm.picking_id,
-            sm.inventory_id,
             sm.state,
             sm.product_qty,
             sm.company_id,

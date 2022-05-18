@@ -1,9 +1,8 @@
-odoo.define('account_invoice_extract.BoxTests', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var InvoiceExtractBox = require('account_invoice_extract.Box');
+import InvoiceExtractBox from '@account_invoice_extract/js/invoice_extract_box';
 
-var testUtils = require('web.test_utils');
+import testUtils from 'web.test_utils';
 
 /**
  * @returns {$.Element}
@@ -22,7 +21,7 @@ function createBoxLayer() {
  * @param {boolean} [params.user_selected=false]
  * @returns {account_invoice_extract.Box}
  */
-function createBox(params) {
+async function createBox(params) {
     params = params || {};
     if (!params.parent) {
         var parentParams = {};
@@ -37,7 +36,7 @@ function createBox(params) {
                 return Promise.resolve();
             }
         });
-        params.parent = testUtils.createParent(parentParams);
+        params.parent = await testUtils.createParent(parentParams);
     }
 
     var $boxLayer = createBoxLayer();
@@ -318,6 +317,5 @@ QUnit.module('Box', {
         parent.destroy();
     });
 
-});
 });
 });

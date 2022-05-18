@@ -3,136 +3,147 @@
 import base64
 from lxml import etree
 
-from odoo.addons.account.tests.account_test_classes import AccountingTestCase
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.modules.module import get_module_resource
 from odoo.tests import tagged
 from odoo.tests.common import Form
 
 
-@tagged('post_install','-at_install')
-class TestSEPACreditTransfer(AccountingTestCase):
+@tagged('post_install', '-at_install')
+class TestSEPACreditTransfer(AccountTestInvoicingCommon):
 
-    def setUp(self):
-        super(TestSEPACreditTransfer, self).setUp()
+    @classmethod
+    def setUpClass(cls, chart_template_ref=None):
+        super().setUpClass(chart_template_ref=chart_template_ref)
 
-        self.env.user.company_id.country_id = self.env.ref('base.be')
-
-        # Get some records
-        self.asustek_sup = self.env['res.partner'].search([('name', 'ilike', 'Wood Corner')])
-        self.suppliers = self.env['res.partner'].search([('name', 'not ilike', 'Wood Corner')])
-        self.sepa_ct = self.env.ref('account_sepa.account_payment_method_sepa_ct')
+        cls.company_data['company'].write({
+            'country_id': cls.env.ref('base.be').id,
+            'vat': 'BE0477472701',
+        })
 
         # Create an IBAN bank account and its journal
-        bank = self.env['res.bank'].create({'name': 'ING', 'bic': 'BBRUBEBB'})
-        self.bank_journal = self.env['account.journal'].create({
-            'name': 'BE48363523682327',
-            'type': 'bank',
-            'bank_acc_number': 'BE48363523682327',
-            'bank_id': bank.id,
+        cls.bank_ing = cls.env['res.bank'].create({
+            'name': 'ING',
+            'bic': 'BBRUBEBB',
         })
-        if self.bank_journal.company_id.currency_id != self.env.ref("base.EUR"):
-            self.bank_journal.default_credit_account_id.write({'currency_id': self.env.ref("base.EUR").id})
-            self.bank_journal.default_debit_account_id.write({'currency_id': self.env.ref("base.EUR").id})
-            self.bank_journal.write({'currency_id': self.env.ref("base.EUR").id})
+        cls.bank_bnp = cls.env['res.bank'].create({
+            'name': 'BNP Paribas',
+            'bic': 'GEBABEBB',
+        })
+
+        cls.bank_journal = cls.company_data['default_journal_bank']
+        cls.bank_journal.write({
+            'bank_id': cls.bank_ing.id,
+            'bank_acc_number': 'BE48363523682327',
+            'currency_id': cls.env.ref('base.EUR').id,
+        })
+        cls.sepa_ct = cls.bank_journal.outbound_payment_method_line_ids.filtered(lambda l: l.code == 'sepa_ct')
+        cls.sepa_ct_method = cls.env.ref('account_sepa.account_payment_method_sepa_ct')
 
         # Make sure all suppliers have exactly one bank account
-        self.setSingleBankAccountToPartner(self.asustek_sup, {
+        cls.env['res.partner.bank'].create({
             'acc_type': 'iban',
-            'partner_id': self.asustek_sup[0].id,
-            'acc_number': 'BE39103123456719',
-            'bank_id': self.env.ref('base.bank_bnp').id,
-            'currency_id': self.env.ref('base.USD').id,
+            'partner_id': cls.partner_a.id,
+            'acc_number': 'BE08429863697813',
+            'bank_id': cls.bank_bnp.id,
+            'currency_id': cls.env.ref('base.USD').id,
         })
-        self.setSingleBankAccountToPartner(self.suppliers[0], {
+        cls.env['res.partner.bank'].create({
             'acc_type': 'bank',
-            'partner_id': self.suppliers[0].id,
-            'acc_number': '123456789',
+            'partner_id': cls.partner_b.id,
+            'acc_number': '1234567890',
             'bank_name': 'Mock & Co',
         })
 
-        # Create 1 payment per supplier
-        self.payment_1 = self.createPayment(self.asustek_sup, 500)
-        self.payment_1.post()
-        self.payment_2 = self.createPayment(self.asustek_sup, 600)
-        self.payment_2.post()
-        self.payment_3 = self.createPayment(self.suppliers[0], 700)
-        self.payment_3.post()
-
         # Get a pain.001.001.03 schema validator
         schema_file_path = get_module_resource('account_sepa', 'schemas', 'pain.001.001.03.xsd')
-        self.xmlschema = etree.XMLSchema(etree.parse(open(schema_file_path)))
+        cls.xmlschema = etree.XMLSchema(etree.parse(open(schema_file_path)))
 
-    def setSingleBankAccountToPartner(self, partner_id, bank_account_vals):
-        """ Make sure a partner has exactly one bank account """
-        partner_id.bank_ids.unlink()
-        return self.env['res.partner.bank'].create(bank_account_vals)
-
-    def createPayment(self, partner, amount):
+    @classmethod
+    def createPayment(cls, partner, amount):
         """ Create a SEPA credit transfer payment """
-        return self.env['account.payment'].create({
-            'journal_id': self.bank_journal.id,
-            'partner_bank_account_id': partner.bank_ids[0].id,
-            'payment_method_id': self.sepa_ct.id,
+        return cls.env['account.payment'].create({
+            'journal_id': cls.company_data['default_journal_bank'].id,
+            'payment_method_line_id': cls.sepa_ct.id,
             'payment_type': 'outbound',
-            'payment_date': '2015-04-28',
+            'date': '2015-04-28',
             'amount': amount,
-            'currency_id': self.env.ref("base.EUR").id,
             'partner_id': partner.id,
             'partner_type': 'supplier',
         })
 
     def testStandardSEPA(self):
-        batch = self.env['account.batch.payment'].create({
-            'journal_id': self.bank_journal.id,
-            'payment_ids': [(4, payment.id, None) for payment in (self.payment_1 | self.payment_2)],
-            'payment_method_id': self.sepa_ct.id,
-            'batch_type': 'outbound',
-        })
+        for bic in ["BBRUBEBB", False]:
+            payment_1 = self.createPayment(self.partner_a, 500)
+            payment_1.action_post()
+            payment_2 = self.createPayment(self.partner_a, 600)
+            payment_2.action_post()
 
-        batch.validate_batch()
-        download_wizard = self.env['account.batch.download.wizard'].browse(batch.export_batch_payment()['res_id'])
+            self.bank_journal.bank_id.bic = bic
+            batch = self.env['account.batch.payment'].create({
+                'journal_id': self.bank_journal.id,
+                'payment_ids': [(4, payment.id, None) for payment in (payment_1 | payment_2)],
+                'payment_method_id': self.sepa_ct_method.id,
+                'batch_type': 'outbound',
+            })
 
-        self.assertFalse(batch.sct_generic)
-        sct_doc = etree.fromstring(base64.b64decode(download_wizard.export_file))
-        self.assertTrue(self.xmlschema.validate(sct_doc), self.xmlschema.error_log.last_error)
-        self.assertEqual(self.payment_1.state, 'sent')
-        self.assertEqual(self.payment_2.state, 'sent')
+            self.assertFalse(batch.sct_generic)
+
+            wizard_action = batch.validate_batch()
+            self.assertTrue(wizard_action, "Validation wizard should have returned an action")
+            self.assertEqual(wizard_action.get('res_model'), 'account.batch.download.wizard', "The action returned at validation should target a download wizard")
+
+            download_wizard = self.env['account.batch.download.wizard'].browse(batch.export_batch_payment()['res_id'])
+            sct_doc = etree.fromstring(base64.b64decode(download_wizard.export_file))
+            self.assertTrue(self.xmlschema.validate(sct_doc), self.xmlschema.error_log.last_error)
+            self.assertTrue(payment_1.is_move_sent)
+            self.assertTrue(payment_2.is_move_sent)
 
     def testGenericSEPA(self):
-        batch = self.env['account.batch.payment'].create({
-            'journal_id': self.bank_journal.id,
-            'payment_ids': [(4, payment.id, None) for payment in (self.payment_1 | self.payment_3)],
-            'payment_method_id': self.sepa_ct.id,
-            'batch_type': 'outbound',
-        })
+        for bic in ["BBRUBEBB", False]:
+            payment_1 = self.createPayment(self.partner_b, 500)
+            payment_1.action_post()
+            payment_2 = self.createPayment(self.partner_b, 700)
+            payment_2.action_post()
 
-        batch.validate_batch()
-        download_wizard = self.env['account.batch.download.wizard'].browse(batch.export_batch_payment()['res_id'])
+            self.bank_journal.bank_id.bic = bic
+            batch = self.env['account.batch.payment'].create({
+                'journal_id': self.bank_journal.id,
+                'payment_ids': [(4, payment.id, None) for payment in (payment_1 | payment_2)],
+                'payment_method_id': self.sepa_ct_method.id,
+                'batch_type': 'outbound',
+            })
 
-        self.assertTrue(batch.sct_generic)
-        sct_doc = etree.fromstring(base64.b64decode(download_wizard.export_file))
-        self.assertTrue(self.xmlschema.validate(sct_doc), self.xmlschema.error_log.last_error)
-        self.assertEqual(self.payment_1.state, 'sent')
-        self.assertEqual(self.payment_3.state, 'sent')
+            self.assertTrue(batch.sct_generic)
 
-    def testQRCode(self):
-        """Test thats the QR-Code is displayed iff the mandatory fields are
-        written and in the good state"""
+            wizard_action = batch.validate_batch()
+            self.assertTrue(wizard_action, "Validation wizard should have returned an action")
+            self.assertEqual(wizard_action.get('res_model'), 'account.batch.error.wizard', "The action returned at validation should target an error wizard")
 
-        form = Form(self.env['account.payment'])
-        form.partner_type = 'customer'
-        self.assertEqual(form.display_qr_code, False)
-        form.partner_type = 'supplier'
-        self.assertEqual(form.display_qr_code, False)
-        form.payment_method_code == 'manual'
-        self.assertEqual(form.display_qr_code, False)
-        form.partner_id = self.suppliers[0]
-        self.assertEqual(form.display_qr_code, True)
-        self.assertIn('The SEPA QR Code information is not set correctly', form.qr_code_url, 'A warning should be displayed')
-        form.partner_id = self.asustek_sup
-        self.assertEqual(form.display_qr_code, True)
-        self.assertIn('<img ', form.qr_code_url, 'The QR code should be displayed')
-        form.partner_bank_account_id = self.env['res.partner.bank']
-        self.assertIn('The SEPA QR Code information is not set correctly', form.qr_code_url, 'A warning should be displayed')
-        form.payment_method_id = self.sepa_ct
-        self.assertEqual(form.display_qr_code, False)
+            error_wizard = self.env['account.batch.error.wizard'].browse(wizard_action['res_id'])
+            self.assertTrue(len(error_wizard.warning_line_ids) > 0, "Using generic SEPA should raise warnings")
+            self.assertTrue(len(error_wizard.error_line_ids) == 0, "Error wizard should not list any error")
+
+            download_wizard = self.env['account.batch.download.wizard'].browse(error_wizard.proceed_with_validation()['res_id'])
+            sct_doc = etree.fromstring(base64.b64decode(download_wizard.export_file))
+            self.assertTrue(self.xmlschema.validate(sct_doc), self.xmlschema.error_log.last_error)
+            self.assertTrue(payment_1.is_move_sent)
+            self.assertTrue(payment_2.is_move_sent)
+
+    def testSEPAPainVersion(self):
+        # Test to make sure the initial version is 'Generic' since it is a belgian IBAN
+        self.assertEqual(self.bank_journal.sepa_pain_version, 'pain.001.001.03')
+
+        # Change IBAN prefix to Germany and check that the pain version is updated accordingly
+        self.bank_journal.bank_acc_number = 'DE48363523682327'
+        self.assertEqual(self.bank_journal.sepa_pain_version, 'pain.001.003.03')
+
+        # Provide an invalid IBAN to see if the pain version falls back to the company's fiscal country
+        self.bank_journal.bank_acc_number = 'DEL48363523682327'
+        self.env.company.account_fiscal_country_id = self.env.company.country_id = self.env.ref('base.ch')
+        self.assertEqual(self.bank_journal.sepa_pain_version, 'pain.001.001.03.ch.02')
+
+        # Remove the company's fiscal country and verify that the pain version now corresponds to the company's country
+        self.env.company.country_id = self.env.company.country_id = self.env.ref('base.se')
+        self.env.company.account_fiscal_country_id = None
+        self.assertEqual(self.bank_journal.sepa_pain_version, 'pain.001.001.03.se')

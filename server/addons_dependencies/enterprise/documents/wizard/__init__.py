@@ -3,3 +3,4 @@
 
 
 from . import request_activity
+from . import link_to_record

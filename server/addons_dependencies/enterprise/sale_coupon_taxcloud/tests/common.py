@@ -21,7 +21,7 @@ class TestSaleCouponTaxCloudCommon(common.TransactionCase):
     def setUp(self):
         super(TestSaleCouponTaxCloudCommon, self).setUp()
 
-        self.env['sale.coupon.program'].search([]).write({'active': False})
+        self.env['coupon.program'].search([]).write({'active': False})
 
         self.customer = self.env['res.partner'].create({
             'name': 'Theodore John K.',
@@ -74,7 +74,7 @@ class TestSaleCouponTaxCloudCommon(common.TransactionCase):
                 'active': True,
             }
             values.update(common_values)
-            return self.env['sale.coupon.program'].create(values)
+            return self.env['coupon.program'].create(values)
 
         self.program_order_percent = create_program({
             'name': '10% on order',
@@ -82,20 +82,20 @@ class TestSaleCouponTaxCloudCommon(common.TransactionCase):
             'reward_type': 'discount',
             'discount_percentage': 10.0,
         })
-        self.program_cheapest_percent = self.env['sale.coupon.program'].create({
+        self.program_cheapest_percent = self.env['coupon.program'].create({
             'name': '50% on cheapest product',
             'discount_apply_on': 'cheapest_product',
             'reward_type': 'discount',
             'discount_percentage': 50.0,
         })
-        self.program_specific_product_A = self.env['sale.coupon.program'].create({
+        self.program_specific_product_A = self.env['coupon.program'].create({
             'name': '20% on product A',
             'discount_apply_on': 'specific_products',
             'reward_type': 'discount',
             'discount_percentage': 20.0,
             'discount_line_product_id': self.product_A.id,
         })
-        self.program_free_product_C = self.env['sale.coupon.program'].create({
+        self.program_free_product_C = self.env['coupon.program'].create({
             'name': 'free product C',
             'discount_apply_on': 'on_order',
             'reward_type': 'product',
@@ -107,7 +107,7 @@ class TestSaleCouponTaxCloudCommon(common.TransactionCase):
                              self.program_free_product_C)
 
         def generate_coupon(program):
-            Generate = self.env['sale.coupon.generate']
+            Generate = self.env['coupon.generate.wizard']
             Generate = Generate.with_context(active_id=program.id)
             Generate.create({
                 'generation_type': 'nbr_coupon',

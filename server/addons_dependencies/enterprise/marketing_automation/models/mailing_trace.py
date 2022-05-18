@@ -11,26 +11,30 @@ class MailingTrace(models.Model):
         'marketing.trace', string='Marketing Trace',
         index=True, ondelete='cascade')
 
-    def set_clicked(self, mail_mail_ids=None, mail_message_ids=None):
-        traces = super(MailingTrace, self).set_clicked(mail_mail_ids=mail_mail_ids, mail_message_ids=mail_message_ids)
-        if traces.marketing_trace_id:
-            traces.marketing_trace_id.process_event('mail_click')
+    def set_clicked(self, domain=None):
+        traces = super(MailingTrace, self).set_clicked(domain=domain)
+        marketing_mail_traces = traces.filtered(lambda trace: trace.marketing_trace_id and trace.marketing_trace_id.activity_type == 'email')
+        for marketing_trace in marketing_mail_traces.marketing_trace_id:
+            marketing_trace.process_event('mail_click')
         return traces
 
-    def set_opened(self, mail_mail_ids=None, mail_message_ids=None):
-        traces = super(MailingTrace, self).set_opened(mail_mail_ids=mail_mail_ids, mail_message_ids=mail_message_ids)
-        if traces.marketing_trace_id:
-            traces.marketing_trace_id.process_event('mail_open')
+    def set_opened(self, domain=None):
+        traces = super(MailingTrace, self).set_opened(domain=domain)
+        marketing_mail_traces = traces.filtered(lambda trace: trace.marketing_trace_id and trace.marketing_trace_id.activity_type == 'email')
+        for marketing_trace in marketing_mail_traces.marketing_trace_id:
+            marketing_trace.process_event('mail_open')
         return traces
 
-    def set_replied(self, mail_mail_ids=None, mail_message_ids=None):
-        traces = super(MailingTrace, self).set_replied(mail_mail_ids=mail_mail_ids, mail_message_ids=mail_message_ids)
-        if traces.marketing_trace_id:
-            traces.marketing_trace_id.process_event('mail_reply')
+    def set_replied(self, domain=None):
+        traces = super(MailingTrace, self).set_replied(domain=domain)
+        marketing_mail_traces = traces.filtered(lambda trace: trace.marketing_trace_id and trace.marketing_trace_id.activity_type == 'email')
+        for marketing_trace in marketing_mail_traces.marketing_trace_id:
+            marketing_trace.process_event('mail_reply')
         return traces
 
-    def set_bounced(self, mail_mail_ids=None, mail_message_ids=None):
-        traces = super(MailingTrace, self).set_bounced(mail_mail_ids=mail_mail_ids, mail_message_ids=mail_message_ids)
-        if traces.marketing_trace_id:
-            traces.marketing_trace_id.process_event('mail_bounce')
+    def set_bounced(self, domain=None):
+        traces = super(MailingTrace, self).set_bounced(domain=domain)
+        marketing_mail_traces = traces.filtered(lambda trace: trace.marketing_trace_id and trace.marketing_trace_id.activity_type == 'email')
+        for marketing_trace in marketing_mail_traces.marketing_trace_id:
+            marketing_trace.process_event('mail_bounce')
         return traces

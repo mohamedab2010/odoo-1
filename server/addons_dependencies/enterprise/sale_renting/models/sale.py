@@ -3,7 +3,8 @@
 
 from datetime import timedelta, date
 from odoo import api, fields, models, _
-from odoo.tools import float_compare, format_datetime
+from odoo.tools import float_compare, format_datetime, format_time
+from pytz import timezone, UTC
 
 
 class RentalOrder(models.Model):
@@ -13,7 +14,7 @@ class RentalOrder(models.Model):
     rental_status = fields.Selection([
         ('draft', 'Quotation'),
         ('sent', 'Quotation Sent'),
-        ('pickup', 'Reserved'),
+        ('pickup', 'Confirmed'),
         ('return', 'Picked-up'),
         ('returned', 'Returned'),
         ('cancel', 'Cancelled'),
@@ -23,7 +24,7 @@ class RentalOrder(models.Model):
     has_pickable_lines = fields.Boolean(compute="_compute_rental_status", store=True)
     has_returnable_lines = fields.Boolean(compute="_compute_rental_status", store=True)
     next_action_date = fields.Datetime(
-        string="Rental Next Action Date", compute='_compute_rental_status', store=True)
+        string="Next Action", compute='_compute_rental_status', store=True)
 
     has_late_lines = fields.Boolean(compute="_compute_has_late_lines")
 
@@ -77,6 +78,33 @@ class RentalOrder(models.Model):
         lines_to_return = self.order_line.filtered(
             lambda r: r.state in ['sale', 'done'] and r.is_rental and float_compare(r.qty_delivered, r.qty_returned, precision_digits=precision) > 0)
         return self._open_rental_wizard(status, lines_to_return.ids)
+
+    def update_prices(self):
+        super().update_prices()
+        # Apply correct rental prices with respect to pricelist
+        for sol in self.order_line.filtered(lambda line: line.is_rental):
+            pricing = sol.product_id._get_best_pricing_rule(
+                pickup_date=sol.pickup_date,
+                return_date=sol.return_date,
+                pricelist=self.pricelist_id,
+                currency=self.currency_id,
+                company=self.company_id
+            )
+            if not pricing:
+                sol.price_unit = sol.product_id.lst_price
+                continue
+            duration_dict = self.env['rental.pricing']._compute_duration_vals(sol.pickup_date, sol.return_date)
+            price = pricing._compute_price(duration_dict[pricing.unit], pricing.unit)
+
+            if pricing.currency_id != self.currency_id:
+                price = pricing.currency_id._convert(
+                    from_amount=price,
+                    to_currency=self.currency_id,
+                    company=self.company_id,
+                    date=date.today(),
+                )
+            sol.price_unit = price
+            sol.discount = 0
 
     def _open_rental_wizard(self, status, order_line_ids):
         context = {
@@ -138,7 +166,7 @@ class RentalOrderLine(models.Model):
         sale_lines = self - rental_lines
         for line in sale_lines:
             line.rental_updatable = line.product_updatable
-        rental_lines.write({'rental_updatable': True})
+        rental_lines.rental_updatable = True
         # for line in rental_lines:
         #     if line.state == 'cancel' or (line.state in ['sale', 'done'] and (line.qty_invoiced > 0 or line.qty_delivered > 0)):
         #         line.rental_updatable = False
@@ -164,12 +192,17 @@ class RentalOrderLine(models.Model):
     @api.onchange('pickup_date', 'return_date')
     def _onchange_rental_info(self):
         """Trigger description recomputation"""
-        self.product_id_change()
+        self._update_description()
 
     @api.onchange('is_rental')
     def _onchange_is_rental(self):
         if self.is_rental and not self.order_id.is_rental_order:
             self.order_id.is_rental_order = True
+
+    @api.onchange('product_id', 'price_unit', 'product_uom', 'product_uom_qty', 'tax_id')
+    def _onchange_discount(self):
+        if not self.is_rental:
+            super(RentalOrderLine, self)._onchange_discount()
 
     _sql_constraints = [
         ('rental_stock_coherence',
@@ -186,19 +219,25 @@ class RentalOrderLine(models.Model):
 
     def get_rental_order_line_description(self):
         if (self.is_rental):
-            if self.pickup_date.date() == self.return_date.date():
+            if self.pickup_date.replace(tzinfo=UTC).astimezone(timezone(self.env.user.tz or 'UTC')).replace(tzinfo=None).date()\
+                 == self.return_date.replace(tzinfo=UTC).astimezone(timezone(self.env.user.tz or 'UTC')).replace(tzinfo=None).date():
                 # If return day is the same as pickup day, don't display return_date Y/M/D in description.
-                return_date_part = format_datetime(self.with_context(use_babel=True).env, self.return_date, tz=self.env.user.tz, dt_format='h:mm a')
+                return_date_part = format_time(self.with_context(use_babel=True).env, self.return_date, tz=self.env.user.tz, time_format=False)
             else:
-                return_date_part = format_datetime(self.with_context(use_babel=True).env, self.return_date, tz=self.env.user.tz, dt_format='short')
+                return_date_part = format_datetime(self.with_context(use_babel=True).env, self.return_date, tz=self.env.user.tz, dt_format=False)
 
             return "\n%s %s %s" % (
-                format_datetime(self.with_context(use_babel=True).env, self.pickup_date, tz=self.env.user.tz, dt_format='short'),
+                format_datetime(self.with_context(use_babel=True).env, self.pickup_date, tz=self.env.user.tz, dt_format=False),
                 _("to"),
                 return_date_part,
             )
         else:
             return ""
+
+    @api.onchange('product_uom', 'product_uom_qty')
+    def product_uom_change(self):
+        if not self.is_rental:
+            super().product_uom_change()
 
     def _get_display_price(self, product):
         """Ensure unit price isn't recomputed."""
@@ -281,7 +320,7 @@ class RentalOrderLine(models.Model):
         return "%s\n%s: %s\n%s: %s" % (
             self.product_id.name,
             _("Expected"),
-            format_datetime(self.with_context(use_babel=True).env, self.pickup_date, tz=self.env.user.tz, dt_format='short'),
+            format_datetime(self.with_context(use_babel=True).env, self.return_date, tz=self.env.user.tz, dt_format=False),
             _("Returned"),
-            format_datetime(self.with_context(use_babel=True).env, fields.Datetime.now(), tz=self.env.user.tz, dt_format='short')
+            format_datetime(self.with_context(use_babel=True).env, fields.Datetime.now(), tz=self.env.user.tz, dt_format=False)
         )

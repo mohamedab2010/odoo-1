@@ -23,36 +23,36 @@ class CarrierType(models.TransientModel):
             self.delivery_carrier_id.easypost_delivery_type_id = self.env.context['carrier_types'][self.carrier_type]
 
             self.delivery_carrier_id.easypost_delivery_type = self.carrier_type
-            self.delivery_carrier_id.easypost_default_packaging_id = False
+            self.delivery_carrier_id.easypost_default_package_type_id = False
             self.delivery_carrier_id.easypost_default_service_id = False
 
         # Contact the proxy in order to get the predefined
-        # product packaging proposed on the easypost website
+        # package type proposed on the easypost website
         # https://www.easypost.com/docs/api.html#predefined-packages
-        packagings_by_carriers, services_by_carriers = self.env['delivery.carrier']._easypost_get_services_and_product_packagings()
-        packagings = packagings_by_carriers.get(self.carrier_type)
+        package_types_by_carriers, services_by_carriers = self.env['delivery.carrier']._easypost_get_services_and_package_types()
+        package_types = package_types_by_carriers.get(self.carrier_type)
         services = services_by_carriers.get(self.carrier_type)
-        if packagings:
-            already_existing_packages = self.env['product.packaging'].search_read([
+        if package_types:
+            already_existing_packages = self.env['stock.package.type'].search_read([
                 ('package_carrier_type', '=', 'easypost'),
                 ('easypost_carrier', '=', self.carrier_type),
-                ('shipper_package_code', 'in', packagings),
-                ('name', 'in', packagings)
+                ('shipper_package_code', 'in', package_types),
+                ('name', 'in', package_types)
             ], ['name'])
-            # Difference between the product packaging already
+            # Difference between the package types already
             # present in the database and the new one fetched
             # on the easypost documentation page.
-            for packaging in set(packagings) ^ set([package['name'] for package in already_existing_packages]):
-                self.env['product.packaging'].create({
-                    'name': packaging,
+            for package_type in set(package_types) ^ set([package['name'] for package in already_existing_packages]):
+                self.env['stock.package.type'].create({
+                    'name': package_type,
                     'package_carrier_type': 'easypost',
-                    'shipper_package_code': packaging,
+                    'shipper_package_code': package_type,
                     'easypost_carrier': self.carrier_type,
                 })
         if services:
-            # Same than product packaging but for service
+            # Same as package types but for service
             # level https://www.easypost.com/docs/api.html#service-levels
-            already_existing_services = self.env['product.packaging'].search_read([
+            already_existing_services = self.env['easypost.service'].search_read([
                 ('easypost_carrier', '=', self.carrier_type),
                 ('name', 'in', services)
             ], ['name'])
@@ -62,10 +62,10 @@ class CarrierType(models.TransientModel):
                     'easypost_carrier': self.carrier_type,
                 })
         # Open the delivery carrier form view in edit mode,
-        # the purpose is to force the user to set a product
-        # packaging in order to get dimension. Mandatory for
-        # shiment API request.
-        action = self.env.ref('delivery.action_delivery_carrier_form').read()[0]
+        # the purpose is to force the user to set a package
+        # type in order to get dimension. Mandatory for
+        # shipment API request.
+        action = self.env["ir.actions.actions"]._for_xml_id("delivery.action_delivery_carrier_form")
         action['res_id'] = self.delivery_carrier_id.id
         action['views'] = [(self.env.ref('delivery.view_delivery_carrier_form').id, 'form')]
         action['context'] = {'form_view_initial_mode': 'edit'}

@@ -3,17 +3,16 @@ odoo.define('pos_iot.models', function (require) {
 
 var models = require('point_of_sale.models');
 var PaymentIOT = require('pos_iot.payment');
-var DeviceProxy = require('iot.widgets').DeviceProxy;
+var DeviceProxy = require('iot.DeviceProxy');
 var PrinterProxy = require('pos_iot.Printer');
 
 models.load_fields("res.users", "lang");
 models.load_fields("pos.payment.method", "iot_device_id");
-models.register_payment_method('six', PaymentIOT);
-models.register_payment_method('ingenico', PaymentIOT);
-
+models.register_payment_method('ingenico', PaymentIOT.PaymentIngenico);
+models.register_payment_method('worldline', PaymentIOT.PaymentWorldline);
 models.load_models([{
     model: 'iot.device',
-    fields: ['iot_ip', 'iot_id', 'identifier', 'type', 'manufacturer'],
+    fields: ['iot_ip', 'iot_id', 'identifier', 'type', 'manual_measurement'],
     domain: function(self) {
         var device_ids = self.config.iot_device_ids;
         _.each(self.payment_methods, function (payment_method) {
@@ -35,24 +34,27 @@ models.load_models([{
             }
             switch (iot_device.type) {
                 case 'scale':
+                    self.iot_device_proxies[iot_device.type] = new DeviceProxy(self, { iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manual_measurement: iot_device.manual_measurement});
+                    break;
                 case 'fiscal_data_module':
                 case 'display':
-                    self.iot_device_proxies[iot_device.type] = new DeviceProxy({ iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manufacturer: iot_device.manufacturer });
+                    self.iot_device_proxies[iot_device.type] = new DeviceProxy(self, { iot_ip: iot_device.iot_ip, identifier: iot_device.identifier});
                     break;
                 case 'printer':
-                    self.iot_device_proxies[iot_device.type] = new PrinterProxy({ iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manufacturer: iot_device.manufacturer });
+                    self.iot_device_proxies[iot_device.type] = new PrinterProxy(self, { iot_ip: iot_device.iot_ip, identifier: iot_device.identifier});
                     break;
                 case 'scanner':
                     if (!self.iot_device_proxies.scanners){
                         self.iot_device_proxies.scanners = {};
                     }
-                    self.iot_device_proxies.scanners[iot_device.identifier] = new DeviceProxy({ iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manufacturer: iot_device.manufacturer });
+                    self.iot_device_proxies.scanners[iot_device.identifier] = new DeviceProxy(self, { iot_ip: iot_device.iot_ip, identifier: iot_device.identifier});
                     break;
                 case 'payment':
-                    var payment_method = _.find(self.payment_methods, function (payment_method) {
-                        return payment_method.iot_device_id[0] == iot_device.id;
+                    _.each(self.payment_methods, function(payment_method) {
+                        if (payment_method.iot_device_id[0] == iot_device.id) {
+                            payment_method.terminal_proxy = new DeviceProxy(self, { iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manufacturer: iot_device.manufacturer});
+                        }
                     });
-                    payment_method.terminal_proxy = new DeviceProxy({ iot_ip: iot_device.iot_ip, identifier: iot_device.identifier, manufacturer: iot_device.manufacturer });
                     break;
             }
         });
@@ -68,31 +70,7 @@ models.load_models([{
     }
 }]);
 
-var posmodel_super = models.PosModel.prototype;
 models.PosModel = models.PosModel.extend({
-    /**
-     * Opens the shift on the payment terminal
-     *
-     * @override
-     */
-    after_load_server_data: function () {
-        var self = this;
-        var res = posmodel_super.after_load_server_data.apply(this, arguments);
-        if (this.useIoTPaymentTerminal()) {
-            res.then(function () {
-                self.payment_methods.forEach(function (payment_method) {
-                    if (payment_method.terminal_proxy) {
-                        payment_method.terminal_proxy.action({
-                            messageType: 'OpenShift',
-                            language: self.user.lang.split('_')[0],
-                        });
-                    }
-                });
-            });
-        }
-        return res;
-    },
-
     useIoTPaymentTerminal: function () {
         return this.config && this.config.use_proxy
             && this.payment_methods.some(function(payment_method) {

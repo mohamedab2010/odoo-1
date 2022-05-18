@@ -3,7 +3,8 @@
 {
     'name': "United States Postal Service (USPS) Shipping",
     'description': "Send your shippings through USPS and track them online",
-    'category': 'Operations/Inventory/Delivery',
+    'category': 'Inventory/Delivery',
+    'sequence': 305,
     'version': '1.0',
     'application': True,
     'depends': ['delivery', 'mail'],
@@ -14,5 +15,4 @@
         'views/res_config_settings_views.xml',
     ],
     'license': 'OEEL-1',
-    'uninstall_hook': 'uninstall_hook',
 }

@@ -22,7 +22,7 @@
         <field name="arch" type="xml">
             <tree string="TIC Category" editable="bottom">
                 <field name="description"/>
-                <field name="code"/>
+                <field name="code" options="{'format': false}"/>
             </tree>
         </field>
     </record>
@@ -32,7 +32,7 @@
         <field name="model">product.tic.category</field>
         <field name="arch" type="xml">
             <search string="Product TIC Categories">
-                <field name="code" string="TIC Code"/>
+                <field name="code" string="TIC Code" options="{'format': false}"/>
                 <field name="description"/>
             </search>
         </field>
@@ -46,7 +46,7 @@
         <field name="view_id" ref="account_taxcloud_tic_category_tree"/>
     </record>
 
-    <menuitem action="account_taxcloud_tic_category_action" groups="base.group_no_one" id="menu_taxcloud_tic_category_action" parent="account.account_account_menu" sequence="3"/>
+    <menuitem action="account_taxcloud_tic_category_action" groups="base.group_no_one" id="menu_taxcloud_tic_category_action" parent="account.account_management_menu" sequence="8"/>
 
     <record id="product_template_taxcloud_inherit_form" model="ir.ui.view">
         <field name="name">product.template.form.inherit</field>

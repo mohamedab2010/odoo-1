@@ -3,18 +3,16 @@
 # 	* social_twitter
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Eric Geens <ericgeens@yahoo.com>, 2019
-# Yenthe Van Ginneken <yenthespam@gmail.com>, 2019
-# Erwin van der Ploeg <erwin@odooexperts.nl>, 2020
+# Martin Trigaux, 2021
+# Erwin van der Ploeg <erwin@odooexperts.nl>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:38+0000\n"
-"PO-Revision-Date: 2019-09-23 14:03+0000\n"
-"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2021\n"
 "Language-Team: Dutch (https://www.transifex.com/odoo/teams/41243/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -48,6 +46,15 @@ msgstr "<i class=\"fa fa-heart\" title=\"Vind-ik-leuks\"/>"
 #, python-format
 msgid "Author Image"
 msgstr "Afbeelding auteur"
+
+#. module: social_twitter
+#: model:ir.model.fields,help:social_twitter.field_res_config_settings__twitter_use_own_account
+msgid ""
+"Check this if you want to use your personal Twitter Developer Account "
+"instead of the provided one."
+msgstr ""
+"Vink dit aan als je je persoonlijke Twitter-ontwikkelaarsaccount wilt "
+"gebruiken in plaats van de verstrekte."
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_res_config_settings
@@ -86,6 +93,7 @@ msgstr "Schermnaam"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__display_twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__display_twitter_preview
 msgid "Display Twitter Preview"
 msgstr "Toon Twitter voorvertoning"
 
@@ -132,6 +140,16 @@ msgid "Likes"
 msgstr "Vind-ik-leuks"
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"Looks like you've made too many requests. Please wait a few minutes before "
+"giving it another try."
+msgstr ""
+"Het lijkt erop dat je te veel verzoeken hebt ingediend. Wacht een paar "
+"minuten voordat je het opnieuw probeert."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_media__media_type
 msgid "Media Type"
 msgstr "Soort media"
@@ -147,9 +165,15 @@ msgid "Name"
 msgstr "Naam"
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid "Please select a Twitter account for this stream type."
+msgstr "Selecteer een Twitter-account voor dit streamtype."
+
+#. module: social_twitter
 #: model_terms:ir.ui.view,arch_db:social_twitter.twitter_preview
 msgid "Post Image"
-msgstr "Post afbeelding"
+msgstr "Plaats afbeelding"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_stream_post__twitter_retweet_count
@@ -200,6 +224,11 @@ msgid "Social Post"
 msgstr "Social media post"
 
 #. module: social_twitter
+#: model:ir.model,name:social_twitter.model_social_post_template
+msgid "Social Post Template"
+msgstr "Sjabloon voor sociale berichten"
+
+#. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_stream
 msgid "Social Stream"
 msgstr "Social media stream"
@@ -213,6 +242,16 @@ msgstr "Social media post"
 #: model:ir.model,name:social_twitter.model_social_twitter_account
 msgid "Social Twitter Account"
 msgstr "Social media Twitter account"
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"The keyword you've typed in does not look valid. Please try again with other"
+" words."
+msgstr ""
+"Het ingevoerde trefwoord ziet er niet geldig uit. Probeer het opnieuw met "
+"andere woorden."
 
 #. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0
@@ -290,6 +329,7 @@ msgstr "Twitter Oauth token geheim"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__twitter_preview
 msgid "Twitter Preview"
 msgstr "Twitter voorvertoning"
 
@@ -331,19 +371,39 @@ msgid "Twitter User Likes"
 msgstr "Twitter gebruiker vind-ik-leuk"
 
 #. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token or it may have expired."
+msgstr ""
+"Twitter heeft geen geldig toegangstoken verstrekt of het is mogelijk "
+"verlopen."
+
+#. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token."
+msgstr "Twitter heeft geen geldig toegangstoken verstrekt."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_live_post__twitter_tweet_id
 msgid "Twitter tweet id"
 msgstr "Twitter tweet ID"
 
 #. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator."
+msgstr "Niet geautoriseerd. Neem contact op met je applicatiebeheerder."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_res_config_settings__twitter_use_own_account
 msgid "Use your own Twitter Account"
-msgstr "Gebruik uw eigen Twitter account"
+msgstr "Gebruik je eigen Twitter account"
 
 #. module: social_twitter
 #: model_terms:ir.ui.view,arch_db:social_twitter.res_config_settings_view_form
 msgid "Use your own Twitter Developer Account on our Social app"
-msgstr "Gebruik uw eigen Twitter account op onze Social marketing app"
+msgstr "Gebruik je eigen Twitter account op onze Social marketing app"
 
 #. module: social_twitter
 #: model:ir.model.fields,help:social_twitter.field_social_media__media_type
@@ -355,10 +415,30 @@ msgstr ""
 " beperken tot een specifiek medium ('facebook', 'twitter', ...)."
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_account.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+"We konden je afbeelding niet uploaden, probeer de grootte te verkleinen en "
+"opnieuw te plaatsen (fout: %s)."
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"You cannot create a Stream from this Twitter account.\n"
+"It may be because it's protected. To solve this, please make sure you follow it before trying again."
+msgstr ""
+"Je kunt geen stream maken vanaf dit Twitter-account.\n"
+"Het kan zijn omdat het beschermd is. Om dit op te lossen, moet je ervoor zorgen dat je het volgt voordat je het opnieuw probeert."
+
+#. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0
 #, python-format
 msgid "You don't have an active subscription. Please buy one here: %s"
-msgstr "U heeft geen actief abonnement. U kunt er hier één kopen: %s"
+msgstr "Je hebt geen actief abonnement. Je kunt er hier één kopen: %s"
 
 #. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0
@@ -367,13 +447,13 @@ msgid ""
 "You need to add the following callback URL to your twitter application "
 "settings: %s"
 msgstr ""
-"U moet de volgende callback-URL toevoegen aan de instellingen van uw "
+"Je moet de volgende callback-URL toevoegen aan de instellingen van je "
 "Twitter-toepassing: %s"
 
 #. module: social_twitter
 #: model_terms:ir.ui.view,arch_db:social_twitter.social_stream_view_form
 msgid "e.g. #odoo"
-msgstr "bijvoorbeeld #Odoo"
+msgstr "Bijv. #Odoo"
 
 #. module: social_twitter
 #. openerp-web

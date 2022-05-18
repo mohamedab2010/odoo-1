@@ -15,6 +15,7 @@
         'security/quality_mrp.xml',
         'views/quality_views.xml',
         'views/mrp_production_views.xml',
+        'report/worksheet_custom_report_templates.xml',
     ],
     "demo": [],
     'auto_install': True,

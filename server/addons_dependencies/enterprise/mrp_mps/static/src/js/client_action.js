@@ -1,21 +1,29 @@
 odoo.define('mrp_mps.ClientAction', function (require) {
 'use strict';
 
+const { ComponentWrapper } = require('web.OwlCompatibility');
+
 var concurrency = require('web.concurrency');
 var core = require('web.core');
+var Pager = require('web.Pager');
 var AbstractAction = require('web.AbstractAction');
 var Dialog = require('web.Dialog');
 var field_utils = require('web.field_utils');
-var session = require('web.session');
 
 var QWeb = core.qweb;
 var _t = core._t;
+
+const defaultPagerSize = 20;
 
 var ClientAction = AbstractAction.extend({
     contentTemplate: 'mrp_mps',
     hasControlPanel: true,
     loadControlPanel: true,
     withSearchBar: true,
+    searchMenuTypes: ['filter', 'favorite'],
+    custom_events: _.extend({}, AbstractAction.prototype.custom_events, {
+        pager_changed: '_onPagerChanged',
+    }),
     events: {
         'change .o_mrp_mps_input_forcast_qty': '_onChangeForecast',
         'change .o_mrp_mps_input_replenish_qty': '_onChangeToReplenish',
@@ -30,9 +38,6 @@ var ClientAction = AbstractAction.extend({
         'focus .o_mrp_mps_input_replenish_qty': '_onFocusToReplenish',
         'mouseover .o_mrp_mps_procurement': '_onMouseOverReplenish',
         'mouseout .o_mrp_mps_procurement': '_onMouseOutReplenish',
-    },
-    custom_events: {
-        search: '_onSearch',
     },
 
     init: function (parent, action) {
@@ -49,68 +54,88 @@ var ClientAction = AbstractAction.extend({
         this.manufacturingPeriod = false;
         this.manufacturingPeriods = [];
         this.state = false;
-    
+
+        this.active_ids = [];
+        this.pager = false;
+        this.recordsPager = false;
         this.mutex = new concurrency.Mutex();
-    
-        this.controlPanelParams.modelName = 'mrp.production.schedule';
+
+        this.searchModelConfig.modelName = 'mrp.production.schedule';
     },
 
-    willStart: function () {
-        var self = this;
-        var _super = this._super.bind(this);
-        var args = arguments;
-
-        var def_content = this._getState();
-
-        var def_control_panel = this._rpc({
-            model: 'ir.model.data',
-            method: 'get_object_reference',
-            args: ['mrp_mps', 'mrp_mps_search_view'],
-            kwargs: {context: session.user_context},
-        })
-        .then(function (viewId) {
-            self.controlPanelParams.viewId = viewId[1];
-        });
-
-        return Promise.all([def_content, def_control_panel]).then(function () {
-            return _super.apply(self, args);
-        });
+    async willStart() {
+        await this._super(...arguments);
+        const searchQuery = this.controlPanelProps.searchModel.get("query");
+        this.domain = searchQuery.domain;
+        await this._getRecordIds();
+        await this._getState();
     },
 
-    start: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function () {
-            self.update_cp();
-        });
+    start: async function () {
+        await this._super(...arguments);
+        if (this.state.length == 0) {
+            this.$el.find('.o_mrp_mps').append($(QWeb.render('mrp_mps_nocontent_helper')));
+        }
+        await this.update_cp();
+        await this.renderPager();
     },
 
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
 
+
+    /**
+     * Create the Pager and render it. It needs the records information to determine the size.
+     * It also needs the controlPanel to be rendered in order to append the pager to it.
+     */
+    renderPager: async function () {
+        const currentMinimum = 1;
+        const limit = defaultPagerSize;
+        const size = this.recordsPager.length;
+
+        this.pager = new ComponentWrapper(this, Pager, { currentMinimum, limit, size });
+
+        await this.pager.mount(document.createDocumentFragment());
+        const pagerContainer = Object.assign(document.createElement('span'), {
+            className: 'o_mrp_mps_pager float-right',
+        });
+        pagerContainer.appendChild(this.pager.el);
+        this.$pager = pagerContainer;
+
+        this._controlPanelWrapper.el.querySelector('.o_cp_pager').append(pagerContainer);
+    },
+
     /**
      * Update the control panel in order to add the 'replenish' button and a
      * custom menu with checkbox buttons in order to hide/display the different
      * rows.
      */
-    update_cp: function () {
-        var self = this;
-        this.$buttons = $(QWeb.render('mrp_mps_control_panel_buttons'));
+    update_cp: async function () {
+        this.$buttons = $(QWeb.render('mrp_mps_control_panel_buttons', {groups: this.groups}));
         this._update_cp_buttons();
         var $replenishButton = this.$buttons.find('.o_mrp_mps_replenish');
-        $replenishButton.on('click', self._onClickReplenish.bind(self));
-        $replenishButton.on('mouseover', self._onMouseOverReplenish.bind(self));
-        $replenishButton.on('mouseout', self._onMouseOutReplenish.bind(self));
-        this.$buttons.find('.o_mrp_mps_create').on('click', self._onClickCreate.bind(self));
-        this.$searchview_buttons = $(QWeb.render('mrp_mps_control_panel_option_buttons', {groups: self.groups}));
-        this.$searchview_buttons.find('.o_mps_mps_show_line').on('click', self._onChangeCompany.bind(self));
-        this.updateControlPanel({
+        $replenishButton.on('click', this._onClickReplenish.bind(this));
+        $replenishButton.on('mouseover', this._onMouseOverReplenish.bind(this));
+        $replenishButton.on('mouseout', this._onMouseOutReplenish.bind(this));
+        this.$buttons.find('.o_mrp_mps_create').on('click', this._onClickCreate.bind(this));
+        const res = await this.updateControlPanel({
             title: _t('Master Production Schedule'),
             cp_content: {
                 $buttons: this.$buttons,
-                $searchview_buttons: this.$searchview_buttons
             },
         });
+        this._controlPanelWrapper.$el.find('.o_filter_menu').before(
+            $(QWeb.render('mrp_mps_control_panel_option_buttons', {groups: this.groups}))
+        );
+        this._controlPanelWrapper.$el.find('.o_mps_mps_show_line').on('click', this._onChangeCompany.bind(this));
+        return res;
+    },
+
+    loadFieldView: function (modelName, context, view_id, view_type, options) {
+        // add the action_id to get favorite search correctly
+        options.action_id = this.action.id;
+        return this._super(...arguments);
     },
 
     //--------------------------------------------------------------------------
@@ -150,7 +175,7 @@ var ClientAction = AbstractAction.extend({
             basedOnLeadTime = false;
         }
         else {
-            ids = _.map(self.state, function (s) {return s.id;});
+            ids = self.active_ids;
             basedOnLeadTime = true;
         }
         this.mutex.exec(function () {
@@ -187,6 +212,7 @@ var ClientAction = AbstractAction.extend({
                 orderBy: [{name: 'id', asc: false}]
             }).then(function (result) {
                 if (result.length) {
+                    self.active_ids.push(result[0].id);
                     return self._renderProductionSchedule(result[0].id);
                 }
             });
@@ -225,10 +251,23 @@ var ClientAction = AbstractAction.extend({
     },
 
     _focusNextInput: function (productionScheduleId, dateIndex, inputName) {
-        var tableSelector = '.table-responsive[data-id=' + productionScheduleId + ']';
+        var tableSelector = '.o_mps_content[data-id=' + productionScheduleId + ']';
         var rowSelector = 'tr[name=' + inputName + ']';
         var inputSelector = 'input[data-date_index=' + (dateIndex + 1) + ']';
         return $([tableSelector, rowSelector, inputSelector].join(' ')).select();
+    },
+
+    _getRecordIds: function () {
+        var self = this;
+        return this._rpc({
+            model: 'mrp.production.schedule',
+            method: 'search_read',
+            domain: this.domain,
+            fields: ['id'],
+        }).then(function (ids) {
+            self.recordsPager = ids;
+            self.active_ids = ids.slice(0, defaultPagerSize).map(i => i.id);
+        });
     },
 
     /**
@@ -242,10 +281,11 @@ var ClientAction = AbstractAction.extend({
      */
     _getState: function () {
         var self = this;
+        var domain = this.domain.concat([['id', 'in', this.active_ids]]);
         return this._rpc({
             model: 'mrp.production.schedule',
             method: 'get_mps_view_state',
-            args: [this.domain],
+            args: [domain],
         }).then(function (state) {
             self.companyId = state.company_id;
             self.manufacturingPeriods = state.dates;
@@ -342,22 +382,22 @@ var ClientAction = AbstractAction.extend({
 
             var $table = $(QWeb.render('mrp_mps_production_schedule', {
                 manufacturingPeriods: this.manufacturingPeriods,
-                productionSchedule: state,
+                state: [state],
                 groups: this.groups,
                 formatFloat: this.formatFloat,
             }));
-            var $tableId = $('.table-responsive[data-id='+ state.id +']');
-            if ($tableId.length) {
-                $tableId.replaceWith($table);
+            var $tbody = $('.o_mps_content[data-id='+ state.id +']');
+            if ($tbody.length) {
+                $tbody.replaceWith($table);
             } else {
                 var $warehouse = false;
                 if ('warehouse_id' in state) {
-                    $warehouse = $('.table-responsive[data-warehouse_id='+ state.warehouse_id[0] +']');
+                    $warehouse = $('.o_mps_content[data-warehouse_id='+ state.warehouse_id[0] +']');
                 }
                 if ($warehouse.length) {
-                    $warehouse.last().append($table);
+                    $warehouse.last().after($table);
                 } else {
-                    $('.o_mrp_mps').append($table);
+                    $('.o_mps_product_table').append($table);
                 }
             }
         }
@@ -475,9 +515,11 @@ var ClientAction = AbstractAction.extend({
         if (recodsLen) {
             $addProductButton.addClass('btn-secondary');
             $addProductButton.removeClass('btn-primary');
+            this.el.querySelector('.o_mps_product_table').classList.remove('d-none');
         } else {
             $addProductButton.addClass('btn-primary');
             $addProductButton.removeClass('btn-secondary');
+            this.el.querySelector('.o_mps_product_table').classList.add('d-none');
         }
         var toReplenish = _.filter(_.flatten(_.values(this.state)), function (mps) {
             if (_.where(mps.forecast_ids, {'to_replenish': true}).length) {
@@ -523,7 +565,7 @@ var ClientAction = AbstractAction.extend({
         ev.stopPropagation();
         var $target = $(ev.target);
         var dateIndex = $target.data('date_index');
-        var productionScheduleId = $target.closest('.table-responsive').data('id');
+        var productionScheduleId = $target.closest('.o_mps_content').data('id');
         var forecastQty = parseFloat($target.val());
         if (isNaN(forecastQty)){
             this._backToState(productionScheduleId);
@@ -542,7 +584,7 @@ var ClientAction = AbstractAction.extend({
         ev.stopPropagation();
         var $target = $(ev.target);
         var dateIndex = $target.data('date_index');
-        var productionScheduleId= $target.closest('.table-responsive').data('id');
+        var productionScheduleId= $target.closest('.o_mps_content').data('id');
         var replenishQty = parseFloat($target.val());
         if (isNaN(replenishQty)){
             this._backToState(productionScheduleId);
@@ -555,7 +597,7 @@ var ClientAction = AbstractAction.extend({
         ev.stopPropagation();
         var $target = $(ev.target);
         var dateIndex = $target.data('date_index');
-        var productionScheduleId = $target.closest('.table-responsive').data('id');
+        var productionScheduleId = $target.closest('.o_mps_content').data('id');
         this._removeQtyToReplenish(dateIndex, productionScheduleId);
     },
 
@@ -569,6 +611,7 @@ var ClientAction = AbstractAction.extend({
      */
     _onClickCreate: function (ev) {
         ev.stopPropagation();
+        this.$el.find('.o_view_nocontent').remove();
         this._createProduct();
     },
 
@@ -582,7 +625,7 @@ var ClientAction = AbstractAction.extend({
      */
     _onClickEdit: function (ev) {
         ev.stopPropagation();
-        var productionScheduleId = $(ev.target).closest('.table-responsive').data('id');
+        var productionScheduleId = $(ev.target).closest('.o_mps_content').data('id');
         this._editProduct(productionScheduleId);
     },
 
@@ -593,7 +636,7 @@ var ClientAction = AbstractAction.extend({
         var dateStop = $target.data('date_stop');
         var dateStr = this.manufacturingPeriods[$target.data('date_index')];
         var action = $target.data('action');
-        var productionScheduleId = $target.closest('.table-responsive').data('id');
+        var productionScheduleId = $target.closest('.o_mps_content').data('id');
         this._actionOpenDetails(productionScheduleId, action, dateStr, dateStart, dateStop);
     },
 
@@ -624,9 +667,9 @@ var ClientAction = AbstractAction.extend({
     _onClickReplenish: function (ev) {
         ev.stopPropagation();
         var productionScheduleId = [];
-        var $table = $(ev.target).closest('.table-responsive');
-        if ($table.length) {
-            productionScheduleId = [$table.data('id')];
+        var $tbody = $(ev.target).closest('.o_mps_content');
+        if ($tbody.length) {
+            productionScheduleId = [$tbody.data('id')];
         }
         this._actionReplenish(productionScheduleId);
     },
@@ -640,7 +683,7 @@ var ClientAction = AbstractAction.extend({
      */
     _onClickUnlink: function (ev) {
         ev.preventDefault();
-        var productionScheduleId = $(ev.target).closest('.table-responsive').data('id');
+        var productionScheduleId = $(ev.target).closest('.o_mps_content').data('id');
         this._unlinkProduct(productionScheduleId);
     },
 
@@ -674,17 +717,30 @@ var ClientAction = AbstractAction.extend({
         table.find('.o_mrp_mps_hover').removeClass('o_mrp_mps_hover');
     },
 
+    _onPagerChanged: function (ev) {
+        let { currentMinimum, limit } = ev.data;
+        this.pager.update({ currentMinimum, limit });
+        currentMinimum = currentMinimum - 1;
+        this.active_ids = this.recordsPager.slice(currentMinimum, currentMinimum + limit).map(i => i.id);
+        this._reloadContent();
+    },
+
     /**
      * Handles the change on the search bar. Save the domain and reload the
      * content with the new domain.
      *
      * @private
-     * @param {jQuery.Event} ev
+     * @param {Object} searchQuery
      */
-    _onSearch: function (event) {
-        event.stopPropagation();
-        this.domain = event.data.domain;
-        this._reloadContent();
+    _onSearch: async function (searchQuery) {
+        this.domain = searchQuery.domain;
+        await this._getRecordIds();
+        const currentMinimum = 1;
+        const limit = defaultPagerSize;
+        const size = this.recordsPager.length;
+        await this.pager.update({ currentMinimum, limit, size });
+        await this._reloadContent();
+        await this.updateControlPanel();
     },
 });
 

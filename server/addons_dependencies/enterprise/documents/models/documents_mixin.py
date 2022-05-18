@@ -26,6 +26,7 @@ class DocumentMixin(models.AbstractModel):
                 'name': attachment.name or self.display_name,
                 'folder_id': self._get_document_folder().id,
                 'owner_id': self._get_document_owner().id,
+                'partner_id': self._get_document_partner().id,
                 'tag_ids': [(6, 0, self._get_document_tags().ids)],
             }
         return document_vals
@@ -38,6 +39,9 @@ class DocumentMixin(models.AbstractModel):
 
     def _get_document_folder(self):
         return self.env['documents.folder']
+
+    def _get_document_partner(self):
+        return self.env['res.partner']
 
     def _check_create_documents(self):
         return bool(self and self._get_document_folder())

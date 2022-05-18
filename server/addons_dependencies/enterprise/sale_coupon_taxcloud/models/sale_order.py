@@ -31,17 +31,23 @@ class SaleOrder(models.Model):
         taxcloud_orders.mapped('order_line').write({'tax_id': [(5,)]})
         return super(SaleOrder, self).recompute_coupon_lines()
 
-    def _create_invoices(self, grouped=False, final=False):
+    def _create_invoices(self, grouped=False, final=False, date=None):
         """Ensure that any TaxCloud order that has discounts is invoiced in one go.
            Indeed, since the tax computation of discount lines with Taxcloud
            requires that any negative amount of a coupon line be deduced from the
            lines it originated from, these cannot be invoiced separately as it be
            incoherent with what was computed on the order.
         """
+        deposit_product = self.env['product.product'].browse(int(
+            self.env['ir.config_parameter'].sudo().get_param('sale.default_deposit_product_id')
+        )).exists()
+
         def not_totally_invoiceable(order):
-            totally_invoiceable_lines = order.order_line.filtered(
-                lambda l: l.qty_to_invoice == l.product_uom_qty)
-            return totally_invoiceable_lines < order.order_line
+            return any(
+                line.qty_to_invoice != line.product_uom_qty
+                and line.product_id != deposit_product
+                for line in order.order_line
+            )
 
         taxcloud_orders = self.filtered('fiscal_position_id.is_taxcloud')
         taxcloud_coupon_orders = taxcloud_orders.filtered('order_line.coupon_program_id')
@@ -59,19 +65,61 @@ class SaleOrder(models.Model):
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
-    coupon_program_id = fields.Many2one('sale.coupon.program',
+    coupon_program_id = fields.Many2one('coupon.program',
         string='Discount Program', readonly=True,
         help='The coupon program that created this line.',
     )
     price_taxcloud = fields.Float('Taxcloud Price', default=0,
                                   help='Technical fields to hold prices for TaxCloud.')
 
+    def _check_taxcloud_promo(self, vals):
+        """Ensure that users cannot modify sale order lines of a Taxcloud order
+           with promotions if there is already a valid invoice"""
+
+        blocked_fields = (
+            'product_id',
+            'price_unit',
+            'price_subtotal',
+            'price_tax',
+            'price_total',
+            'tax_id',
+            'discount',
+            'product_id',
+            'product_uom_qty',
+            'product_qty'
+        )
+        for line in self:
+            if (
+                line.order_id.is_taxcloud
+                and not line.display_type
+                and any(field in vals for field in blocked_fields)
+                and any(line.order_id.order_line.mapped(lambda sol: sol.invoice_status not in ('no','to invoice')))
+                and any(line.order_id.order_line.mapped('is_reward_line'))
+            ):
+                raise UserError(
+                    _(
+                    'Orders with coupons or promotions programs that use TaxCloud for '
+                    'automatic tax computation cannot be modified after having been invoiced.\n'
+                    'To modify this order, you must first cancel or refund all existing invoices.'
+                    )
+                )
+
+    def write(self, vals):
+        self._check_taxcloud_promo(vals)
+        return super(SaleOrderLine, self).write(vals)
+
+    @api.model
+    def create(self, vals):
+        line = super(SaleOrderLine, self).create(vals)
+        line._check_taxcloud_promo(vals)
+        return line
+
     def _get_taxcloud_price(self):
         self.ensure_one()
         return self.price_taxcloud
 
-    def _prepare_invoice_line(self):
-        res = super(SaleOrderLine, self)._prepare_invoice_line()
+    def _prepare_invoice_line(self, **optional_values):
+        res = super(SaleOrderLine, self)._prepare_invoice_line(**optional_values)
         res.update({'coupon_program_id': self.coupon_program_id.id})
         return res
 

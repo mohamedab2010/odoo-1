@@ -17,11 +17,11 @@ Once it is defined, you can automatically print recalls every day through simply
 ------------------------------------------------------------------------------------------------------
     Payment Follow-Up / Send Email and letters
 
-It will generate a PDF / send emails / set manual actions according to the the different levels
+It will generate a PDF / send emails / set manual actions according to the different levels
 of recall defined. You can define different policies for different companies.
 
 """,
-    'website': 'https://www.odoo.com/page/billing',
+    'website': 'https://www.odoo.com/app/invoicing',
     'depends': ['account', 'mail', 'sms', 'account_reports'],
     'data': [
         'security/account_followup_security.xml',
@@ -33,15 +33,33 @@ of recall defined. You can define different policies for different companies.
         'views/partner_view.xml',
         'views/report_followup.xml',
         'views/account_journal_dashboard_view.xml',
-        'views/assets.xml',
-    ],
-    'qweb': [
-        'static/src/xml/account_followup_template.xml',
-    ],
+        ],
     'demo': [
         'demo/account_followup_demo.xml'
     ],
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'account_followup.assets_followup_report': [
+            ('include', 'web._assets_helpers'),
+            'web/static/lib/bootstrap/scss/_variables.scss',
+            ('include', 'web._assets_bootstrap'),
+            'web/static/fonts/fonts.scss',
+            'account_followup/static/src/scss/account_followup_letter.scss',
+        ],
+        'web.assets_backend': [
+            'account_followup/static/src/js/followup_form_view.js',
+            'account_followup/static/src/js/followup_form_model.js',
+            'account_followup/static/src/js/followup_form_renderer.js',
+            'account_followup/static/src/js/followup_form_controller.js',
+            'account_followup/static/src/scss/account_followup_report.scss',
+        ],
+        'web.assets_tests': [
+            'account_followup/static/tests/tours/**/*',
+        ],
+        'web.assets_qweb': [
+            'account_followup/static/src/xml/**/*',
+        ],
+    }
 }

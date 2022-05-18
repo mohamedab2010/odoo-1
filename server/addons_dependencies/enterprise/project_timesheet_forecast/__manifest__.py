@@ -7,13 +7,12 @@
     'category': 'Hidden',
     'sequence': 50,
     'summary': 'Compare timesheets and plannings',
-    'depends': ['hr_timesheet', 'project_forecast'],
+    'depends': ['timesheet_grid', 'project_forecast'],
     'description': """
 Compare timesheets and plannings
 ================================
 
-Better plan your futur plannings by observing the number of hours pressed
-on old plannings.
+Better plan your future schedules by considering time effectively spent on old plannings
 
 """,
     'data': [
@@ -21,7 +20,19 @@ on old plannings.
         'security/ir.model.access.csv',
         'data/project_timesheet_forecast_data.xml',
         'views/project_forecast_views.xml',
-    ],
+        ],
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'project_timesheet_forecast/static/src/scss/forecast_gantt.scss',
+            'project_timesheet_forecast/static/src/js/forecast_timesheet_gantt.js',
+        ],
+        'web.qunit_suite_tests': [
+            'project_timesheet_forecast/static/tests/**/*',
+        ],
+        'web.assets_qweb': [
+            'project_timesheet_forecast/static/src/xml/**/*',
+        ],
+    }
 }

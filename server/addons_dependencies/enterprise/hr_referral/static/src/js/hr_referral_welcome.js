@@ -14,6 +14,7 @@ var MyReferral = AbstractAction.extend({
         'click .o_hr_referral_level_up': '_upgradeLevel',
         'click .o_referral_action': '_onActionClicked',
         'click .o_choose_friend_available': '_chooseFriend',
+        'click .o_hr_referral_btn_dismiss': '_onMessageDismissClicked',
         'slide.bs.carousel #carouselOnboarding': '_onNewSlide',
     },
 
@@ -65,6 +66,22 @@ var MyReferral = AbstractAction.extend({
             $('#btn_next').show();
             $('#btn_start').hide();
         }
+    },
+
+    /**
+     * @private
+     * @param {MouseEvent} e
+     */
+    _onMessageDismissClicked: function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = $(e.currentTarget);
+        this._rpc({
+            model: 'hr.referral.alert',
+            method: 'action_dismiss',
+            args: [parseInt(target.attr('message-id'), 10)],
+        });
+        target.parent().remove();
     },
 
     /**

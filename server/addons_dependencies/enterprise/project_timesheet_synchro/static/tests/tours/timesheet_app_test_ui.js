@@ -49,6 +49,15 @@ tour.register('activity_creation', {
         {
             content: "Save the activity",
             trigger: '.pt_validate_edit_btn',
+            // These next two lines are needed so that when the test-tour is running
+            // we wait for the sync to be complete, so as to avoid making an RPC after
+            // the chrome cookies have been cleared, because this causes an RPC to be
+            // made without a valid session which will count the test as failed (even
+            // if the tour succeeded). The run method is required so that this step is
+            // not skipped by the test runner (the last step of tours is skipped if it's
+            // an automatic action with no run method).
+            extra_trigger: '.pt_nav_sync a:not(.pt_sync_in_progress)',
+            run: () => {},
         },
     ]
 );
@@ -107,6 +116,19 @@ tour.register('test_screen_navigation', {
             content: "Open the menu",
             trigger: '.pt_toggle',
             extra_trigger: ".pt_drawer_menu_wrapper"
+        },
+        {
+            // This step is needed so that when the test-tour is running
+            // we wait for the sync to be complete, so as to avoid making an RPC after
+            // the chrome cookies have been cleared, because this causes an RPC to be
+            // made without a valid session which will count the test as failed (even
+            // if the tour succeeded). The run method is required so that this step is
+            // not skipped by the test runner (the last step of tours is skipped if it's
+            // an automatic action with no run method).
+            content: "Dummy step",
+            trigger: 'body',
+            extra_trigger: '.pt_nav_sync a:not(.pt_sync_in_progress)',
+            run: () => {},
         },
     ]
 );

@@ -16,11 +16,17 @@ class TestSaleCouponTaxCloudFlow(common.TestSaleCouponTaxCloudCommon):
         # the response for the half price order
         self.response_discounted = {'values': {0: 7.99, 1: 3.99, 2: 0.8}}
 
-        self.TaxCloud = self.order._get_TaxCloudRequest("id", "api_key")
-        self.order._get_TaxCloudRequest = lambda x, y: self.TaxCloud
+        order = self.order
+        TaxCloud = order._get_TaxCloudRequest("id", "api_key")
+        SaleOrder_get_TaxCloudRequest = type(order)._get_TaxCloudRequest
 
+        def _get_TaxCloudRequest(self, api_id, api_key):
+            if self == order:
+                return TaxCloud
+            return SaleOrder_get_TaxCloudRequest(self, api_id, api_key)
 
         patchers = [
+            patch.object(type(order), '_get_TaxCloudRequest', _get_TaxCloudRequest),
             patch('odoo.addons.account_taxcloud.models.taxcloud_request.TaxCloudRequest.verify_address', self._verify_address),
             patch('odoo.addons.account_taxcloud.models.taxcloud_request.TaxCloudRequest.get_all_taxes_values', self._get_all_taxes_values),
         ]

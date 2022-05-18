@@ -16,3 +16,6 @@ class HrLeave(models.Model):
 
     def _get_document_owner(self):
         return self.user_id
+
+    def _get_document_partner(self):
+        return self.employee_id.address_home_id

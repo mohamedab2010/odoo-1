@@ -1,12 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from odoo.addons.iap import jsonrpc
-from odoo import api, exceptions, fields, models, _
-from odoo.exceptions import AccessError, ValidationError
+from unittest.mock import patch
+
+from odoo import api, fields, models, tools, _, _lt
+from odoo.addons.iap.tools import iap_tools
+from odoo.exceptions import AccessError, ValidationError , UserError
 from odoo.tests.common import Form
+from odoo.tools import mute_logger
 from odoo.tools.misc import clean_context
 import logging
+import math
 import re
+import json
+import string
+
+from datetime import datetime, timedelta
 
 _logger = logging.getLogger(__name__)
 
@@ -27,21 +35,31 @@ ERROR_NO_CONNECTION = 8
 ERROR_SERVER_IN_MAINTENANCE = 9
 ERROR_PASSWORD_PROTECTED = 10
 ERROR_TOO_MANY_PAGES = 11
+ERROR_INVALID_ACCOUNT_TOKEN = 12
 
-# codes 100-199 are reserved for warnings
-WARNING_DUPLICATE_VENDOR_REFERENCE = 100
+# codes above 100 are reserved for warnings
+# as warnings aren't mutually exclusive, the warning codes are summed, the result represent the combination of warnings
+# for example, WARNING_BASE_VALUE + WARNING_DUPLICATE_VENDOR_REFERENCE + WARNING_DATE_PRIOR_OF_LOCK_DATE means that both of these warnings should be displayed
+# these constants needs to be a power of 2
+WARNING_BASE_VALUE = 99
+WARNING_DUPLICATE_VENDOR_REFERENCE = 1
+WARNING_DATE_PRIOR_OF_LOCK_DATE = 2
 
 ERROR_MESSAGES = {
-    ERROR_INTERNAL: _("An error occurred"),
-    ERROR_DOCUMENT_NOT_FOUND: _("The document could not be found"),
-    ERROR_NO_DOCUMENT_NAME: _("No document name provided"),
-    ERROR_UNSUPPORTED_IMAGE_FORMAT: _("Unsupported image format"),
-    ERROR_FILE_NAMES_NOT_MATCHING: _("You must send the same quantity of documents and file names"),
-    ERROR_NO_CONNECTION: _("Server not available. Please retry later"),
-    ERROR_SERVER_IN_MAINTENANCE: _("Server is currently under maintenance. Please retry later"),
-    ERROR_PASSWORD_PROTECTED: _("Your PDF file is protected by a password. The OCR can't extract data from it"),
-    ERROR_TOO_MANY_PAGES: _("Your invoice is too heavy to be processed by the OCR. Try to reduce the number of pages and avoid pages with too many text"),
-    WARNING_DUPLICATE_VENDOR_REFERENCE: _("Warning: there is already a vendor bill with this reference (%s)")
+    ERROR_INTERNAL: _lt("An error occurred"),
+    ERROR_DOCUMENT_NOT_FOUND: _lt("The document could not be found"),
+    ERROR_NO_DOCUMENT_NAME: _lt("No document name provided"),
+    ERROR_UNSUPPORTED_IMAGE_FORMAT: _lt("Unsupported image format"),
+    ERROR_FILE_NAMES_NOT_MATCHING: _lt("You must send the same quantity of documents and file names"),
+    ERROR_NO_CONNECTION: _lt("Server not available. Please retry later"),
+    ERROR_SERVER_IN_MAINTENANCE: _lt("Server is currently under maintenance. Please retry later"),
+    ERROR_PASSWORD_PROTECTED: _lt("Your PDF file is protected by a password. The OCR can't extract data from it"),
+    ERROR_TOO_MANY_PAGES: _lt("Your invoice is too heavy to be processed by the OCR. Try to reduce the number of pages and avoid pages with too many text"),
+    ERROR_INVALID_ACCOUNT_TOKEN: _lt("The 'invoice_ocr' IAP account token is invalid. Please delete it to let Odoo generate a new one or fill it with a valid token."),
+}
+WARNING_MESSAGES = {
+    WARNING_DUPLICATE_VENDOR_REFERENCE: _lt("Warning: there is already a vendor bill with this reference (%s)"),
+    WARNING_DATE_PRIOR_OF_LOCK_DATE: _lt("Warning: as the bill date is prior to the lock date, the accounting date was set for the first following day"),
 }
 
 
@@ -71,35 +89,43 @@ class AccountMove(models.Model):
     def _compute_error_message(self):
         for record in self:
             if record.extract_status_code not in (SUCCESS, NOT_READY):
-                record.extract_error_message = ERROR_MESSAGES.get(record.extract_status_code, ERROR_MESSAGES[ERROR_INTERNAL])
-                if record.extract_status_code == WARNING_DUPLICATE_VENDOR_REFERENCE:
-                    record.extract_error_message = record.extract_error_message % record.duplicated_vendor_ref
+                warnings = record.get_warnings()
+                if warnings:
+                    warnings_messages = []
+                    if WARNING_DUPLICATE_VENDOR_REFERENCE in warnings:
+                        warnings_messages.append(str(WARNING_MESSAGES[WARNING_DUPLICATE_VENDOR_REFERENCE]) % record.duplicated_vendor_ref)
+                    if WARNING_DATE_PRIOR_OF_LOCK_DATE in warnings:
+                        warnings_messages.append(str(WARNING_MESSAGES[WARNING_DATE_PRIOR_OF_LOCK_DATE]))
+                    record.extract_error_message = '\n'.join(warnings_messages)
+                else:
+                    record.extract_error_message = str(ERROR_MESSAGES.get(record.extract_status_code, ERROR_MESSAGES[ERROR_INTERNAL]))
             else:
                 record.extract_error_message = ''
 
-    def _compute_can_show_send_resend(self, record):
+    def _compute_can_show_send_resend(self):
+        self.ensure_one()
         can_show = True
-        if self.env.company.extract_show_ocr_option_selection == 'no_send':
+        if not self.company_id.extract_show_ocr_option_selection or self.company_id.extract_show_ocr_option_selection == 'no_send':
             can_show = False
-        if record.state != 'draft':
+        if self.state != 'draft':
             can_show = False
-        if record.type in ('out_invoice', 'out_refund'):
+        if not self.is_invoice():
             can_show = False
-        if record.message_main_attachment_id is None or len(record.message_main_attachment_id) == 0:
+        if self.message_main_attachment_id is None or len(self.message_main_attachment_id) == 0:
             can_show = False
         return can_show
 
     @api.depends('state', 'extract_state', 'message_main_attachment_id')
     def _compute_show_resend_button(self):
         for record in self:
-            record.extract_can_show_resend_button = self._compute_can_show_send_resend(record)
+            record.extract_can_show_resend_button = record._compute_can_show_send_resend()
             if record.extract_state not in ['error_status', 'not_enough_credit', 'module_not_up_to_date']:
                 record.extract_can_show_resend_button = False
 
     @api.depends('state', 'extract_state', 'message_main_attachment_id')
     def _compute_show_send_button(self):
         for record in self:
-            record.extract_can_show_send_button = self._compute_can_show_send_resend(record)
+            record.extract_can_show_send_button = record._compute_can_show_send_resend()
             if record.extract_state not in ['no_extract_requested']:
                 record.extract_can_show_send_button = False
 
@@ -123,51 +149,93 @@ class AccountMove(models.Model):
     def _contact_iap_extract(self, local_endpoint, params):
         params['version'] = CLIENT_OCR_VERSION
         endpoint = self.env['ir.config_parameter'].sudo().get_param('account_invoice_extract_endpoint', EXTRACT_ENDPOINT)
-        return jsonrpc(endpoint + local_endpoint, params=params)
+        return iap_tools.iap_jsonrpc(endpoint + local_endpoint, params=params)
 
     @api.model
     def _contact_iap_partner_autocomplete(self, local_endpoint, params):
-        return jsonrpc(PARTNER_AUTOCOMPLETE_ENDPOINT + local_endpoint, params=params)
+        return iap_tools.iap_jsonrpc(PARTNER_AUTOCOMPLETE_ENDPOINT + local_endpoint, params=params)
 
-    @api.returns('mail.message', lambda value: value.id)
-    def message_post(self, **kwargs):
-        """When a message is posted on an account.move, send the attachment to iap-ocr if
-        the res_config is on "auto_send" and if this is the first attachment."""
-        message = super(AccountMove, self).message_post(**kwargs)
+    @api.model
+    def message_new(self, msg_dict, custom_values=None):
+        return super(AccountMove, self.with_context(from_alias=True)).message_new(msg_dict, custom_values=custom_values)
+
+    def _needs_auto_extract(self):
+        """ Returns `True` if the document should be automatically sent to the extraction server"""
+        return (
+            self.extract_state == "no_extract_requested"
+            and self.company_id.extract_show_ocr_option_selection == 'auto_send'
+            and (
+                self.is_purchase_document()
+                or (self.is_sale_document() and self._context.get('from_alias'))
+            )
+        )
+
+    def _ocr_create_invoice_from_attachment(self, attachment):
+        invoice = self.env['account.move'].create({})
+        invoice.message_main_attachment_id = attachment
+        invoice.retry_ocr()
+        return invoice
+
+    def _ocr_update_invoice_from_attachment(self, attachment, invoice):
+        invoice.retry_ocr()
+        return invoice
+
+    def _get_create_invoice_from_attachment_decoders(self):
+        # OVERRIDE
+        res = super()._get_create_invoice_from_attachment_decoders()
         if self.env.company.extract_show_ocr_option_selection == 'auto_send':
-            for record in self:
-                if record.type in ['in_invoice', 'in_refund'] and record.extract_state == "no_extract_requested":
-                    record.retry_ocr()
-        return message
+            res.append((20, self._ocr_create_invoice_from_attachment))
+        return res
+
+    def _get_update_invoice_from_attachment_decoders(self, invoice):
+        # OVERRIDE
+        res = super()._get_update_invoice_from_attachment_decoders(invoice)
+        if invoice._needs_auto_extract():
+            res.append((20, self._ocr_update_invoice_from_attachment))
+        return res
+
+    def get_user_infos(self):
+        user_infos = {
+            'user_company_VAT': self.company_id.vat,
+            'user_company_name': self.company_id.name,
+            'user_company_country_code': self.company_id.country_id.code,
+            'user_lang': self.env.user.lang,
+            'user_email': self.env.user.email,
+            'perspective': 'supplier' if self.move_type in {'out_invoice', 'out_refund'} else 'client',
+        }
+        return user_infos
 
     def retry_ocr(self):
         """Retry to contact iap to submit the first attachment in the chatter"""
-        if self.env.company.extract_show_ocr_option_selection == 'no_send':
+        self.ensure_one()
+        if not self.company_id.extract_show_ocr_option_selection or self.company_id.extract_show_ocr_option_selection == 'no_send':
             return False
         attachments = self.message_main_attachment_id
-        if attachments and attachments.exists() and self.type in ['in_invoice', 'in_refund'] and self.extract_state in ['no_extract_requested', 'not_enough_credit', 'error_status', 'module_not_up_to_date']:
+        if attachments and attachments.exists() and self.is_invoice() and self.extract_state in ['no_extract_requested', 'not_enough_credit', 'error_status', 'module_not_up_to_date']:
             account_token = self.env['iap.account'].get('invoice_ocr')
-            user_infos = {
-                'user_company_VAT': self.company_id.vat,
-                'user_company_name': self.company_id.name,
-                'user_company_country_code': self.company_id.country_id.code,
-                'user_lang': self.env.user.lang,
-                'user_email': self.env.user.email,
-            }
+            user_infos = self.get_user_infos()
             #this line contact iap to create account if this is the first request. This allow iap to give free credits if the database is elligible
             self.env['iap.account'].get_credits('invoice_ocr')
+            if not account_token.account_token:
+                self.extract_state = 'error_status'
+                self.extract_status_code = ERROR_INVALID_ACCOUNT_TOKEN
+                return
+            baseurl = self.get_base_url()
+            webhook_url = f"{baseurl}/account_invoice_extract/request_done"
             params = {
                 'account_token': account_token.account_token,
                 'dbuuid': self.env['ir.config_parameter'].sudo().get_param('database.uuid'),
                 'documents': [x.datas.decode('utf-8') for x in attachments],
                 'file_names': [x.name for x in attachments],
                 'user_infos': user_infos,
+                'webhook_url': webhook_url,
             }
             try:
                 result = self._contact_iap_extract('/iap/invoice_extract/parse', params)
                 self.extract_status_code = result['status_code']
                 if result['status_code'] == SUCCESS:
-                    self.env['ir.config_parameter'].sudo().set_param("account_invoice_extract.already_notified", False)
+                    if self.env['ir.config_parameter'].sudo().get_param("account_invoice_extract.already_notified", True):
+                        self.env['ir.config_parameter'].sudo().set_param("account_invoice_extract.already_notified", False)
                     self.extract_state = 'waiting_extraction'
                     self.extract_remote_id = result['document_id']
                 elif result['status_code'] == ERROR_NOT_ENOUGH_CREDIT:
@@ -236,21 +304,26 @@ class AccountMove(models.Model):
                 'tax_amount_type': line.tax_line_id.amount_type,
                 'tax_price_include': line.tax_line_id.price_include} for line in self.line_ids.filtered('tax_repartition_line_id')]
         elif field == "date":
-            text_to_send["content"] = str(self.invoice_date)
+            text_to_send["content"] = str(self.invoice_date) if self.invoice_date else False
         elif field == "due_date":
-            text_to_send["content"] = str(self.invoice_date_due)
+            text_to_send["content"] = str(self.invoice_date_due) if self.invoice_date_due else False
         elif field == "invoice_id":
-            text_to_send["content"] = self.ref
-        elif field == "supplier":
+            if self.move_type in {'in_invoice', 'in_refund'}:
+                text_to_send["content"] = self.ref
+            else:
+                text_to_send["content"] = self.name
+        elif field == "partner":
             text_to_send["content"] = self.partner_id.name
         elif field == "VAT_Number":
             text_to_send["content"] = self.partner_id.vat
         elif field == "currency":
             text_to_send["content"] = self.currency_id.name
         elif field == "payment_ref":
-            text_to_send["content"] = self.invoice_payment_ref
+            text_to_send["content"] = self.payment_reference
         elif field == "iban":
-            text_to_send["content"] = self.invoice_partner_bank_id.acc_number if self.invoice_partner_bank_id else False
+            text_to_send["content"] = self.partner_bank_id.acc_number if self.partner_bank_id else False
+        elif field == "SWIFT_code":
+            text_to_send["content"] = self.partner_bank_id.bank_bic if self.partner_bank_id else False
         elif field == "invoice_lines":
             text_to_send = {'lines': []}
             for il in self.invoice_line_ids:
@@ -274,11 +347,11 @@ class AccountMove(models.Model):
         return_box.update(text_to_send)
         return return_box
 
-    def post(self):
+    def _post(self, soft=True):
         # OVERRIDE
         # On the validation of an invoice, send the different corrected fields to iap to improve the ocr algorithm.
-        res = super(AccountMove, self).post()
-        for record in self.filtered(lambda move: move.type in ['in_invoice', 'in_refund']):
+        posted = super()._post(soft)
+        for record in posted.filtered(lambda move: move.is_invoice()):
             if record.extract_state == 'waiting_validation':
                 values = {
                     'total': record.get_validation('total'),
@@ -288,11 +361,12 @@ class AccountMove(models.Model):
                     'date': record.get_validation('date'),
                     'due_date': record.get_validation('due_date'),
                     'invoice_id': record.get_validation('invoice_id'),
-                    'partner': record.get_validation('supplier'),
+                    'partner': record.get_validation('partner'),
                     'VAT_Number': record.get_validation('VAT_Number'),
                     'currency': record.get_validation('currency'),
                     'payment_ref': record.get_validation('payment_ref'),
                     'iban': record.get_validation('iban'),
+                    'SWIFT_code': record.get_validation('SWIFT_code'),
                     'merged_lines': self.env.company.extract_single_line_per_tax,
                     'invoice_lines': record.get_validation('invoice_lines')
                 }
@@ -306,8 +380,8 @@ class AccountMove(models.Model):
                 except AccessError:
                     pass
         # we don't need word data anymore, we can delete them
-        self.mapped('extract_word_ids').unlink()
-        return res
+        posted.mapped('extract_word_ids').unlink()
+        return posted
 
     def get_boxes(self):
         return [{
@@ -411,6 +485,10 @@ class AccountMove(models.Model):
         return word.word_text
 
     def _create_supplier_from_vat(self, vat_number_ocr):
+        partner_autocomplete = self.env['ir.module.module'].search([('name', '=', 'partner_autocomplete')], limit=1)
+        if not partner_autocomplete or partner_autocomplete.state != 'installed':
+            return False
+
         params = {
             'db_uuid': self.env['ir.config_parameter'].sudo().get_param('database.uuid'),
             'account_token': self.env['iap.account'].get('partner_autocomplete').account_token,
@@ -453,19 +531,36 @@ class AccountMove(models.Model):
     def find_partner_id_with_name(self, partner_name):
         if not partner_name:
             return 0
-        partner_names = self.env["res.partner"].search([("name", "ilike", partner_name)])
-        if partner_names.exists():
-            partner = min(partner_names, key=len)
-            return partner.id
-        else:
-            partners = {}
-            for single_word in [word for word in re.findall(r"[\w]+", partner_name) if len(word) >= 4]:
-                partner_names = self.env["res.partner"].search([("name", "ilike", single_word)], limit=30)
-                for partner in partner_names:
-                    partners[partner.id] = partners[partner.id] + 1 if partner.id in partners else 1
-            if len(partners) > 0:
-                key_max = max(partners.keys(), key=(lambda k: partners[k]))
-                return key_max
+        partners_matched = self.env["res.partner"].search([("name", "ilike", partner_name)])
+        if partners_matched:
+            partner = min(partners_matched, key=lambda rec: len(rec.name))
+            if partner != self.company_id.partner_id:
+                return partner.id
+
+        # clean the partner name of non discriminating words
+        words_to_remove = {"Europe", "Euro", "Asia", "America", "Africa", "Service", "Services", "SAS", "SARL", "SPRL", "SRL", "SA", "SCS", "GCV", "BV", "BVBA",
+                           "NV", "GMBH", "Inc", "Incorporation", "Pty", "Ltd", "Pte", "Limited", "Company", "Solution", "Solutions", "Business", "Lease", "Leasing"}
+        partner_name = partner_name.replace('-', ' ')
+        partner_name = partner_name.translate(str.maketrans('', '', string.punctuation))
+        for word_to_remove in words_to_remove:
+            partner_name = re.sub(r'\b' + word_to_remove + r' ?\b', '', partner_name, flags=re.IGNORECASE)
+        partner_name = partner_name.strip()
+
+        partners_matched = self.env["res.partner"].search([("name", "ilike", partner_name)])
+        if partners_matched:
+            partner = min(partners_matched, key=lambda rec: len(rec.name))
+            if partner != self.company_id.partner_id:
+                return partner.id
+
+        partners = {}
+        for single_word in [word for word in re.findall(r"[\w]+", partner_name) if len(word) >= 4]:
+            partners_matched = self.env["res.partner"].search([("name", "ilike", single_word)], limit=30)
+            for partner in partners_matched:
+                partners[partner.id] = partners[partner.id] + 1 if partner.id in partners else 1
+        if partners:
+            partner_id = max(partners.keys(), key=(lambda k: partners[k]))
+            if partner_id != self.company_id.partner_id.id:
+                return partner_id
         return 0
 
     def _get_taxes_record(self, taxes_ocr, taxes_type_ocr):
@@ -473,27 +568,42 @@ class AccountMove(models.Model):
         Find taxes records to use from the taxes detected for an invoice line.
         """
         taxes_found = self.env['account.tax']
+        type_tax_use = 'purchase' if self.move_type in {'in_invoice', 'in_refund'} else 'sale'
         for (taxes, taxes_type) in zip(taxes_ocr, taxes_type_ocr):
             if taxes != 0.0:
-                related_documents = self.env['account.move'].search([('state', '!=', 'draft'), ('type', '=', self.type), ('partner_id', '=', self.partner_id.id)])
+                related_documents = self.env['account.move'].search([
+                    ('state', '!=', 'draft'), 
+                    ('move_type', '=', self.move_type), 
+                    ('partner_id', '=', self.partner_id.id),
+                ], limit=100, order='id desc')
                 lines = related_documents.mapped('invoice_line_ids')
                 taxes_ids = related_documents.mapped('invoice_line_ids.tax_ids')
-                taxes_ids.filtered(lambda tax: tax.amount == taxes and tax.amount_type == taxes_type and tax.type_tax_use == 'purchase')
+                taxes_ids = taxes_ids.filtered(
+                    lambda tax:
+                        tax.active and
+                        tax.amount == taxes and
+                        tax.amount_type == taxes_type and
+                        tax.type_tax_use == type_tax_use
+                )
                 taxes_by_document = []
                 for tax in taxes_ids:
                     taxes_by_document.append((tax, lines.filtered(lambda line: tax in line.tax_ids)))
                 if len(taxes_by_document) != 0:
                     taxes_found |= max(taxes_by_document, key=lambda tax: len(tax[1]))[0]
                 else:
-                    taxes_records = self.env['account.tax'].search([('amount', '=', taxes), ('amount_type', '=', taxes_type), ('type_tax_use', '=', 'purchase')])
-                    if taxes_records:
-                        # prioritize taxes that are not included in the price
-                        taxes_records_not_included = taxes_records.filtered(lambda r: not r.price_include)
-                        if taxes_records_not_included:
-                            taxes_record = taxes_records_not_included[0]
-                        else:
-                            taxes_record = taxes_records[0]
-                        taxes_found |= taxes_record
+                    if self.company_id.account_purchase_tax_id and self.company_id.account_purchase_tax_id.amount == taxes and self.company_id.account_purchase_tax_id.amount_type == taxes_type:
+                        taxes_found |= self.company_id.account_purchase_tax_id
+                    else:
+                        taxes_records = self.env['account.tax'].search([('amount', '=', taxes), ('amount_type', '=', taxes_type), ('type_tax_use', '=', type_tax_use), ('company_id', '=', self.company_id.id)])
+                        if taxes_records:
+                            # prioritize taxes based on db setting
+                            line_tax_type = self.env['ir.config_parameter'].sudo().get_param('account.show_line_subtotals_tax_selection')
+                            taxes_records_setting_based = taxes_records.filtered(lambda r: not r.price_include if line_tax_type == 'tax_excluded' else r.price_include)
+                            if taxes_records_setting_based:
+                                taxes_record = taxes_records_setting_based[0]
+                            else:
+                                taxes_record = taxes_records[0]
+                            taxes_found |= taxes_record
         return taxes_found
 
     def _get_invoice_lines(self, invoice_lines, subtotal_ocr):
@@ -502,7 +612,7 @@ class AccountMove(models.Model):
         """
         self.ensure_one()
         invoice_lines_to_create = []
-        if self.env.company.extract_single_line_per_tax:
+        if self.company_id.extract_single_line_per_tax:
             merged_lines = {}
             for il in invoice_lines:
                 description = il['description']['selected_value']['content'] if 'description' in il else None
@@ -561,6 +671,7 @@ class AccountMove(models.Model):
             try:
                 with self.env.cr.savepoint():
                     record._check_status()
+                self.env.cr.commit()
             except Exception as e:
                 _logger.error("Couldn't check status of account.move with id %d: %s", record.id, str(e))
 
@@ -602,7 +713,7 @@ class AccountMove(models.Model):
                 # Retry saving without the ref, then set the error status to show the user a warning
                 except ValidationError as e:
                     self._save_form(ocr_results, no_ref=True)
-                    self.extract_status_code = WARNING_DUPLICATE_VENDOR_REFERENCE
+                    self.add_warning(WARNING_DUPLICATE_VENDOR_REFERENCE)
                     self.duplicated_vendor_ref = ocr_results['invoice_id']['selected_value']['content'] if 'invoice_id' in ocr_results else ""
 
                 fields_with_boxes = ['supplier', 'date', 'due_date', 'invoice_id', 'currency', 'VAT_Number']
@@ -630,6 +741,7 @@ class AccountMove(models.Model):
 
     def _save_form(self, ocr_results, no_ref=False):
         supplier_ocr = ocr_results['supplier']['selected_value']['content'] if 'supplier' in ocr_results else ""
+        client_ocr = ocr_results['client']['selected_value']['content'] if 'client' in ocr_results else ""
         date_ocr = ocr_results['date']['selected_value']['content'] if 'date' in ocr_results else ""
         due_date_ocr = ocr_results['due_date']['selected_value']['content'] if 'due_date' in ocr_results else ""
         total_ocr = ocr_results['total']['selected_value']['content'] if 'total' in ocr_results else ""
@@ -639,80 +751,152 @@ class AccountMove(models.Model):
         vat_number_ocr = ocr_results['VAT_Number']['selected_value']['content'] if 'VAT_Number' in ocr_results else ""
         payment_ref_ocr = ocr_results['payment_ref']['selected_value']['content'] if 'payment_ref' in ocr_results else ""
         iban_ocr = ocr_results['iban']['selected_value']['content'] if 'iban' in ocr_results else ""
+        SWIFT_code_ocr = json.loads(ocr_results['SWIFT_code']['selected_value']['content']) if 'SWIFT_code' in ocr_results else None
         invoice_lines = ocr_results['invoice_lines'] if 'invoice_lines' in ocr_results else []
 
-        vals_invoice_lines = self._get_invoice_lines(invoice_lines, subtotal_ocr)
-
-        if 'default_journal_id' in self._context:
-            self_ctx = self
-        else:
-            # we need to make sure the type is in the context as _get_default_journal uses it
-            self_ctx = self.with_context(default_type=self.type) if 'default_type' not in self._context else self
-            self_ctx = self_ctx.with_context(default_journal_id=self_ctx._get_default_journal().id)
-        with Form(self_ctx) as move_form:
+        patched_process_fvg, move_form = self.get_form_context_manager()
+        with patched_process_fvg, move_form:
+            move_form.date = datetime.strptime(move_form.date, tools.DEFAULT_SERVER_DATE_FORMAT).date()
             if not move_form.partner_id:
                 if vat_number_ocr:
                     partner_vat = self.env["res.partner"].search([("vat", "=ilike", vat_number_ocr)], limit=1)
-                    if partner_vat.exists():
+                    if not partner_vat:
+                        partner_vat = self.env["res.partner"].search([("vat", "=ilike", vat_number_ocr[2:])], limit=1)
+                    if not partner_vat:
+                        for partner in self.env["res.partner"].search([("vat", "!=", False)], limit=1000):
+                            vat = partner.vat.upper()
+                            vat_cleaned = vat.replace("BTW", "").replace("MWST", "").replace("ABN", "")
+                            vat_cleaned = re.sub(r'[^A-Z0-9]', '', vat_cleaned)
+                            if vat_cleaned == vat_number_ocr or vat_cleaned == vat_number_ocr[2:]:
+                                partner_vat = partner
+                                break
+                    if partner_vat:
                         move_form.partner_id = partner_vat
+                if self.move_type in {'in_invoice', 'in_refund'} and not move_form.partner_id and iban_ocr:
+                    bank_account = self.env['res.partner.bank'].search([('acc_number', '=ilike', iban_ocr)])
+                    if len(bank_account) == 1:
+                        move_form.partner_id = bank_account.partner_id
                 if not move_form.partner_id:
-                    partner_id = self.find_partner_id_with_name(supplier_ocr)
+                    partner_id = self.find_partner_id_with_name(client_ocr if self.move_type in {'out_invoice', 'out_refund'} else supplier_ocr)
                     if partner_id != 0:
                         move_form.partner_id = self.env["res.partner"].browse(partner_id)
                 if not move_form.partner_id and vat_number_ocr:
                     created_supplier = self._create_supplier_from_vat(vat_number_ocr)
                     if created_supplier:
                         move_form.partner_id = created_supplier
-                        if iban_ocr and not move_form.invoice_partner_bank_id:
+                        if iban_ocr and not move_form.partner_bank_id and self.move_type in {'in_invoice', 'in_refund'}:
                             bank_account = self.env['res.partner.bank'].search([('acc_number', '=ilike', iban_ocr)])
                             if bank_account.exists():
                                 if bank_account.partner_id == move_form.partner_id.id:
-                                    move_form.invoice_partner_bank_id = bank_account
+                                    move_form.partner_bank_id = bank_account
                             else:
-                                move_form.invoice_partner_bank_id = self.with_context(clean_context(self.env.context)).env['res.partner.bank'].create({
-                                    'partner_id': move_form.partner_id.id,
-                                    'acc_number': iban_ocr,
-                                })
+                                vals = {
+                                        'partner_id': move_form.partner_id.id,
+                                        'acc_number': iban_ocr
+                                       }
+                                if SWIFT_code_ocr:
+                                    bank_id = self.env['res.bank'].search([('bic', '=', SWIFT_code_ocr['bic'])], limit=1)
+                                    if bank_id.exists():
+                                        vals['bank_id'] = bank_id.id
+                                    if not bank_id.exists() and SWIFT_code_ocr['verified_bic']:
+                                        country_id = self.env['res.country'].search([('code', '=', SWIFT_code_ocr['country_code'])], limit=1)
+                                        if country_id.exists():
+                                            vals['bank_id'] = self.env['res.bank'].create({'name': SWIFT_code_ocr['name'], 'country': country_id.id, 'city': SWIFT_code_ocr['city'], 'bic': SWIFT_code_ocr['bic']}).id
+                                move_form.partner_bank_id = self.with_context(clean_context(self.env.context)).env['res.partner.bank'].create(vals)
 
             due_date_move_form = move_form.invoice_date_due  # remember the due_date, as it could be modified by the onchange() of invoice_date
-            if date_ocr and (not move_form.invoice_date or move_form.invoice_date == str(self._get_default_invoice_date())):
+            context_create_date = str(fields.Date.context_today(self, self.create_date))
+            if date_ocr and (not move_form.invoice_date or move_form.invoice_date == context_create_date):
                 move_form.invoice_date = date_ocr
-            if due_date_ocr and (not move_form.invoice_date_due or due_date_move_form == str(self._get_default_invoice_date())):
-                move_form.invoice_date_due = due_date_ocr
-            if not move_form.ref and not no_ref:
+                if self.company_id.tax_lock_date and move_form.date and move_form.date <= self.company_id.tax_lock_date:
+                    move_form.date = self.company_id.tax_lock_date + timedelta(days=1)
+                    self.add_warning(WARNING_DATE_PRIOR_OF_LOCK_DATE)
+            if due_date_ocr and (not due_date_move_form or due_date_move_form == context_create_date):
+                if date_ocr == due_date_ocr and move_form.partner_id and move_form.partner_id.property_supplier_payment_term_id:
+                    # if the invoice date and the due date found by the OCR are the same, we use the payment terms of the detected supplier instead, if there is one
+                    move_form.invoice_payment_term_id = move_form.partner_id.property_supplier_payment_term_id
+                else:
+                    move_form.invoice_date_due = due_date_ocr
+            if self.move_type in {'in_invoice', 'in_refund'} and not move_form.ref and not no_ref:
                 move_form.ref = invoice_id_ocr
 
-            if self.user_has_groups('base.group_multi_currency') and (not move_form.currency_id or move_form.currency_id == self._get_default_currency()):
+            if self.move_type in {'out_invoice', 'out_refund'}:
+                with mute_logger('odoo.tests.common.onchange'):
+                    move_form.name = invoice_id_ocr
+
+            if not move_form.currency_id or move_form.currency_id == self._get_default_currency():
                 currency = self.env["res.currency"].search([
                         '|', '|', ('currency_unit_label', 'ilike', currency_ocr),
                         ('name', 'ilike', currency_ocr), ('symbol', 'ilike', currency_ocr)], limit=1)
                 if currency:
                     move_form.currency_id = currency
 
-            if payment_ref_ocr and not move_form.invoice_payment_ref:
-                move_form.invoice_payment_ref = payment_ref_ocr
+            if payment_ref_ocr and not move_form.payment_reference:
+                move_form.payment_reference = payment_ref_ocr
 
             if not move_form.invoice_line_ids:
-                for line_val in vals_invoice_lines:
-                    with move_form.invoice_line_ids.new() as line:
-                        line.name = line_val['name']
-                        line.price_unit = line_val['price_unit']
-                        line.quantity = line_val['quantity']
-                        line.tax_ids.clear()
-                        for taxes_record in line_val['tax_ids']:
-                            line.tax_ids.add(taxes_record)
-                        if not line.account_id:
-                            raise ValidationError(_("The OCR module is not able to generate the invoice lines because the default accounts are not correctly set on the %s journal.") % move_form.journal_id.name_get()[0][1])
+                # we save here as _get_invoice_lines() uses the record values in self to determine the tax records to use
+                move_form.save()
+
+                vals_invoice_lines = self._get_invoice_lines(invoice_lines, subtotal_ocr)
+                self._set_invoice_lines(move_form, vals_invoice_lines)
 
                 # if the total on the invoice doesn't match the total computed by Odoo, adjust the taxes so that it matches
                 for i in range(len(move_form.line_ids)):
                     with move_form.line_ids.edit(i) as line:
                         if line.tax_repartition_line_id and total_ocr:
                             rounding_error = move_form.amount_total - total_ocr
-                            threshold = len(vals_invoice_lines) * 0.01
-                            if rounding_error != 0.0 and abs(rounding_error) < threshold:
-                                line.debit -= rounding_error
+                            threshold = len(vals_invoice_lines) * move_form.currency_id.rounding
+                            if not move_form.currency_id.is_zero(rounding_error) and abs(rounding_error) < threshold:
+                                if self.is_purchase_document():
+                                    line.debit -= rounding_error
+                                else:
+                                    line.credit -= rounding_error
                             break
+
+    def _set_invoice_lines(self, move_form, vals_invoice_lines):
+        for i, line_val in enumerate(vals_invoice_lines, start=len(move_form.invoice_line_ids)):
+            with move_form.invoice_line_ids.new() as line:
+                line.name = line_val['name']
+                if not line.account_id:
+                    raise ValidationError(_("The OCR module is not able to generate the invoice lines because the default accounts are not correctly set on the %s journal.", move_form.journal_id.name_get()[0][1]))
+
+            # We close and re-open the line to let account_predictive_bills do the predictions based on the label
+            with move_form.invoice_line_ids.edit(i) as line:
+                line.price_unit = line_val['price_unit']
+                line.quantity = line_val['quantity']
+                taxes_dict = {}
+                for tax in line.tax_ids:
+                    taxes_dict[(tax.amount, tax.amount_type, tax.price_include)] = {
+                        'found_by_OCR': False,
+                        'tax_record': tax,
+                    }
+                for taxes_record in line_val['tax_ids']:
+                    tax_tuple = (taxes_record.amount, taxes_record.amount_type, taxes_record.price_include)
+                    if tax_tuple not in taxes_dict:
+                        line.tax_ids.add(taxes_record)
+                    else:
+                        taxes_dict[tax_tuple]['found_by_OCR'] = True
+                    if taxes_record.price_include:
+                        line.price_unit *= 1 + taxes_record.amount / 100
+                for tax_info in taxes_dict.values():
+                    if not tax_info['found_by_OCR']:
+                        amount_before = line.price_total
+                        line.tax_ids.remove(tax_info['tax_record'].id)
+                        # If the total amount didn't change after removing it, we can actually leave it.
+                        # This is intended as a way to keep intra-community taxes
+                        if line.price_total == amount_before:
+                            line.tax_ids.add(tax_info['tax_record'])
+
+    def get_form_context_manager(self):
+        if 'default_journal_id' in self._context:
+            self_ctx = self
+        else:
+            # we need to make sure the type is in the context as _get_default_journal uses it
+            self_ctx = self.with_context(default_move_type=self.move_type) if 'default_move_type' not in self._context else self
+            self_ctx = self_ctx.with_company(self.company_id.id)
+            self_ctx = self_ctx.with_context(default_journal_id=self_ctx.journal_id.id)
+        return patch('odoo.tests.common.Form._process_fvg', _process_fvg), Form(self_ctx)
 
     def buy_credits(self):
         url = self.env['iap.account'].get_credits_url(base_url='', service_name='invoice_ocr')
@@ -720,3 +904,32 @@ class AccountMove(models.Model):
             'type': 'ir.actions.act_url',
             'url': url,
         }
+
+    def add_warning(self, warning_code):
+        if self.extract_status_code <= WARNING_BASE_VALUE:
+            self.extract_status_code = WARNING_BASE_VALUE
+        self.extract_status_code += warning_code
+
+    def get_warnings(self):
+        """Returns the active warnings as a set"""
+        warnings = set()
+        if self.extract_status_code > WARNING_BASE_VALUE:
+            # convert the status code to a 8 characters 0-padded string representation of the binary number
+            codes = format(self.extract_status_code - WARNING_BASE_VALUE, '08b')
+
+            # revert the string so that the first character will correspond to the first bit
+            codes = codes[::-1]
+            for warning_code in WARNING_MESSAGES:
+                if codes[int(math.log2(warning_code))] == '1':
+                    warnings.add(warning_code)
+        return warnings
+
+
+old_process_fvg = Form._process_fvg
+
+
+def _process_fvg(self, model, fvg, level=2):
+    old_process_fvg(self, model, fvg, level=level)
+    for modifiers in fvg['modifiers'].values():
+        if 'required' in modifiers:
+            modifiers['required'] = False

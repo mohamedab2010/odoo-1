@@ -35,7 +35,8 @@ class ComparisonBuilder(AbstractBuilder):
         total_dict = {line['period_id'][0]: line['total'] for line in total_lines}
         # Need to keep the order of periods as nothing in DB can order them
         for period_id in kwargs.get('period_ids', []):
-            totals.append(total_dict[period_id])
+            append_amount = total_dict.get(period_id, 0.0)
+            totals.append(append_amount)
         return totals
 
     def _get_default_line_totals(self, options: dict, **kwargs) -> list:
@@ -43,19 +44,19 @@ class ComparisonBuilder(AbstractBuilder):
 
     def _format_account_line(self, account, level: int, totals: list, options: dict, **kwargs) -> dict:
         account_line = super()._format_account_line(account, level, totals, options, **kwargs)
-        if kwargs.get('include_percentage', False):
+        if kwargs.get('include_percentage', False) and totals and account_line:
             account_line['columns'].append(self._build_percentage_column(*totals))
         return account_line
 
     def _build_section_line(self, section, level: int, options: dict, **kwargs):
         section_totals, section_lines = super()._build_section_line(section, level, options, **kwargs)
-        if kwargs.get('include_percentage', False):
+        if kwargs.get('include_percentage', False) and section_totals and section_lines:
             section_lines[0]['columns'].append(self._build_percentage_column(*section_totals))
         return section_totals, section_lines
 
     def _build_total_line(self, totals: list, options: dict, **kwargs) -> dict:
         total_line = super()._build_total_line(totals, options, **kwargs)
-        if kwargs.get('include_percentage', False):
+        if kwargs.get('include_percentage', False) and total_line and totals:
             total_line['columns'].append(self._build_percentage_column(*totals))
         return total_line
 

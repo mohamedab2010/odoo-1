@@ -3,24 +3,25 @@
 # 	* social_twitter
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Judyta Kaźmierczak <judyta.kazmierczak@openglobe.pl>, 2019
-# Mariusz, 2019
-# Zdzisław Krajewski <zdzichucb@gmail.com>, 2019
-# Piotr Szlązak <szlazakpiotr@gmail.com>, 2019
-# Marcin Młynarczyk <mlynarczyk@gmail.com>, 2019
-# Monika Grzelak <m.e.grzelak@gmail.com>, 2019
-# Andrzej Donczew <a.donczew@hadron.eu.com>, 2019
-# Dariusz Żbikowski <darek@krokus.com.pl>, 2019
-# Maksym <ms@myodoo.pl>, 2020
+# Martin Trigaux, 2021
+# Dariusz Żbikowski <darek@krokus.com.pl>, 2021
+# Wojciech Warczakowski <w.warczakowski@gmail.com>, 2021
+# Judyta Kaźmierczak <judyta.kazmierczak@openglobe.pl>, 2021
+# Mariusz, 2021
+# Zdzisław Krajewski <zdzichucb@gmail.com>, 2021
+# Piotr Szlązak <szlazakpiotr@gmail.com>, 2021
+# Marcin Młynarczyk <mlynarczyk@gmail.com>, 2021
+# Monika Grzelak <m.e.grzelak@gmail.com>, 2021
+# Andrzej Donczew <a.donczew@hadron.eu.com>, 2021
+# Maksym <ms@myodoo.pl>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:38+0000\n"
-"PO-Revision-Date: 2019-09-23 14:03+0000\n"
-"Last-Translator: Maksym <ms@myodoo.pl>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Maksym <ms@myodoo.pl>, 2021\n"
 "Language-Team: Polish (https://www.transifex.com/odoo/teams/41243/pl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -56,6 +57,13 @@ msgid "Author Image"
 msgstr "Obraz autora"
 
 #. module: social_twitter
+#: model:ir.model.fields,help:social_twitter.field_res_config_settings__twitter_use_own_account
+msgid ""
+"Check this if you want to use your personal Twitter Developer Account "
+"instead of the provided one."
+msgstr ""
+
+#. module: social_twitter
 #: model:ir.model,name:social_twitter.model_res_config_settings
 msgid "Config Settings"
 msgstr "Ustawienia konfiguracji"
@@ -73,7 +81,7 @@ msgstr "Tajny klucz konsumenta"
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_twitter_account__create_uid
 msgid "Created by"
-msgstr "Utworzona przez"
+msgstr "Utworzył(a)"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_twitter_account__create_date
@@ -92,6 +100,7 @@ msgstr "Nazwa wyświetlana"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__display_twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__display_twitter_preview
 msgid "Display Twitter Preview"
 msgstr "Wyświetl podgląd Twittera"
 
@@ -138,6 +147,14 @@ msgid "Likes"
 msgstr "Polubienia"
 
 #. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"Looks like you've made too many requests. Please wait a few minutes before "
+"giving it another try."
+msgstr ""
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_media__media_type
 msgid "Media Type"
 msgstr "Typ mediów"
@@ -151,6 +168,12 @@ msgstr "Wzmianki"
 #: model:ir.model.fields,field_description:social_twitter.field_social_twitter_account__name
 msgid "Name"
 msgstr "Nazwa"
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid "Please select a Twitter account for this stream type."
+msgstr ""
 
 #. module: social_twitter
 #: model_terms:ir.ui.view,arch_db:social_twitter.twitter_preview
@@ -188,12 +211,12 @@ msgstr "Wyszukiwanie wg"
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_account
 msgid "Social Account"
-msgstr "Konto społecznościowe"
+msgstr "Konto w mediach społecznościowych"
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_live_post
 msgid "Social Live Post"
-msgstr "Społecznościowy post na żywo"
+msgstr "Post na żywo w mediach społecznościowych"
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_media
@@ -203,22 +226,35 @@ msgstr "Media społecznościowe"
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_post
 msgid "Social Post"
-msgstr "Post społecznościowy"
+msgstr "Post w mediach społecznościowych"
+
+#. module: social_twitter
+#: model:ir.model,name:social_twitter.model_social_post_template
+msgid "Social Post Template"
+msgstr ""
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_stream
 msgid "Social Stream"
-msgstr "Strumień Społeczny"
+msgstr "Kanał społecznościowy"
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_stream_post
 msgid "Social Stream Post"
-msgstr "Post na kanale społecznościowym"
+msgstr "Post w kanale społecznościowym"
 
 #. module: social_twitter
 #: model:ir.model,name:social_twitter.model_social_twitter_account
 msgid "Social Twitter Account"
 msgstr "Konto społecznościowe Twitter"
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"The keyword you've typed in does not look valid. Please try again with other"
+" words."
+msgstr ""
 
 #. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0
@@ -249,7 +285,7 @@ msgstr "Konfiguracja konta Twitter"
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_stream_post__twitter_author_id
 msgid "Twitter Author ID"
-msgstr "ID Twittera autora"
+msgstr "ID autora na Twitterze"
 
 #. module: social_twitter
 #. openerp-web
@@ -292,10 +328,11 @@ msgstr "Token OAuth Twittera"
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_account__twitter_oauth_token_secret
 msgid "Twitter OAuth Token Secret"
-msgstr "Tajny token Oauth Twittera"
+msgstr "Tajny token OAuth Twittera"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_post__twitter_preview
+#: model:ir.model.fields,field_description:social_twitter.field_social_post_template__twitter_preview
 msgid "Twitter Preview"
 msgstr "Podgląd Twittera"
 
@@ -314,7 +351,7 @@ msgstr "ID zdjęcia profilowego na Twitterze"
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_account__twitter_screen_name
 msgid "Twitter Screen ID"
-msgstr "ID ekranu na Twitterze"
+msgstr "ID ekranu Twittera"
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_stream_post__twitter_screen_name
@@ -337,9 +374,27 @@ msgid "Twitter User Likes"
 msgstr "Polubienia użytkownika na Twitterze"
 
 #. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token or it may have expired."
+msgstr "Twitter nie dostarczył ważnego tokenu dostępu lub się on wyczerpał."
+
+#. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Twitter did not provide a valid access token."
+msgstr "Twitter nie dostarczył ważnego tokenu dostępu."
+
+#. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_social_live_post__twitter_tweet_id
 msgid "Twitter tweet id"
 msgstr "id tweetu"
+
+#. module: social_twitter
+#: code:addons/social_twitter/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator."
+msgstr "Brak autoryzacji. Skontaktuj się z administratorem."
 
 #. module: social_twitter
 #: model:ir.model.fields,field_description:social_twitter.field_res_config_settings__twitter_use_own_account
@@ -350,8 +405,8 @@ msgstr "Użyj własnego konta Twitter"
 #: model_terms:ir.ui.view,arch_db:social_twitter.res_config_settings_view_form
 msgid "Use your own Twitter Developer Account on our Social app"
 msgstr ""
-"Użyj własnego konta deweloperskiego Twitter w naszej aplikacji Social "
-"Marketing"
+"Użyj własnego konta deweloperskiego Twitter w naszej aplikacji Media "
+"Społecznościowe"
 
 #. module: social_twitter
 #: model:ir.model.fields,help:social_twitter.field_social_media__media_type
@@ -361,6 +416,22 @@ msgid ""
 msgstr ""
 "Używane do porównań w wypadku, gdy musimy ograniczyć niektóre "
 "funkcjonalności do poszczególnych platform ('facebook', 'twitter', ...)."
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_account.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+
+#. module: social_twitter
+#: code:addons/social_twitter/models/social_stream.py:0
+#, python-format
+msgid ""
+"You cannot create a Stream from this Twitter account.\n"
+"It may be because it's protected. To solve this, please make sure you follow it before trying again."
+msgstr ""
 
 #. module: social_twitter
 #: code:addons/social_twitter/models/social_media.py:0

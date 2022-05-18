@@ -17,10 +17,11 @@ class HrContract(models.Model):
         for contract in self:
             contract.sign_request_count = len(contract.sign_request_ids)
 
-    def unlink(self):
-        if self.sign_request_ids:
-            raise ValidationError(_("You can't delete a contract linked to a signed document, archive it instead."))
-        return super().unlink()
+    @api.ondelete(at_uninstall=False)
+    def _unlink_if_sign_request_canceled(self):
+        if self.sign_request_ids.filtered(lambda s: s.state != 'canceled'):
+            raise ValidationError(_(
+                "You can't delete a contract linked to a signed document, archive it instead."))
 
     def open_sign_requests(self):
         self.ensure_one()

@@ -3,15 +3,16 @@
 from contextlib import contextmanager
 
 from odoo import fields
-from odoo.tests.common import SavepointCase
-from odoo import fields
+from odoo.tests.common import TransactionCase
 
 
-class HelpdeskCommon(SavepointCase):
+class HelpdeskCommon(TransactionCase):
 
     @classmethod
     def setUpClass(cls):
         super(HelpdeskCommon, cls).setUpClass()
+        cls.env.user.tz = 'Europe/Brussels'
+        cls.env['resource.calendar'].search([]).write({'tz': 'Europe/Brussels'})
 
         # we create a helpdesk user and a manager
         Users = cls.env['res.users'].with_context(tracking_disable=True)
@@ -21,14 +22,16 @@ class HelpdeskCommon(SavepointCase):
             'name': 'Helpdesk Manager',
             'login': 'hm',
             'email': 'hm@example.com',
-            'groups_id': [(6, 0, [cls.env.ref('helpdesk.group_helpdesk_manager').id])]
+            'groups_id': [(6, 0, [cls.env.ref('helpdesk.group_helpdesk_manager').id])],
+            'tz': 'Europe/Brussels',
         })
         cls.helpdesk_user = Users.create({
             'company_id': cls.main_company_id,
             'name': 'Helpdesk User',
             'login': 'hu',
             'email': 'hu@example.com',
-            'groups_id': [(6, 0, [cls.env.ref('helpdesk.group_helpdesk_user').id])]
+            'groups_id': [(6, 0, [cls.env.ref('helpdesk.group_helpdesk_user').id])],
+            'tz': 'Europe/Brussels',
         })
         # the manager defines a team for our tests (the .sudo() at the end is to avoid potential uid problems)
         cls.test_team = cls.env['helpdesk.team'].with_user(cls.helpdesk_manager).create({'name': 'Test Team'}).sudo()
@@ -107,20 +110,20 @@ class HelpdeskCommon(SavepointCase):
         cls.sla_1_progress = SLA.create({
             'name': "2 days to be in progress",
             'stage_id': cls.team_sla_stage_progress.id,
-            'time_days': 2,
+            'time': 16,
             'team_id': cls.team_with_sla.id,
         })
         cls.sla_2_done = SLA.create({
             'name': "7 days to be in progress",
             'stage_id': cls.team_sla_stage_done.id,
-            'time_days': 7,
+            'time': 56,
             'team_id': cls.team_with_sla.id,
             'priority': '0',
         })
         cls.sla_3_done_prior = SLA.create({
             'name': "5 days to be in done for 3 stars ticket",
             'stage_id': cls.team_sla_stage_done.id,
-            'time_days': 5,
+            'time': 40,
             'team_id': cls.team_with_sla.id,
             'priority': '3',
         })

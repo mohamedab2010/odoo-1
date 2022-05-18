@@ -4,152 +4,271 @@
 from odoo import models, api, fields, _
 from odoo.tools.misc import format_date
 
+from dateutil.relativedelta import relativedelta
+from itertools import chain
 
-class report_account_aged_partner(models.AbstractModel):
+
+class ReportAccountAgedPartner(models.AbstractModel):
     _name = "account.aged.partner"
     _description = "Aged Partner Balances"
-    _inherit = 'account.report'
+    _inherit = 'account.accounting.report'
+    _order = "partner_name, report_date asc, move_name desc"
 
     filter_date = {'mode': 'single', 'filter': 'today'}
     filter_unfold_all = False
     filter_partner = True
     order_selected_column = {'default': 0}
 
-    def _get_columns_name(self, options):
-        columns = [
-            {},
-            {'name': _("Due Date"), 'class': 'date', 'style': 'white-space:nowrap;'},
-            {'name': _("Journal"), 'class': '', 'style': 'text-align:center; white-space:nowrap;'},
-            {'name': _("Account"), 'class': '', 'style': 'text-align:center; white-space:nowrap;'},
-            {'name': _("Exp. Date"), 'class': 'date', 'style': 'white-space:nowrap;'},
-            {'name': _("As of: %s") % format_date(self.env, options['date']['date_to']), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("1 - 30"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("31 - 60"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("61 - 90"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("91 - 120"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("Older"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-            {'name': _("Total"), 'class': 'number sortable', 'style': 'white-space:nowrap;'},
-        ]
-        return columns
-
-    def _get_templates(self):
-        templates = super(report_account_aged_partner, self)._get_templates()
-        templates['main_template'] = 'account_reports.template_aged_partner_balance_report'
-        try:
-            self.env['ir.ui.view'].get_view_id('account_reports.template_aged_partner_balance_line_report')
-            templates['line_template'] = 'account_reports.template_aged_partner_balance_line_report'
-        except ValueError:
-            pass
-        return templates
+    partner_id = fields.Many2one('res.partner')
+    partner_name = fields.Char(group_operator='max')
+    partner_trust = fields.Char(group_operator='max')
+    payment_id = fields.Many2one('account.payment')
+    report_date = fields.Date(group_operator='max', string='Due Date')
+    expected_pay_date = fields.Date(string='Expected Date')
+    move_type = fields.Char()
+    move_name = fields.Char(group_operator='max')
+    move_ref = fields.Char()
+    account_name = fields.Char(group_operator='max')
+    account_code = fields.Char(group_operator='max')
+    report_currency_id = fields.Many2one('res.currency')
+    period0 = fields.Monetary(string='As of: ')
+    period1 = fields.Monetary(string='1 - 30')
+    period2 = fields.Monetary(string='31 - 60')
+    period3 = fields.Monetary(string='61 - 90')
+    period4 = fields.Monetary(string='91 - 120')
+    period5 = fields.Monetary(string='Older')
+    amount_currency = fields.Monetary(currency_field='currency_id')
 
     @api.model
-    def _get_lines(self, options, line_id=None):
-        sign = -1.0 if self.env.context.get('aged_balance') else 1.0
-        lines = []
-        account_types = [self.env.context.get('account_type')]
-        context = {'include_nullified_amount': True}
-        if line_id and 'partner_' in line_id:
-            # we only want to fetch data about this partner because we are expanding a line
-            partner_id_str = line_id.split('_')[1]
-            if partner_id_str.isnumeric():
-                partner_id = self.env['res.partner'].browse(int(partner_id_str))
-            else:
-                partner_id = False
-            context.update(partner_ids=partner_id)
-        results, total, amls = self.env['report.account.report_agedpartnerbalance'].with_context(**context)._get_partner_move_lines(account_types, self._context['date_to'], 'posted', 30)
+    def _get_templates(self):
+        # OVERRIDE
+        templates = super(ReportAccountAgedPartner, self)._get_templates()
+        templates['main_template'] = 'account_reports.template_aged_partner_balance_report'
+        return templates
 
-        for values in results:
-            vals = {
-                'id': 'partner_%s' % (values['partner_id'],),
-                'name': values['name'],
-                'level': 2,
-                'columns': [{'name': ''}] * 4 + [{'name': self.format_value(sign * v), 'no_format': sign * v}
-                                                 for v in [values['direction'], values['4'],
-                                                           values['3'], values['2'],
-                                                           values['1'], values['0'], values['total']]],
-                'trust': values['trust'],
-                'unfoldable': True,
-                'unfolded': 'partner_%s' % (values['partner_id'],) in options.get('unfolded_lines'),
-                'partner_id': values['partner_id'],
-            }
-            lines.append(vals)
-            if 'partner_%s' % (values['partner_id'],) in options.get('unfolded_lines'):
-                for line in amls[values['partner_id']]:
-                    aml = line['line']
-                    if aml.move_id.is_purchase_document():
-                        caret_type = 'account.invoice.in'
-                    elif aml.move_id.is_sale_document():
-                        caret_type = 'account.invoice.out'
-                    elif aml.payment_id:
-                        caret_type = 'account.payment'
-                    else:
-                        caret_type = 'account.move'
+    ####################################################
+    # QUERIES
+    ####################################################
 
-                    line_date = aml.date_maturity or aml.date
-                    if not self._context.get('no_format'):
-                        line_date = format_date(self.env, line_date)
-                    vals = {
-                        'id': aml.id,
-                        'name': aml.move_id.name,
-                        'class': 'date',
-                        'caret_options': caret_type,
-                        'level': 4,
-                        'parent_id': 'partner_%s' % (values['partner_id'],),
-                        'columns': [{'name': v} for v in [format_date(self.env, aml.date_maturity or aml.date), aml.journal_id.code, aml.account_id.display_name, format_date(self.env, aml.expected_pay_date)]] +
-                                   [{'name': self.format_value(sign * v, blank_if_zero=True), 'no_format': sign * v} for v in [line['period'] == 6-i and line['amount'] or 0 for i in range(7)]],
-                        'action_context': {
-                            'default_type': aml.move_id.type,
-                            'default_journal_id': aml.move_id.journal_id.id,
-                        },
-                        'title_hover': self._format_aml_name(aml.name, aml.ref, aml.move_id.name),
-                    }
-                    lines.append(vals)
-        if total and not line_id:
-            total_line = {
-                'id': 0,
-                'name': _('Total'),
-                'class': 'total',
-                'level': 2,
-                'columns': [{'name': ''}] * 4 + [{'name': self.format_value(sign * v), 'no_format': sign * v} for v in [total[6], total[4], total[3], total[2], total[1], total[0], total[5]]],
-            }
-            lines.append(total_line)
-        return lines
+    @api.model
+    def _get_query_period_table(self, options):
+        ''' Compute the periods to handle in the report.
+        E.g. Suppose date = '2019-01-09', the computed periods will be:
+
+        Name                | Start         | Stop
+        --------------------------------------------
+        As of 2019-01-09    | 2019-01-09    |
+        1 - 30              | 2018-12-10    | 2019-01-08
+        31 - 60             | 2018-11-10    | 2018-12-09
+        61 - 90             | 2018-10-11    | 2018-11-09
+        91 - 120            | 2018-09-11    | 2018-10-10
+        Older               |               | 2018-09-10
+
+        Then, return the values as an sql floating table to use it directly in queries.
+
+        :return: A floating sql query representing the report's periods.
+        '''
+        def minus_days(date_obj, days):
+            return fields.Date.to_string(date_obj - relativedelta(days=days))
+
+        date_str = options['date']['date_to']
+        date = fields.Date.from_string(date_str)
+        period_values = [
+            (False,                  date_str),
+            (minus_days(date, 1),    minus_days(date, 30)),
+            (minus_days(date, 31),   minus_days(date, 60)),
+            (minus_days(date, 61),   minus_days(date, 90)),
+            (minus_days(date, 91),   minus_days(date, 120)),
+            (minus_days(date, 121),  False),
+        ]
+
+        period_table = ('(VALUES %s) AS period_table(date_start, date_stop, period_index)' %
+                        ','.join("(%s, %s, %s)" for i, period in enumerate(period_values)))
+        params = list(chain.from_iterable(
+            (period[0] or None, period[1] or None, i)
+            for i, period in enumerate(period_values)
+        ))
+        return self.env.cr.mogrify(period_table, params).decode(self.env.cr.connection.encoding)
+
+    @api.model
+    def _get_sql(self):
+        options = self.env.context['report_options']
+        query = ("""
+            SELECT
+                {move_line_fields},
+                account_move_line.amount_currency as amount_currency,
+                account_move_line.partner_id AS partner_id,
+                partner.name AS partner_name,
+                COALESCE(trust_property.value_text, 'normal') AS partner_trust,
+                COALESCE(account_move_line.currency_id, journal.currency_id) AS report_currency_id,
+                account_move_line.payment_id AS payment_id,
+                COALESCE(account_move_line.date_maturity, account_move_line.date) AS report_date,
+                account_move_line.expected_pay_date AS expected_pay_date,
+                move.move_type AS move_type,
+                move.name AS move_name,
+                move.ref AS move_ref,
+                account.code || ' ' || account.name AS account_name,
+                account.code AS account_code,""" + ','.join([("""
+                CASE WHEN period_table.period_index = {i}
+                THEN %(sign)s * ROUND((
+                    account_move_line.balance - COALESCE(SUM(part_debit.amount), 0) + COALESCE(SUM(part_credit.amount), 0)
+                ) * currency_table.rate, currency_table.precision)
+                ELSE 0 END AS period{i}""").format(i=i) for i in range(6)]) + """
+            FROM account_move_line
+            JOIN account_move move ON account_move_line.move_id = move.id
+            JOIN account_journal journal ON journal.id = account_move_line.journal_id
+            JOIN account_account account ON account.id = account_move_line.account_id
+            LEFT JOIN res_partner partner ON partner.id = account_move_line.partner_id
+            LEFT JOIN ir_property trust_property ON (
+                trust_property.res_id = 'res.partner,'|| account_move_line.partner_id
+                AND trust_property.name = 'trust'
+                AND trust_property.company_id = account_move_line.company_id
+            )
+            JOIN {currency_table} ON currency_table.company_id = account_move_line.company_id
+            LEFT JOIN LATERAL (
+                SELECT part.amount, part.debit_move_id
+                FROM account_partial_reconcile part
+                WHERE part.max_date <= %(date)s
+            ) part_debit ON part_debit.debit_move_id = account_move_line.id
+            LEFT JOIN LATERAL (
+                SELECT part.amount, part.credit_move_id
+                FROM account_partial_reconcile part
+                WHERE part.max_date <= %(date)s
+            ) part_credit ON part_credit.credit_move_id = account_move_line.id
+            JOIN {period_table} ON (
+                period_table.date_start IS NULL
+                OR COALESCE(account_move_line.date_maturity, account_move_line.date) <= DATE(period_table.date_start)
+            )
+            AND (
+                period_table.date_stop IS NULL
+                OR COALESCE(account_move_line.date_maturity, account_move_line.date) >= DATE(period_table.date_stop)
+            )
+            WHERE account.internal_type = %(account_type)s
+            AND account.exclude_from_aged_reports IS NOT TRUE
+            GROUP BY account_move_line.id, partner.id, trust_property.id, journal.id, move.id, account.id,
+                     period_table.period_index, currency_table.rate, currency_table.precision
+            HAVING ROUND(account_move_line.balance - COALESCE(SUM(part_debit.amount), 0) + COALESCE(SUM(part_credit.amount), 0), currency_table.precision) != 0
+        """).format(
+            move_line_fields=self._get_move_line_fields('account_move_line'),
+            currency_table=self.env['res.currency']._get_query_currency_table(options),
+            period_table=self._get_query_period_table(options),
+        )
+        params = {
+            'account_type': options['filter_account_type'],
+            'sign': 1 if options['filter_account_type'] == 'receivable' else -1,
+            'date': options['date']['date_to'],
+        }
+        return self.env.cr.mogrify(query, params).decode(self.env.cr.connection.encoding)
+
+    ####################################################
+    # COLUMNS/LINES
+    ####################################################
+    @api.model
+    def _get_column_details(self, options):
+        columns = [
+            self._header_column(),
+            self._field_column('report_date'),
+
+            self._field_column('account_name', name=_("Account"), ellipsis=True),
+            self._field_column('expected_pay_date'),
+            self._field_column('period0', name=_("As of: %s", format_date(self.env, options['date']['date_to']))),
+            self._field_column('period1', sortable=True),
+            self._field_column('period2', sortable=True),
+            self._field_column('period3', sortable=True),
+            self._field_column('period4', sortable=True),
+            self._field_column('period5', sortable=True),
+            self._custom_column(  # Avoid doing twice the sub-select in the view
+                name=_('Total'),
+                classes=['number'],
+                formatter=self.format_value,
+                getter=(lambda v: v['period0'] + v['period1'] + v['period2'] + v['period3'] + v['period4'] + v['period5']),
+                sortable=True,
+            ),
+        ]
+
+        if self.user_has_groups('base.group_multi_currency'):
+            columns[2:2] = [
+                self._field_column('amount_currency'),
+                self._field_column('currency_id'),
+            ]
+        return columns
+
+    def _get_hierarchy_details(self, options):
+        return [
+            self._hierarchy_level('partner_id', foldable=True, namespan=len(self._get_column_details(options)) - 7),
+            self._hierarchy_level('id'),
+        ]
+
+    def _show_line(self, report_dict, value_dict, current, options):
+        # Don't display an aml report line (except the header) with all zero amounts.
+        all_zero = all(
+            self.env.company.currency_id.is_zero(value_dict[f])
+            for f in ['period0', 'period1', 'period2', 'period3', 'period4', 'period5']
+        ) and not value_dict.get('__count')
+        return super()._show_line(report_dict, value_dict, current, options) and not all_zero
+
+    def _format_partner_id_line(self, res, value_dict, options):
+        res['name'] = value_dict['partner_name'][:128] if value_dict['partner_name'] else _('Unknown Partner')
+        res['trust'] = value_dict['partner_trust']
+
+    def _format_id_line(self, res, value_dict, options):
+        res['name'] = value_dict['move_name']
+        res['title_hover'] = value_dict['move_ref']
+        res['caret_options'] = 'account.payment' if value_dict.get('payment_id') else 'account.move'
+        for col in res['columns']:
+            if col.get('no_format') == 0:
+                col['name'] = ''
+        res['columns'][-1]['name'] = ''
+
+    def _format_total_line(self, res, value_dict, options):
+        res['name'] = _('Total')
+        res['colspan'] = len(self._get_column_details(options)) - 7
+        res['columns'] = res['columns'][res['colspan']-1:]
 
 
-class report_account_aged_receivable(models.AbstractModel):
+class ReportAccountAgedReceivable(models.Model):
     _name = "account.aged.receivable"
     _description = "Aged Receivable"
     _inherit = "account.aged.partner"
+    _auto = False
 
-    def _set_context(self, options):
-        ctx = super(report_account_aged_receivable, self)._set_context(options)
-        ctx['account_type'] = 'receivable'
-        return ctx
+    def _get_options(self, previous_options=None):
+        # OVERRIDE
+        options = super(ReportAccountAgedReceivable, self)._get_options(previous_options=previous_options)
+        options['filter_account_type'] = 'receivable'
+        return options
 
+    @api.model
     def _get_report_name(self):
         return _("Aged Receivable")
 
+    @api.model
     def _get_templates(self):
-        templates = super(report_account_aged_receivable, self)._get_templates()
+        # OVERRIDE
+        templates = super(ReportAccountAgedReceivable, self)._get_templates()
         templates['line_template'] = 'account_reports.line_template_aged_receivable_report'
         return templates
 
 
-class report_account_aged_payable(models.AbstractModel):
+class ReportAccountAgedPayable(models.Model):
     _name = "account.aged.payable"
     _description = "Aged Payable"
     _inherit = "account.aged.partner"
+    _auto = False
 
-    def _set_context(self, options):
-        ctx = super(report_account_aged_payable, self)._set_context(options)
-        ctx['account_type'] = 'payable'
-        ctx['aged_balance'] = True
-        return ctx
+    def _get_options(self, previous_options=None):
+        # OVERRIDE
+        options = super(ReportAccountAgedPayable, self)._get_options(previous_options=previous_options)
+        options['filter_account_type'] = 'payable'
+        return options
 
+    @api.model
     def _get_report_name(self):
         return _("Aged Payable")
 
+    @api.model
     def _get_templates(self):
-        templates = super(report_account_aged_payable, self)._get_templates()
+        # OVERRIDE
+        templates = super(ReportAccountAgedPayable, self)._get_templates()
         templates['line_template'] = 'account_reports.line_template_aged_payable_report'
         return templates

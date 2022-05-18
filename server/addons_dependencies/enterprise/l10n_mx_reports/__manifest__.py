@@ -3,6 +3,7 @@
 
 {
     "name": "Odoo Mexican Localization Reports",
+    'icon': '/l10n_mx/static/description/icon.png',
     "summary": """
         Electronic accounting reports
             - COA
@@ -11,7 +12,7 @@
     """,
     "version": "1.0",
     "author": "Vauxoo",
-    "category": "Accounting/Accounting",
+    "category": "Accounting/Localizations/Reporting",
     "website": "http://www.vauxoo.com",
     "license": "OEEL-1",
     "depends": [
@@ -29,7 +30,6 @@
         "data/templates/cfdibalance.xml",
         "views/res_country_view.xml",
         "views/res_partner_view.xml",
-        "views/report_financial.xml",
     ],
     "installable": True,
     "auto_install": True,

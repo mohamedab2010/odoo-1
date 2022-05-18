@@ -27,7 +27,7 @@ odoo.define('website.home_menu', function (require) {
             if (!$button.hasClass('fa')) {
                 return;
             }
-            $button.removeClass('fa fa-th').append($('<span/>', {'class': 'fa fa-spin fa-spinner'}));
+            $button.removeClass('fa fa-th').append($('<span/>', { 'class': 'fa fa-spin fa-circle-o-notch'}));
             var url = '/web#home';
             window.location.href = url;
         },

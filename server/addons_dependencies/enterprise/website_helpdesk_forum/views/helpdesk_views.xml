@@ -3,6 +3,7 @@
     <record id="helpdesk_ticket_view_form_inherit_website_helpdesk_forum" model="ir.ui.view">
         <field name="name">Tickets: Website</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="priority">90</field>
         <field name="model">helpdesk.ticket</field>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='tag_ids']" position="after">
@@ -13,7 +14,7 @@
                 <button name="forum_post_new" attrs="{'invisible': ['|', ('use_website_helpdesk_forum','=',False), ('forum_post_id','!=',False)]}" type="object" string="Share on the Forum" />
             </xpath>
             <xpath expr="//sheet/div[@name='button_box']" position="inside">
-                <button name="forum_post_open" type="object" class="oe_stat_button" icon="fa-book" attrs="{'invisible': [('forum_post_id', '=', False)]}" string="Open Post" />
+                <button name="forum_post_open" type="object" class="oe_stat_button" icon="fa-comments" attrs="{'invisible': [('forum_post_id', '=', False)]}" string="Forum Post"/>
             </xpath>
         </field>
     </record>
@@ -24,19 +25,9 @@
         <field name="model">helpdesk.team</field>
         <field name="arch" type="xml">
             <xpath expr="//div[@id='use_website_helpdesk_forum']" position="replace">
-                <div attrs="{'invisible': ['|', ('use_website_helpdesk_forum', '=', False), ('forum_url','=',False)]}" class="mt16">
-                    View the Help Center:<br/>
-                    <a type="button" role="button" class="btn-link" target="_blank"><i class="fa fa-fw fa-arrow-right"/>
-                        <field name="forum_url" readonly="1" class="oe_inline" widget="url"/>
-                    </a>
-                </div>
-                <div attrs="{'invisible': [('use_website_helpdesk_forum', '=', False),  ('forum_id','=',False)]}">
-                    <div>
-                        The related forum is:<br/>
-                        <a type="button" role="button" class="btn-link" target="_blank"><i class="fa fa-fw fa-arrow-right"/>
-                            <field name="forum_id"  attrs="{'required': [('use_website_helpdesk_forum', '=', True)]}" context="{'default_name': name}"/>
-                        </a>
-                    </div>
+                <div attrs="{'invisible': [('use_website_helpdesk_forum', '=', False),  ('forum_id','=',False)]}" class="mt16">
+                    <b>Forum</b>
+                    <field name="forum_id" class="ml-2" attrs="{'required': [('use_website_helpdesk_forum', '=', True)]}" context="{'default_name': name}"/>
                 </div>
             </xpath>
         </field>

@@ -3,7 +3,7 @@
 
 {
     'name': 'Helpdesk Repair',
-    'category': 'Operations/Helpdesk',
+    'category': 'Services/Helpdesk',
     'summary': 'Project, Tasks, Repair',
     'depends': ['helpdesk_stock', 'repair'],
     'auto_install': False,
@@ -14,4 +14,6 @@ Repair Products from helpdesk tickets
         'views/helpdesk_views.xml',
         'views/repair_views.xml',
     ],
+    'demo': ['data/helpdesk_repair_demo.xml'],
+    'license': 'OEEL-1',
 }

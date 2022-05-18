@@ -11,6 +11,6 @@ class report_print_check(models.Model):
         page = super(report_print_check, self)._check_build_page_info(i, p)
         page.update({
             'date_label': self.company_id.account_check_printing_date_label,
-            'payment_date_canada': format_date(self.env, self.payment_date, date_format='yyyy-MM-dd'),
+            'payment_date_canada': format_date(self.env, self.date, date_format='yyyy-MM-dd'),
         })
         return page

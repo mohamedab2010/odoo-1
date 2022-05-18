@@ -1,24 +1,20 @@
-odoo.define('social.social_post_kanban_comments', function (require) {
+/** @odoo-module **/
 
-var BasicFields = require('web.basic_fields');
-var core = require('web.core');
-var Dialog = require('web.Dialog');
-var dom = require('web.dom');
-var emojis = require('mail.emojis');
-var PostKanbanImagesCarousel = require('social.social_post_kanban_images_carousel');
-var SocialEmojisMixin = require('social.emoji_mixin');
-var SocialStreamPostFormatterMixin = require('social.stream_post_formatter_mixin');
-var time = require('web.time');
+import BasicFields from 'web.basic_fields';
+import { qweb as QWeb, _t } from 'web.core';
+import Dialog from 'web.Dialog';
+import dom from 'web.dom';
+import emojis from '@mail/js/emojis';
+import PostKanbanImagesCarousel from 'social.social_post_kanban_images_carousel';
+import MailEmojisMixin from '@mail/js/emojis_mixin';
+import { Markup } from 'web.utils';
+import SocialStreamPostFormatterMixin from 'social.post_formatter_mixin';
+import StreamPostCommentDelete from 'social.social_post_kanban_comments_delete';
+import time from 'web.time';
 
-
-var _t = core._t;
 var FieldBinaryImage = BasicFields.FieldBinaryImage;
-var QWeb = core.qweb;
 
 var DATE_TIME_FORMAT = time.getLangDatetimeFormat();
-
-
-var StreamPostCommentDelete = require('social.social_post_kanban_comments_delete');
 
 /**
  * Base implementation of a comments window for social media implementations.
@@ -32,7 +28,7 @@ var StreamPostCommentDelete = require('social.social_post_kanban_comments_delete
  * - Replies to comments (added / edited / deleted)
  * - Like / Dislike comments
  * - Updating the likes count
- * - Emojis support to the comment textarea (through the SocialEmojisMixin)
+ * - Emojis support to the comment textarea (through the MailEmojisMixin)
  * - Loading comment replies
  * - Formatting dates properly
  *
@@ -41,7 +37,7 @@ var StreamPostCommentDelete = require('social.social_post_kanban_comments_delete
  * - The comment link (getCommentLink)
  * - ...
  */
-var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormatterMixin, {
+var StreamPostComments = Dialog.extend(MailEmojisMixin, SocialStreamPostFormatterMixin, {
     template: 'social.StreamPostComments',
     events: {
         'keydown .o_social_add_comment': '_onAddComment',
@@ -66,6 +62,7 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
             size: 'medium',
         });
 
+        this.accountId = options.accountId;
         this.originalPost = options.originalPost;
         this.emojis = emojis;
         this.postId = options.postId;
@@ -100,12 +97,20 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
         return "";
     },
 
-    getAuthorLink: function (comment) {
-        return "";
+    isCommentDeletable: function (comment) {
+        return false;
     },
 
-    isCommentEditable: function (comment) {
+    isCommentEditable: function () {
         return false;
+    },
+
+    isCommentLikable: function () {
+        return true;
+    },
+
+    getAuthorLink: function (comment) {
+        return "";
     },
 
     getLikesClass: function () {
@@ -120,7 +125,8 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
         return null;
     },
 
-    isCommentDeletable: function () {
+
+    canAddImage: function () {
         return true;
     },
 
@@ -157,6 +163,7 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
         var commentId = $textarea.data('commentId');
 
         this._addComment($textarea, isCommentReply, commentId, isCommentEdit);
+        this.$('.o_social_no_comment_message').remove();
     },
 
     /**
@@ -188,6 +195,12 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
         var fileNode = ev.target;
         var fileReader = new FileReader();
         var file = fileNode.files[0];
+
+        if (!file) {
+            // the user didn't select a file
+            return;
+        }
+
         fileReader.readAsDataURL(file);
         fileReader.onloadend = function (upload) {
             var data = upload.target.result.split(',')[1];
@@ -247,7 +260,7 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
             existingAttachmentSrc: $targetComment.data('existingAttachmentSrc'),
         }));
 
-        $targetComment.find('.o_social_comment_wrapper').first().hide();
+        $targetComment.find('.o_social_comment_wrapper').first().removeClass('d-flex').addClass('d-none');
         $targetComment.find('.o_social_comment_commands').first().hide();
         $targetComment.find('.o_social_comment_attachment').first().hide();
         $targetComment.prepend($editComment);
@@ -268,7 +281,7 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
 
         var $targetComment = $(ev.currentTarget).closest('.o_social_comment');
         $targetComment.find('.o_social_write_reply').first().remove();
-        $targetComment.find('.o_social_comment_wrapper').first().show();
+        $targetComment.find('.o_social_comment_wrapper').first().addClass('d-flex').removeClass('d-none');
         $targetComment.find('.o_social_comment_commands').first().show();
         $targetComment.find('.o_social_comment_attachment').first().show();
     },
@@ -414,7 +427,7 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
         var formData = new FormData($replyEl.find('form').first()[0]);
 
         formData.append('csrf_token', odoo.csrf_token);
-        formData.append('post_id', this.postId);
+        formData.append('stream_post_id', this.postId);
         if (isEdit) {
             formData.append('is_edit', isEdit);
         }
@@ -552,24 +565,19 @@ var StreamPostComments = Dialog.extend(SocialEmojisMixin, SocialStreamPostFormat
     },
 
     /**
-     * We want both emojis capabilities of _formatText
-     * and various wrapping of _formatStreamPost
+     * We want both emojis capabilities
+     * and various wrapping (link, #hashtag, @tag)
      *
      * @param {String} message
      * @private
      */
     _formatCommentStreamPost: function (message) {
-        var formattedMessage = message;
-        formattedMessage = this._formatText(formattedMessage);
-        formattedMessage = this._formatStreamPost(formattedMessage);
-        return formattedMessage;
+        return Markup(this._formatPost(message));
     },
 
-    _getTargetTextArea($emoji) {
+    _getTargetTextElement($emoji) {
         return $emoji.closest('.o_social_write_reply').find('textarea');
     }
 });
 
-return StreamPostComments;
-
-});
+export default StreamPostComments;

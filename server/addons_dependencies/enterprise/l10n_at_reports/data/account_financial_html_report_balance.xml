@@ -5,13 +5,14 @@
         <field name="date_range" eval="False" />
         <field name="tax_report" eval="False"/>
         <field name='parent_id' ref='l10n_at.menu_finance_austria'/>
+        <field name="country_id" ref="base.at"/>
     </record>
 
     <record id="account_financial_report_l10n_at_paragraph_224_ugb_line_root" model="account.financial.html.report.line">
         <field name="financial_report_id" ref="account_financial_report_l10n_at_paragraph_224_ugb"/>
         <field name="sequence" eval="1"/>
         <field name="name">Saldo im Sinne von Bilanzgewinn/Bilanzverlust</field>
-        <field name="formulas">balance = A.balance - P.balance</field>
+        <field name="formulas">A - P</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="0" />
@@ -24,7 +25,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">Aktiva</field>
         <field name="code">A</field>
-        <field name="formulas">balance = AA.balance + AB.balance + AC.balance + AD.balance</field>
+        <field name="formulas">AA + AB + AC + AD</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="1" />
@@ -36,7 +37,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">A. Anlagevermögen</field>
         <field name="code">AA</field>
-        <field name="formulas">balance = AAI.balance + AAII.balance</field>
+        <field name="formulas">AAI + AAII</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="2" />
@@ -47,7 +48,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">I. Immaterielle Vermögensgegenstände</field>
         <field name="code">AAI</field>
-        <field name="formulas">balance = AAI1.balance + AAI2.balance + AAI3.balance</field>
+        <field name="formulas">AAI1 + AAI2 + AAI3</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -59,7 +60,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Konzessionen, gewerbliche Schutzrechte und ähnliche Rechte und Vorteile sowie daraus abgeleitete Lizenzen</field>
         <field name="code">AAI1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAI1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -70,7 +71,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. Geschäfts(Firmen)wert</field>
         <field name="code">AAI2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAI2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -81,7 +82,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. geleistete Anzahlungen</field>
         <field name="code">AAI3</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAI3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -93,7 +94,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">II. Sachanlagen</field>
         <field name="code">AAII</field>
-        <field name="formulas">balance = AAII1.balance + AAII2.balance + AAII3.balance + AAII4.balance</field>
+        <field name="formulas">AAII1 + AAII2 + AAII3 + AAII4</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -104,7 +105,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Grundstücke, grundstücksgleiche Rechte und Bauten, einschließlich der Bauten auf fremdem Grund</field>
         <field name="code">AAII1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -115,7 +116,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. technische Anlagen und Maschinen</field>
         <field name="code">AAII2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -126,7 +127,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. andere Anlagen, Betriebs- und Geschäftsausstattung</field>
         <field name="code">AAII3</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAII3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -137,7 +138,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">4. geleistete Anzahlungen und Anlagen in Bau</field>
         <field name="code">AAII4</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAII4')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -149,7 +150,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">III. Finanzanlagen</field>
         <field name="code">AAIII</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -160,7 +161,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Anteile an verbundenen Unternehmen</field>
         <field name="code">AAIII1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -171,7 +172,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. Ausleihungen an verbundene Unternehmen</field>
         <field name="code">AAIII2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -182,7 +183,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. Beteiligungen</field>
         <field name="code">AAIII3</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -193,7 +194,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">4. Ausleihungen an Unternehmen, mit denen ein Beteiligungsverhältnis besteht</field>
         <field name="code">AAIII4</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII4')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -204,7 +205,7 @@
         <field name="sequence" eval="5"/>
         <field name="name">5. Wertpapiere (Wertrechte) des Anlagevermögens</field>
         <field name="code">AAIII5</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII5')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -215,7 +216,7 @@
         <field name="sequence" eval="6"/>
         <field name="name">6. sonstige Ausleihungen</field>
         <field name="code">AAIII6</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AAIII6')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -227,7 +228,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">B. Umlaufvermögen</field>
         <field name="code">AB</field>
-        <field name="formulas">balance = ABI.balance + ABII.balance + ABIII.balance + ABIV.balance</field>
+        <field name="formulas">ABI + ABII + ABIII + ABIV</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="2" />
@@ -238,7 +239,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">I. Vorräte</field>
         <field name="code">ABI</field>
-        <field name="formulas">balance = ABI1.balance + ABI2.balance + ABI3.balance + ABI4.balance + ABI5.balance</field>
+        <field name="formulas">ABI1 + ABI2 + ABI3 + ABI4 + ABI5</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -249,7 +250,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Roh-, Hilfs- und Betriebsstoffe</field>
         <field name="code">ABI1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABI1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -260,7 +261,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. unfertige Erzeugnisse</field>
         <field name="code">ABI2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABI2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -271,7 +272,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. fertige Erzeugnisse und Waren</field>
         <field name="code">ABI3</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABI3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -282,7 +283,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">4. noch nicht abrechenbare Leistungen</field>
         <field name="code">ABI4</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABI4')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -293,7 +294,7 @@
         <field name="sequence" eval="5"/>
         <field name="name">5. geleistete Anzahlungen</field>
         <field name="code">ABI5</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.code', '=', '1800')]" />
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABI5')])]" />
         <field name="groupby">account_id</field>
@@ -306,7 +307,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">II. Forderungen und sonstige Vermögensgegenstände</field>
         <field name="code">ABII</field>
-        <field name="formulas">balance = ABII1.balance + ABII2.balance + ABII3.balance + ABII4.balance</field>
+        <field name="formulas">ABII1 + ABII2 + ABII3 + ABII4</field>
         <field name="domain" eval="False" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -317,7 +318,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Forderungen aus Lieferungen und Leistungen</field>
         <field name="code">ABII1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -328,7 +329,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. Forderungen gegenüber verbundenen Unternehmen</field>
         <field name="code">ABII2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -339,7 +340,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. Forderungen gegenüber Unternehmen, mit denen ein Beteiligungsverhältnis besteht</field>
         <field name="code">ABII3</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABII3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -350,7 +351,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">4. sonstige Forderungen und Vermögensgegenstände</field>
         <field name="code">ABII4</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABII4')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -362,7 +363,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">III. Wertpapiere und Anteile</field>
         <field name="code">ABIII</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABIII')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -373,7 +374,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. Anteile an verbundenen Unternehmen</field>
         <field name="code">ABIII1</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABIII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -384,7 +385,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. sonstige Wertpapiere und Anteile</field>
         <field name="code">ABIII2</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABIII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -396,7 +397,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">IV. Kassenbestand, Guthaben bei Kreditinstituten</field>
         <field name="code">ABIV</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_ABIV')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -408,7 +409,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">C. Rechnungsabgrenzungsposten</field>
         <field name="code">AC</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AC')])]" />
         <field name="level" eval="2" />
@@ -420,7 +421,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">D. Aktive latente Steuern</field>
         <field name="code">AD</field>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_AD')])]" />
         <field name="level" eval="2" />
@@ -433,7 +434,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">Passiva</field>
         <field name="code">P</field>
-        <field name="formulas">balance = PA.balance + PB.balance + PC.balance + PD.balance</field>
+        <field name="formulas">PA + PB + PC + PD</field>
         <field name="groupby">account_id</field>
         <field name="domain" eval="False" />
         <field name="level" eval="1" />
@@ -446,7 +447,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">A. Eigenkapital</field>
         <field name="code">PA</field>
-        <field name="formulas">balance = PAI.balance + PAII.balance + PAIII.balance + PAIV.balance</field>
+        <field name="formulas">PAI + PAII + PAIII + PAIV</field>
         <field name="groupby">account_id</field>
         <field name="domain" eval="False" />
         <field name="level" eval="2" />
@@ -459,7 +460,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">I. Nennkapital (Stammkapital)</field>
         <field name="code">PAI</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAI')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -471,7 +472,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">II. Kapitalrücklagen</field>
         <field name="code">PAII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAII')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -482,7 +483,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. gebundene Kapitalanlagen</field>
         <field name="code">PAII1</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -493,7 +494,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. nicht gebundene Kapitalanlagen</field>
         <field name="code">PAII2</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -505,7 +506,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">III. Gewinnrücklagen</field>
         <field name="code">PAIII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAIII')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -517,7 +518,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. gesetzliche Rücklage</field>
         <field name="code">PAIII1</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAIII1')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -529,7 +530,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. satzungsmäßige Rücklagen</field>
         <field name="code">PAIII2</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAIII2')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -540,7 +541,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">3. andere Rücklagen (freie Rücklagen)</field>
         <field name="code">PAIII3</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAIII3')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="4" />
@@ -552,7 +553,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">IV. Bilanzgewinn (Bilanzverlust)</field>
         <field name="code">PAIV</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PAIV')])]" />
         <field name="groupby">account_id</field>
         <field name="level" eval="3" />
@@ -564,7 +565,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">B. Rückstellungen</field>
         <field name="code">PB</field>
-        <field name="formulas">balance = PBI.balance + PBII.balance + PBIII.balance + PBIV.balance</field>
+        <field name="formulas">PBI + PBII + PBIII + PBIV</field>
         <field name="domain" eval="False" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -576,7 +577,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">I. Rückstellungen für Abfertigungen</field>
         <field name="code">PBI</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PBI')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -588,7 +589,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">II. Rückstellungen für Pensionen</field>
         <field name="code">PBII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PBII')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -600,7 +601,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">III. Steuerrückstellungen</field>
         <field name="code">PBIII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PBIII')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -612,7 +613,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">IV. sonstige Rückstellungen</field>
         <field name="code">PBIV</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PBIV')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -625,7 +626,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">C. Verbindlichkeiten</field>
         <field name="code">PC</field>
-        <field name="formulas">balance = PCI.balance + PCII.balance + PCIII.balance + PCIV.balance +  PCV.balance +  PCVI.balance +  PCVII.balance +  PCVIII.balance</field>
+        <field name="formulas">PCI + PCII + PCIII + PCIV +  PCV +  PCVI +  PCVII +  PCVIII</field>
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
         <field name="domain" eval="False" />
@@ -637,7 +638,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">I. Anleihen, davon konvertibel</field>
         <field name="code">PCI</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCI')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -649,7 +650,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">II. Verbindlichkeiten gegenüber Kreditinstituten</field>
         <field name="code">PCII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCII')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -661,7 +662,7 @@
         <field name="sequence" eval="3"/>
         <field name="name">III. erhaltene Anzahlungen auf Bestellungen</field>
         <field name="code">PCIII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCIII')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -673,7 +674,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">IV. Verbindlichkeiten aus Lieferungen und Leistungen</field>
         <field name="code">PCIV</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCIV')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -685,7 +686,7 @@
         <field name="sequence" eval="5"/>
         <field name="name">V. Verbindlichkeiten aus der Annahme gezogener Wechsel und der Ausstellung eigener Wechsel</field>
         <field name="code">PCV</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCV')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -697,7 +698,7 @@
         <field name="sequence" eval="6"/>
         <field name="name">VI. Verbindlichkeiten gegenüber verbundenen Unternehmen</field>
         <field name="code">PCVI</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCVI')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -709,7 +710,7 @@
         <field name="sequence" eval="7"/>
         <field name="name">VII. Verbindlichkeiten gegenüber Unternehmen, mit denen ein Beteiligungsverhältnis besteht</field>
         <field name="code">PCVII</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCVII')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -721,7 +722,7 @@
         <field name="sequence" eval="8"/>
         <field name="name">VIII. sonstige Verbindlichkeiten</field>
         <field name="code">PCVIII</field>
-        <field name="formulas">balance = PCVIII1.balance + PCVIII2.balance + sum.balance</field>
+        <field name="formulas">PCVIII1 + PCVIII2 + sum</field>
         <field name="domain" eval="False" />
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCVIII')])]" />
         <field name="green_on_positive" eval="False" />
@@ -734,7 +735,7 @@
         <field name="sequence" eval="1"/>
         <field name="name">1. davon aus Steuern</field>
         <field name="code">PCVIII1</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCVIII1')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -747,7 +748,7 @@
         <field name="sequence" eval="2"/>
         <field name="name">2. davon im Rahmen der sozialen Sicherheit</field>
         <field name="code">PCVIII2</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PCVIII2')])]" />
         <field name="green_on_positive" eval="False" />
         <field name="groupby">account_id</field>
@@ -760,7 +761,7 @@
         <field name="sequence" eval="4"/>
         <field name="name">D. Rechnungnsabgrenzungsposten</field>
         <field name="code">PD</field>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_at.account_tag_l10n_at_PD')])]" />
         <field name="green_on_positive" eval="False" />

@@ -104,7 +104,7 @@ var FormManager = AbstractAction.extend({
                     var msg = _t("Sorry, only users with the following" +
                         " access level are currently allowed to do that:" +
                         " 'Website/Editor and Designer'");
-                    self.do_warn(_t("Error"), msg);
+                    self.displayNotification({ title: _t("Error"), message: msg, type: 'danger' });
                 }
             });
     },
@@ -128,8 +128,6 @@ var FormManager = AbstractAction.extend({
         }
     },
 });
-
-core.action_registry.add('action_web_studio_form', FormManager);
 
 return FormManager;
 

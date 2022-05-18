@@ -7,7 +7,6 @@ This turns the Odoo Point of Sale into a [certified Belgian Point of Sale system
 For various reasons (legal and technical) certain features that are available in the Point of Sale module have been disabled:
 
 * pos_discount: giving a global discount on an order
-* pos_reprint: reprinting receipts
 * pos_loyalty: mainly because of the global discounts
 * Refunding (both through the backend and through the frontend)
 * Modifying the price of an orderline

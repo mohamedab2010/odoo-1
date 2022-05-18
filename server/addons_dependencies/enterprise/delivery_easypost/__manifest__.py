@@ -3,7 +3,8 @@
 {
     'name': "Easypost Shipping",
     'description': "Send your parcels through Easypost and track them online",
-    'category': 'Operations/Inventory/Delivery',
+    'category': 'Inventory/Delivery',
+    'sequence': 315,
     'version': '1.0',
     'application': True,
     'depends': ['delivery', 'mail'],

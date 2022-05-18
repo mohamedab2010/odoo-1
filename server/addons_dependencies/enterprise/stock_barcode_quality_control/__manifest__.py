@@ -10,13 +10,15 @@
         This bridge module is auto-installed when the modules stock_barcode and quality_control are installed.
     """,
     'depends': ['stock_barcode', 'quality_control'],
-    'data': [
-        'views/stock_barcode_templates.xml',
-    ],
-    'qweb': [
-        "static/src/xml/qweb_templates.xml",
-    ],
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'stock_barcode_quality_control/static/src/**/*.js',
+        ],
+        'web.assets_qweb': [
+            'stock_barcode_quality_control/static/src/**/*.xml',
+        ],
+    }
 }

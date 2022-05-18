@@ -4,7 +4,7 @@
 {
     'name': 'Documents - Contracts',
     'version': '1.0',
-    'category': 'Operations/Documents',
+    'category': 'Productivity/Documents',
     'summary': 'Store employee contracts in the Document app',
     'description': """
 Employee contracts files will be automatically integrated to the Document app.

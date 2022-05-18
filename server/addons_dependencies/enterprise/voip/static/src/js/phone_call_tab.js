@@ -58,7 +58,14 @@ const PhoneCallTab = Widget.extend({
      * @return {Promise}
      */
     async callFromTab() {
-        this.trigger_up('switch_keypad');
+        if (this._phoneCalls.length > 0) {
+            const phoneCall = this._phoneCalls[0]
+            const number = phoneCall.phoneNumber;
+            this._currentPhoneCallId = phoneCall.id;
+            this.trigger_up('callNumber', { number });
+        } else {
+            this.trigger_up('switch_keypad');
+        }
     },
     /**
      * change message in widget to ringing
@@ -73,6 +80,7 @@ const PhoneCallTab = Widget.extend({
      * @return {Promise}
      */
     async hangupPhonecall(isDone) {
+        $('.o_dial_transfer_button').popover('hide');
         const currentPhoneCall = this._getCurrentPhoneCall();
         await currentPhoneCall.hangUp({
             durationSeconds: this._phoneCallDetails.durationSeconds,
@@ -160,16 +168,20 @@ const PhoneCallTab = Widget.extend({
      * @param {integer} param0.partnerId
      * @return {Promise}
      */
-    async onMissedCall({ number, partnerId }) {
+    async onMissedCall({ number, partnerId }, displayMissedDetails=false) {
         const phoneCallData = await this._rpc({
             model: 'voip.phonecall',
             method: 'create_from_missed_call',
             args: [[this._currentPhoneCallId], number, partnerId],
         });
         const phoneCallId = await this._displayInQueue(phoneCallData);
-        this._currentPhoneCallId = phoneCallId;
-        await this._selectPhoneCall(phoneCallId);
-        this._phoneCallDetails.hideCallDisplay();
+        if (displayMissedDetails) {
+            this._currentPhoneCallId = phoneCallId;
+            await this._selectPhoneCall(phoneCallId);
+            this._phoneCallDetails.hideCallDisplay();
+        } else {
+            this._closePhoneDetails();
+        }
     },
     /**
      * Called when the user rejects an incoming call.
@@ -249,6 +261,9 @@ const PhoneCallTab = Widget.extend({
         if (this._maxScrollHeight > 0) {
             this._scrollLimit = this._maxScrollHeight / 3;
         }
+        if (this._scrollLimit === undefined) {
+            this._scrollLimit = tabHeight;
+        }
     },
     /**
      * Creates a phonecall widget
@@ -286,7 +301,7 @@ const PhoneCallTab = Widget.extend({
      * @return {voip.PhoneCall|undefined}
      */
     _getCurrentPhoneCall() {
-        return this._phoneCalls.find(phoneCall =>
+        return this._phoneCalls.slice().reverse().find(phoneCall =>
             phoneCall.id === this._currentPhoneCallId);
     },
     /**
@@ -297,7 +312,7 @@ const PhoneCallTab = Widget.extend({
      * @return {voip.PhoneCall}
      */
     async _getPhoneCall(phoneCallId) {
-        const phoneCall = this._phoneCalls.find(phoneCall => phoneCall.id === phoneCallId);
+        const phoneCall = this._phoneCalls.slice().reverse().find(phoneCall => phoneCall.id === phoneCallId);
         if (phoneCall) {
             return phoneCall;
         }
@@ -314,7 +329,7 @@ const PhoneCallTab = Widget.extend({
      * @return {voip.PhoneCall|undefined}
      */
     _getSelectedPhoneCall() {
-        return this._phoneCalls.find(phoneCall =>
+        return this._phoneCalls.slice().reverse().find(phoneCall =>
             phoneCall.id === this._selectedPhoneCallId);
     },
     /**
@@ -351,7 +366,7 @@ const PhoneCallTab = Widget.extend({
      * @return {Promise}
      */
     async _selectPhoneCall(phoneCallId) {
-        const phoneCall = this._phoneCalls.find(phoneCall =>
+        const phoneCall = this._phoneCalls.slice().reverse().find(phoneCall =>
             phoneCall.id === phoneCallId);
         let $el = this.$el;
         if (this._selectedPhoneCallId) {
@@ -372,6 +387,7 @@ const PhoneCallTab = Widget.extend({
      * @return {Promise}
      */
     async _onClosePhonecallDetails() {
+        this.trigger_up('resetMissedCalls', {forceReset: true});
         return this._closePhoneDetails();
     },
     /**

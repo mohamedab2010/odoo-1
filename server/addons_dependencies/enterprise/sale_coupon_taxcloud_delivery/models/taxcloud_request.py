@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.addons.sale_coupon_taxcloud.models.taxcloud_request import TaxCloudRequest
+from odoo.addons.sale_coupon_taxcloud.models import taxcloud_request
 
 
-class TaxCloudRequest(TaxCloudRequest):
+class TaxCloudRequest(taxcloud_request.TaxCloudRequest):
     """We want the delivery reward to be computed independently.
        With sale_coupon_delivery, delivery line are not discountable anymore.
        (Note that coupon and delivery can be installed without sale_coupon_delivery.)

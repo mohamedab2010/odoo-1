@@ -291,6 +291,7 @@ class TestMpsMps(common.TransactionCase):
         replenish are impacted by those delay. Ensure that the MPS state and
         the period to replenish are correct.
         """
+        self.env.company.manufacturing_period = 'week'
         partner = self.env['res.partner'].create({
             'name': 'Jhon'
         })
@@ -346,10 +347,7 @@ class TestMpsMps(common.TransactionCase):
         self.assertTrue(screw_forecast_1['forced_replenish'])
         self.assertFalse(screw_forecast_2['forced_replenish'])
         self.assertFalse(screw_forecast_3['forced_replenish'])
-
-        buy_rule = self.env['stock.rule'].search([('action', '=', 'buy'), ('location_id', '=', self.warehouse.lot_stock_id.id)])
-        buy_rule.delay = 7
-
+        seller.delay = 14
         mps_screw = self.mps_screw.get_production_schedule_view_state()[0]
         screw_forecast_1 = mps_screw['forecast_ids'][0]
         screw_forecast_2 = mps_screw['forecast_ids'][1]

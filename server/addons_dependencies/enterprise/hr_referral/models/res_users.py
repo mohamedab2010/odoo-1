@@ -19,3 +19,15 @@ class ResUsers(models.Model):
         if not self.env.user:
             return
         self.env.user.hr_referral_onboarding_page = bool(complete)
+
+    def _clean_responsibles(self):
+        reward_responsible_group = self.env.ref('hr_referral.group_hr_referral_reward_responsible_user', raise_if_not_found=False)
+        if not self or not reward_responsible_group:
+            return
+        res = self.env['hr.referral.reward'].read_group(
+            [('gift_manager_id', 'in', self.ids)],
+            ['gift_manager_id'],
+            ['gift_manager_id'])
+        responsibles_to_remove_ids = set(self.ids) - {x['gift_manager_id'][0] for x in res}
+        reward_responsible_group.sudo().write({
+            'users': [(3, responsible_id) for responsible_id in responsibles_to_remove_ids]})

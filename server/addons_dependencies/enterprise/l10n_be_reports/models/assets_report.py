@@ -12,7 +12,7 @@ class AssetsReport(models.AbstractModel):
 
     def _get_account_groups_for_asset_report(self):
         "This method is intended to be used only with account_asset installed"
-        if self.env.company.country_id.code == 'BE':
+        if self.env.company.account_fiscal_country_id.code == 'BE':
             return {
                 '20': {'name': _('20 Frais d’établissement')},
                 '21': {'name': _('21 Immobilisations incorporelles')},

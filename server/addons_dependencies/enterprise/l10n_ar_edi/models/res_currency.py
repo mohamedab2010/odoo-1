@@ -20,7 +20,7 @@ class ResCurrency(models.Model):
         This is really useful. There is a NTH for the future to integrate this with the automtaic currency rates """
         self.ensure_one()
         if not self.l10n_ar_afip_code:
-            raise UserError(_('No AFIP code for currency %s. Please configure the AFIP code consulting information in AFIP page') % self.name)
+            raise UserError(_('No AFIP code for currency %s. Please configure the AFIP code consulting information in AFIP page', self.name))
         if self.l10n_ar_afip_code == 'PES':
             raise UserError(_('No rate for ARS (is the base currency for AFIP)'))
 
@@ -38,5 +38,5 @@ class ResCurrency(models.Model):
             date = response.FEXResultGet.Mon_fecha
             rate = response.FEXResultGet.Mon_ctz
         else:
-            raise UserError(_('Get AFIP currency rate not implemented for webservice %s') % afip_ws)
+            raise UserError(_('Get AFIP currency rate not implemented for webservice %s', afip_ws))
         return date, rate

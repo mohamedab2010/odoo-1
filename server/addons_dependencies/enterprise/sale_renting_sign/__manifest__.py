@@ -11,6 +11,7 @@
     "version": "1.0",
     "depends": ["sign", "sale_renting"],
     "data": [
+        "security/ir.model.access.csv",
         "security/rental_sign_security.xml",
         "wizard/rental_sign_views.xml",
         "data/mail_templates.xml",
@@ -21,4 +22,5 @@
         "data/demo.xml",
     ],
     "auto_install": False,
+    'license': 'OEEL-1',
 }

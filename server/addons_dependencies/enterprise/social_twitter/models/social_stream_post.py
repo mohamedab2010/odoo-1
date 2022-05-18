@@ -4,6 +4,7 @@
 import requests
 
 from odoo import models, fields
+from odoo.http import request
 from werkzeug.urls import url_join
 
 
@@ -20,32 +21,62 @@ class SocialStreamPostTwitter(models.Model):
     twitter_retweet_count = fields.Integer('Re-tweets')
 
     def _compute_author_link(self):
-        twitter_posts = self.filtered(lambda post: post.stream_id.media_id.media_type == 'twitter')
+        twitter_posts = self._filter_by_media_types(['twitter'])
         super(SocialStreamPostTwitter, (self - twitter_posts))._compute_author_link()
 
         for post in twitter_posts:
             post.author_link = 'https://twitter.com/intent/user?user_id=%s' % post.twitter_author_id
 
     def _compute_post_link(self):
-        twitter_posts = self.filtered(lambda post: post.stream_id.media_id.media_type == 'twitter')
+        twitter_posts = self._filter_by_media_types(['twitter'])
         super(SocialStreamPostTwitter, (self - twitter_posts))._compute_post_link()
 
         for post in twitter_posts:
             post.post_link = 'https://www.twitter.com/%s/statuses/%s' % (post.twitter_author_id, post.twitter_tweet_id)
 
-    def delete_tweet(self, tweet_id):
+    # ========================================================
+    # COMMENTS / LIKES
+    # ========================================================
+
+    def _twitter_comment_add(self, stream, comment_id, message):
         self.ensure_one()
+        tweet_id = comment_id or self.twitter_tweet_id
+        message = self.env["social.live.post"]._remove_mentions(message)
+        params = {
+            'status': message,
+            'in_reply_to_status_id': tweet_id,
+            'tweet_mode': 'extended',
+        }
 
-        delete_endpoint = url_join(self.env['social.media']._TWITTER_ENDPOINT, ('/1.1/statuses/destroy/%s.json' % tweet_id))
-        headers = self.stream_id.account_id._get_twitter_oauth_header(
-            delete_endpoint
+        attachment = None
+        files = request.httprequest.files.getlist('attachment')
+        if files and files[0]:
+            attachment = files[0]
+
+        if attachment:
+            images_attachments_ids = stream.account_id._format_bytes_to_images_twitter(attachment)
+            if images_attachments_ids:
+                params['media_ids'] = ','.join(images_attachments_ids)
+
+        post_endpoint_url = url_join(self.env['social.media']._TWITTER_ENDPOINT, "/1.1/statuses/update.json")
+        headers = stream.account_id._get_twitter_oauth_header(
+            post_endpoint_url,
+            params=params
         )
-        requests.post(
-            delete_endpoint,
-            headers=headers
+        result = requests.post(
+            post_endpoint_url,
+            data=params,
+            headers=headers,
+            timeout=5
         )
 
-    def get_twitter_comments(self, page=1):
+        tweet = result.json()
+
+        formatted_tweet = self.env['social.media']._format_tweet(tweet)
+
+        return formatted_tweet
+
+    def _twitter_comment_fetch(self, page=1):
         """ As of today (07/2019) Twitter does not provide an endpoint to get the 'answers' to a tweet.
         This is why we have to use a quite dirty workaround to try and recover that information.
 
@@ -114,6 +145,41 @@ class SocialStreamPostTwitter(models.Model):
             'comments': list(reversed(filtered_tweets))
         }
 
+    def _twitter_tweet_delete(self, tweet_id):
+        self.ensure_one()
+        delete_endpoint = url_join(self.env['social.media']._TWITTER_ENDPOINT, ('/1.1/statuses/destroy/%s.json' % tweet_id))
+        headers = self.stream_id.account_id._get_twitter_oauth_header(
+            delete_endpoint
+        )
+        requests.post(
+            delete_endpoint,
+            headers=headers,
+            timeout=5
+        )
+
+        return True
+
+    def _twitter_tweet_like(self, stream, tweet_id, like):
+        favorites_endpoint = url_join(self.env['social.media']._TWITTER_ENDPOINT, (
+            '/1.1/favorites/create.json' if like else '/1.1/favorites/destroy.json'
+        ))
+        headers = stream.account_id._get_twitter_oauth_header(
+            favorites_endpoint,
+            params={'id': tweet_id}
+        )
+        requests.post(
+            favorites_endpoint,
+            data={'id': tweet_id},
+            headers=headers,
+            timeout=5
+        )
+
+        return True
+
+    # ========================================================
+    # UTILITY / MISC
+    # ========================================================
+
     def _add_comments_favorites(self, filtered_tweets):
         all_tweets_ids = []
         for tweet in filtered_tweets:
@@ -157,8 +223,9 @@ class SocialStreamPostTwitter(models.Model):
         )
         result = requests.get(
             endpoint_url,
-            query_params,
-            headers=headers
+            params=query_params,
+            headers=headers,
+            timeout=5
         )
         tweets = result.json().get('statuses')
         if query_count >= 10:

@@ -10,17 +10,19 @@ class HrReferralReward(models.Model):
     _description = 'Reward for Referrals'
     _order = 'sequence'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _mail_post_access = "read"
 
     def _group_hr_referral_domain(self):
-        group = self.env.ref('hr_recruitment.group_hr_recruitment_manager', raise_if_not_found=False)
+        group = self.env.ref('hr_referral.group_hr_recruitment_referral_user', raise_if_not_found=False)
         return [('groups_id', 'in', group.ids)] if group else []
 
     sequence = fields.Integer()
+    active = fields.Boolean(default=True)
     name = fields.Char('Product Name', required=True)
     cost = fields.Integer('Cost', required=True, tracking=True)
     awarded_employees = fields.Integer(compute='_compute_awarded_employees')
     points_missing = fields.Integer(compute='_compute_points_missing')
-    description = fields.Text(required=True)
+    description = fields.Html(required=True)
     gift_manager_id = fields.Many2one('res.users', string='Gift Responsible',
         domain=_group_hr_referral_domain, help="User responsible of this gift.")
     company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.company, required=True)
@@ -48,7 +50,7 @@ class HrReferralReward(models.Model):
         available_points = sum(self.env['hr.referral.points'].search([('ref_user_id', '=', current_user.id), ('company_id', '=', self.company_id.id)]).mapped('points'))
 
         if available_points < self.cost:
-            raise UserError(_("You do not have enough points in this company to buy this product. In this company, you have %s points." % available_points))
+            raise UserError(_("You do not have enough points in this company to buy this product. In this company, you have %s points.", available_points))
 
         # Use sudo, employee has normaly not the right to create or write on points
         self.env['hr.referral.points'].sudo().create({
@@ -61,7 +63,7 @@ class HrReferralReward(models.Model):
             # log a next activity for today
             self.sudo().activity_schedule(
                 activity_type_id=self.env.ref('mail.mail_activity_data_todo').id,
-                summary=_('New gift awarded for %s') % current_user.name,
+                summary=_('New gift awarded for %s', current_user.name),
                 user_id=self.gift_manager_id.id)
 
         return {
@@ -79,3 +81,26 @@ class HrReferralReward(models.Model):
             'res_model': 'hr.referral.points',
             'domain': [('id', 'in', points_ids)]
         }
+
+    @api.model
+    def create(self, values):
+        if 'gift_manager_id' in values:
+            reward_responsible_group = self.env.ref('hr_referral.group_hr_referral_reward_responsible_user', raise_if_not_found=False)
+            if reward_responsible_group and values['gift_manager_id']:
+                reward_responsible_group.sudo().write({'users': [(4, values['gift_manager_id'])]})
+        return super(HrReferralReward, self).create(values)
+
+    def write(self, values):
+        old_responsibles = self.env['res.users']
+        if 'gift_manager_id' in values:
+            old_responsibles = self.mapped('gift_manager_id')
+            gift_manager = False
+            if values['gift_manager_id']:
+                gift_manager = self.env['res.users'].browse(values['gift_manager_id'])
+                old_responsibles -= gift_manager
+            reward_responsible_group = self.env.ref('hr_referral.group_hr_referral_reward_responsible_user', raise_if_not_found=False)
+            if reward_responsible_group and gift_manager and not gift_manager.has_group('hr_referral.group_hr_referral_reward_responsible_user'):
+                reward_responsible_group.sudo().write({'users': [(4, values['gift_manager_id'])]})
+        res = super(HrReferralReward, self).write(values)
+        old_responsibles._clean_responsibles()
+        return res

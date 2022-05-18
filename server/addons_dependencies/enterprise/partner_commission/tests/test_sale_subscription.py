@@ -15,6 +15,7 @@ class TestSaleSubscription(TestCommissionsSetup):
         form = Form(self.env['sale.subscription'])
         form.partner_id = self.customer
         form.referrer_id = self.referrer
+        form.template_id = self.template_yearly
         sub = form.save()
 
         # Auto assignation mode.
@@ -35,6 +36,7 @@ class TestSaleSubscription(TestCommissionsSetup):
         form = Form(self.env['sale.subscription'])
         form.partner_id = self.customer
         form.referrer_id = self.referrer
+        form.template_id = self.template_yearly
         sub = form.save()
 
         # Auto assignation mode.
@@ -101,6 +103,7 @@ class TestSaleSubscription(TestCommissionsSetup):
         form = Form(self.env['sale.subscription'].with_context(tracking_disable=True))
         form.partner_id = self.customer
         form.referrer_id = self.referrer
+        form.template_id = self.template_yearly
         form.commission_plan_assignation = 'fixed'
         form.commission_plan_id = self.env['commission.plan']
         form.pricelist_id = self.usd_8
@@ -120,7 +123,7 @@ class TestSaleSubscription(TestCommissionsSetup):
 
         # pay
         inv = renewal_so._create_invoices()
-        inv.post()
+        inv.action_post()
         self._pay_invoice(inv)
 
         self.assertFalse(inv.commission_po_line_id)
@@ -136,7 +139,7 @@ class TestSaleSubscription(TestCommissionsSetup):
 
         # pay
         inv = renewal_so._create_invoices()
-        inv.post()
+        inv.action_post()
         self._pay_invoice(inv)
 
         self.assertEqual(inv.commission_po_line_id.price_subtotal, 18, 'Commission is wrong')
@@ -153,7 +156,7 @@ class TestSaleSubscription(TestCommissionsSetup):
 
         # pay
         inv = renewal_so._create_invoices()
-        inv.post()
+        inv.action_post()
         self._pay_invoice(inv)
 
         self.assertEqual(inv.commission_po_line_id.price_subtotal, 180, 'Commission is wrong')

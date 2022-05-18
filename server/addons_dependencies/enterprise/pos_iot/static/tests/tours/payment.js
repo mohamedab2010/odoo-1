@@ -1,9 +1,10 @@
+/* global posmodel */
 odoo.define('pos_iot.test.payment_terminals', function (require) {
 'use strict';
 
 var tour = require('web_tour.tour');
 
-var DeviceProxy = require('iot.widgets').DeviceProxy;
+var DeviceProxy = require('iot.DeviceProxy');
 
 var TerminalProxy = DeviceProxy.extend({
     /**
@@ -43,15 +44,6 @@ var TerminalProxy = DeviceProxy.extend({
                     });
                 });
                 break;
-            case 'Reversal':
-                this.transaction = false;
-                setTimeout(function () {
-                    self.listener({
-                        Response: 'Reversed',
-                        cid: data.cid,
-                    });
-                });
-                break;
         }
         return Promise.resolve({
             result: true
@@ -74,7 +66,7 @@ var TerminalProxy = DeviceProxy.extend({
 tour.register('payment_terminals_tour', {
     test: true,
     url: '/web',
-}, [tour.STEPS.SHOW_APPS_MENU_ITEM,
+}, [tour.stepUtils.showAppsMenuItem(),
     {
         content: 'Select PoS app',
         trigger: '.o_app[data-menu-xmlid="point_of_sale.menu_point_root"]',
@@ -83,18 +75,18 @@ tour.register('payment_terminals_tour', {
         trigger: ".o_pos_kanban button.oe_kanban_action_button",
     }, {
         content: 'Waiting for loading to finish',
-        trigger: 'body:has(.loader:hidden)',
+        trigger: '.pos .pos-content',
         run: function () {
             //Overrides the methods inside DeviceProxy to mock the IoT Box
             posmodel.payment_methods.forEach(function(payment_method) {
                 if (payment_method.terminal_proxy) {
-                    payment_method.terminal_proxy = new TerminalProxy({iot_ip: payment_method.terminal_proxy._iot_ip, identifier: payment_method.terminal_proxy._identifier});
+                    payment_method.terminal_proxy = new TerminalProxy(posmodel, {iot_ip: payment_method.terminal_proxy._iot_ip, identifier: payment_method.terminal_proxy._identifier});
                 }
             });
         },
     }, { // Leave category displayed by default
         content: "Click category switch",
-        trigger: ".js-category-switch",
+        trigger: ".breadcrumb-home",
     }, {
         content: 'Buy a Desk Organizer',
         trigger: '.product-list .product-name:contains("Desk Organizer")',
@@ -128,24 +120,11 @@ tour.register('payment_terminals_tour', {
         trigger: '.button.next.highlight',
         run: function () {}, // it's a check
     }, {
-        content: "Reverse payment",
-        trigger: '.button.send_payment_reversal',
-    }, {
-        content: "Check that the payment is reversed",
-        trigger: '.button.next:not(.highlight)',
-        run: function () {}, // it's a check
-    }, {
-        content: "Pay with payment terminal",
-        trigger: '.paymentmethod:contains("Terminal")',
-    }, {
-        content: "Send payment to terminal",
-        trigger: '.button.send_payment_request.highlight',
-    }, {
         content: "Validate payment",
         trigger: '.button.next.highlight:contains("Validate")',
     }, {
         content: "Check that we're on the receipt screen",
-        trigger: '.button.next.highlight:contains("Next Order")',
+        trigger: '.receipt-screen .button.next.highlight:contains("New Order")',
         run: function() {}
     }]);
 });

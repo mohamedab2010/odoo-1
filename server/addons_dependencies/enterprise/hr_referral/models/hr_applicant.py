@@ -2,10 +2,10 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import json
-from werkzeug import url_encode
+from werkzeug.urls import url_encode
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from odoo.osv import expression
 
 
@@ -23,6 +23,7 @@ class Applicant(models.Model):
     shared_item_infos = fields.Text(compute="_compute_shared_item_infos")
     max_points = fields.Integer(related="job_id.max_points")
     friend_id = fields.Many2one('hr.referral.friend', copy=False)
+    last_valuable_stage_id = fields.Many2one('hr.recruitment.stage', "Last Valuable Stage")
 
     @api.depends('source_id')
     def _compute_ref_user_id(self):
@@ -36,25 +37,52 @@ class Applicant(models.Model):
         for applicant in self:
             applicant.source_id = applicant.ref_user_id.utm_source_id
 
+    def _check_referral_fields_access(self, fields):
+        referral_fields = {'name', 'partner_name', 'job_id', 'referral_points_ids', 'earned_points', 'max_points', 'active', 'response_id',
+                           'shared_item_infos', 'referral_state', 'user_id', 'friend_id', '__last_update', 'ref_user_id', 'id'}
+        if not self.user_has_groups('hr_recruitment.group_hr_recruitment_user'):
+            if set(fields or []) - referral_fields:
+                raise AccessError(_('You are not allowed to access applicant records.'))
+
     @api.model
     def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
-        if not self.check_access_rights('read', False):
-            referral_fields = {
-                'name', 'partner_name', 'job_id', 'referral_points_ids', 'earned_points', 'max_points',
-                'shared_item_infos', 'referral_state', 'user_id', 'friend_id', '__last_update'}
-            if not set(fields or []) - referral_fields and self.env.user:
-                domain = expression.AND([domain, [('ref_user_id', '=', self.env.user.id)]])
-                return super(Applicant, self.sudo()).search_read(domain=domain, fields=fields, offset=offset, limit=limit, order=order)
+        self._check_referral_fields_access(fields)
         return super().search_read(domain=domain, fields=fields, offset=offset, limit=limit, order=order)
+
+    def read(self, fields, load='_classic_read'):
+        self._check_referral_fields_access(fields)
+        return super().read(fields, load)
+
+    @api.model
+    def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
+        self._check_referral_fields_access(fields)
+        return super().read_group(domain, fields, groupby, offset, limit, orderby, lazy)
+
+    @api.model
+    def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
+        fields = {term[0] for term in args if isinstance(term, (tuple, list))}
+        self._check_referral_fields_access(fields)
+        return super()._search(args, offset, limit, order, count, access_rights_uid)
+
+    def mapped(self, func):
+        if func and isinstance(func, str):
+            fields = func.split('.')
+            self._check_referral_fields_access(fields)
+        return super().mapped(func)
+
+    def filtered_domain(self, domain):
+        fields = [term[0] for term in domain if isinstance(term, (tuple, list))]
+        self._check_referral_fields_access(fields)
+        return super().filtered_domain(domain)
 
     @api.depends('referral_points_ids')
     def _compute_shared_item_infos(self):
         for applicant in self:
-            stages = self.env['hr.recruitment.stage'].search(['|', ('job_ids', '=', False), ('job_ids', '=', applicant.job_id.id)])
+            stages = self.env['hr.recruitment.stage'].search([('use_in_referral', '=', True), '|', ('job_ids', '=', False), ('job_ids', '=', applicant.job_id.id)])
             infos = [{
                 'name': stage.name,
                 'points': stage.points,
-                'done': bool(sum(applicant.referral_points_ids.filtered(lambda point: point.stage_id == stage).mapped('points'))),
+                'done': bool(len(applicant.referral_points_ids.filtered(lambda point: point.stage_id == stage)) % 2),
                 'seq': stage.sequence,
             } for stage in stages]
             applicant.shared_item_infos = json.dumps(infos)
@@ -65,23 +93,31 @@ class Applicant(models.Model):
 
     def write(self, vals):
         res = super(Applicant, self).write(vals)
-        if 'ref_user_id' in vals or 'stage_id' in vals:
+        if 'ref_user_id' in vals or 'stage_id' in vals or 'date_closed' in vals:
             for applicant in self.filtered(lambda a: a.ref_user_id):
                 if 'ref_user_id' in vals:
                     applicant.referral_points_ids.unlink()
-                applicant._update_points(applicant.stage_id.id, vals.get('last_stage_id', False))
+                applicant.sudo()._update_points(applicant.stage_id.id, vals.get('last_stage_id', False))
+                if 'stage_id' in vals and vals['stage_id']:
+                    if self.env['hr.recruitment.stage'].browse(vals['stage_id']).use_in_referral:
+                        applicant.last_valuable_stage_id = vals['stage_id']
+                if 'date_closed' in vals:
+                    if not vals['date_closed'] and not applicant.stage_id.hired_stage:
+                        applicant.referral_state = 'progress'
         return res
 
     @api.model
     def create(self, vals):
         res = super(Applicant, self).create(vals)
         if res.ref_user_id and res.stage_id:
-            res._update_points(res.stage_id.id, False)
+            res.sudo()._update_points(res.stage_id.id, False)
+            if res.stage_id.use_in_referral:
+                res.last_valuable_stage_id = res.stage_id
         return res
 
     def archive_applicant(self):
-        super(Applicant, self).archive_applicant()
         self.write({'referral_state': 'closed'})
+        return super(Applicant, self).archive_applicant()
 
     def _send_notification(self, body):
         if self.partner_name:
@@ -104,8 +140,13 @@ class Applicant(models.Model):
         if not self.company_id:
             raise UserError(_("Applicant must have a company."))
         new_state = self.env['hr.recruitment.stage'].browse(new_state_id)
-        if old_state_id:
-            old_state_sequence = self.env['hr.recruitment.stage'].browse(old_state_id).sequence
+        if not new_state.use_in_referral:
+            return
+        old_state = self.env['hr.recruitment.stage'].browse(old_state_id)
+        if old_state and old_state.use_in_referral:
+            old_state_sequence = old_state.sequence
+        elif old_state:
+            old_state_sequence = self.last_valuable_stage_id.sequence or -1
         else:
             old_state_sequence = -1
         point_stage = []
@@ -126,13 +167,19 @@ class Applicant(models.Model):
                     'ref_user_id': self.ref_user_id.id,
                     'company_id': self.company_id.id
                 })
+            if not self.date_closed and not new_state.hired_stage:
+                self.referral_state = 'progress'
 
         # Increase stage sequence
         elif new_state.sequence > old_state_sequence:
             stages_to_add = self.env['hr.recruitment.stage'].search([
+                ('use_in_referral', '=', True),
                 ('sequence', '>', old_state_sequence), ('sequence', '<=', new_state.sequence),
                 '|', ('job_ids', '=', False), ('job_ids', '=', self.job_id.id)])
+            gained_points = 0
+            available_points = sum(self.env['hr.referral.points'].search([('ref_user_id', '=', self.ref_user_id.id), ('company_id', '=', self.company_id.id)]).mapped('points'))
             for stage in stages_to_add:
+                gained_points += stage.points
                 point_stage.append({
                     'applicant_id': self.id,
                     'stage_id': stage.id,
@@ -141,14 +188,16 @@ class Applicant(models.Model):
                     'ref_user_id': self.ref_user_id.id,
                     'company_id': self.company_id.id
                 })
-            future_stage = self.env['hr.recruitment.stage'].search_count([
-                ('sequence', '>', new_state.sequence),
-                '|', ('job_ids', '=', False), ('job_ids', '=', self.job_id.id)])
-            if not future_stage:
+            available_points += gained_points
+            url = '/web#%s' % url_encode({'action': 'hr_referral.action_hr_referral_reward', 'active_model': 'hr.referral.reward'})
+            additional_message = (gained_points > 0 and _(" You've gained %(gained)s points with this progress.<br/>"
+                "It makes you a new total of %(total)s points. Visit <a href=\"%(url)s\">this link</a> to pick a gift!",
+                gained=gained_points, total=available_points, url=url)) or ''
+            if self.stage_id.hired_stage:
                 self.referral_state = 'hired'
-                self._send_notification(_('Your referrer is hired!'))
+                self._send_notification(_('Your referrer is hired!') + additional_message)
             else:
-                self._send_notification(_('Your referrer got a step further!'))
+                self._send_notification(_('Your referrer got a step further!') + additional_message)
 
         self.env['hr.referral.points'].create(point_stage)
 
@@ -212,9 +261,9 @@ class Applicant(models.Model):
 
         result['friends'] = self._get_friends(applicant_name)
 
-        result['point_received'] = sum(self.env['hr.referral.points'].search([
-            ('ref_user_id', '=', user_id.id),
-            ('hr_referral_reward_id', '=', False)]).mapped('points'))
+        referal_points = self.env['hr.referral.points'].search([('ref_user_id', '=', user_id.id)])
+        result['point_received'] = sum(referal_points.filtered(lambda x: not x.hr_referral_reward_id).mapped('points'))
+        result['point_to_spend'] = sum(referal_points.mapped('points'))
 
         # Employee comes for the first time on this app
         if not user_id.hr_referral_level_id:
@@ -246,12 +295,13 @@ class Applicant(models.Model):
 
         today = fields.Date.today()
         messages = self.env['hr.referral.alert'].search([
-            ('active', '=', True),
+            ('active', '=', True), ('dismissed_user_ids', 'not in', self.env.user.id),
             '|', ('date_from', '<=', today), ('date_from', '=', False),
             '|', ('date_to', '>', today), ('date_to', '=', False)])
 
         action_name = 'hr_referral.action_hr_job_employee_referral'
         result['message'] = [{
+            'id': message.id,
             'text': message.name,
             'action': action_name if message.onclick == 'all_jobs' else False,
             'url': message.url if message.onclick == 'url' else False
@@ -279,3 +329,4 @@ class RecruitmentStage(models.Model):
     _inherit = "hr.recruitment.stage"
 
     points = fields.Integer('Points', help="Amount of points that the referent will receive when the applicant will reach this stage")
+    use_in_referral = fields.Boolean('Show in Referrals', help="This option is used in app 'Referrals'. If checked, the stage is displayed in 'Referrals Dashboard' and points are given to the employee.")

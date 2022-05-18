@@ -44,13 +44,8 @@ class TestSaleCouponPriceTaxCloud(common.TestSaleCouponTaxCloudCommon):
             self.assertEqual(sum_taxcloud, self.order.amount_total)
 
     def test_free_product(self):
-        """This one is kind of a corner case.
-           While the free product program seems well-configured, due to the way
-           it computes the quantity it does not offer 1 free C but (12/2=)6!
-           Don't ask me why, I did not code this. Anyway.
-           Given that this makes a product-specific discount of 60$ over a line
-           of 10$, our algorithm is supposed to first max the product C line and
-           then evenly apply the remaining 50$ over the other lines.
+        """Test that taxcloud is working correctly with the addition of
+           the free product reward.
         """
         TaxCloud = self.order._get_TaxCloudRequest("id", "api_key")
 
@@ -59,7 +54,7 @@ class TestSaleCouponPriceTaxCloud(common.TestSaleCouponTaxCloudCommon):
 
         discount_line = self.order.order_line.filtered('coupon_program_id')
         self.assertEqual(discount_line.price_unit, -10)
-        self.assertEqual(discount_line.product_uom_qty, 6)
+        self.assertEqual(discount_line.product_uom_qty, 1)
 
         lines = self.order.order_line
         TaxCloud._apply_discount_on_lines(lines)
@@ -68,11 +63,5 @@ class TestSaleCouponPriceTaxCloud(common.TestSaleCouponTaxCloudCommon):
         self.assertEqual(line_C.price_taxcloud, 0)
 
         other_lines = lines.filtered(lambda l: l.price_taxcloud > 0) - line_C
-        sd = sum(other_lines.mapped(lambda l: l.price_taxcloud * l.product_uom_qty))
-        s = sum(other_lines.mapped(lambda l: l.price_unit * l.product_uom_qty))
-
-        self.assertEqual(sd, s - 50, "The remainder was applied on other lines.")
-        ratio = sd / s
-        # moreover, the remainder was applied evenly on other lines:
         for line in other_lines:
-            self.assertAlmostEqual(line.price_taxcloud, line.price_unit * ratio)
+            self.assertAlmostEqual(line.price_taxcloud, line.price_unit)

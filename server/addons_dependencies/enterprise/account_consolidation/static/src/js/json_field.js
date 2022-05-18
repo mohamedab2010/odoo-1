@@ -38,6 +38,8 @@ odoo.define('account_consolidation.FieldJson', function (require) {
             var record_field_value = this.recordData[this.name];
             if (!!record_field_value) {
                 this.parsed_data = JSON.parse(record_field_value);
+            } else {
+                this.parsed_data = [];
             }
         },
         /**

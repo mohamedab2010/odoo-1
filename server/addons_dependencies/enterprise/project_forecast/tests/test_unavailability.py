@@ -17,12 +17,13 @@ class TestUnavailabilityForForecasts(TestCommonForecast):
 
         cls.setUpEmployees()
         cls.setUpProjects()
-        # extra employee to test gantt_unavailability grouped by employee_id
+        # extra employee to test gantt_unavailability grouped by resource_id
         cls.employee_lionel = cls.env['hr.employee'].create({
             'name': 'lionel',
             'work_email': 'lionel@a.be',
             'tz': 'UTC'
         })
+        cls.resource_lionel = cls.employee_lionel.resource_id
 
         # employee leaves
         leave_values = {
@@ -43,26 +44,26 @@ class TestUnavailabilityForForecasts(TestCommonForecast):
             'end_datetime': datetime(2019, 8, 8, 0, 0),
         }
         generated = {}
-        for employee in [self.employee_bert, self.employee_lionel, self.employee_joseph]:
-            generated[employee.id] = self.env['planning.slot'].create({'employee_id': employee.id, **values})
+        for resource in [self.resource_bert, self.resource_lionel, self.resource_joseph]:
+            generated[resource.id] = self.env['planning.slot'].create({'resource_id': resource.id, **values})
 
         rows = [{
-            'groupedBy': ["employee_id"],
-            'records': [generated[self.employee_bert.id].read()[0]],
+            'groupedBy': ["resource_id"],
+            'records': [generated[self.resource_bert.id].read()[0]],
             'name': "Bert",
-            'resId': self.employee_bert.id,
+            'resId': self.resource_bert.id,
             'rows': []
         }, {
-            'groupedBy': ["employee_id"],
-            'records': [generated[self.employee_joseph.id].read()[0]],
+            'groupedBy': ["resource_id"],
+            'records': [generated[self.resource_joseph.id].read()[0]],
             'name': "Bert",
-            'resId': self.employee_joseph.id,
+            'resId': self.resource_joseph.id,
             'rows': []
         }, {
-            'groupedBy': ["employee_id"],
-            'records': [generated[self.employee_lionel.id].read()[0]],
+            'groupedBy': ["resource_id"],
+            'records': [generated[self.resource_lionel.id].read()[0]],
             'name': "Bert",
-            'resId': self.employee_lionel.id,
+            'resId': self.resource_lionel.id,
             'rows': []
         }]
 
@@ -96,30 +97,30 @@ class TestUnavailabilityForForecasts(TestCommonForecast):
             'end_datetime': datetime(2019, 8, 8, 0, 0),
         }
         generated = {}
-        for employee in [self.employee_bert, self.employee_lionel, self.employee_joseph]:
-            generated[employee.id] = self.env['planning.slot'].create({'employee_id': employee.id, **values})
+        for resource in [self.resource_bert, self.resource_lionel, self.resource_joseph]:
+            generated[resource.id] = self.env['planning.slot'].create({'resource_id': resource.id, **values})
         rows = [{
-            'groupedBy': ["project_id", "employee_id"],
+            'groupedBy': ["project_id", "resource_id"],
             'records': list(map(lambda x: x.read()[0], generated.values())),
             'name': "Opera project",
             'resId': 9,
             'rows': [{
-                'groupedBy': ["employee_id"],
-                'records': [generated[self.employee_bert.id].read()[0]],
+                'groupedBy': ["resource_id"],
+                'records': [generated[self.resource_bert.id].read()[0]],
                 'name': "Bert",
-                'resId': self.employee_bert.id,
+                'resId': self.resource_bert.id,
                 'rows': []
             }, {
-                'groupedBy': ["employee_id"],
-                'records': [generated[self.employee_joseph.id].read()[0]],
+                'groupedBy': ["resource_id"],
+                'records': [generated[self.resource_joseph.id].read()[0]],
                 'name': "Bert",
-                'resId': self.employee_joseph.id,
+                'resId': self.resource_joseph.id,
                 'rows': []
             }, {
-                'groupedBy': ["employee_id"],
-                'records': [generated[self.employee_lionel.id].read()[0]],
+                'groupedBy': ["resource_id"],
+                'records': [generated[self.resource_lionel.id].read()[0]],
                 'name': "Bert",
-                'resId': self.employee_lionel.id,
+                'resId': self.resource_lionel.id,
                 'rows': []
             }]
         }]

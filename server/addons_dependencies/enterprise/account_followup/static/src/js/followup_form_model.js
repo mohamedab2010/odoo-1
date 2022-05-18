@@ -106,7 +106,7 @@ var FollowupFormModel = BasicModel.extend({
     /**
      * @override
      */
-    load: function (params) {
+    __load: function (params) {
         var self = this;
         this.modelName = params.modelName;
         this._computeProgressBar(params.res_id, params.res_ids);
@@ -117,7 +117,7 @@ var FollowupFormModel = BasicModel.extend({
     /**
      * @override
      */
-    reload: function (handle, params) {
+    __reload: function (handle, params) {
         if (params.offset !== undefined || params.currentId !== undefined) {
             this.localData[handle].data.report_manager_id = undefined;
         }
@@ -160,6 +160,20 @@ var FollowupFormModel = BasicModel.extend({
             model: 'account.report.manager',
             method: 'write',
             args: [this.localData[handle].data.report_manager_id, {summary: text}],
+        });
+    },
+    /**
+     * Save the email_subject, and save it in DB.
+     *
+     * @param {string} handle Local resource id of a record
+     * @param {string} text new email_subject
+     * @return {Promise}
+     */
+    saveEmailSubject: function (handle, text) {
+        return this._rpc({
+            model: 'account.report.manager',
+            method: 'write',
+            args: [this.localData[handle].data.report_manager_id, {email_subject: text}],
         });
     },
     /**
@@ -263,6 +277,7 @@ var FollowupFormModel = BasicModel.extend({
         var self = this;
         var params = {};
         if (this.localData[id].data.report_manager_id !== undefined) {
+            params.total_due = this.localData[id].data.total_due
             params.keep_summary = true;
         }
         return this._rpc({
@@ -273,6 +288,7 @@ var FollowupFormModel = BasicModel.extend({
         }).then(function (data) {
             self.localData[id].data.report_manager_id = data.report_manager_id;
             self.localData[id].data.followup_html = data.html;
+            self.localData[id].data.total_due = data.total_due;
             if (!params.keep_summary) {
                 self.localData[id].data.followup_level = data.followup_level || {};
             }

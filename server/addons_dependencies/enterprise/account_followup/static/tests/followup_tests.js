@@ -194,17 +194,18 @@ QUnit.module('FollowupViews', {
         });
         assert.strictEqual(followupFormView.$searchview.find('span.o_account-progress-bar-content').text(), '0/4',
             "Progress bar value should be '0/4'");
-        assert.strictEqual(followupFormView.pager.$('.o_pager_value').text(), "1", 'pager value should be 1');
-        assert.strictEqual(followupFormView.pager.$('.o_pager_limit').text(), "4", 'pager limit should be 4');
-        await testUtils.dom.click(followupFormView.pager.$('.o_pager_next'));
+        assert.strictEqual(testUtils.controlPanel.getPagerValue(followupFormView), "1", 'pager value should be 1');
+        assert.strictEqual(testUtils.controlPanel.getPagerSize(followupFormView), "4", 'pager limit should be 4');
 
-        assert.strictEqual(followupFormView.pager.$('.o_pager_value').text(), "2", 'pager value should be 2');
+        await testUtils.controlPanel.pagerNext(followupFormView);
+
+        assert.strictEqual(testUtils.controlPanel.getPagerValue(followupFormView), "2", 'pager value should be 2');
 
         var $buttonDoItLater = followupFormView.$buttons.find('button.o_account_followup_do_it_later_button');
         await testUtils.dom.click($buttonDoItLater);
 
-        assert.strictEqual(followupFormView.pager.$('.o_pager_value').text(), "2", 'pager value should be 2');
-        assert.strictEqual(followupFormView.pager.$('.o_pager_limit').text(), "3", 'pager limit should be 3');
+        assert.strictEqual(testUtils.controlPanel.getPagerValue(followupFormView), "2", 'pager value should be 2');
+        assert.strictEqual(testUtils.controlPanel.getPagerSize(followupFormView), "3", 'pager limit should be 3');
 
         followupFormView.destroy();
     });

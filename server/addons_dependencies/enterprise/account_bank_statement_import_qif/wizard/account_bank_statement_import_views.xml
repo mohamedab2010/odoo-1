@@ -29,10 +29,16 @@
                         </p>
                         <field name="qif_date_format" widget="radio"/>
                     </group>
+                    <group groups="base.group_no_one">
+                        <p class="oe_form_box_info bg-info" colspan="2">
+                            In order to avoid conversion errors, please specify the decimal separator you wish to use.
+                        </p>
+                        <field name="qif_decimal_point" />
+                    </group>
                 </xpath>
                 <xpath expr="//button[@name='import_file']" position="replace">
-                    <button name="import_file" string="Upload" type="object" class="btn-primary" attrs="{'invisible': [('qif_date_format', '=', 'day_first')]}"/>
-                    <button name="import_file" string="Upload" type="object" class="btn-primary" context="{'qif_date_format': 'day_first'}" attrs="{'invisible': [('qif_date_format', '!=', 'day_first')]}"/>
+                    <button name="import_file" string="Upload" type="object" class="btn-primary" attrs="{'invisible': [('qif_date_format', '=', 'day_first')]}" data-hotkey="q"/>
+                    <button name="import_file" string="Upload" type="object" class="btn-primary" context="{'qif_date_format': 'day_first'}" attrs="{'invisible': [('qif_date_format', '!=', 'day_first')]}" data-hotkey="q"/>
                 </xpath>
             </field>
         </record>

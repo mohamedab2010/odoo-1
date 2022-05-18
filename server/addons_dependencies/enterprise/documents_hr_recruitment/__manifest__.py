@@ -4,7 +4,7 @@
 {
     'name': 'Documents - Recruitment',
     'version': '1.0',
-    'category': 'Operations/Documents',
+    'category': 'Productivity/Documents',
     'summary': 'Recruitment resumés and letters from documents',
     'description': """
 Add the ability to manage resumés and letters from the Documents app.

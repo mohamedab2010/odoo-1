@@ -1,57 +1,58 @@
 <?xml version='1.0' encoding='UTF-8' ?>
 <odoo>
 
-    <!-- Root Menus -->
-
-    <menuitem id="menu_hr_payroll_root" name="Payroll" sequence="45" web_icon="hr_payroll,static/description/icon.png"/>
+     <!-- Root Menus -->
+    <menuitem id="menu_hr_payroll_root" name="Payroll" sequence="195" web_icon="hr_payroll,static/description/icon.png" groups="hr_payroll.group_hr_payroll_user"/>
 
     <menuitem
         id="menu_hr_payroll_employees_root"
-        name="Employees"
-        parent="menu_hr_payroll_root"
+        name="Contracts"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="50"
         groups="hr_payroll.group_hr_payroll_user"/>
 
     <menuitem
         id="menu_hr_payroll_work_entries_root"
         name="Work Entries"
-        parent="menu_hr_payroll_root"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="60"
         groups="hr_payroll.group_hr_payroll_user"/>
 
     <menuitem
         id="menu_hr_payroll_payslips"
         name="Payslips"
-        parent="menu_hr_payroll_root"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="70"
         groups="hr_payroll.group_hr_payroll_user"/>
 
     <menuitem
         id="menu_hr_payroll_report"
         name="Reporting"
-        parent="menu_hr_payroll_root"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         sequence="70"
         groups="hr_payroll.group_hr_payroll_manager"/>
 
-    <menuitem
-        id="menu_hr_payroll_configuration"
-        name="Configuration"
-        parent="menu_hr_payroll_root"
-        sequence="100"
-        groups="hr_payroll.group_hr_payroll_user"/>
-
     <!-- **** Employees **** -->
     <menuitem
-        id="menu_hr_payroll_employees_configuration"
-        action="hr.open_view_employee_list_my"
-        parent="menu_hr_payroll_employees_root"
-        sequence="10"/>
-
-    <menuitem
         id="menu_hr_payroll_contracts_configuration"
-        action="hr_payroll.action_hr_contract_repository"
+        name="Employees"
+        action="hr_contract.hr_contract_history_view_list_action"
         parent="menu_hr_payroll_employees_root"
         sequence="20"/>
+
+    <menuitem
+        id="hr_menu_all_contracts"
+        name="Contracts"
+        action="hr_contract.action_hr_contract"
+        parent="menu_hr_payroll_employees_root"
+        sequence="30"/>
+
+    <menuitem
+        id="hr_menu_salary_attachments"
+        name="Salary Attachments"
+        action="hr_payroll.hr_salary_attachment_action"
+        parent="menu_hr_payroll_employees_root"
+        sequence="35"/>
 
     <!-- **** Payslips **** -->
     <menuitem
@@ -77,59 +78,43 @@
         sequence="80"
         parent="menu_hr_payroll_payslips"/>
 
-
-    <!-- **** Work Entries **** -->
-    <menuitem
-        id="menu_work_entry"
-        name="Work Entries"
-        action="hr_work_entry.hr_work_entry_action"
-        parent="menu_hr_payroll_work_entries_root"
-        sequence="25"/>
-
-    <menuitem
-        id="menu_work_entry_conflicts"
-        name="Conflicts"
-        action="hr_work_entry.hr_work_entry_action_conflict"
-        parent="menu_hr_payroll_work_entries_root"
-        sequence="50"/>
-
-    <!-- WORK ENTRIES CONFLICTS -->
-
     <!-- **** Reporting **** -->
     <menuitem id="menu_report_payroll"
         name="Payroll"
         action="payroll_report_action"
+        sequence="10"
         parent="menu_hr_payroll_report"/>
+
+    <menuitem
+        id="menu_hr_work_entry_report"
+        name="Work Entry Analysis"
+        action="hr_work_entry_report_action"
+        sequence="20"
+        parent="menu_hr_payroll_report"/>
+
+    <menuitem
+        id="menu_hr_payroll_attachment_salary_report"
+        action="hr_salary_attachment_report_action"
+        parent="menu_hr_payroll_report"
+        sequence="25"/>
 
     <!-- **** Configuration **** -->
 
     <menuitem
         id="menu_hr_payroll_global_settings"
         name="Settings"
-        parent="menu_hr_payroll_configuration"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_configuration"
         sequence="0"
         action="action_hr_payroll_configuration"
         groups="base.group_system"/>
-
-    <!-- Work entries Configuration -->
-    <menuitem
-        id="menu_hr_work_entry_confirguration"
-        name="Work Entries"
-        parent="menu_hr_payroll_configuration"
-        sequence="50"
-    />
-    <menuitem
-        id="menu_hr_work_entry_type_view"
-        action="hr_work_entry.hr_work_entry_type_action"
-        parent="menu_hr_work_entry_confirguration"
-    />
 
     <!-- Salary Configuration -->
     <menuitem
         id="menu_hr_salary_configuration"
         name="Salary"
-        parent="menu_hr_payroll_configuration"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_configuration"
         sequence="80"
+        groups="hr_payroll.group_hr_payroll_user"
     />
 
     <menuitem

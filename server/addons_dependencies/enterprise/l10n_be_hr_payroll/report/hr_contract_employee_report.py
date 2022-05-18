@@ -7,13 +7,11 @@ from odoo import fields, models
 class HrContractEmployeeReport(models.Model):
     _inherit = "hr.contract.employee.report"
 
-    final_yearly_costs = fields.Float('Annual Employee Budget', group_operator="avg", readonly=True)
     fuel_card = fields.Float('Fuel Card', group_operator="avg", readonly=True)
     fte = fields.Float('Full Time Equivalent (Today)', readonly=True)
 
     def _query(self, fields='', from_clause='', outer=''):
         fields += """
-            , c.final_yearly_costs AS final_yearly_costs
             , c.fuel_card AS fuel_card
             , cal.hours_per_week AS hours_per_week
             , cal_company.hours_per_week AS hours_per_week_company"""

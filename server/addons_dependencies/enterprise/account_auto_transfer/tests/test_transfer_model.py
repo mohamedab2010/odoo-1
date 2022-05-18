@@ -16,34 +16,37 @@ from odoo.tests import tagged
 # ############################################################################ #
 @tagged('post_install', '-at_install')
 class TransferModelTestFunctionalCase(AccountAutoTransferTestCase):
-    def setUp(self):
-        super(TransferModelTestFunctionalCase, self).setUp()
+
+    @classmethod
+    def setUpClass(cls, chart_template_ref=None):
+        super().setUpClass(chart_template_ref=chart_template_ref)
         # Model with 4 lines of 20%, 20% is left in origin accounts
-        self.functional_transfer = self.env['account.transfer.model'].create({
+        cls.functional_transfer = cls.env['account.transfer.model'].create({
             'name': 'Test Functional Model',
             'date_start': '2019-01-01',
             'date_stop': datetime.today() + relativedelta(months=1),
-            'journal_id': self.journal.id,
-            'account_ids': [(6, 0, self.origin_accounts.ids)],
+            'journal_id': cls.journal.id,
+            'account_ids': [(6, 0, cls.origin_accounts.ids)],
             'line_ids': [(0, 0, {
                 'account_id': account.id,
                 'percent': 20,
-            }) for account in self.destination_accounts],
+            }) for account in cls.destination_accounts],
         })
-        neutral_account = self.env['account.account'].create({
+        neutral_account = cls.env['account.account'].create({
             'name': 'Neutral Account',
             'code': 'NEUT',
-            'user_type_id': self.env.ref('account.data_account_type_revenue').id,
+            'user_type_id': cls.env.ref('account.data_account_type_revenue').id,
         })
-        self.analytic_accounts = reduce(lambda x, y: x + y, (self._create_analytic_account(name) for name in ('ANA1', 'ANA2', 'ANA3')))
-        self.dates = ('2019-01-15', '2019-02-15')
+        cls.analytic_accounts = reduce(lambda x, y: x + y, (cls._create_analytic_account(cls, name) for name in ('ANA1', 'ANA2', 'ANA3')))
+        cls.dates = ('2019-01-15', '2019-02-15')
         # Create one line for each date...
-        for date in self.dates:
+        for date in cls.dates:
             # ...with each analytic account, and with no analytic account...
-            for an_account in chain(self.analytic_accounts, [self.env['account.analytic.account']]):
+            for an_account in chain(cls.analytic_accounts, [cls.env['account.analytic.account']]):
                 # ...in each origin account with a balance of 1000.
-                for account in self.origin_accounts:
-                    self._create_basic_move(
+                for account in cls.origin_accounts:
+                    cls._create_basic_move(
+                        cls,
                         deb_account=account.id,
                         deb_analytic=an_account.id,
                         cred_account=neutral_account.id,
@@ -63,7 +66,7 @@ class TransferModelTestFunctionalCase(AccountAutoTransferTestCase):
             self.assertEqual(sum(self.env['account.move.line'].search([('account_id', '=', account.id)]).mapped('balance')), 3200)
             for date in self.dates:
                 # 2 move lines have been created in each account for each date
-                self.assertEquals(len(self.env['account.move.line'].search([('account_id', '=', account.id), ('date', '=', fields.Date.to_date(date) + relativedelta(day=1, months=1))])), 2)
+                self.assertEqual(len(self.env['account.move.line'].search([('account_id', '=', account.id), ('date', '=', fields.Date.to_date(date) + relativedelta(day=1, months=1))])), 2)
 
     def test_analytics(self):
         # Each line with analytic accounts is set to 100%
@@ -194,7 +197,7 @@ class TransferModelTestCase(AccountAutoTransferTestCase):
         self.assertEqual(amount_of_moves, self.env['account.move'].search_count([]), 'No move have been created')
         self.assertEqual(amount_of_move_lines, self.env['account.move.line'].search_count([]),
                          'No move line have been created (in fact yes but the old ones have been deleted)')
-        self.assertEquals(updated_move, created_move, 'Existing move has been updated')
+        self.assertEqual(updated_move, created_move, 'Existing move has been updated')
         self.assertRecordValues(updated_move.line_ids.filtered(lambda l: l.credit), [{
             'account_id': master_ids[0].id,
             'date_maturity': next_move_date,
@@ -241,7 +244,7 @@ class TransferModelTestCase(AccountAutoTransferTestCase):
         start_date = self.transfer_model._determine_start_date()
         self.assertEqual(start_date, self.transfer_model.date_start, 'A move generated but not posted, start date should be the start date of the transfer model')
 
-        move.post()
+        move.action_post()
         start_date = self.transfer_model._determine_start_date()
         self.assertEqual(start_date, move.date, 'A move posted, start date should be the date of that move')
 
@@ -249,7 +252,7 @@ class TransferModelTestCase(AccountAutoTransferTestCase):
         start_date = self.transfer_model._determine_start_date()
         self.assertEqual(start_date, move.date, 'Two moves generated, start date should be the date of the last posted one')
 
-        second_move.post()
+        second_move.action_post()
         random_move = self._create_basic_move(date_str='2019-08-01', journal_id=self.journal.id)
         start_date = self.transfer_model._determine_start_date()
         self.assertEqual(start_date, second_move.date, 'Random move generated not linked to transfer model, start date should be the date of the last one linked to it')
@@ -288,7 +291,7 @@ class TransferModelTestCase(AccountAutoTransferTestCase):
 
     @patch('odoo.addons.account_auto_transfer.models.transfer_model.TransferModel._get_non_analytic_transfer_values')
     @patch('odoo.models.BaseModel.read_group')
-    def test__get_non_analytics_auto_transfer_move_line_values(self, patched_read_group, patched_get_values):
+    def test__get_non_filtered_auto_transfer_move_line_values(self, patched_read_group, patched_get_values):
         start_date = fields.Date.to_date('2019-01-01')
         end_date = fields.Date.to_date('2019-12-31')
         patched_read_group.return_value = [
@@ -326,7 +329,7 @@ class TransferModelTestCase(AccountAutoTransferTestCase):
             'debit': 12585.0 - amount_left
         }]
         exp_res_len = len([x for x in patched_read_group.return_value if x['balance'] != 0.0]) * 2
-        res = self.transfer_model._get_non_analytics_auto_transfer_move_line_values([], start_date, end_date)
+        res = self.transfer_model._get_non_filtered_auto_transfer_move_line_values([], start_date, end_date)
         self.assertEqual(len(res), exp_res_len)
         self.assertListEqual(exp, res)
 

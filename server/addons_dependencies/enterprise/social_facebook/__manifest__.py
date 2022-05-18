@@ -3,21 +3,32 @@
 
 {
     'name': 'Social Facebook',
-    'category': 'Social',
+    'category': 'Marketing/Social Marketing',
     'summary': 'Manage your Facebook pages and schedule posts',
     'version': '1.0',
     'description': """Manage your Facebook pages and schedule posts""",
     'depends': ['social'],
     'data': [
         'data/social_media_data.xml',
-        'views/assets.xml',
         'views/social_facebook_templates.xml',
-        'views/social_post_views.xml',
+        'views/social_post_template_views.xml',
         'views/social_stream_post_views.xml',
         'views/res_config_settings_views.xml',
     ],
-    'qweb': [
-        "static/src/xml/social_facebook_templates.xml",
-    ],
     'auto_install': True,
+    'assets': {
+        'web.assets_backend': [
+            'social_facebook/static/src/scss/social_facebook.scss',
+            'social_facebook/static/src/js/stream_post_facebook_comments.js',
+            'social_facebook/static/src/js/stream_post_kanban_controller.js',
+            ('after', 'social/static/src/js/social_post_formatter_mixin.js', 'social_facebook/static/src/js/social_post_formatter_mixin.js'),
+        ],
+        'web.qunit_suite_tests': [
+            'social_facebook/static/src/js/tests/**/*',
+        ],
+        'web.assets_qweb': [
+            'social_facebook/static/src/xml/**/*',
+        ],
+    },
+    'license': 'OEEL-1',
 }

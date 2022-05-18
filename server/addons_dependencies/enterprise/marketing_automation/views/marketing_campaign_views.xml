@@ -5,14 +5,14 @@
         <field name="name">marketing.campaign.view.kanban</field>
         <field name="model">marketing.campaign</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="state" quick_create="false">
+            <kanban default_group_by="state" quick_create="false" sample="1">
                 <field name="name"/>
                 <field name="state" readonly="1"/>
                 <templates>
                     <t t-name="kanban-box">
                         <div class="oe_kanban_card oe_kanban_global_click o_marketing_automation_campaign_kanban">
                             <div class="row no-gutters o_ma_campaign_header">
-                                <span t-att-title="record.name.raw_value" class="text-primary">
+                                <span t-att-title="record.name.raw_value" class="text-primary o_text_overflow">
                                     <t t-esc="record.name.raw_value"/>
                                 </span>
                             </div>
@@ -41,7 +41,7 @@
         <field name="name">marketing.campaign.view.form</field>
         <field name="model">marketing.campaign</field>
         <field name="arch" type="xml">
-            <form string="Campaign">
+            <form js_class="marketing_automation_campaign_form" string="Campaign">
                 <header>
                     <button name="action_start_campaign" type="object" states="draft,stopped" class="btn-primary" string="Start" />
                     <button name="action_stop_campaign" type="object" states="running" class="btn-primary" string="Stop" />
@@ -62,7 +62,7 @@
                 </div>
                 <sheet>
                     <div name="button_box" class="oe_button_box">
-                        <button name="action_view_mailings" type="object" icon="fa-envelope-open-o" class="oe_stat_button">
+                        <button name="action_view_mailings" type="object" icon="fa-envelope-o" class="oe_stat_button">
                             <field name="mass_mailing_count" widget="statinfo" string="Templates"/>
                         </button>
                         <button name="action_view_tracker_statistics" type="object" icon="fa-link" class="oe_stat_button">
@@ -79,8 +79,7 @@
                     </div>
                     <widget name="web_ribbon" title="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_title">
-                        <span class="oe_edit_only">Name</span>
-                        <h1><field name="name" required="1" placeholder="e.g. eCommerce Offers" /></h1>
+                        <h1><field class="o_text_overflow" name="name" required="1" placeholder="e.g. eCommerce Offers" /></h1>
                     </div>
                     <group>
                         <field name="model_id"
@@ -105,7 +104,7 @@
                         </div>
                         <field name="marketing_activity_ids" widget="hierarchy_kanban" mode="kanban" nolabel="1"
                             class="o_ma_hierarchy_container o_ma_campaign_hierarchy"
-                            options="{'create_text':'Add new activity'}"
+                            add-label="Add new activity"
                             context="{
                                 'default_campaign_id': active_id,
                                 'default_model_id': model_id,
@@ -197,32 +196,29 @@
                                                     <div class="o_ma_child_activity_title text-muted">
                                                         <i class="fa fa-plus-circle" /> Add child activity
                                                     </div>
-                                                    <div t-if="record.id.raw_value" class="o_ma_child_activity_buttons">
-                                                        <i data-type="act" class="fa fa-code-fork fa-rotate-180 fa-flip-vertical o_ma_text_processed o_add_child" title="Add Another Activity" role="img" aria-label="Add Another Activity" />
+                                                    <div class="o_ma_child_activity_buttons">
+                                                        <i data-trigger-type="activity" class="fa fa-code-fork fa-rotate-180 fa-flip-vertical o_ma_text_processed o_add_child_activity" title="Add Another Activity" role="img" aria-label="Add Another Activity" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_open" class="fa fa-envelope-open-o o_ma_text_processed o_add_child"
+                                                            data-trigger-type="mail_open" class="fa fa-envelope-open-o o_ma_text_processed o_add_child_activity"
                                                             title="Opened" role="img" aria-label="Opened" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_not_open" class="fa fa-envelope-open-o o_ma_text_rejected o_add_child"
+                                                            data-trigger-type="mail_not_open" class="fa fa-envelope-open-o o_ma_text_rejected o_add_child_activity"
                                                             title="Not Opened" role="img" aria-label="Not Opened" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_reply" class="fa fa-reply o_ma_text_processed o_add_child"
+                                                            data-trigger-type="mail_reply" class="fa fa-reply o_ma_text_processed o_add_child_activity"
                                                             title="Replied" role="img" aria-label="Replied" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_not_reply" class="fa fa-reply o_ma_text_rejected o_add_child"
+                                                            data-trigger-type="mail_not_reply" class="fa fa-reply o_ma_text_rejected o_add_child_activity"
                                                             title="Not Replied" role="img" aria-label="Not Replied" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_click" class="fa fa-hand-pointer-o o_ma_text_processed o_add_child"
+                                                            data-trigger-type="mail_click" class="fa fa-hand-pointer-o o_ma_text_processed o_add_child_activity"
                                                             title="Clicked" role="img" aria-label="Clicked" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_not_click" class="fa fa-hand-pointer-o o_ma_text_rejected o_add_child"
+                                                            data-trigger-type="mail_not_click" class="fa fa-hand-pointer-o o_ma_text_rejected o_add_child_activity"
                                                             title="Not Clicked" role="img" aria-label="Not Clicked" />
                                                         <i t-if="record.activity_type.raw_value == 'email'"
-                                                            data-type="mail_bounce" class="fa fa fa-exclamation-circle o_ma_text_rejected o_add_child"
+                                                            data-trigger-type="mail_bounce" class="fa fa-exclamation-circle o_ma_text_rejected o_add_child_activity"
                                                             title="Bounced" role="img" aria-label="Bounced" />
-                                                    </div>
-                                                    <div t-else="" class="o_ma_child_activity_buttons">
-                                                        <div class="mt4"> Please save the campaign to add child activity </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -263,10 +259,10 @@
                                             </t>
                                             <t t-if="record.trigger_type.raw_value == 'mail_bounce'">
                                                 <div class="o_ma_text_rejected">
-                                                    <i class="fa fa-exclamation-circle" /> Mail bounced after
+                                                    <i class="fa fa-exclamation-circle" /> Bounced after
                                                 </div>
                                             </t>
-                                            <strong>
+                                            <strong class="o_ma_interval">
                                                 <i class="fa fa-clock-o" role="img" aria-label="Select time" title="Select time"/> <field name="interval_number" />
                                                 <field name="interval_type" />
                                             </strong>
@@ -285,10 +281,10 @@
         <field name="name">marketing.campaign.view.tree</field>
         <field name="model">marketing.campaign</field>
         <field name="arch" type="xml">
-            <tree string="Campaign">
+            <tree string="Campaign" sample="1">
                 <field name="name" />
                 <field name="model_id" string="Target" attrs="{'readonly' :[('state' , '!=', 'draft')]}"/>
-                <field name="state" readonly="True"/>
+                <field name="state" readonly="True" decoration-info="state == 'draft'" decoration-success="state == 'running'" decoration-muted="state == 'stopped'" widget="badge"/>
                 <field name="mass_mailing_count" />
                 <field name="link_tracker_click_count" />
                 <field name="total_participant_count" />
@@ -321,19 +317,9 @@
         <field name="view_mode">kanban,tree,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a campaign
-            </p>
-        </field>
-    </record>
-
-    <record id="marketing_campaign_action_archived" model="ir.actions.act_window">
-        <field name="name">Campaigns</field>
-        <field name="res_model">marketing.campaign</field>
-        <field name="view_mode">kanban,tree,form</field>
-        <field name="context" eval="{'search_default_archive': 1}"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Create a campaign
+                Create a Marketing Automation Campaign
+            </p><p>
+                Define workflows by chaining up activities and let Odoo handle the rest.
             </p>
         </field>
     </record>

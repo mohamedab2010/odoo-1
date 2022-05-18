@@ -4,7 +4,8 @@
 import dateutil.parser
 import requests
 
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 from werkzeug.urls import url_join
 
 
@@ -16,17 +17,30 @@ class SocialStreamTwitter(models.Model):
     # TODO awa: clean unused 'social.twitter.account' in a cron job
     twitter_followed_account_id = fields.Many2one('social.twitter.account')
 
+    @api.constrains('stream_type_id', 'twitter_followed_account_id')
+    def _check_twitter_followed_account_id(self):
+        if any(
+            stream.stream_type_id.stream_type in ('twitter_follow', 'twitter_likes')
+            and not stream.twitter_followed_account_id
+            for stream in self
+        ):
+            raise UserError(_("Please select a Twitter account for this stream type."))
+
     def _apply_default_name(self):
-        for stream in self:
-            if stream.media_id.media_type == 'twitter':
-                if stream.stream_type_id.stream_type in ['twitter_follow', 'twitter_likes'] and stream.twitter_followed_account_id:
-                    stream.write({'name': '%s: %s' % (stream.stream_type_id.name, stream.twitter_followed_account_id.name)})
-                elif stream.stream_type_id.stream_type == 'twitter_user_mentions' and stream.account_id:
-                    stream.write({'name': '%s: %s' % (stream.stream_type_id.name, stream.account_id.name)})
-                elif stream.stream_type_id.stream_type == 'twitter_keyword' and stream.twitter_searched_keyword:
-                    stream.write({'name': '%s: %s' % (stream.stream_type_id.name, stream.twitter_searched_keyword)})
-            else:
-                super(SocialStreamTwitter, stream)._apply_default_name()
+        twitter_streams = self.filtered(lambda s: s.media_id.media_type == 'twitter')
+        super(SocialStreamTwitter, (self - twitter_streams))._apply_default_name()
+
+        for stream in twitter_streams:
+            name = False
+            if stream.stream_type_id.stream_type in ['twitter_follow', 'twitter_likes'] and stream.twitter_followed_account_id:
+                name = '%s: %s' % (stream.stream_type_id.name, stream.twitter_followed_account_id.name)
+            elif stream.stream_type_id.stream_type == 'twitter_user_mentions' and stream.account_id:
+                name = '%s: %s' % (stream.stream_type_id.name, stream.account_id.name)
+            elif stream.stream_type_id.stream_type == 'twitter_keyword' and stream.twitter_searched_keyword:
+                name = '%s: %s' % (stream.stream_type_id.name, stream.twitter_searched_keyword)
+
+            if name:
+                stream.write({'name': name})
 
     def _fetch_stream_data(self):
         if self.media_id.media_type != 'twitter':
@@ -58,9 +72,33 @@ class SocialStreamTwitter(models.Model):
         )
         result = requests.get(
             tweets_endpoint_url,
-            query_params,
-            headers=headers
+            params=query_params,
+            headers=headers,
+            timeout=5
         )
+
+        if not result.ok:
+            # an error occurred
+            result = result.json()
+            if 'Not authorized' in result.get('error', ''):
+                # no error code is returned by the Twitter API in that case
+                # it's probably because the Twitter account we tried to add
+                # is private
+                error_message = _(
+                    "You cannot create a Stream from this Twitter account.\n"
+                    "It may be because it's protected. To solve this, please make sure you follow it before trying again."
+                )
+            else:
+                error_code = result.get('errors', [{}])[0].get('code')
+                error_message = result.get('errors', [{}])[0].get('message')
+                ERROR_MESSAGES = {
+                    195: _("The keyword you've typed in does not look valid. Please try again with other words."),
+                    88: _("Looks like you've made too many requests. Please wait a few minutes before giving it another try."),
+                }
+                error_message = ERROR_MESSAGES.get(error_code, error_message)
+
+            if error_message:
+                raise UserError(error_message)
 
         result_tweets = result.json() if endpoint_name != 'search/tweets' else result.json().get('statuses')
         if isinstance(result_tweets, dict) and result_tweets.get('errors') or result_tweets is None:
@@ -68,7 +106,7 @@ class SocialStreamTwitter(models.Model):
             return False
 
         tweets_ids = [tweet.get('id_str') for tweet in result_tweets]
-        existing_tweets = self.env['social.stream.post'].sudo().search([
+        existing_tweets = self.env['social.stream.post'].search([
             ('stream_id', '=', self.id),
             ('twitter_tweet_id', 'in', tweets_ids)
         ])
@@ -86,7 +124,7 @@ class SocialStreamTwitter(models.Model):
                 'stream_id': self.id,
                 'message': tweet.get('full_text'),
                 'author_name': tweet.get('user').get('name'),
-                'published_date': fields.Datetime.from_string(dateutil.parser.parse(tweet.get('created_at')).strftime('%Y-%m-%d %H:%M:%S')),
+                'published_date': dateutil.parser.parse(tweet.get('created_at'), ignoretz=True),
                 'twitter_likes_count': tweet.get('favorite_count'),
                 'twitter_user_likes': favorites_by_id.get(tweet.get('id_str'), {'favorited': False})['favorited'],
                 'twitter_retweet_count': tweet.get('retweet_count'),
@@ -98,7 +136,7 @@ class SocialStreamTwitter(models.Model):
 
             existing_tweet = existing_tweets_by_tweet_id.get(tweet.get('id_str'))
             if existing_tweet:
-                existing_tweet.write(values)
+                existing_tweet.sudo().write(values)
             else:
                 # attachments are only extracted for new posts
                 values.update(self._extract_twitter_attachments(tweet))
@@ -148,18 +186,26 @@ class SocialStreamTwitter(models.Model):
                 lookup_endpoint_ul,
                 params=params
             )
-            result = requests.post(
+            response = requests.post(
                 lookup_endpoint_ul,
                 data=params,
-                headers=headers
+                headers=headers,
+                timeout=5
             )
-
-            favorites_by_id.update({
-                tweet.get('id_str'): {
-                    'favorited': tweet.get('favorited', False)
-                }
-                for tweet in result.json()
-            })
+            try:
+                response.raise_for_status()
+                result = response.json()
+                if not (isinstance(result, dict) and result.get('errors')):
+                    favorites_by_id.update({
+                        tweet.get('id_str'): {
+                            'favorited': tweet.get('favorited', False)
+                        }
+                        for tweet in result
+                    })
+            except requests.HTTPError:
+                # we let it fail silently because the lookup doesn't do anything essential, unless
+                # checking the # of likes, so we can continue, instead of stopping the process.
+                pass
 
             page += 1
 

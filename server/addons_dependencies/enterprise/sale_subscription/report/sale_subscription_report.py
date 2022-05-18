@@ -30,7 +30,10 @@ class sale_subscription_report(models.Model):
     analytic_account_id = fields.Many2one('account.analytic.account', 'Analytic Account', readonly=True)
     close_reason_id = fields.Many2one('sale.subscription.close.reason', 'Close Reason', readonly=True)
     to_renew = fields.Boolean('To Renew', readonly=True)
-    in_progress = fields.Boolean('Running', readonly=True)
+    stage_category = fields.Selection([
+        ('draft', 'Draft'),
+        ('progress', 'In Progress'),
+        ('closed', 'Closed')], readonly=True, help="Category of the stage")
     health = fields.Selection([
         ('normal', 'Neutral'),
         ('done', 'Good'),
@@ -61,7 +64,7 @@ class sale_subscription_report(models.Model):
                     sub.team_id,
                     sub.company_id as company_id,
                     sub.to_renew,
-                    stage.in_progress,
+                    sub.stage_category,
                     sub.health,
                     sub.stage_id,
                     sub.template_id as template_id,
@@ -104,7 +107,7 @@ class sale_subscription_report(models.Model):
                     quantity,
                     sub.company_id,
                     sub.to_renew,
-                    stage.in_progress,
+                    sub.stage_category,
                     sub.health,
                     sub.stage_id,
                     sub.name,

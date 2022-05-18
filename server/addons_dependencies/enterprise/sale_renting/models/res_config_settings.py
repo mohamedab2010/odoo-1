@@ -29,12 +29,8 @@ class ResConfigSettings(models.TransientModel):
 
     @api.onchange('extra_hour')
     def _onchange_extra_day(self):
-        properties = self.env['ir.property'].search([('name', '=', 'property_extra_hourly')])
-        if properties:
-            properties.write({'value_float': self.extra_hour})
+        self.env['ir.property']._set_default("extra_hourly", "product.template", self.extra_hour)
 
     @api.onchange('extra_day')
     def _onchange_extra_day(self):
-        properties = self.env['ir.property'].search([('name', '=', 'property_extra_daily')])
-        if properties:
-            properties.write({'value_float': self.extra_day})
+        self.env['ir.property']._set_default("extra_daily", "product.template", self.extra_day)

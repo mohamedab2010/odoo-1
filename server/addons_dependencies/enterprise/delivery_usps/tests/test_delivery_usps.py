@@ -78,7 +78,7 @@ class TestDeliveryUSPS(TransactionCase):
         try:
             choose_delivery_carrier.update_price()
         except UserError as exc:
-            m = country_unavailable_re.search(exc.name)
+            m = country_unavailable_re.search(exc.args[0])
             if m:
                 _logger.warning(country_unavailable_msg, m.group(1))
                 return
@@ -87,22 +87,22 @@ class TestDeliveryUSPS(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
-        picking.action_done()
+        picking._action_done()
         self.assertIsNot(picking.carrier_tracking_ref, False, "USPS did not return any tracking number")
         self.assertGreater(picking.carrier_price, 0.0, "USPS carrying price is probably incorrect")
 
         picking.cancel_shipment()
 
         self.assertFalse(picking.carrier_tracking_ref, "Carrier Tracking code has not been properly deleted")
-        self.assertEquals(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
+        self.assertEqual(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
 
     def test_02_usps_basic_international_flow(self):
         SaleOrder = self.env['sale.order']
@@ -126,7 +126,7 @@ class TestDeliveryUSPS(TransactionCase):
         try:
             choose_delivery_carrier.update_price()
         except UserError as exc:
-            m = country_unavailable_re.search(exc.name)
+            m = country_unavailable_re.search(exc.args[0])
             if m:
                 _logger.warning(country_unavailable_msg, m.group(1))
                 return
@@ -135,21 +135,21 @@ class TestDeliveryUSPS(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sales Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
-        picking.action_done()
+        picking._action_done()
         self.assertIsNot(picking.carrier_tracking_ref, False, "USPS did not return any tracking number")
         self.assertGreater(picking.carrier_price, 0.0, "USPS carrying price is probably incorrect")
 
         picking.cancel_shipment()
         self.assertFalse(picking.carrier_tracking_ref, "Carrier Tracking code has not been properly deleted")
-        self.assertEquals(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
+        self.assertEqual(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
 
     def test_03_usps_ship_to_canada_flow(self):
         SaleOrder = self.env['sale.order']
@@ -173,7 +173,7 @@ class TestDeliveryUSPS(TransactionCase):
         try:
             choose_delivery_carrier.update_price()
         except UserError as exc:
-            m = country_unavailable_re.search(exc.name)
+            m = country_unavailable_re.search(exc.args[0])
             if m:
                 _logger.warning(country_unavailable_msg, m.group(1))
                 return
@@ -182,30 +182,23 @@ class TestDeliveryUSPS(TransactionCase):
         choose_delivery_carrier.button_confirm()
 
         sale_order.action_confirm()
-        self.assertEquals(len(sale_order.picking_ids), 1, "The Sale Order did not generate a picking.")
+        self.assertEqual(len(sale_order.picking_ids), 1, "The Sale Order did not generate a picking.")
 
         picking = sale_order.picking_ids[0]
-        self.assertEquals(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
+        self.assertEqual(picking.carrier_id.id, sale_order.carrier_id.id, "Carrier is not the same on Picking and on SO.")
 
         picking.move_lines[0].quantity_done = 1.0
         self.assertGreater(picking.shipping_weight, 0.0, "Picking weight should be positive.")
 
-        picking.action_done()
+        picking._action_done()
         self.assertIsNot(picking.carrier_tracking_ref, False, "USPS did not return any tracking number")
         self.assertGreater(picking.carrier_price, 0.0, "USPS carrying price is probably incorrect")
 
         picking.cancel_shipment()
         self.assertFalse(picking.carrier_tracking_ref, "Carrier Tracking code has not been properly deleted")
-        self.assertEquals(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
+        self.assertEqual(picking.carrier_price, 0.0, "Carrier price has not been properly deleted")
 
     def test_04_usps_flow_from_delivery_order(self):
-
-        inventory = self.env['stock.inventory'].create({
-            'name': '[A1232] iPad Mini',
-            'location_ids': [(4, self.stock_location.id)],
-            'product_ids': [(4, self.iPadMini.id)],
-        })
-
         StockPicking = self.env['stock.picking']
 
         order1_vals = {
@@ -236,7 +229,7 @@ class TestDeliveryUSPS(TransactionCase):
         try:
             delivery_order.button_validate()
         except UserError as exc:
-            m = country_unavailable_re.search(exc.name)
+            m = country_unavailable_re.search(exc.args[0])
             if m:
                 _logger.warning(country_unavailable_msg, m.group(1))
                 return

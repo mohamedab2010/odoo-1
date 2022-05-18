@@ -1,7 +1,6 @@
-odoo.define('account_invoice_extract.FieldButton', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var Widget = require('web.Widget');
+import Widget from 'web.Widget';
 
 /**
  * This widget represents a field button on top of the attachment preview,
@@ -89,6 +88,4 @@ var InvoiceExtractFieldButton = Widget.extend({
     },
 });
 
-return InvoiceExtractFieldButton;
-
-});
+export default InvoiceExtractFieldButton;

@@ -10,16 +10,19 @@ class HrPayrollIndex(models.TransientModel):
     _name = 'hr.payroll.index'
     _description = 'Index contracts'
 
-    @api.model
-    def default_get(self, field_list):
-        res = super().default_get(field_list)
-        res['contract_ids'] = self.env.context.get('active_ids', [])
-        return res
+    def _get_default_contract_ids(self):
+        if self.env.context.get("active_ids"):
+            return self.env.context.get("active_ids")
+        return self.env['hr.contract'].search([('state', '=', 'open')])
 
-    percentage = fields.Float("Percentage", widget='percentage')
-    description = fields.Char("Description", default=lambda self: _("Wage indexed on %s") % format_date(self.env, fields.Date.today()),
+    percentage = fields.Float("Percentage")
+    description = fields.Char(
+        "Description", compute='_compute_description', store=True, readonly=False,
         help="Will be used as the message specifying why the wage on the contract has been modified")
-    contract_ids = fields.Many2many('hr.contract', string="Contracts")
+    contract_ids = fields.Many2many(
+        'hr.contract', string="Contracts",
+        default=_get_default_contract_ids,
+    )
     display_warning = fields.Boolean("Error", compute='_compute_display_warning')
 
     @api.depends('contract_ids')
@@ -28,8 +31,16 @@ class HrPayrollIndex(models.TransientModel):
             contracts = index.contract_ids
             index.display_warning = any(contract.state != 'open' for contract in contracts)
 
+    @api.depends('percentage')
+    def _compute_description(self):
+        for record in self:
+            record.description = _('Wage indexed by %.2f%% on %s', self.percentage * 100, format_date(self.env, fields.Date.today()))
+
+    @api.model
     def _index_wage(self, contract):
-        contract.write({'wage': contract.wage + contract.wage * self.percentage / 100})
+        wage_field = contract._get_contract_wage_field()
+        wage = contract[wage_field]
+        contract.write({wage_field: wage * (1 + self.percentage)})
 
     def action_confirm(self):
         self.ensure_one()
@@ -40,4 +51,4 @@ class HrPayrollIndex(models.TransientModel):
         if self.percentage:
             for contract in self.contract_ids:
                 self._index_wage(contract)
-                contract.message_post(body=self.description, message_type="comment", subtype="mail.mt_note")
+                contract.with_context(mail_create_nosubscribe=True).message_post(body=self.description, message_type="comment", subtype_xmlid="mail.mt_note")

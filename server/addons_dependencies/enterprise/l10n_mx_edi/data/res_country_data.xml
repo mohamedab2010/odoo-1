@@ -467,6 +467,7 @@
     </record>
     <record id="base.mx" model="res.country">
         <field name="l10n_mx_edi_code">MEX</field>
+        <field name="address_view_id" ref="l10n_mx_edi.mx_partner_address_form"/>
     </record>
     <record id="base.my" model="res.country">
         <field name="l10n_mx_edi_code">MYS</field>
@@ -746,46 +747,5 @@
     </record>
     <record id="base.zw" model="res.country">
         <field name="l10n_mx_edi_code">ZWE</field>
-    </record>
-
-    <!-- mx partner address -->
-    <record id="mx_partner_address_form" model="ir.ui.view">
-        <field name="name">mx.partner.form.address</field>
-        <field name="model">res.partner</field>
-        <field name="priority" eval="900"/>
-        <field name="arch" type="xml">
-            <form>
-                <div class="o_address_format">
-                    <field name="parent_id" invisible="1"/>
-                    <field name="type" invisible="1"/>
-                    <field name="street" invisible="1"/>
-                    <field name="street_name" placeholder="Street Name..." attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
-                    <div class="o_row">
-                        <label for="street_number" class="oe_edit_only"/>
-                        <span> </span>
-                        <field name="street_number" attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
-                        <label for="street_number2" class="oe_edit_only"/>
-                        <field name="street_number2" attrs="{'readonly': [('type', '=', 'contact'),('parent_id', '!=', False)]}"/>
-                    </div>
-                    <field name="street2" attrs="{'invisible': [('street2', '=', False)] }"/>
-                    <div>
-                        <div class="o_row">
-                            <field name="l10n_mx_edi_colony" placeholder="Colony..."/>
-                            <field name="l10n_mx_edi_colony_code" placeholder="Colony Code..." attrs="{'invisible': [('type', '!=', 'invoice')]}"/>
-                            <field name="l10n_mx_edi_locality" placeholder="Locality..."/>
-                            <field name="l10n_mx_edi_locality_id" placeholder="Locality..." domain="[('state_id','=', state_id)]" options='{"no_create": True}'/>
-                        </div>
-                    </div>
-                    <field name="city" placeholder="City" class="o_address_city"/>
-                    <field name="state_id" class="o_address_state" placeholder="State" options='{"no_open": True}'/>
-                    <field name="zip" placeholder="ZIP" class="o_address_zip"/>
-                    <field name="country_id" placeholder="Country" class="o_address_country" options='{"no_open": True, "no_create": True}'/>
-                </div>
-            </form>
-        </field>
-    </record>
-    <record id="base.mx" model="res.country">
-        <field name="enforce_cities" eval="1" />
-        <field name="address_view_id" ref="mx_partner_address_form" />
     </record>
 </odoo>

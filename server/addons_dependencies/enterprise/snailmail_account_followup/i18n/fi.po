@@ -3,20 +3,21 @@
 # 	* snailmail_account_followup
 # 
 # Translators:
-# Tommi Rintala <tommi.rintala@gmail.com>, 2019
-# Martin Trigaux, 2019
-# Kari Lindgren <kari.lindgren@emsystems.fi>, 2019
-# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2019
-# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2019
-# Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2019
+# Tommi Rintala <tommi.rintala@gmail.com>, 2021
+# Martin Trigaux, 2021
+# Kari Lindgren <kari.lindgren@emsystems.fi>, 2021
+# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2021
+# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2021
+# Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2021
+# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-23 11:39+0000\n"
-"PO-Revision-Date: 2019-09-13 11:49+0000\n"
-"Last-Translator: Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2019\n"
+"POT-Creation-Date: 2022-01-24 09:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2022\n"
 "Language-Team: Finnish (https://www.transifex.com/odoo/teams/41243/fi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -68,17 +69,25 @@ msgid "Cancel"
 msgstr "Peruuta"
 
 #. module: snailmail_account_followup
+#: model:ir.model,name:snailmail_account_followup.model_res_partner
+msgid "Contact"
+msgstr "Kontakti"
+
+#. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__create_uid
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__create_uid
 msgid "Created by"
 msgstr "Luonut"
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__create_date
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__create_date
 msgid "Created on"
 msgstr "Luotu"
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__display_name
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__display_name
 msgid "Display Name"
 msgstr "Näyttönimi"
 
@@ -93,7 +102,13 @@ msgid "Follow-up Report"
 msgstr ""
 
 #. module: snailmail_account_followup
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__followup_id
+msgid "Followup"
+msgstr "Seuranta"
+
+#. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__id
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__id
 msgid "ID"
 msgstr "Tunniste (ID)"
 
@@ -112,18 +127,26 @@ msgstr ""
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send____last_update
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup____last_update
 msgid "Last Modified on"
 msgstr "Viimeksi muokattu"
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__write_uid
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__write_uid
 msgid "Last Updated by"
-msgstr "Viimeksi päivitetty"
+msgstr "Viimeksi päivittänyt"
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__write_date
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__write_date
 msgid "Last Updated on"
 msgstr "Viimeksi päivitetty"
+
+#. module: snailmail_account_followup
+#: model:ir.model.fields,field_description:snailmail_account_followup.field_snailmail_confirm_followup__model_name
+msgid "Model Name"
+msgstr "Mallin nimi"
 
 #. module: snailmail_account_followup
 #: model:ir.model.fields,field_description:snailmail_account_followup.field_followup_send__letters_qty
@@ -152,7 +175,7 @@ msgstr "Lähetä kirje"
 
 #. module: snailmail_account_followup
 #. openerp-web
-#: code:addons/snailmail_account_followup/static/src/xml/account_reports_followup_template.xml:0
+#: code:addons/snailmail_account_followup/static/src/xml/account_followup_template.xml:0
 #: model_terms:ir.ui.view,arch_db:snailmail_account_followup.followup_send_wizard_form
 #, python-format
 msgid "Send by Post"
@@ -166,6 +189,11 @@ msgstr ""
 #. module: snailmail_account_followup
 #: model_terms:ir.ui.view,arch_db:snailmail_account_followup.followup_send_wizard_form
 msgid "Sending these"
+msgstr ""
+
+#. module: snailmail_account_followup
+#: model:ir.model,name:snailmail_account_followup.model_snailmail_confirm_followup
+msgid "Snailmail Confirm Followup"
 msgstr ""
 
 #. module: snailmail_account_followup
@@ -186,4 +214,10 @@ msgstr "asiakkaat"
 #. module: snailmail_account_followup
 #: model_terms:ir.ui.view,arch_db:snailmail_account_followup.followup_send_wizard_form
 msgid "documents will cost"
+msgstr ""
+
+#. module: snailmail_account_followup
+#: code:addons/snailmail_account_followup/wizard/followup_send.py:0
+#, python-format
+msgid "follow-up report"
 msgstr ""

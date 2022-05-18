@@ -71,7 +71,7 @@ class ConsolidationChart(models.Model):
             'views': [[self.env.ref('account_consolidation.consolidation_account_tree_mapping').id, 'list']],
             'domain': [('chart_id', '=', self.id)],
             'context': {},
-            'name': _('Account Mapping: ') + self.name,
+            'name': _('Account Mapping: %(chart)s', chart=self.name),
             'search_view_id': [self.env.ref('account_consolidation.consolidation_account_search_mapping').id, 'search']
         }
 
@@ -83,7 +83,7 @@ class ConsolidationChart(models.Model):
         Called by the 'Create' button of the setup bar in "first consolidation" step.
         :return: the action to execute
         """
-        action = self.env.ref('account_consolidation.consolidation_chart_action_onboarding').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_chart_action_onboarding")
         last_chart = self.search([], order="id desc", limit=1)
         if last_chart.id:
             action.update({
@@ -100,7 +100,7 @@ class ConsolidationChart(models.Model):
         Called by the 'Setup' button of the setup bar in "Consolidated Chart of Accounts" step.
         :return: the action to execute
         """
-        action = self.env.ref('account_consolidation.consolidation_account_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_account_action")
         last_chart = self.search([], order="id desc", limit=1)
         action.update({
             'context': {'default_chart_id': last_chart.id, 'search_default_chart_id': last_chart.id},
@@ -118,7 +118,7 @@ class ConsolidationChart(models.Model):
         Called by the 'Create' button of the setup bar in "first period" step.
         :return: the action to execute
         """
-        action = self.env.ref('account_consolidation.consolidation_period_action_onboarding').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_period_action_onboarding")
         last_chart = self.search([], order="id desc", limit=1)
         action.update({'context': {'default_chart_id': last_chart.id}})
         return action
@@ -165,6 +165,18 @@ class ConsolidationAccount(models.Model):
         ('code_uniq', 'unique (code, chart_id)',
          "A consolidation account with the same code already exists in this consolidation."),
     ]
+
+    def write(self, vals):
+        for account in self:
+            active_companies = self.env.companies
+            if 'account_ids' in vals and not vals.get('account_ids'):
+                vals.pop('account_ids', False)
+            elif vals.get('account_ids') and vals['account_ids'][0][0] == 6 and account.company_ids - active_companies:
+                next_accounts = self.env['account.account'].browse(vals['account_ids'][0][2])
+                add_accounts = [(4, account.id) for account in next_accounts - account.account_ids]
+                remove_accounts = [(3, account.id) for account in account.account_ids - next_accounts]
+                vals['account_ids'][:1] = add_accounts + remove_accounts
+        return super(ConsolidationAccount, self).write(vals)
 
     # COMPUTEDS
 
@@ -247,7 +259,7 @@ class ConsolidationGroup(models.Model):
     _parent_name = "parent_id"
     _parent_store = True
 
-    chart_id = fields.Many2one('consolidation.chart', string="Consolidation", required=True)
+    chart_id = fields.Many2one('consolidation.chart', string="Consolidation", required=True, ondelete='cascade')
     name = fields.Char(string='Name', required=True)
     sequence = fields.Integer()
     show_on_dashboard = fields.Boolean(default=False)
@@ -266,7 +278,7 @@ class ConsolidationGroup(models.Model):
         """
         for record in self:
             if record.child_ids and len(record.child_ids) > 0 and record.account_ids and len(record.account_ids) > 0:
-                raise models.ValidationError(_("An account group can only have accounts or other groups children but not both !"))
+                raise ValidationError(_("An account group can only have accounts or other groups children but not both !"))
 
     def name_get(self):
         ret_list = []

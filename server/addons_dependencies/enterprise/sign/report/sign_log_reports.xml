@@ -10,20 +10,22 @@
                 <t t-set="view_logs" t-value="o.sudo().sign_log_ids.filtered(lambda l: l.action == 'open')"/>
                 <t t-set="change_logs" t-value="o.sudo().sign_log_ids - view_logs"/>
                 <t t-set="creation_log" t-value="o.sudo().sign_log_ids.filtered(lambda l: l.action == 'create')"/>
-                <t t-call="web.external_layout"><br/>
+                <t t-call="web.external_layout">
                     <h2 class="mt16">
-                        Completion History<br/>
-                        <strong t-field="o.reference"/>
+                        Certificate of Completion<br/>
                     </h2>
+                    <h4>
+                        <strong t-field="o.reference"/>
+                    </h4>
                     <div class="text-muted small">Printed on <t t-esc="print_date"/> UTC</div>
                     <h5 class="mt16">Document Details</h5>
 
                     <div class="row">
                         <div class="col-6">
-                            <div><b>Created by:</b> <span t-field="o.create_uid.partner_id"/></div>
+                            <div><b>Created by:</b> <span t-field="o.create_uid.sudo().partner_id"/></div>
                             <div><b>Created on:</b> <span t-field="o.create_date"/> (UTC)</div>
                             <div><b>Creation IP Address:</b> <span t-esc="creation_log and creation_log[0].ip"/></div>
-                            <div><b>Signers:</b> <span t-esc="len(o.request_item_ids)"/></div>
+                            <div><b>Signers:</b> <span t-esc="len(o.sudo().request_item_ids)"/></div>
                         </div>
                         <div class="col-6">
                             <div><b>Document ID:</b> <t t-esc="o.id"/></div>
@@ -33,7 +35,7 @@
                     <br/>
                     <h5>Signing Events</h5>
                     <table class="table table-sm o_main_table small">
-                        <t t-set="has_sms_validation" t-value="o.request_item_ids.filtered(lambda i: i.sms_token)"/>
+                        <t t-set="has_sms_validation" t-value="o.sudo().request_item_ids.filtered(lambda i: i.sms_token)"/>
                         <thead>
                             <tr>
                                 <th class="text-left">Action</th>
@@ -50,7 +52,7 @@
                                 <tr>
                                     <td>
                                         <span t-field="log.action"/>
-                                        <img t-if="log.sign_request_item_id.signature" class="text-left" t-att-src="image_data_uri(log.sign_request_item_id.signature)" style="max-height: 40px"/>
+                                        <img t-if="log.action != 'save' and log.sign_request_item_id.signature" class="text-left" t-att-src="image_data_uri(log.sign_request_item_id.signature)" style="max-height: 40px"/>
                                     </td>
                                     <td> <span t-field="log.partner_id"/>
                                     <t t-if="log.partner_id.email">
@@ -59,7 +61,10 @@
                                     </td>
                                     <td> <span t-field="log.log_date"/> </td>
                                     <td>
-                                        <t t-if="log.sign_request_item_id.access_via_link">
+                                        <t t-if="log.user_id != False and log.user_id in log.sign_request_item_id.partner_id.user_ids">
+                                            <span class="text-muted text-nowrap"><i class="fa fa-user"/> <t t-esc="log.sign_request_item_id.partner_id.user_ids[0].email"/></span>
+                                        </t>
+                                        <t t-elif="log.sign_request_item_id.access_via_link">
                                             <span t-esc="log.sign_request_item_id.signer_email"/>
                                         </t>
                                         <t t-elif="log.action == 'sign'">
@@ -80,7 +85,7 @@
                                             <span t-field="log.latitude"/>,
                                             <span t-field="log.longitude"/>
                                             <div>
-                                                <a t-attf-href="https://www.google.com/maps/place/{{log.latitude}},{{log.longitude}}">
+                                                <a t-attf-href="https://www.google.com/maps/search/?api=1&amp;query={{log.latitude}},{{log.longitude}}">
                                                     <i class="fa fa-globe"/> View
                                                 </a>
                                             </div>
@@ -106,7 +111,7 @@
                         <p><i class="fa fa-exclamation-circle"/> The document's integrity could not be verified.</p>
                     </div>
                     <div class="small" t-if="o.state == 'signed'">
-                        <p>The final document and this completion history have been sent by email on&amp;nbsp; <span t-field="o.completion_date"/> to: <t t-esc="', '.join(o._get_final_recipients())"/>.</p>
+                        <p>The final document and this completion history have been sent by email on&amp;nbsp; <span t-field="o.completion_date"/> to: <t t-esc="', '.join(o.sudo()._get_final_recipients())"/>.</p>
                     </div>
                     <h5>Access Logs</h5>
                     <table class="table table-sm o_main_table small">
@@ -128,7 +133,7 @@
                                     <t t-if="log.latitude and log.longitude">
                                         <span t-field="log.latitude"/>,
                                         <span t-field="log.longitude"/>
-                                        <a t-attf-href="https://maps.google.com/map/place/{{log.latitude}},{{log.longitude}}">
+                                        <a t-attf-href="https://www.google.com/maps/search/?api=1&amp;query={{log.latitude}},{{log.longitude}}">
                                             <i class="fa fa-globe"/> View
                                         </a>
                                     </t>
@@ -146,11 +151,14 @@
         </t>
     </template>
 
-    <report id="action_sign_request_print_logs"
-        string="Activity Logs"
-        model="sign.request"
-        name="sign.sign_request_logs_user"
-        file="sign.sign_request_logs_user"
-        report_type="qweb-pdf"/>
+    <record id="action_sign_request_print_logs" model="ir.actions.report">
+        <field name="name">Activity Logs</field>
+        <field name="model">sign.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sign.sign_request_logs_user</field>
+        <field name="report_file">sign.sign_request_logs_user</field>
+        <field name="binding_model_id" ref="model_sign_request"/>
+        <field name="binding_type">report</field>
+    </record>
 
 </odoo>

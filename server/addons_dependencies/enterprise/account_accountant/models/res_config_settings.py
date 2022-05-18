@@ -19,10 +19,8 @@ class ResConfigSettings(models.TransientModel):
     tax_lock_date = fields.Date("Tax Lock Date", related='company_id.tax_lock_date', readonly=False)
     use_anglo_saxon = fields.Boolean(string='Anglo-Saxon Accounting', related='company_id.anglo_saxon_accounting', readonly=False)
     module_account_predictive_bills = fields.Boolean(string="Account Predictive Bills")
-    transfer_account_id = fields.Many2one('account.account', string="Transfer Account",
-        related='company_id.transfer_account_id', readonly=False,
-        domain=lambda self: [('reconcile', '=', True), ('user_type_id.id', '=', self.env.ref('account.data_account_type_current_assets').id)],
-        help="Intermediary account used when moving money from a liquidity account to another")
+    invoicing_switch_threshold = fields.Date(string="Invoicing Switch Threshold", related='company_id.invoicing_switch_threshold', readonly=False)
+    group_fiscal_year = fields.Boolean(string='Fiscal Years', implied_group='account_accountant.group_fiscal_year')
 
     @api.constrains('fiscalyear_last_day', 'fiscalyear_last_month')
     def _check_fiscalyear(self):

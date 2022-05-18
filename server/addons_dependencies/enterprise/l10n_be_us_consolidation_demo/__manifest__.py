@@ -3,8 +3,9 @@
 
 {
     'name': 'Account Consolidation Demo Data',
+    'icon': '/l10n_be/static/description/icon.png',
     'version': '1.0',
-    'category': 'Accounting/Accounting',
+    'category': 'Hidden',
     'sequence': 50,
     'summary': 'Account Consolidation Demo Data using a Belgium and a US company',
     'depends': ['account_consolidation', 'l10n_be', 'l10n_generic_coa'],
@@ -14,8 +15,6 @@ Account Consolidation Demo Data
 """,
     'data': [],
     'demo': [
-        'data/company.xml',
-        'data/company_config.xml',
         'data/consolidation_config.xml',
         'data/liaison_accounts.xml',
         'data/invoices.xml',

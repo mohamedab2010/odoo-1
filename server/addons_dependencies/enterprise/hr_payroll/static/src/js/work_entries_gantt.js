@@ -1,35 +1,12 @@
-odoo.define('hr_payroll_gantt.work_entries_gantt', function(require) {
+odoo.define('hr_payroll.work_entries_gantt', function (require) {
     'use strict';
 
-    var WorkEntryControllerMixin = require('hr_payroll.WorkEntryControllerMixin');
-    var GanttView = require('web_gantt.GanttView');
-    var GanttController = require('web_gantt.GanttController');
-    var viewRegistry = require('web.view_registry');
+    var WorkEntryPayrollControllerMixin = require('hr_payroll.WorkEntryPayrollControllerMixin');
+    var WorkEntryGanttController = require("hr_work_entry_contract_enterprise.work_entries_gantt");
 
+    var WorkEntryPayrollGanttController = WorkEntryGanttController.include(WorkEntryPayrollControllerMixin);
 
-    var WorkEntryGanttController = GanttController.extend(WorkEntryControllerMixin, {
-        events: _.extend({}, WorkEntryControllerMixin.events, GanttController.prototype.events),
-
-        _fetchRecords: function () {
-            return this.model.ganttData.records;
-        },
-        _fetchFirstDay: function () {
-            return this.model.ganttData.startDate;
-        },
-        _fetchLastDay: function () {
-            return this.model.ganttData.stopDate;
-        },
-        _displayWarning: function ($warning) {
-            this.$('.o_gantt_view').before($warning);
-        },
-    });
-
-    var WorkEntryGanttView = GanttView.extend({
-        config: _.extend({}, GanttView.prototype.config, {
-            Controller: WorkEntryGanttController,
-        }),
-    });
-
-    viewRegistry.add('work_entries_gantt', WorkEntryGanttView);
+    return WorkEntryPayrollGanttController;
 
 });
+

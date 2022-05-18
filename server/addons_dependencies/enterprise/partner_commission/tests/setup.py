@@ -36,9 +36,13 @@ class TestCommissionsSetup(TransactionCase):
 
         self.sale_journal = self.env['account.journal'].create({
             'name': 'sales',
-            'code': 'SAL',
+            'code': 'comSA',
             'type': 'sale',
         })
+
+        (self.bank_journal.inbound_payment_method_line_ids + self.bank_journal.outbound_payment_method_line_ids)\
+            .filtered(lambda x: x.code != 'manual')\
+            .unlink()
 
     def _make_partners(self):
         self.referrer = self.env['res.partner'].create({
@@ -87,7 +91,8 @@ class TestCommissionsSetup(TransactionCase):
             'recurring_invoice': True,
             'purchase_ok': True,
             'property_account_income_id': self.account_sale.id,
-            'subscription_template_id': self.template_yearly.id
+            'subscription_template_id': self.template_yearly.id,
+            'invoice_policy': 'order',
         })
 
         self.staging = self.env['product.product'].create({
@@ -97,7 +102,8 @@ class TestCommissionsSetup(TransactionCase):
             'recurring_invoice': True,
             'purchase_ok': True,
             'property_account_income_id': self.account_sale.id,
-            'subscription_template_id': self.template_yearly.id
+            'subscription_template_id': self.template_yearly.id,
+            'invoice_policy': 'order',
         })
 
         # apps support
@@ -112,7 +118,8 @@ class TestCommissionsSetup(TransactionCase):
             'recurring_invoice': True,
             'purchase_ok': True,
             'property_account_income_id': self.account_sale.id,
-            'subscription_template_id': self.template_yearly.id
+            'subscription_template_id': self.template_yearly.id,
+            'invoice_policy': 'order',
         })
 
         self.invoicing = self.env['product.product'].create({
@@ -122,7 +129,8 @@ class TestCommissionsSetup(TransactionCase):
             'recurring_invoice': True,
             'purchase_ok': True,
             'property_account_income_id': self.account_sale.id,
-            'subscription_template_id': self.template_yearly.id
+            'subscription_template_id': self.template_yearly.id,
+            'invoice_policy': 'order',
         })
 
     def _make_commission_plans(self):
@@ -261,7 +269,7 @@ class TestCommissionsSetup(TransactionCase):
         so.action_confirm()
 
         inv = so._create_invoices()
-        inv.post()
+        inv.action_post()
         self._pay_invoice(inv)
 
         return inv
@@ -271,7 +279,7 @@ class TestCommissionsSetup(TransactionCase):
         payment_register = self.env['account.payment.register'].with_user(self.salesman).with_context(ctx).create({
             'journal_id': self.bank_journal.id,
         })
-        payment_register.create_payments()
+        payment_register._create_payments()
 
 
 class Spec:

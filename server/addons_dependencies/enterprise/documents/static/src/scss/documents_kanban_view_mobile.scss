@@ -1,5 +1,5 @@
 @include media-breakpoint-down(sm) {
-    .o_documents_kanban {
+    .o_documents_content {
         details.o_documents_mobile_inspector {
             > summary {
                 @include o-details-hide-caret();
@@ -58,30 +58,12 @@
             100%  {opacity: 1; left: 0}
         }
 
-        &.o_chatter_open .o_document_chatter {
-            @include o-details-modal();
+        &.o_chatter_open .o_document_chatter_container {
             box-shadow: none;
             animation: o_documents_sweepright 0.3s ease-in-out;
-
-            .o_document_close_chatter {
-                @include o-details-modal($bottom: initial);
-                @include o-details-modal-header();
-                width: auto;
-                padding: 1rem 1.4rem;
-                border-radius: 0;
-                font-size: 2.6rem;
-                font-weight: 300;
-                line-height: 1.8rem;
-                text-align: right !important;
-
-            }
-
-            .o_chatter_topbar .o_topbar_right_area {
-                margin-right: initial;
-            }
-
-            .o_chatter {
-                padding-top: $o-navbar-height !important;
+            
+            .o_ChatterTopbar_buttonClose {
+                display: none;
             }
         }
     }

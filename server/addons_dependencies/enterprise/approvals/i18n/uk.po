@@ -3,22 +3,27 @@
 # 	* approvals
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 10:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2021\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Language: uk\n"
 "Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
+
+#. module: approvals
+#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
+msgid "<span class=\"fa fa-warning\" title=\"Invalid minimum approvals\"/>"
+msgstr "<span class=\"fa fa-warning\" title=\"Invalid minimum approvals\"/>"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
@@ -61,10 +66,15 @@ msgid "Activity State"
 msgstr "Стан дії"
 
 #. module: approvals
-#: model:ir.model.fields,help:approvals.field_approval_category__has_item
-#: model:ir.model.fields,help:approvals.field_approval_request__has_item
-msgid "Additional items that should be specified on the request."
-msgstr "Додаткові елементи, які необхідно вказати на запиті."
+#: model:ir.model.fields,field_description:approvals.field_approval_request__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "Іконка типу дії"
+
+#. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_category__has_product
+#: model:ir.model.fields,help:approvals.field_approval_request__has_product
+msgid "Additional products that should be specified on the request."
+msgstr "Додаткові товари, які слід визначити на запиті."
 
 #. module: approvals
 #: model:res.groups,name:approvals.group_approval_manager
@@ -76,6 +86,16 @@ msgstr "Адміністратор"
 #: model:ir.ui.menu,name:approvals.approvals_approval_menu_all
 msgid "All Approvals"
 msgstr "Усі схвалення"
+
+#. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_category__approval_type
+#: model:ir.model.fields,help:approvals.field_approval_request__approval_type
+msgid ""
+"Allows you to define which documents you would like to create once the "
+"request has been approved"
+msgstr ""
+"Дозволяє вам визначити, які документи ви би хотіли створити після того, як "
+"підтверджено запит"
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__amount
@@ -90,6 +110,12 @@ msgid "An additional reference that should be specified on the request."
 msgstr "Додаткове посилання, яке повинно бути вказане на запиті."
 
 #. module: approvals
+#: code:addons/approvals/models/approval_category.py:0
+#, python-format
+msgid "An user may not be in the approver list multiple times."
+msgstr "Користувач може не бути в списку затверджувачів кілька разів."
+
+#. module: approvals
 #: model:mail.activity.type,name:approvals.mail_activity_data_approval
 msgid "Approval"
 msgstr "Схвалення"
@@ -101,6 +127,7 @@ msgstr "Категорія схвалення"
 
 #. module: approvals
 #: model:ir.model,name:approvals.model_approval_request
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__approval_request_id
 msgid "Approval Request"
 msgstr "Запит на затвердження"
 
@@ -110,14 +137,22 @@ msgid "Approval Subject"
 msgstr "Тема схвалення"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__approval_type
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__category_id
+#: model:ir.model.fields,field_description:approvals.field_approval_request__approval_type
+#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
+msgid "Approval Type"
+msgstr "Тип затвердження"
+
+#. module: approvals
+#: model:ir.model,name:approvals.model_approval_category_approver
+msgid "Approval Type Approver"
+msgstr "Затверджувач типу затвердження"
+
+#. module: approvals
 #: model:ir.ui.menu,name:approvals.approvals_menu_root
 msgid "Approvals"
 msgstr "Затвердження"
-
-#. module: approvals
-#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
-msgid "Approvals Type Name"
-msgstr "Назва типу затвердження"
 
 #. module: approvals
 #: model:ir.actions.act_window,name:approvals.approval_category_action
@@ -143,7 +178,8 @@ msgstr "Схвалення для перегляду"
 
 #. module: approvals
 #. openerp-web
-#: code:addons/approvals/static/src/xml/activity.xml:0
+#: code:addons/approvals/static/src/components/approval/approval.xml:0
+#: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_kanban
@@ -160,10 +196,15 @@ msgstr "Затверджено"
 
 #. module: approvals
 #: model:ir.model,name:approvals.model_approval_approver
-#: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
 #: model:res.groups,name:approvals.group_approval_user
+#: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
 msgid "Approver"
 msgstr "Підтверджувач"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__user_ids
+msgid "Approver Users"
+msgstr "Користувачі-затверджувачі"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
@@ -171,7 +212,7 @@ msgid "Approver(s)"
 msgstr "Підтверджувач(і)"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_category__user_ids
+#: model:ir.model.fields,field_description:approvals.field_approval_category__approver_ids
 #: model:ir.model.fields,field_description:approvals.field_approval_request__approver_ids
 #: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
 msgid "Approvers"
@@ -179,6 +220,7 @@ msgstr "Підтверджувачі"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
+#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_search
 msgid "Archived"
 msgstr "Заархівовано"
 
@@ -193,10 +235,10 @@ msgid "Attachment Count"
 msgstr "Підрахунок прикріплень"
 
 #. module: approvals
-#: model:ir.model.fields,help:approvals.field_approval_category__is_manager_approver
-#: model:ir.model.fields,help:approvals.field_approval_request__is_manager_approver
-msgid "Automatically add the manager as approver on the request."
-msgstr "Автоматично додати менеджера як затверджувача на запит."
+#: model:ir.model.fields,field_description:approvals.field_approval_category__automated_sequence
+#: model:ir.model.fields,field_description:approvals.field_approval_request__automated_sequence
+msgid "Automated Sequence?"
+msgstr "Атвоматична послідовність?"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
@@ -214,6 +256,11 @@ msgid "Business Trip"
 msgstr "Бізнес-подорож"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_approver__can_edit
+msgid "Can Edit"
+msgstr "Можна редагувати"
+
+#. module: approvals
 #: model:ir.model.fields.selection,name:approvals.selection__approval_approver__status__cancel
 #: model:ir.model.fields.selection,name:approvals.selection__approval_request__request_status__cancel
 #: model:ir.model.fields.selection,name:approvals.selection__approval_request__user_status__cancel
@@ -227,9 +274,24 @@ msgid "Car Rental Application"
 msgstr "Додаток прокату автомобілів"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__product_uom_category_id
 #: model:ir.model.fields,field_description:approvals.field_approval_request__category_id
 msgid "Category"
 msgstr "Категорія"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__sequence_code
+msgid "Code"
+msgstr "Код"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_approver__company_id
+#: model:ir.model.fields,field_description:approvals.field_approval_category__company_id
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__company_id
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__company_id
+#: model:ir.model.fields,field_description:approvals.field_approval_request__company_id
+msgid "Company"
+msgstr "Компанія"
 
 #. module: approvals
 #: model:ir.ui.menu,name:approvals.approvals_menu_config
@@ -248,8 +310,20 @@ msgid "Contract Approval"
 msgstr "Затвердження контракту"
 
 #. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_product_line__product_uom_category_id
+msgid ""
+"Conversion between Units of Measure can only occur if they belong to the "
+"same category. The conversion will be made based on the ratios."
+msgstr ""
+"Конвертація між одиницями вимірювання може відбуватися лише у тому випадку, "
+"якщо вони належать до однієї і тієї ж категорії. Конвертація буде "
+"здійснюватися на основі співвідношення."
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__create_uid
 #: model:ir.model.fields,field_description:approvals.field_approval_category__create_uid
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__create_uid
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__create_uid
 #: model:ir.model.fields,field_description:approvals.field_approval_request__create_uid
 msgid "Created by"
 msgstr "Створив"
@@ -257,6 +331,8 @@ msgstr "Створив"
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__create_date
 #: model:ir.model.fields,field_description:approvals.field_approval_category__create_date
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__create_date
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__create_date
 #: model:ir.model.fields,field_description:approvals.field_approval_request__create_date
 msgid "Created on"
 msgstr "Створено на"
@@ -291,6 +367,7 @@ msgstr "Початкова дата"
 #. module: approvals
 #. openerp-web
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
+#: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #, python-format
 msgid "Deadline"
 msgstr "Кінцевий термін"
@@ -302,6 +379,7 @@ msgstr "Видалити"
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_category__description
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__description
 #: model:ir.model.fields,field_description:approvals.field_approval_request__reason
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
 msgid "Description"
@@ -310,6 +388,8 @@ msgstr "Опис"
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__display_name
 #: model:ir.model.fields,field_description:approvals.field_approval_category__display_name
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__display_name
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__display_name
 #: model:ir.model.fields,field_description:approvals.field_approval_request__display_name
 msgid "Display Name"
 msgstr "Назва для відображення"
@@ -342,10 +422,19 @@ msgid "Edit Request"
 msgstr "Редагувати запит"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_category__is_manager_approver
-#: model:ir.model.fields,field_description:approvals.field_approval_request__is_manager_approver
+#: model:ir.model.fields,field_description:approvals.field_approval_category__manager_approval
 msgid "Employee's Manager"
 msgstr "Менеджер співробітників"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_approver__existing_request_user_ids
+msgid "Existing Request User"
+msgstr "Користувач існуючого запиту"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__existing_user_ids
+msgid "Existing User"
+msgstr "Існуючий користувач"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
@@ -358,14 +447,14 @@ msgid "Followers"
 msgstr "Підписники"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_request__message_channel_ids
-msgid "Followers (Channels)"
-msgstr "Підписники (Канали)"
-
-#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__message_partner_ids
 msgid "Followers (Partners)"
 msgstr "Підписники (Партнери)"
+
+#. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_request__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "Іконка зі чудовим шрифтом, напр. fa-tasks"
 
 #. module: approvals
 #: model:approval.category,name:approvals.approval_category_data_general_approval
@@ -396,16 +485,15 @@ msgid "Has Date"
 msgstr "Має дату"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_category__has_item
-#: model:ir.model.fields,field_description:approvals.field_approval_request__has_item
-msgid "Has Item"
-msgstr "Має елемент"
-
-#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_category__has_location
 #: model:ir.model.fields,field_description:approvals.field_approval_request__has_location
 msgid "Has Location"
 msgstr "Має розташування"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_request__has_message
+msgid "Has Message"
+msgstr "Є повідомлення"
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_category__has_payment_method
@@ -420,6 +508,12 @@ msgid "Has Period"
 msgstr "Має період"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__has_product
+#: model:ir.model.fields,field_description:approvals.field_approval_request__has_product
+msgid "Has Product"
+msgstr "Має товар"
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_category__has_quantity
 #: model:ir.model.fields,field_description:approvals.field_approval_request__has_quantity
 msgid "Has Quantity"
@@ -432,8 +526,27 @@ msgid "Has Reference"
 msgstr "Має посилання"
 
 #. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_category__manager_approval
+msgid ""
+"How the employee's manager interacts with this type of approval.\n"
+"\n"
+"        Empty: do nothing\n"
+"        Is Approver: the employee's manager will be in the approver list\n"
+"        Is Required Approver: the employee's manager will be required to approve the request.\n"
+"    "
+msgstr ""
+"Як керівник співробітника взаємодіє з цим типом затвердження.\n"
+"\n"
+"        Пусто: нічого не робити\n"
+"        Є затверджувачем: керівник працівника буде в списку затверджувачів\n"
+"       Потрібний затверджувач: менеджер працівника повинен буде затвердити запит.\n"
+"    "
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__id
 #: model:ir.model.fields,field_description:approvals.field_approval_category__id
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__id
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__id
 #: model:ir.model.fields,field_description:approvals.field_approval_request__id
 msgid "ID"
 msgstr "ID"
@@ -456,14 +569,39 @@ msgstr "Якщо позначено, то нові повідомлення бу
 
 #. module: approvals
 #: model:ir.model.fields,help:approvals.field_approval_request__message_has_error
-#: model:ir.model.fields,help:approvals.field_approval_request__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
 msgstr "Якщо позначено, деякі повідомлення мають помилку доставки."
 
 #. module: approvals
+#: model:ir.model.fields,help:approvals.field_approval_category__automated_sequence
+#: model:ir.model.fields,help:approvals.field_approval_request__automated_sequence
+msgid ""
+"If checked, the Approval Requests will have an automated generated name "
+"based on the given code."
+msgstr ""
+"Якщо позначено, Запити на затвердження будуть мати автоматично ствоерні "
+"назви на основі наданого коду."
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_category__image
+#: model:ir.model.fields,field_description:approvals.field_approval_request__category_image
 msgid "Image"
 msgstr "Зображення"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__invalid_minimum
+msgid "Invalid Minimum"
+msgstr "Недійсний мінімум"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__invalid_minimum_warning
+msgid "Invalid Minimum Warning"
+msgstr "Попередження недійсного мінімуму"
+
+#. module: approvals
+#: model:ir.model.fields.selection,name:approvals.selection__approval_category__manager_approval__approver
+msgid "Is Approver"
+msgstr "Є затверджувачем"
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__message_is_follower
@@ -471,10 +609,9 @@ msgid "Is Follower"
 msgstr "Стежить"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_request__items
-#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
-msgid "Items"
-msgstr "Елементи"
+#: model:ir.model.fields.selection,name:approvals.selection__approval_category__manager_approval__required
+msgid "Is Required Approver"
+msgstr "Потрібний затверджувач"
 
 #. module: approvals
 #: model:approval.category,name:approvals.approval_category_data_job_referral_award
@@ -484,6 +621,8 @@ msgstr "Нагорода направлення на роботу"
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver____last_update
 #: model:ir.model.fields,field_description:approvals.field_approval_category____last_update
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver____last_update
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line____last_update
 #: model:ir.model.fields,field_description:approvals.field_approval_request____last_update
 msgid "Last Modified on"
 msgstr "Останні зміни на"
@@ -491,6 +630,8 @@ msgstr "Останні зміни на"
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__write_uid
 #: model:ir.model.fields,field_description:approvals.field_approval_category__write_uid
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__write_uid
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__write_uid
 #: model:ir.model.fields,field_description:approvals.field_approval_request__write_uid
 msgid "Last Updated by"
 msgstr "Востаннє оновив"
@@ -498,9 +639,17 @@ msgstr "Востаннє оновив"
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__write_date
 #: model:ir.model.fields,field_description:approvals.field_approval_category__write_date
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__write_date
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__write_date
 #: model:ir.model.fields,field_description:approvals.field_approval_request__write_date
 msgid "Last Updated on"
 msgstr "Останнє оновлення"
+
+#. module: approvals
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action_all
+msgid "Let's go to the"
+msgstr "Давайте перейдемо в"
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__location
@@ -510,6 +659,7 @@ msgstr "Місцезнаходження"
 
 #. module: approvals
 #. openerp-web
+#: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #, python-format
 msgid "Log"
@@ -540,6 +690,20 @@ msgstr "Повідомлення"
 #: model:ir.model.fields,field_description:approvals.field_approval_request__approval_minimum
 msgid "Minimum Approval"
 msgstr "Мінімальне схвалення"
+
+#. module: approvals
+#: code:addons/approvals/models/approval_category.py:0
+#, python-format
+msgid ""
+"Minimum Approval must be equal or superior to the sum of required Approvers."
+msgstr ""
+"Мінімальне схвалення має дорівнювати або перевищувати суму необхідних "
+"схвалювачів."
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_request__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "Дедлайн моєї дії"
 
 #. module: approvals
 #: model:ir.ui.menu,name:approvals.approvals_approval_menu
@@ -580,6 +744,11 @@ msgid "New Request"
 msgstr "Новий запит"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_request__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr "Наступна дія календаря подія"
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__activity_date_deadline
 msgid "Next Activity Deadline"
 msgstr "Дедлайн наступної дії"
@@ -595,18 +764,29 @@ msgid "Next Activity Type"
 msgstr "Тип наступної дії"
 
 #. module: approvals
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action_all
+msgid "No Approvals"
+msgstr "Немає затверджень"
+
+#. module: approvals
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action
+msgid "No Approvals Requests"
+msgstr "Немає запитів на затвердження"
+
+#. module: approvals
 #: model_terms:ir.actions.act_window,help:approvals.approval_request_action_to_review
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action_to_review_category
 msgid "No new approvals to review"
 msgstr "Немає нових затверджень до перегляду"
 
 #. module: approvals
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_amount__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_date__no
-#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_item__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_location__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_partner__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_payment_method__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_period__no
+#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_product__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_quantity__no
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_reference__no
 msgid "None"
@@ -650,11 +830,11 @@ msgstr "Кількість непрочитаних повідомлень"
 #. module: approvals
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_amount__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_date__optional
-#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_item__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_location__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_partner__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_payment_method__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_period__optional
+#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_product__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_quantity__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_reference__optional
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__requirer_document__optional
@@ -688,6 +868,33 @@ msgid "Procurement"
 msgstr "Забезпечення"
 
 #. module: approvals
+#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
+msgid "Product"
+msgstr "Товар"
+
+#. module: approvals
+#: model:ir.model,name:approvals.model_approval_product_line
+#: model:ir.model.fields,field_description:approvals.field_approval_request__product_line_ids
+msgid "Product Line"
+msgstr "Рядок товару"
+
+#. module: approvals
+#: model:ir.ui.menu,name:approvals.approvals_menu_product_variant
+msgid "Product Variants"
+msgstr "Варіанти товару"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__product_id
+#: model:ir.ui.menu,name:approvals.approvals_menu_product
+#: model:ir.ui.menu,name:approvals.approvals_menu_product_template
+#: model_terms:ir.ui.view,arch_db:approvals.approval_product_line_view_form
+#: model_terms:ir.ui.view,arch_db:approvals.approval_product_line_view_tree
+#: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
+msgid "Products"
+msgstr "Товари"
+
+#. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__quantity
 #: model:ir.model.fields,field_description:approvals.field_approval_request__quantity
 #: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
 msgid "Quantity"
@@ -700,8 +907,14 @@ msgid "Reference"
 msgstr "Посилання"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_category__sequence_id
+msgid "Reference Sequence"
+msgstr "Послідовність посилань"
+
+#. module: approvals
 #. openerp-web
-#: code:addons/approvals/static/src/xml/activity.xml:0
+#: code:addons/approvals/static/src/components/approval/approval.xml:0
+#: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_kanban
@@ -738,13 +951,15 @@ msgid "Request Status"
 msgstr "Статус запиту"
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_approver__required
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_amount__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_date__required
-#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_item__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_location__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_partner__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_payment_method__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_period__required
+#: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_product__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_quantity__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__has_reference__required
 #: model:ir.model.fields.selection,name:approvals.selection__approval_category__requirer_document__required
@@ -757,20 +972,12 @@ msgid "Responsible User"
 msgstr "Відповідальний користувач"
 
 #. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_request__message_has_sms_error
-msgid "SMS Delivery error"
-msgstr "Помилка доставки SMS"
-
-#. module: approvals
+#: code:addons/approvals/models/approval_category.py:0
+#: code:addons/approvals/models/approval_category.py:0
 #: model:ir.model.fields,field_description:approvals.field_approval_category__sequence
+#, python-format
 msgid "Sequence"
 msgstr "Послідовність"
-
-#. module: approvals
-#: code:addons/approvals/models/approval_request.py:0
-#, python-format
-msgid "State change."
-msgstr "Зміна стану."
 
 #. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__status
@@ -811,8 +1018,38 @@ msgid "The user will have access to the approvals configuration."
 msgstr "Користувач матиме доступ до налаштування схвалення."
 
 #. module: approvals
+#: code:addons/approvals/models/approval_request.py:0
+#, python-format
+msgid ""
+"This request needs to be approved by your manager. There is no manager "
+"linked to your employee profile."
+msgstr ""
+"Цей запит має схвалити ваш менеджер. Немає менеджера, пов’язаного з вашим "
+"профілем співробітника."
+
+#. module: approvals
+#: code:addons/approvals/models/approval_request.py:0
+#, python-format
+msgid ""
+"This request needs to be approved by your manager. There is no user linked "
+"to your manager."
+msgstr ""
+"Цей запит має схвалити ваш менеджер. Немає жодного користувача, пов’язаного "
+"з вашим менеджером."
+
+#. module: approvals
+#: code:addons/approvals/models/approval_request.py:0
+#, python-format
+msgid ""
+"This request needs to be approved by your manager. Your manager is not in "
+"the approvers list."
+msgstr ""
+"Цей запит має схвалити ваш менеджер. Вашого менеджера немає у списку "
+"затверджувачів."
+
+#. module: approvals
 #. openerp-web
-#: code:addons/approvals/static/src/xml/activity.xml:0
+#: code:addons/approvals/static/src/components/approval/approval.xml:0
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: model:ir.model.fields.selection,name:approvals.selection__approval_approver__status__pending
 #: model:ir.model.fields.selection,name:approvals.selection__approval_request__user_status__pending
@@ -836,6 +1073,11 @@ msgid "Type of the exception activity on record."
 msgstr "Тип виключення дії на записі."
 
 #. module: approvals
+#: model:ir.model.fields,field_description:approvals.field_approval_product_line__product_uom_id
+msgid "Unit of Measure"
+msgstr "Одиниця вимірювання"
+
+#. module: approvals
 #: model:ir.model.fields,field_description:approvals.field_approval_request__message_unread
 msgid "Unread Messages"
 msgstr "Непрочитані повідомлення"
@@ -848,7 +1090,9 @@ msgstr "Кількість непрочитаних повідомлень"
 #. module: approvals
 #. openerp-web
 #: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
+#: code:addons/approvals/static/src/xml/web_kanban_activity.xml:0
 #: model:ir.model.fields,field_description:approvals.field_approval_approver__user_id
+#: model:ir.model.fields,field_description:approvals.field_approval_category_approver__user_id
 #, python-format
 msgid "User"
 msgstr "Користувач"
@@ -857,16 +1101,6 @@ msgstr "Користувач"
 #: model:ir.model.fields,field_description:approvals.field_approval_request__user_status
 msgid "User Status"
 msgstr "Статус користувача"
-
-#. module: approvals
-#: model:ir.model.fields,field_description:approvals.field_approval_request__website_message_ids
-msgid "Website Messages"
-msgstr "Повідомлення з веб-сайту"
-
-#. module: approvals
-#: model:ir.model.fields,help:approvals.field_approval_request__website_message_ids
-msgid "Website communication history"
-msgstr "Історія бесіди на сайті"
 
 #. module: approvals
 #: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
@@ -889,7 +1123,31 @@ msgid "You have to attach at lease one document."
 msgstr "Вам необхідно прикріпити принаймні один документ."
 
 #. module: approvals
-#: code:addons/approvals/models/approval_request.py:0
+#: code:addons/approvals/models/approval_category.py:0
 #, python-format
-msgid "Your request %s is now in the state %s"
-msgstr "Ваш запит %s зараз у стані %s"
+msgid "Your minimum approval exceeds the total of default approvers."
+msgstr ""
+"Ваше мінімальне схвалення перевищує загальну кількість схвалювачів за "
+"замовчуванням."
+
+#. module: approvals
+#: model_terms:ir.ui.view,arch_db:approvals.approval_request_view_form
+msgid "e.g. Brussels"
+msgstr "напр. Брюссель"
+
+#. module: approvals
+#: model_terms:ir.ui.view,arch_db:approvals.approval_category_view_form
+msgid "e.g. Procurement"
+msgstr "напр. Забезпечення"
+
+#. module: approvals
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action_all
+msgid "menu"
+msgstr "меню"
+
+#. module: approvals
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action
+#: model_terms:ir.actions.act_window,help:approvals.approval_request_action_all
+msgid "new request"
+msgstr "новий запит"

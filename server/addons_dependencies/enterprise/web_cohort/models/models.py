@@ -56,7 +56,7 @@ class Base(models.AbstractModel):
             # Split with space for smoothly format datetime field
             clean_start_date = dates[0].split('/')[0].split(' ')[0]
             cohort_start_date = fields.Datetime.from_string(clean_start_date)
-            if measure == '__count__':
+            if measure == '__count':
                 value = float(group[date_start + '_count'])
             else:
                 value = float(group[measure] or 0.0)
@@ -106,7 +106,7 @@ class Base(models.AbstractModel):
                 col_group = sub_group_per_period.get(significative_period, {})
                 if not col_group:
                     col_value = 0.0
-                elif measure == '__count__':
+                elif measure == '__count':
                     col_value = col_group[date_stop + '_count']
                 else:
                     col_value = col_group[measure] or 0.0
@@ -128,10 +128,7 @@ class Base(models.AbstractModel):
                         fields=field_measure,
                         groupby=[]
                     )
-                    if measure == '__count__':
-                        initial_value = float(col_group[0]['__count'])
-                    else:
-                        initial_value = float(col_group[0][measure] or 0.0)
+                    initial_value = float(col_group[0][measure] or 0.0)
                     initial_churn_value = value - initial_value
 
                 previous_col_remaining_value = initial_value if col_index == 0 else columns[-1]['value']

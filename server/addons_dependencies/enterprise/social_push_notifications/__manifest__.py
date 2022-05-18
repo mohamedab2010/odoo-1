@@ -3,17 +3,17 @@
 
 {
     'name': 'Social Push Notifications',
-    'category': 'Social',
+    'category': 'Marketing/Social Marketing',
     'summary': 'Send live notifications to your web visitors',
     'version': '1.0',
     'description': """Send live notifications to your web visitors""",
     'depends': ['social', 'website'],
     'external_dependencies': {
-        'python': ['firebase_admin'],
+        'python': ['google_auth'],
     },
     'data': [
         'security/ir.model.access.csv',
-        'views/assets.xml',
+        'views/social_post_template_views.xml',
         'views/social_post_views.xml',
         'views/res_config_settings_views.xml',
         'views/social_push_notifications_templates.xml',
@@ -23,4 +23,18 @@
     ],
     'auto_install': True,
     'post_init_hook': '_create_social_accounts',
+    'assets': {
+        'web.assets_frontend': [
+            'social_push_notifications/static/lib/firebase-app-6.3.4.js',
+            'social_push_notifications/static/lib/firebase-messaging-6.3.4.js',
+            'social_push_notifications/static/src/js/push_notification_request_popup.js',
+            'social_push_notifications/static/src/js/push_notification_widget.js',
+            'social_push_notifications/static/src/scss/social_push_notifications_frontend.scss',
+        ],
+        'web.assets_backend': [
+            'social_push_notifications/static/src/scss/social_push_notifications.scss',
+            'social_push_notifications/static/src/js/push_preview.js',
+        ],
+    },
+    'license': 'OEEL-1',
 }

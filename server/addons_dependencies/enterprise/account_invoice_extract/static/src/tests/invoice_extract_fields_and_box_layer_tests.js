@@ -1,14 +1,13 @@
-odoo.define('account_invoice_extract.FieldsAndBoxLayerTests', function (require) {
-"use strict";
+/** @odoo-module **/
 
 /**
  * This test suite tests the integration of box layers with fields (including
  * field buttons), without relying on a form view.
  */
-var InvoiceExtractFields = require('account_invoice_extract.Fields');
-var invoiceExtractTestUtils = require('account_invoice_extract.testUtils');
+import InvoiceExtractFields from '@account_invoice_extract/js/invoice_extract_fields';
+import invoiceExtractTestUtils from '@account_invoice_extract/tests/helpers/invoice_extract_test_utils';
 
-var testUtils = require('web.test_utils');
+import testUtils from 'web.test_utils';
 
 /**
  * @param {Object} params
@@ -23,7 +22,7 @@ var testUtils = require('web.test_utils');
  *   this is set after the parent is created, but it should be used when this
  *   is set.
  */
-function createParent(params) {
+async function createParent(params) {
     var invoiceExtractWrapper = params.invoiceExtractWrapper;
     params.intercepts = _.extend({}, params.intercepts, {
         /**
@@ -93,7 +92,7 @@ function createParent(params) {
             field.setSelectedBox(box);
         },
     });
-    var parent = testUtils.createParent(params);
+    var parent = await testUtils.createParent(params);
     return parent;
 }
 
@@ -109,7 +108,7 @@ async function createFieldsAndBoxLayer(params) {
     // use wrapper to pass fields and box layer by reference
     // (due to them not already instantiated)
     var wrapper = {};
-    var parent = createParent({
+    var parent = await createParent({
         invoiceExtractWrapper: wrapper,
         debug: params.debug || false,
         session: {
@@ -361,6 +360,5 @@ QUnit.module('Fields & BoxLayer integration', {
         parent.destroy();
     });
 
-});
 });
 });

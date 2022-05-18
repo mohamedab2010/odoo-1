@@ -7,6 +7,8 @@ from odoo import api, fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
+    documents_payroll_folder_id = fields.Many2one(
+        'documents.folder', related='company_id.documents_payroll_folder_id', readonly=False)
     documents_hr_payslips_tags = fields.Many2many('documents.tag', 'payslip_tags_table',
                                     related='company_id.documents_hr_payslips_tags', readonly=False,
                                     string="Payslip")

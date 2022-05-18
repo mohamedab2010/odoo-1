@@ -33,9 +33,7 @@ class ResPartnerBank(models.Model):
             - Total length must be 9 or less.
             - Cannot be only spaces, zeros or hyphens (must have at least one digit in range 1-9)
         """
+        super()._compute_acc_type()
         for rec in self:
-            acct = rec.acc_number
-            if acct and re.match("^( |-|\d).*$", acct) and len(acct) <= 9 and re.search("[1-9]", acct):
+            if rec.acc_type == 'bank' and re.match(r"^(?=.*[1-9])[ \-\d]{0,9}$", rec.acc_number or ''):
                 rec.acc_type = 'aba'
-            else:
-                super(ResPartnerBank, self)._compute_acc_type()

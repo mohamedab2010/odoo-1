@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
-from odoo.tests.common import HttpCase, tagged, SavepointCase, TransactionCase, post_install
+from odoo.tests.common import tagged, TransactionCase
 
 TEXT = base64.b64encode(bytes("documents_hr", 'utf-8'))
 
@@ -22,9 +22,13 @@ class TestCaseDocumentsBridgeHR(TransactionCase):
         company = self.env.user.company_id
         company.documents_hr_settings = True
         company.documents_hr_folder = self.folder_test.id
+        partner = self.env['res.partner'].create({
+            'name': 'Employee address',
+        })
         self.employee = self.env['hr.employee'].create({
             'name': 'User Empl Employee',
             'user_id': self.documents_user.id,
+            'address_home_id': partner.id,
         })
 
     def test_bridge_hr_settings_on_write(self):
@@ -43,6 +47,7 @@ class TestCaseDocumentsBridgeHR(TransactionCase):
         document = self.env['documents.document'].search([('attachment_id', '=', attachment_txt_test.id)])
         self.assertTrue(document.exists(), "There should be a new document created from the attachment")
         self.assertEqual(document.owner_id, self.documents_user, "The owner_id should be the document user")
+        self.assertEqual(document.partner_id, self.employee.address_home_id, "The partner_id should be the employee's address")
 
     def test_upload_employee_attachment(self):
         """

@@ -13,9 +13,9 @@
           <field name="rental_status" invisible="1"/>
         </xpath>
         <xpath expr="//button[@name='action_quotation_send']" position="before">
-          <button name="open_pickup" type="object" class="btn-primary" string="PICKUP"
+          <button name="open_pickup" type="object" class="btn-primary" string="PICKUP" data-hotkey="y"
             attrs="{'invisible':['|', ('has_pickable_lines','=',False), ('state', 'not in', ['sale', 'done'])]}"/>
-          <button name="open_return" type="object" class="btn-primary" string="RETURN"
+          <button name="open_return" type="object" class="btn-primary" string="RETURN" data-hotkey="k"
             attrs="{'invisible':['|',
               ('state', 'not in', ['sale', 'done']),
               '|',
@@ -24,7 +24,7 @@
                 ('has_returnable_lines','=',True),
                 ('has_pickable_lines','=',True)]
             }"/>
-          <button name="open_return" type="object" class="btn-secondary" string="RETURN"
+          <button name="open_return" type="object" class="btn-secondary" string="RETURN" data-hotkey="k"
             attrs="{'invisible':['|',
               ('state', 'not in', ['sale', 'done']),
               '|',
@@ -38,7 +38,7 @@
           <div class="badge-pill badge-info float-right"
             attrs="{'invisible': [
               '|', ('state', 'not in', ['sale', 'done']),
-              '|', ('rental_status', '!=', 'pickup'), ('has_late_lines', '=', True)]}">Reserved</div>
+              '|', ('rental_status', '!=', 'pickup'), ('has_late_lines', '=', True)]}">Confirmed</div>
           <div class="badge-pill badge-info float-right"
             attrs="{'invisible': [
               '|', ('state', 'not in', ['sale', 'done']),

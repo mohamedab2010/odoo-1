@@ -72,7 +72,7 @@ class IrAttachment(models.Model):
         validated_content = etree.tostring(xsd_object)
         attachment = self.create({
             'name': xsd_fname,
-            'datas': base64.encodestring(validated_content),
+            'datas': base64.encodebytes(validated_content),
         })
         self.env['ir.model.data'].create({
             'name': xsd_fname,

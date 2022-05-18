@@ -1,88 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="assets_common" inherit_id="web.assets_common">
-        <xpath expr="script[last()]" position="after">
-            <script type="text/javascript" src="/sign/static/src/js/sign_common.js"></script>
-        </xpath>
-        <xpath expr="link[last()]" position="after">
-            <link rel="stylesheet" type="text/scss" href="/sign/static/src/scss/sign_common.scss"/>
-        </xpath>
-    </template>
-
-    <template id="assets_backend" inherit_id="web.assets_backend">
-        <xpath expr="script[last()]" position="after">
-            <script type="text/javascript" src="/sign/static/src/js/sign_backend.js"></script>
-        </xpath>
-        <xpath expr="link[last()]" position="after">
-            <link rel="stylesheet" type="text/scss" href="/sign/static/src/scss/sign_backend.scss"/>
-        </xpath>
-        <xpath expr="link[last()]" position="after">
-            <link rel="stylesheet" type="text/css" href="/sign/static/src/css/iframe.css"/>
-        </xpath>
-    </template>
-
-    <template id="assets_frontend" inherit_id="web.assets_frontend">
-        <xpath expr="link[last()]" position="after">
-            <link rel="stylesheet" type="text/scss" href="/sign/static/src/scss/sign_frontend.scss"/>
-        </xpath>
-    </template>
-
-    <template id="assets_tests" name="Sign Assets Tests" inherit_id="web.assets_tests">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/sign/static/tests/tours/sign_widgets_tour.js"></script>
-        </xpath>
-    </template>
-
-    <template id="qunit_suite" name="sign_tests" inherit_id="web.qunit_suite">
-        <xpath expr="//t[@t-set='head']" position="inside">
-            <script type="text/javascript" src="/sign/static/tests/document_backend_tests.js"></script>
-        </xpath>
-    </template>
-
-    <template id="qunit_suite" name="sign_tests" inherit_id="web.qunit_suite">
-        <xpath expr="//t[@t-set='head']" position="inside">
-            <script type="text/javascript" src="/sign/static/tests/document_backend_tests.js"></script>
-        </xpath>
-    </template>
-
     <template id="sign._doc_sign" name="Document Sign">
         <div t-if="current_request_item and current_request_item.state == 'sent' and hasItems" class="o_sign_validate_banner">
             <button type="button" class="btn btn-primary o_validate_button">Validate &amp; Send Completed Document</button>
         </div>
 
         <div class="container-fluid">
-            <div class="row">
-                <button t-if="current_request_item and current_request_item.state == 'sent' and not hasItems" type="button" class="o_sign_sign_document_button btn btn-primary">Sign Document</button>
-            </div>
-
-            <div class="row o_sign_page_info pt4 pb4">
+            <button t-if="current_request_item and current_request_item.state == 'sent' and not hasItems" type="button" class="o_sign_sign_document_button btn btn-primary">Sign Document</button>
+            <div class="row o_sign_page_info mobile-hide">
                 <div class="col-lg-4">
                     <div class="o_sign_request_from">
-                        <h4 class="o_sign_request_reference_title"><t t-esc="sign_request.reference"/></h4>
+                         <span t-if="portal" class="o_sign_breadcrumb"><a t-attf-href="/my/signature/{{current_request_item.id}}?{{ keep_query() }}"
+                            class="o_sign_portal_link">Portal</a> / </span>
+                         <span class="o_sign_request_reference_title o_sign_breadcrumb"><t t-esc="sign_request.reference"/></span>
                     </div>
-                    <a role="button" t-if="sign_request.state == 'signed'" t-attf-href="/sign/download/{{sign_request.id}}/{{sign_request.access_token}}/completed" class="btn btn-primary o_sign_download_document_button">Download Document</a>
-                    <a role="button" t-if="sign_request.start_sign" t-attf-href="/sign/download/{{sign_request.id}}/{{sign_request.access_token}}/log" class="btn btn-secondary o_sign_download_log_button">Activity Logs</a>
-                </div>
-
-                <div class="col-lg-4">
-                    <div class="o_sign_request_from">
-                        <img class="float-left mr8" t-attf-src="/web/image/res.partner/#{sign_request.create_uid.partner_id.id}/image_128/32x32" alt="Signature"/>
-                        <t t-if="sign_request.create_uid.partner_id.name">From: <t t-esc="sign_request.create_uid.partner_id.name"/><br/></t>
-                        <t t-if="sign_request.create_uid.partner_id.email"><a t-attf-href="mailto:{{sign_request.create_uid.partner_id.email}}"><t t-esc="sign_request.create_uid.partner_id.email"/></a><br/></t>
+                    <div class="o_sign_document_buttons">
+                        <a role="button" t-if="sign_request.state == 'signed'" t-attf-href="/sign/download/{{sign_request.id}}/{{sign_request.access_token}}/completed" class="btn btn-primary o_sign_download_document_button">Download Document</a>
+                        <a role="button" t-if="sign_request.state == 'signed'" t-attf-href="/sign/download/{{sign_request.id}}/{{sign_request.access_token}}/log" class="btn btn-secondary o_sign_download_log_button">Certificate</a>
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-4 mobile-hide">
+                    <div class="o_sign_request_from d-flex justify-content-center flex-wrap">
+                        <img class="float-left mr-2 my-1" t-attf-src="#{image_data_uri(sign_request.create_uid.avatar_128)}" alt="Signature" style="max-width: 32px;"/>
+                        <div>
+                            <t t-if="sign_request.create_uid.name">Requested by <b><t t-esc="sign_request.create_uid.name"/></b><br/></t>
+                            <t t-if="sign_request.create_uid.email"><a t-attf-href="mailto:{{sign_request.create_uid.email}}"><t t-esc="sign_request.create_uid.email"/></a><br/></t>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="o_sign_signer_status_wrapper col-lg-4 d-flex justify-content-end flex-wrap mobile-hide">
                     <t t-if="sign_request.state != 'signed'">
                         <t t-foreach="sign_request.request_item_ids" t-as="sign">
-                            <div t-if="sign.state != 'completed'" class="o_sign_signer_status clearfix" t-att-data-id="sign.id">
-                                <b><t t-esc="sign.partner_id.name if sign.partner_id else 'Public user'"/></b><t t-if="sign.role_id"><t t-esc="' - ' + sign.role_id.name"/></t> - <em>Waiting Signature</em><em t-if="sign.state != 'sent'"><br/>(the email access has not been sent)</em>
+                            <div t-if="sign.state != 'completed'" class="o_sign_signer_status clearfix pl-4 d-flex" t-att-data-id="sign.id">
+                                <div class="o_sign_signer_status_info d-flex flex-column">
+                                    <div class="text-left"><b><t t-esc="sign.partner_id.name if sign.partner_id else 'Public user'"/></b></div>
+                                    <div class="text-left"><small><i> Waiting Signature</i><em t-if="sign.state != 'sent'"><br/>(the email access has not been sent)</em></small></div>
+                                </div>
                             </div>
                         </t>
                     </t>
                     <t t-if="sign_request.nb_closed > 0">
                         <t t-foreach="sign_request.request_item_ids" t-as="sign">
-                            <div t-if="sign.state == 'completed'" class="o_sign_signer_status clearfix"><img t-if="sign.signature" class="float-right" t-attf-src="/web/image/sign.request.item/{{sign.id}}/signature" alt="Signature"/><b><t t-esc="sign.partner_id.name"/></b><t t-if="sign.role_id"><t t-esc="' - ' + sign.role_id.name"/></t> - <em>Signed on <span t-field="sign.signing_date"></span></em></div>
+                            <div t-if="sign.state == 'completed'" class="o_sign_signer_status o_sign_signer_signed clearfix pl-4 d-flex">
+                                <div class="o_sign_signer_status_info d-flex flex-column">
+                                </div>
+                                <div class="text-left">
+                                    <div class="text-left"><b><t t-esc="sign.partner_id.name if sign.partner_id else 'Public user'"/></b></div>
+                                    <div class="text-left"><small><i> Signed on <t t-esc="sign.signing_date"/></i></small></div>
+                                </div>
+                                <img t-if="sign.signature" t-attf-src="/web/image/sign.request.item/{{sign.id}}/signature" alt="Signature"/>
+                            </div>
                         </t>
                     </t>
                 </div>
@@ -104,6 +73,7 @@
 
         <input id="o_sign_input_sign_request_id" type="hidden" t-att-value="sign_request.id"/>
         <input id="o_sign_input_sign_request_token" type="hidden" t-att-value="sign_request.access_token"/>
+        <input id="o_sign_input_sign_request_state" type="hidden" t-att-value="sign_request.state"/>
         <input id="o_sign_input_access_token" type="hidden" t-att-value="token"/>
         <input id="o_sign_signer_name_input_info" type="hidden" t-att-value="current_request_item.partner_id.name if current_request_item and current_request_item.partner_id else None"/>
         <input id="o_sign_signer_phone_input_info" type="hidden" t-att-value="current_request_item.partner_id.mobile if current_request_item and current_request_item.partner_id else None"/>
@@ -117,11 +87,17 @@
 
     <template id="sign.doc_sign" name="Document Sign">
         <t t-call="web.layout">
+            <t t-if="current_request_item and current_request_item.partner_id.lang">
+                <t t-set="html_data" t-value="{'lang': current_request_item.partner_id.lang.replace('_', '-')}"/>
+            </t>
             <t t-set="head">
                 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
                 <t t-call-assets="web.assets_common" t-js="false"/>
                 <t t-call-assets="web.assets_frontend" t-js="false"/>
                 <link rel="stylesheet" type="text/scss" href="/web_enterprise/static/src/scss/modal_mobile.scss"/>
+                <script type="text/javascript">
+                    odoo.__session_info__ = <t t-out="json.dumps(request.env['ir.http'].get_frontend_session_info())"/>;
+                </script>
                 <t t-call-assets="web.assets_common" t-css="false"/>
                 <t t-call-assets="web.assets_frontend" t-css="false"/>
                 <t t-call="web.conditional_assets_tests"/>
@@ -143,24 +119,26 @@
             </t>
             <div class="o_sign_document">
                 <header>
-                    <div>
-                        <div class="col-lg-4">
+                    <div class="container-fluid">
+                    <div class="d-flex justify-content-between flex-fill">
+                        <div class="col-lg-4 justify-content-start">
                             <div class="o_logo">
                                 <a href="/"><img src="/logo.png" alt="Logo"/></a>
                             </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-4 justify-content-center mobile-hide">
                         <div t-if="sign_request" class="o_sign_header_instruction">
                             <t t-if="not current_request_item">Need to sign? Check your inbox to get your secure access</t>
                             <t t-if="current_request_item and current_request_item.state == 'sent'">Please Review And Act On This Document</t>
                             <t t-if="current_request_item and current_request_item.state == 'completed'">You have completed the document</t>
                         </div>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-4 justify-content-end">
                         <div class="o_odoo">
-                            <a href="https://www.odoo.com/page/sign?utm_source=db&amp;utm_medium=sign"><img src="/sign/static/img/odoo_signed.png" alt="Signed"/></a>
+                            <a href="https://www.odoo.com/app/sign?utm_source=db&amp;utm_medium=sign"><img src="/sign/static/img/odoo_signed.png" alt="Signed"/></a>
                         </div>
                         </div>
+                    </div>
                     </div>
                 </header>
                 <t t-call="sign._doc_sign"/>
@@ -216,4 +194,5 @@
             </div>
         </t>
     </template>
+
 </odoo>

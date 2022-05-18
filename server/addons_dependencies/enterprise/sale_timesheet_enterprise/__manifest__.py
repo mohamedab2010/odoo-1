@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    'name': "Sales Timesheet: Grid Support",
+    'name': "Sales Timesheet: Invoicing",
 
     'summary': "Configure timesheet invoicing",
 
@@ -14,14 +15,21 @@
 
     'depends': ['sale_timesheet', 'timesheet_grid'],
     'data': [
-        'views/assets.xml',
+        'views/account_invoice_views.xml',
+        'views/hr_timesheet_views.xml',
         'views/res_config_settings_views.xml',
-        'views/project_task_views.xml',
-        'wizard/project_task_create_timesheet_views.xml',
-        'wizard/project_task_create_sale_order_views.xml',
-        'data/sale_timesheet_enterprise_data.xml',
     ],
-
+    'demo': [
+        'data/sale_timesheet_enterprise_demo.xml'
+    ],
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'sale_timesheet_enterprise/static/src/js/**/*',
+        ],
+        'web.assets_qweb': [
+            'sale_timesheet_enterprise/static/src/xml/**/*',
+        ],
+    }
 }

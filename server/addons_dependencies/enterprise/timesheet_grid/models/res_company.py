@@ -32,11 +32,12 @@ class Company(models.Model):
     ], string='Manager Reminder Frequency', required=True, default="weeks")
     timesheet_mail_manager_nextdate = fields.Datetime('Next scheduled date for manager reminder', readonly=True)
 
-    @api.model
-    def create(self, values):
-        company = super(Company, self).create(values)
-        company._timesheet_postprocess(values)
-        return company
+    @api.model_create_multi
+    def create(self, vals_list):
+        companies = super().create(vals_list)
+        for company, values in zip(companies, vals_list):
+            company._timesheet_postprocess(values)
+        return companies
 
     def write(self, values):
         result = super(Company, self).write(values)
@@ -49,22 +50,36 @@ class Company(models.Model):
         if any(field_name in values for field_name in ['timesheet_mail_manager_delay', 'timesheet_mail_manager_interval']):
             self._calculate_timesheet_mail_manager_nextdate()
 
+    def _calculate_next_week_date(self, delay):
+        now = fields.Datetime.now()
+        nextdate = now + relativedelta(weeks=1, days=-now.weekday() + delay - 1)
+        if nextdate < now or nextdate.date() == now.date():
+            nextdate = now + relativedelta(weeks=2, days=-now.weekday() + delay - 1)
+        return nextdate
+
+    def _calculate_next_month_date(self, delay):
+        now = fields.Datetime.now()
+        nextdate = now + relativedelta(day=1, months=1, days=delay - 1)
+        if nextdate < now or nextdate.date() == now.date():
+            nextdate = now + relativedelta(day=1, months=2, days=delay - 1)
+        return nextdate
+
     def _calculate_timesheet_mail_employee_nextdate(self):
         for company in self:
-            now = datetime.now()
+            delay = company.timesheet_mail_employee_delay
             if company.timesheet_mail_employee_interval == 'weeks':
-                nextdate = now + relativedelta(weeks=1, days=-now.weekday() + company.timesheet_mail_employee_delay - 1)
-            if company.timesheet_mail_employee_interval == 'months':
-                nextdate = now + relativedelta(day=1, months=1, days=company.timesheet_mail_employee_delay - 1)
+                nextdate = self._calculate_next_week_date(delay)
+            else:
+                nextdate = self._calculate_next_month_date(delay)
             company.timesheet_mail_employee_nextdate = fields.Datetime.to_string(nextdate)
 
     def _calculate_timesheet_mail_manager_nextdate(self):
         for company in self:
-            now = datetime.now()
+            delay = company.timesheet_mail_manager_delay
             if company.timesheet_mail_manager_interval == 'weeks':
-                nextdate = now + relativedelta(weeks=1, days=-now.weekday() + company.timesheet_mail_manager_delay - 1)
-            if company.timesheet_mail_manager_interval == 'months':
-                nextdate = now + relativedelta(day=1, months=1, days=company.timesheet_mail_manager_delay - 1)
+                nextdate = self._calculate_next_week_date(delay)
+            else:
+                nextdate = self._calculate_next_month_date(delay)
             company.timesheet_mail_manager_nextdate = fields.Datetime.to_string(nextdate)
 
     @api.model
@@ -125,7 +140,7 @@ class Company(models.Model):
         """ Send a email reminder to all users having the group 'timesheet manager'. """
         today_min = fields.Datetime.to_string(datetime.combine(date.today(), time.min))
         today_max = fields.Datetime.to_string(datetime.combine(date.today(), time.max))
-        companies = self.search([('timesheet_mail_employee_allow', '=', True), ('timesheet_mail_manager_nextdate', '<', today_max), ('timesheet_mail_manager_nextdate', '>=', today_min)])
+        companies = self.search([('timesheet_mail_manager_allow', '=', True), ('timesheet_mail_manager_nextdate', '<', today_max), ('timesheet_mail_manager_nextdate', '>=', today_min)])
         for company in companies:
             # calculate the period
             if company.timesheet_mail_manager_interval == 'months':
@@ -159,7 +174,7 @@ class Company(models.Model):
             :param template_xmlid : xml id of the reminder mail template
         """
         action_url = '%s/web#menu_id=%s&action=%s' % (
-            self.env['ir.config_parameter'].sudo().get_param('web.base.url'),
+            self.get_base_url(),
             self.env.ref('hr_timesheet.timesheet_menu_root').id,
             self.env.ref(action_xmlid).id,
         )

@@ -410,13 +410,13 @@ class TestConsolidationPeriodComposition(AccountConsolidationTestCase):
         self.usd_compo._onchange_composed_chart_currency_id()
         self.assertFalse(self.compo.currencies_are_different)
         self.assertTrue(self.usd_compo.currencies_are_different)
-        self.assertAlmostEquals(self.compo.currency_rate, 1.0)
-        self.assertAlmostEquals(self.usd_compo.currency_rate, mocked_method.return_value)
+        self.assertAlmostEqual(self.compo.currency_rate, 1.0)
+        self.assertAlmostEqual(self.usd_compo.currency_rate, mocked_method.return_value)
 
     @patch('odoo.addons.base.models.res_currency.Currency._get_conversion_rate', return_value=150.0)
     def test__get_default_currency_rate(self, mocked_method):
         rate = self.usd_compo._get_default_currency_rate()
-        self.assertEquals(rate, mocked_method.return_value)
+        self.assertEqual(rate, mocked_method.return_value)
         mocked_method.assert_called_once_with(self.usd_compo.composed_chart_currency_id,
                                               self.usd_compo.using_chart_currency_id, self.env.company, ANY)
 
@@ -535,13 +535,13 @@ class TestConsolidationCompanyPeriod(AccountConsolidationTestCase):
         self.env['res.currency.rate'].create({
             'name': move_date,
             'company_id': self.us_company.id,
-            'currency_id': self.us_company.currency_id.id,
-            'rate': 1.25
+            'currency_id': self.env.ref('base.EUR').id,
+            'rate': 0.8
         })
         self.env['res.currency.rate'].create({
             'name': '2019-01-31',
             'company_id': self.us_company.id,
-            'currency_id': self.us_company.currency_id.id,
+            'currency_id': self.env.ref('base.EUR').id,
             'rate': 350.27
         })
         move = self._create_basic_move(1000, company=self.us_company, move_date=move_date,
@@ -660,7 +660,7 @@ class TestConsolidationCompanyPeriod(AccountConsolidationTestCase):
                 }),
             ]
         })
-        right_move.post()
+        right_move.action_post()
 
         # Ignored as not posted
         self.env['account.move'].create({
@@ -700,7 +700,7 @@ class TestConsolidationCompanyPeriod(AccountConsolidationTestCase):
                     'debit': 1000
                 }),
             ]
-        }).post()
+        }).action_post()
 
         # All should be ignored as not in the right journal
         self.env['account.move'].create({
@@ -720,7 +720,7 @@ class TestConsolidationCompanyPeriod(AccountConsolidationTestCase):
                     'debit': 1000
                 }),
             ]
-        }).post()
+        }).action_post()
 
         total_balance, associated_move_line_ids = cp._get_total_balance_and_audit_lines(conso_account)
         self.assertAlmostEqual(sum(not_ignored_amounts), total_balance)

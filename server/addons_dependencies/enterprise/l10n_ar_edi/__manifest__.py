@@ -1,15 +1,16 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
-    "name": "Argentinian Electronic Invoicing",
+    "name": "Argentinean Electronic Invoicing",
+    'icon': '/l10n_ar/static/description/icon.png',
     'version': '1.0',
-    'category': 'Localization',
+    'category': 'Accounting/Localizations/EDI',
     'sequence': 14,
     'author': 'ADHOC SA',
     'description': """
 Functional
 ----------
 
-Be able to create journals in Odoo to create electronic customer invoices and report then to AFIP (via webserices).
+Be able to create journals in Odoo to create electronic customer invoices and report then to AFIP (via webservices).
 The options available are:
 
     * Electronic Invoice - Web Service
@@ -32,7 +33,7 @@ vendor bills in AFIP to check if the vendor bills are real (more information ple
 
 Configuration:
 
-1. Go to the Accounting Settings > Argentinian Localization section
+1. Go to the Accounting Settings > Argentinean Localization section
 
     1.1. Configure the AFIP Web Services mode:
 
@@ -59,7 +60,7 @@ Configuration:
 
     NOTE: You can use the "Check Available AFIP POS" button in Journal's form to corroborate the to use to create the journals.
 
-For more information about Argentinian Electronic invoicing please go to http://www.afip.gob.ar/fe/ayuda.asp
+For more information about Argentinean Electronic invoicing please go to http://www.afip.gob.ar/fe/ayuda.asp
 
 Technical
 ---------
@@ -75,7 +76,7 @@ For Development information go to http://www.afip.gob.ar/fe/documentos/WSBFEv1%2
 
 """,
     'depends': [
-        'l10n_ar', 'account_debit_note',
+        'l10n_ar',
     ],
     'external_dependencies': {
         'python': ['pyOpenSSL', 'zeep']
@@ -100,4 +101,5 @@ For Development information go to http://www.afip.gob.ar/fe/documentos/WSBFEv1%2
     'installable': True,
     'auto_install': False,
     'application': False,
+    'license': 'OEEL-1',
 }

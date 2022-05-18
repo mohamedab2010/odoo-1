@@ -6,5 +6,5 @@ import odoo.tests
 
 @odoo.tests.tagged('-at_install', 'post_install')
 class TestUi(odoo.tests.HttpCase):
-    def test_ui(self):
-        self.start_tour("/web", 'account_reports_widgets', login='admin')
+    def test_accountant_tour(self):
+        self.start_tour("/web", 'account_accountant_tour', login="admin")

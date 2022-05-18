@@ -1,17 +1,17 @@
 odoo.define('documents.DocumentsKanbanControllerMobile', function (require) {
 "use strict";
 
-var config = require('web.config');
+const config = require('web.config');
 if (!config.device.isMobile) {
     return;
 }
 
-var core = require('web.core');
-var DocumentsKanbanController = require('documents.DocumentsKanbanController');
+const DocumentsKanbanController = require('documents.DocumentsKanbanController');
+const DocumentsListController = require('documents.DocumentsListController');
 
-var qweb = core.qweb;
+const { qweb } = require('web.core');
 
-DocumentsKanbanController.include({
+const DocumentControllerMobileMixin = {
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
@@ -21,12 +21,27 @@ DocumentsKanbanController.include({
      *
      * @override
      */
-    renderButtons: function () {
-        this._super.apply(this, arguments);
-        var $buttons = this.$buttons.find('button');
-        var $dropdownButton = $(qweb.render('documents.ControlPanelButtonsMobile'));
+    renderButtons() {
+        this._super(...arguments);
+        const $buttons = this.$buttons.find('button');
+        const $dropdownButton = $(qweb.render('documents.ControlPanelButtonsMobile'));
         $buttons.addClass('dropdown-item').appendTo($dropdownButton.find('.dropdown-menu'));
-        $dropdownButton.replaceAll(this.$buttons);
+        this.$buttons = $dropdownButton;
+    },
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @override
+     * @param {MouseEvent} ev
+     */
+    async _deferredRenderInspector(ev) {
+        await this._super(...arguments);
+        if (!ev.data.isKeepSelection && this._selectedRecordIds.length === 1) {
+            this._documentsInspector.open();
+        }
     },
 
     //--------------------------------------------------------------------------
@@ -39,18 +54,22 @@ DocumentsKanbanController.include({
      * @override
      * @private
      * @param {OdooEvent} ev
-     * @param {boolean} ev.data.clear if true, unselect other records
-     * @param {string} ev.data.resID the resID of the record updating its status
+     * @param {boolean} ev.data.isKeepSelection if true, unselect other records
+     * @param {string} ev.data.resId the resId of the record updating its status
      */
-    _onRecordSelected: function (ev) {
+    async _onSelectRecord(ev) {
         // don't update the selection if the record is currently the only selected one
-        if (!ev.data.clear || this.selectedRecordIDs.length !== 1 || this.selectedRecordIDs[0] !== ev.data.resID) {
-            this._super.apply(this, arguments);
-        }
-        if (ev.data.clear && this.selectedRecordIDs.length === 1) {
-            this.documentsInspector.open();
+        if (
+            ev.data.isKeepSelection ||
+            this._selectedRecordIds.length !== 1 ||
+            this._selectedRecordIds[0] !== ev.data.resId
+        ) {
+            await this._super(...arguments);
         }
     },
-});
+};
+
+DocumentsKanbanController.include(DocumentControllerMobileMixin);
+DocumentsListController.include(DocumentControllerMobileMixin);
 
 });

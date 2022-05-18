@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.tests import common, new_test_user
-from functools import partial
-
-social_new_test_user = partial(new_test_user, context={'mail_create_nolog': True, 'mail_create_nosubscribe': True, 'mail_notrack': True, 'no_reset_password': True})
+from odoo.addons.mail.tests.common import mail_new_test_user
+from odoo.tests import common
 
 
-class SocialCase(common.SavepointCase):
+class SocialCase(common.TransactionCase):
     @classmethod
     def setUpClass(cls):
         super(SocialCase, cls).setUpClass()
@@ -32,17 +30,17 @@ class SocialCase(common.SavepointCase):
             'account_ids': [(4, account.id) for account in cls.social_accounts]
         })
 
-        cls.social_manager = social_new_test_user(
+        cls.social_manager = mail_new_test_user(
             cls.env, name='Gustave Doré', login='social_manager', email='social.manager@example.com',
             groups='social.group_social_manager,base.group_user'
         )
 
-        cls.social_user = social_new_test_user(
+        cls.social_user = mail_new_test_user(
             cls.env, name='Lukas Peeters', login='social_user', email='social.user@example.com',
             groups='social.group_social_user,base.group_user'
         )
 
-        cls.user_emp = social_new_test_user(
+        cls.user_emp = mail_new_test_user(
             cls.env, name='Eglantine Employee', login='user_emp', email='employee@example.com',
             groups='base.group_user', password='user_emp'
         )

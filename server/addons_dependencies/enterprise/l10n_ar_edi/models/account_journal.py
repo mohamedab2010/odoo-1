@@ -33,44 +33,19 @@ class AccountJournal(models.Model):
         for rec in self:
             rec.l10n_ar_afip_ws = type_mapping.get(rec.l10n_ar_afip_pos_system, False)
 
-    def _l10n_ar_create_document_sequences(self):
-        """ After creating the document sequences we try to sync document next numbers with the last numbers in AFIP """
-        res = super()._l10n_ar_create_document_sequences()
-        if self.l10n_ar_afip_ws:
-            self.company_id.sudo()._get_key_and_certificate()
-            try:
-                self.l10n_ar_sync_next_number_with_afip()
-            except Exception as error:
-                _logger.info(_('Could not synchronize next number with the AFIP last numbers %s'), repr(error))
-        return res
-
-    def l10n_ar_sync_next_number_with_afip(self):
-        """ In order to generate invoices and report them to AFIP they need to match with the AFIP number: if not the
-        invoices will be rejected by AFIP.
-
-        This method avoid the user to manually set all the next numbers of the documents they use in the journal and
-        also avoid the error message given to the user that is trying to inform to AFIP an invoice that does not have
-        the proper number """
-        self.ensure_one()
-        if not self.l10n_ar_afip_ws:
-            return True
-        for sequence in self.l10n_ar_sequence_ids:
-            last = self._l10n_ar_get_afip_last_invoice_number(sequence.l10n_latam_document_type_id)
-            sequence.sudo().number_next_actual = last + 1
-
     def l10n_ar_check_afip_pos_number(self):
         """ Return information about the AFIP POS numbers related to the given AFIP WS """
         self.ensure_one()
         connection = self.company_id._l10n_ar_get_connection(self.l10n_ar_afip_ws)
         client, auth = connection._get_client()
         if self.company_id._get_environment_type() == 'testing':
-            raise UserError(_('"Check Available AFIP PoS" is not implemented in testing mode for webservice %s') % self.l10n_ar_afip_ws)
+            raise UserError(_('"Check Available AFIP PoS" is not implemented in testing mode for webservice %s', self.l10n_ar_afip_ws))
         if self.l10n_ar_afip_ws == 'wsfe':
             response = client.service.FEParamGetPtosVenta(auth)
         elif self.l10n_ar_afip_ws == 'wsfex':
             response = client.service.FEXGetPARAM_PtoVenta(auth)
         else:
-            raise UserError(_('"Check Available AFIP PoS" is not implemented for webservice %s') % self.l10n_ar_afip_ws)
+            raise UserError(_('"Check Available AFIP PoS" is not implemented for webservice %s', self.l10n_ar_afip_ws))
         raise UserError(response)
 
     def _l10n_ar_get_afip_last_invoice_number(self, document_type):
@@ -78,6 +53,14 @@ class AccountJournal(models.Model):
         :return: integer with the last number register in AFIP for the given document type in this journals AFIP POS
         """
         self.ensure_one()
+
+        # do not access to AFIP web service in test mode
+        # Note:
+        # test mode is enabled only when self.registry.enter_test_mode(cr) is explicitely called.
+        # this is the case for upgrade tests for example, but not for l10n_ar_edi tests.
+        if self.env.registry.in_test_mode():
+            return 0
+
         pos_number = self.l10n_ar_afip_pos_number
         afip_ws = self.l10n_ar_afip_ws
         connection = self.company_id._l10n_ar_get_connection(afip_ws)
@@ -108,8 +91,8 @@ class AccountJournal(models.Model):
             if response.BFEErr.ErrCode != 0 or response.BFEErr.ErrMsg != 'OK':
                 errors = response.BFEErr
         else:
-            return(_('AFIP WS %s not implemented') % afip_ws)
+            return(_('AFIP WS %s not implemented', afip_ws))
 
         if errors:
-            raise UserError(_('We receive this error trying to consult the last invoice number to AFIP:\n%s') % str(errors))
+            raise UserError(_('We receive this error trying to consult the last invoice number to AFIP:\n%s', str(errors)))
         return last

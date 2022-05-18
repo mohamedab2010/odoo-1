@@ -26,6 +26,7 @@ Key Features
   # Check https://github.com/odoo/odoo/blob/master/odoo/addons/base/data/ir_module_category_data.xml
   # for the full list
   'category': 'Sales/Sales',
+  'sequence': 325,
   'version': '1.0',
   'application': True,
 
@@ -47,13 +48,13 @@ Key Features
       'data/ir_cron_data.xml',
       'data/sale_ebay_data.xml',
       'data/product_data.xml',
+      'data/mail_data.xml',
   ],
   # only loaded in demonstration mode
   'demo': [
   ],
   'js': ['static/src/js/*.js'],
   'css': ['static/src/css/*.css'],
-  'qweb': ['static/src/xml/*.xml'],
   'license': 'OEEL-1',
   'uninstall_hook': 'uninstall_hook',
 }

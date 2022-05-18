@@ -1,26 +1,28 @@
 # coding: utf-8
+
+from odoo import _
+from odoo.tools import html_escape
+import re
+
 import base64
 import logging
-import os
-import pytz
+import zipfile
+import io
 import socket
-import re
+import requests
+from lxml import etree
+
 from datetime import datetime
 from hashlib import sha256
-from odoo import _
-from zeep import Client, Plugin
+from zeep import Client, Plugin, Transport
 from zeep.exceptions import Fault
 from zeep.wsse.username import UsernameToken
 
-from lxml import etree
 
 _logger = logging.getLogger(__name__)
 # uncomment to enable logging of Zeep requests and responses
 # logging.getLogger('zeep.transports').setLevel(logging.DEBUG)
 
-
-class CarvajalException(Exception):
-    pass
 
 class CarvajalPlugin(Plugin):
 
@@ -54,63 +56,158 @@ class CarvajalUsernameToken(UsernameToken):
 
 
 class CarvajalRequest():
-    def __init__(self, username, password, company, account, test_mode):
-        self.username = username or ''
-        self.password = password or ''
-        self.company = company or ''
-        self.account = account or ''
+    def __init__(self, company):
+        self.username = company.l10n_co_edi_username or ''
+        self.password = company.l10n_co_edi_password or ''
+        self.co_id_company = company.l10n_co_edi_company or ''
+        self.account = company.l10n_co_edi_account or ''
+        self.test_mode = company.l10n_co_edi_test_mode
+        self.wsdl = company.env['ir.config_parameter'].sudo().get_param('l10n_edi_carvajal_wsdl')
+        if self.wsdl:
+            self.wsdl = self.wsdl % ('-stage' if company.l10n_co_edi_test_mode else '')
+        else:  # for old users, keep using the old URL
+            self.wsdl = 'https://wscenf%s.cen.biz/isows/InvoiceService?wsdl' % ('lab' if self.test_mode else '')
 
-        token = self._create_wsse_header(self.username, self.password)
-        self.client = Client('https://cenfinanciero%s.cen.biz/isows/InvoiceService?wsdl' % ('lab' if test_mode else ''), plugins=[CarvajalPlugin()], wsse=token)
+    @property
+    def client(self):
+        if not hasattr(self, '_client'):
+            token = self._create_wsse_header(self.username, self.password)
+            transport = Transport(operation_timeout=10)
+            self._client = Client(self.wsdl, plugins=[CarvajalPlugin()], wsse=token, transport=transport)
+        return self._client
+
+    def _handle_exception(self, e):
+        '''Handles an exception from Carvajal
+
+        :returns:     A dictionary.
+        * error:       The message of the error.
+        * blocking_level: Info, warning, error.
+        '''
+        _logger.error(e)
+        if isinstance(e, socket.timeout):
+            return {'error': _('Connection to Carvajal timed out.'), 'blocking_level': 'warning'}
+        elif isinstance(e, requests.HTTPError) and 499 < e.response.status_code < 600:
+            return {'error': _('Carvajal service not available.'), 'blocking_level': 'warning'}
+        elif isinstance(e, Fault):
+            return {'error': e.message}
+        else:
+            return {'error': ('Electronic invoice submission to Carvajal failed.'), 'blocking_level': 'warning'}
 
     def _create_wsse_header(self, username, password):
-
         created = datetime.now()
         token = CarvajalUsernameToken(username=username, password_digest=sha256(password.encode()).hexdigest(), use_digest=True, created=created)
 
         return token
 
     def upload(self, filename, xml):
+        '''Upload an XML to carvajal.
+
+        :returns:         A dictionary.
+        * message:        Message from carvajal.
+        * transactionId:  The Carvajal ID of this request.
+        * error:          An eventual error.
+        * blocking_level: Info, warning, error.
+        '''
         try:
             response = self.client.service.Upload(fileName=filename, fileData=base64.b64encode(xml).decode(),
-                                                  companyId=self.company, accountId=self.account)
-        except Fault as fault:
-            _logger.error(fault)
-            raise CarvajalException(fault)
-        except socket.timeout as e:
-            _logger.error(e)
-            raise CarvajalException(_('Connection to Carvajal timed out. Their API is probably down.'))
+                                                  companyId=self.co_id_company, accountId=self.account)
+        except Exception as e:
+            return self._handle_exception(e)
 
         return {
-            'message': response.status,
+            'message': html_escape(response.status),
             'transactionId': response.transactionId,
         }
 
-    def download(self, document_prefix, document_number, document_type):
+    def _download(self, invoice):
+        '''Downloads a ZIP containing an official XML and signed PDF
+        document. This will only be available for invoices that have
+        been successfully validated by Carvajal and the government.
+
+        Method called by the user to download the response from the
+        processing of the invoice by the DIAN and also get the CUFE
+        signature out of that file.
+
+        :returns:                    A dictionary.
+        * file_name:                 The name of the signed XML.
+        * content:                   The content of the signed XML.
+        * attachments:               The documents (xml and pdf) received by Carvajal.
+        * l10n_co_edi_cufe_cude_ref: The CUFE unique ID of the signed XML.
+        * error:                     An eventual error.
+        * blocking_level:            Info, warning, error.
+        '''
+        carvajal_type = False
+        if invoice.move_type == 'out_refund':
+            carvajal_type = 'NC'
+        elif invoice.move_type == 'out_invoice':
+            if invoice.journal_id.l10n_co_edi_debit_note or invoice.l10n_co_edi_operation_type in ['30', '32', '33']:
+                carvajal_type = 'ND'
+            else:
+                odoo_type_to_carvajal_type = {
+                    '1': 'FV',
+                    '2': 'FE',
+                    '3': 'FC',
+                    '4': 'FC',
+                }
+                carvajal_type = odoo_type_to_carvajal_type[invoice.l10n_co_edi_type]
+
+        prefix = invoice.sequence_prefix
+        if invoice.move_type == 'out_invoice' and invoice.journal_id.l10n_co_edi_debit_note:
+            prefix = 'ND'
+
         try:
-            response = self.client.service.Download(documentPrefix=document_prefix, documentNumber=document_number,
-                                                    documentType=document_type, resourceType='PDF,SIGNED_XML',
-                                                    companyId=self.company, accountId=self.account)
-        except Fault as fault:
-            _logger.error(fault)
-            raise CarvajalException(fault)
+            response = self.client.service.Download(documentPrefix=prefix, documentNumber=invoice.name,
+                                                    documentType=carvajal_type, resourceType='PDF,SIGNED_XML',
+                                                    companyId=self.co_id_company, accountId=self.account)
+        except Exception as e:
+            return self._handle_exception(e)
+        else:
+            filename = re.sub(r'[^\w\s-]', '', invoice.name.lower())
+            filename = '%s.zip' % re.sub(r'[-\s]+', '-', filename).strip('-_')
+            data = base64.b64decode(response.downloadData)
+            zip_ref = zipfile.ZipFile(io.BytesIO(data))
+            xml_filenames = [f for f in zip_ref.namelist() if f.endswith('.xml')]
+            if xml_filenames:
+                xml_file = zip_ref.read(xml_filenames[0])
+                content = etree.fromstring(xml_file)
+                ref_elem = content.find(".//{*}UUID")
+                return {
+                    'filename': xml_filenames[0],
+                    'xml_file': xml_file,
+                    'attachments': [(filename, data)],
+                    'message': _('The invoice was succesfully signed. <br/>Message from Carvajal: %s', html_escape(response['status'])),
+                    'l10n_co_edi_cufe_cude_ref': ref_elem.text,
+                }
+            return {'error': _('The invoice was accepted by Carvajal but unexpected response was received.'), 'blocking_level': 'warning'}
 
-        return {
-            'message': response.status,
-            'zip_b64': base64.b64decode(response.downloadData),
-        }
+    def check_status(self, invoice):
+        '''Checks the status of an already sent invoice, and if the invoice has been accepted,
+        downloads the signed invoice.
 
-    def check_status(self, transactionId):
+        :returns:                    A dictionary.
+        * file_name:                 The name of the signed XML.
+        * content:                   The content of the signed XML.
+        * attachments:               The documents (xml and pdf) received by Carvajal.
+        * l10n_co_edi_cufe_cude_ref: The CUFE unique ID of the signed XML.
+        * message:                   The message from the government
+        * error:                     An eventual error.
+        * blocking_level:            Info, warning, error.
+        '''
         try:
-            response = self.client.service.DocumentStatus(transactionId=transactionId,
-                                                          companyId=self.company, accountId=self.account)
-        except Fault as fault:
-            _logger.error(fault)
-            raise CarvajalException(fault)
+            response = self.client.service.DocumentStatus(transactionId=invoice.l10n_co_edi_transaction,
+                                                          companyId=self.co_id_company, accountId=self.account)
+        except Exception as e:
+            return self._handle_exception(e)
 
-        return {
-            'status': response.processStatus,
-            'errorMessage': response.errorMessage if hasattr(response, 'errorMessage') else '',
-            'legalStatus': response.legalStatus if hasattr(response, 'legalStatus') else '',
-            'governmentResponseDescription': response.governmentResponseDescription if hasattr(response, 'governmentResponseDescription') else '',
-        }
+        if response.processStatus == 'PROCESSING':
+            return {'error': _('The invoice is still processing by Carvajal.'), 'blocking_level': 'info'}
+        legalStatus = response.legalStatus if hasattr(response, 'legalStatus') else 'REJECTED'
+        if legalStatus == 'ACCEPTED':
+            if invoice.move_type == 'in_invoice':
+                return {'message': _('The invoice was accepted by Carvajal.')}
+            else:
+                return self._download(invoice)
+        msg = (_('The invoice was rejected by Carvajal: %s', html_escape(response['errorMessage']).replace('\n', '<br/>'))
+               if hasattr(response, 'errorMessage') and response['errorMessage']
+               else _('The invoice was rejected by Carvajal but no error message was received.'))
+        return {'error': msg, 'blocking_level': 'error'}

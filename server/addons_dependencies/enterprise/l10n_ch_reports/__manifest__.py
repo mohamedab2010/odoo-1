@@ -3,8 +3,9 @@
 
 {
     'name': 'Switzerland - Accounting Reports',
+    'icon': '/l10n_ch/static/description/icon.png',
     'version': '1.1',
-    'category': 'Accounting/Accounting',
+    'category': 'Accounting/Localizations/Reporting',
     'description': """
         Accounting reports for Switzerland
     """,
@@ -16,6 +17,6 @@
     ],
     'installable': True,
     'auto_install': True,
-    'website': 'https://www.odoo.com/page/accounting',
+    'website': 'https://www.odoo.com/app/accounting',
     'license': 'OEEL-1',
 }

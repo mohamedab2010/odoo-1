@@ -1,6 +1,8 @@
+/* global firebase */
 odoo.define('social_push_notifications.NotificationManager', function (require) {
 "use strict";
 
+var core = require('web.core');
 var publicWidget = require('web.public.widget');
 var utils = require('web.utils');
 var localStorage = require('web.local_storage');
@@ -32,6 +34,7 @@ publicWidget.registry.NotificationWidget =  publicWidget.Widget.extend({
         } else if (Notification.permission !== "denied") {
             this._askPermission();
         }
+        core.bus.on('open_notification_request', this, this._onNotificationRequest);
 
         return superPromise;
     },
@@ -213,29 +216,42 @@ publicWidget.registry.NotificationWidget =  publicWidget.Widget.extend({
      *
      * The configuration is stored for 7 days to still receive visual updates if the configuration
      * changes on the backend side.
+     * 
+     * @param {String} [nextAskPermissionKeySuffix] optional - Suffix of the cache entry
+     * @param {Object} [forcedPopupConfig] optional - Properties that will overwrite the notification request configuration.
+     * @param {String} forcedPopupConfig.title optional - Title of the popup.
+     * @param {String} forcedPopupConfig.body optional - Body of the popup.
+     * @param {String} forcedPopupConfig.delay optional - Delay of the popup.
+     * @param {String} forcedPopupConfig.icon optional - Icon of the popup.
      */
-    _askPermission: function () {
+    _askPermission: async function (nextAskPermissionKeySuffix, forcedPopupConfig) {
         var self = this;
 
-        var nextAskPermission = localStorage.getItem('social_push_notifications.next_ask_permission');
+        var nextAskPermission = localStorage.getItem('social_push_notifications.next_ask_permission' +
+            (nextAskPermissionKeySuffix ? '.' + nextAskPermissionKeySuffix : ''));
         if (nextAskPermission && new Date() < new Date(nextAskPermission)) {
             return;
         }
 
-        var notificationRequestConfig = this._getNotificationRequestConfiguration();
+        var pushConfig = null;
+        var popupConfig = this._getNotificationRequestConfiguration();
 
-        if (notificationRequestConfig && new Date() < new Date(notificationRequestConfig.expirationDate)) {
-            this._showNotificationRequestPopup(notificationRequestConfig);
-        } else {
-            this._fetchPushConfiguration().then(function (config) {
-                self._showNotificationRequestPopup({
-                    title: config.notification_request_title,
-                    body: config.notification_request_body,
-                    delay: config.notification_request_delay,
-                    icon: config.notification_request_icon
-                }, config);
-            });
+        if (!popupConfig || new Date() > new Date(popupConfig.expirationDate)) {
+            pushConfig = await this._fetchPushConfiguration();
+            popupConfig = {
+                title: pushConfig.notification_request_title,
+                body: pushConfig.notification_request_body,
+                delay: pushConfig.notification_request_delay,
+                icon: pushConfig.notification_request_icon
+            };
         }
+        if (!popupConfig || !popupConfig.title || !popupConfig.body) {
+            return; // this means that the web push notifications are not enabled in the settings
+        }
+        if (forcedPopupConfig) {
+            popupConfig = _.extend({}, popupConfig, forcedPopupConfig);
+        }
+        self._showNotificationRequestPopup(popupConfig, pushConfig, nextAskPermissionKeySuffix);
     },
 
     /**
@@ -244,9 +260,11 @@ publicWidget.registry.NotificationWidget =  publicWidget.Widget.extend({
      *
      * @param {Object} popupConfig the popup configuration (title,body,...)
      * @param {Object} [pushConfig] optional, will be fetched if absent
+     * @param {String} [nextAskPermissionKeySuffix] optional
      */
-    _showNotificationRequestPopup: function (popupConfig, pushConfig) {
-        if (!popupConfig.title || !popupConfig.body) {
+    _showNotificationRequestPopup: function (popupConfig, pushConfig, nextAskPermissionKeySuffix) {
+        var selector = '.o_social_push_notifications_permission_request';
+        if (!popupConfig.title || !popupConfig.body || this.$el.find(selector).length > 0) {
             return;
         }
 
@@ -276,7 +294,8 @@ publicWidget.registry.NotificationWidget =  publicWidget.Widget.extend({
         notificationRequestPopup.on('deny', null, function () {
             var nextAskPermissionDate = new Date();
             nextAskPermissionDate.setDate(nextAskPermissionDate.getDate() + 7);
-            localStorage.setItem('social_push_notifications.next_ask_permission',
+            localStorage.setItem('social_push_notifications.next_ask_permission' +
+                (nextAskPermissionKeySuffix ? '.' + nextAskPermissionKeySuffix : ''),
                 nextAskPermissionDate);
         });
     },
@@ -300,7 +319,34 @@ publicWidget.registry.NotificationWidget =  publicWidget.Widget.extend({
         }
 
         return null;
-    }
+    },
+
+    /**
+     * The module will guarantee that no other push notification request for
+     * the `nextAskPermissionKeySuffix` key will issued if the user dismissed
+     * a request using the same key within the last 7 days.
+     * 
+     * This can be useful in specific context, e.g:
+     * When favoriting event.tracks, we want to re-ask the user to enable the push
+     * notifications even if the user recently dismisses the default one. By
+     * using a custom key, we can issue a new request without having to wait that
+     * the 7 days restriction set by the first request expires. When the user
+     * dismisses the new request, a 7 days restriction will also be applied to the
+     * provided key.
+     * 
+     * @param {String} [nextAskPermissionKeySuffix] Suffix of the cache entry.
+     * @param {Object} [forcedPopupConfig] Properties of the popup.
+     * @param {String} forcedPopupConfig.title optional - Title of the popup.
+     * @param {String} forcedPopupConfig.body optional - Body of the popup.
+     * @param {String} forcedPopupConfig.delay optional - Delay of the popup.
+     * @param {String} forcedPopupConfig.icon optional - Icon of the popup.
+     */
+    _onNotificationRequest: async function (nextAskPermissionKeySuffix, forcedPopupConfig) {
+        if (Notification.permission !== 'default') {
+            return;
+        }
+        this._askPermission(nextAskPermissionKeySuffix, forcedPopupConfig);
+    },
 });
 
 return publicWidget.registry.NotificationWidget;

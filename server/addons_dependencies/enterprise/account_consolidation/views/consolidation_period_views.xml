@@ -71,7 +71,7 @@
 
                         <notebook attrs="{'invisible': [('date_analysis_end', '=', False)]}">
                             <!-- COMPANY PERIODS -->
-                            <page string="Company Periods">
+                            <page string="Company Periods" name="company_periods">
                                 <field name="company_period_ids" widget="one2many" nolabel="1"
                                        context="{'default_date_company_begin': date_analysis_begin, 'default_date_company_end': date_analysis_end}"
                                        attrs="{'readonly': [('state','=','closed')]}">
@@ -90,10 +90,11 @@
                                     </tree>
                                 </field>
                             </page>
-                            <page string="Sub-consolidations Periods" groups="base.group_no_one">
+                            <page string="Sub-consolidations Periods" name="subconsolidation_periods"
+                                groups="base.group_no_one">
                                 <field name="using_composition_ids" string="Sub-consolidations periods">
                                     <tree editable="bottom">
-                                        <field name="composed_period_id" string="Period" domain="[('id', '!=', parent.id)]"/>
+                                        <field name="composed_period_id" string="Period"/>
                                         <field name="composed_chart_currency_id" string="Currency"/>
                                         <field name="rate_consolidation" string="Consolidation Rate (%)"/>
                                         <field name="using_chart_currency_id" invisible="1"/>
@@ -104,8 +105,8 @@
                         </notebook>
                     </sheet>
                     <div class="oe_chatter">
-                        <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
-                        <field name="message_ids" widget="mail_thread"/>
+                        <field name="message_follower_ids" groups="base.group_user"/>
+                        <field name="message_ids"/>
                     </div>
                 </form>
             </field>
@@ -121,8 +122,8 @@
                 <form position="inside">
                     <footer position="replace">
                         <button name="action_save_onboarding_create_step" class="btn btn-primary" type="object"
-                                string="Apply"/>
-                        <button special="cancel" string="Cancel"/>
+                                string="Apply" data-hotkey="q"/>
+                        <button special="cancel" data-hotkey="z" string="Cancel"/>
                     </footer>
                 </form>
             </field>
@@ -329,7 +330,7 @@
                             <field name="period_id" invisible="context.get('from_analysis_period', False)" required="not context.get('from_analysis_period', True)"/>
                         </group>
                         <notebook>
-                            <page string="Settings">
+                            <page string="Settings" name="settings">
                                 <group>
                                     <group>
                                         <field name="currencies_are_different" invisible="1"/>

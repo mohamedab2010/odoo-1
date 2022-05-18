@@ -3,19 +3,16 @@
 # 	* delivery_bpost
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Jeffery CHEN <jeffery9@gmail.com>, 2019
-# liAnGjiA <liangjia@qq.com>, 2019
-# inspur qiuguodong <qiuguodong@inspur.com>, 2019
-# Felix Yuen <fyu@odoo.com>, 2019
+# Martin Trigaux, 2021
+# 山西清水欧度(QQ:54773801) <54773801@qq.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Felix Yuen <fyu@odoo.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: 山西清水欧度(QQ:54773801) <54773801@qq.com>, 2022\n"
 "Language-Team: Chinese (China) (https://www.transifex.com/odoo/teams/41243/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -86,6 +83,11 @@ msgid "Bpost Label Stock Type"
 msgstr "比利时邮政标签库存类型"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Bpost Package Type"
+msgstr "比利时邮政打包类型"
+
+#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_parcel_return_instructions
 msgid "Bpost Parcel Return Instructions"
 msgstr "比利时邮政包裹返回指令"
@@ -103,9 +105,9 @@ msgid "Bpost World Express Pro"
 msgstr "比利时邮政国际速运专线"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_product_packaging__package_carrier_type
+#: model:ir.model.fields,field_description:delivery_bpost.field_stock_package_type__package_carrier_type
 msgid "Carrier"
-msgstr "承运方"
+msgstr "物流商"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_shipment_type__documents
@@ -143,9 +145,24 @@ msgid "International"
 msgstr "国际的"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Format"
+msgstr "标签格式"
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Type"
+msgstr "标签类型"
+
+#. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_shipment_type__other
 msgid "OTHER"
 msgstr "其他"
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Options"
+msgstr "选项"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_label_format__pdf
@@ -175,17 +192,18 @@ msgid "Please provide at least one item to ship."
 msgstr "请至少提供一个发货项目"
 
 #. module: delivery_bpost
-#: model:ir.model,name:delivery_bpost.model_product_packaging
-msgid "Product Packaging"
-msgstr "产品包装"
-
-#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__delivery_type
 msgid "Provider"
-msgstr "供应商"
+msgstr "物流商"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
+#, python-format
+msgid ""
+"Return labels created into bpost <br/> <b>Tracking Numbers: </b><br/>%s"
+msgstr "退货标签创建到bpost<br/> <b>跟踪号码 </b>。<br/>%s"
+
+#. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
 msgid "Return shipment created into bpost <br/> <b>Tracking Number : </b>%s"
@@ -209,19 +227,24 @@ msgstr "样品"
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment N° %s has been cancelled"
-msgstr "运单N° %s已经被取消"
+msgid "Shipment #%s has been cancelled"
+msgstr "发货#%s已取消"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment created into bpost <br/> <b>Tracking Number : </b>%s"
-msgstr "bpost出货<br/><b>订单号</b>%s"
+msgid "Shipment created into bpost <br/> <b>Tracking Links</b> <br/>%s"
+msgstr "快件创建到bpost<br/> <b>跟踪链接</b> <br/>%s"
 
 #. module: delivery_bpost
 #: model:ir.model,name:delivery_bpost.model_delivery_carrier
 msgid "Shipping Methods"
 msgstr "送货方式"
+
+#. module: delivery_bpost
+#: model:ir.model,name:delivery_bpost.model_stock_package_type
+msgid "Stock package type"
+msgstr "库存包装类型"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
@@ -241,17 +264,19 @@ msgstr "您公司或仓库的地址有误(缺少字段%s)"
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid ""
-"The estimated shipping cannot be computed because the weight of your product"
-" is missing."
-msgstr "预计装运不能计算，因为您的产品未提供重量信息"
+"The estimated shipping price cannot be computed because all your products "
+"are service."
+msgstr "因为你的所有产品都是服务，所以无法计算出估计的运输价格。"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid ""
-"The estimated shipping price cannot be computed because all your products "
-"are service/digital."
-msgstr "预计装运价格不能计算，因为您所有的产品都是服务类或数字类。"
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
+msgstr ""
+"因为缺少以下产品的重量，所以无法计算出估计的运输价格。\n"
+" %s"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
@@ -269,7 +294,7 @@ msgstr ""
 #: model:product.template,uom_name:delivery_bpost.product_product_delivery_bpost_domestic_product_template
 #: model:product.template,uom_name:delivery_bpost.product_product_delivery_bpost_world_product_template
 msgid "Units"
-msgstr "单位"
+msgstr "件"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
@@ -315,7 +340,7 @@ msgstr "bpack 国际速递专业版"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__delivery_type__bpost
-#: model:ir.model.fields.selection,name:delivery_bpost.selection__product_packaging__package_carrier_type__bpost
+#: model:ir.model.fields.selection,name:delivery_bpost.selection__stock_package_type__package_carrier_type__bpost
 msgid "bpost"
 msgstr "bpost"
 
@@ -325,9 +350,9 @@ msgid "bpost Configuration"
 msgstr "Bpost配置"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_packaging_id
-msgid "bpost Default Packaging Type"
-msgstr "Bpost默认打包类型"
+#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_package_type_id
+msgid "bpost Default Package Type"
+msgstr "bpost 默认包类型"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0

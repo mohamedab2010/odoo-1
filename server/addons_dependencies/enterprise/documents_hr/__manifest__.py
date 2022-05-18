@@ -4,7 +4,7 @@
 {
     'name': 'Documents - HR',
     'version': '1.0',
-    'category': 'Operations/Documents',
+    'category': 'Productivity/Documents',
     'summary': 'Access documents from the employee profile',
     'description': """
 Easily access your documents from your employee profile.

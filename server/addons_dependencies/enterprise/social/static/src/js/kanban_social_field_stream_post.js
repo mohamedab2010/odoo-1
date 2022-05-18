@@ -1,12 +1,11 @@
-odoo.define('social.kanban_field_stream_post', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var FieldRegistry = require('web.field_registry');
-var FieldText = require('web.basic_fields').FieldText;
-var SocialEmojisMixin = require('social.emoji_mixin');
-var SocialStreamPostFormatterMixin = require('social.stream_post_formatter_mixin');
+import FieldRegistry from 'web.field_registry';
+import { FieldText } from 'web.basic_fields';
+import MailEmojisMixin from '@mail/js/emojis_mixin';
+import SocialStreamPostFormatterMixin from 'social.post_formatter_mixin';
 
-var SocialKanbanMessageWrapper = FieldText.extend(SocialEmojisMixin, SocialStreamPostFormatterMixin, {
+var SocialKanbanMessageWrapper = FieldText.extend(MailEmojisMixin, SocialStreamPostFormatterMixin, {
     /**
      * Overridden to wrap emojis and apply special stream post formatting
      *
@@ -14,16 +13,11 @@ var SocialKanbanMessageWrapper = FieldText.extend(SocialEmojisMixin, SocialStrea
      */
     _render: function () {
         if (this.value) {
-            var formattedValue = this.value;
-            formattedValue = this._formatText(formattedValue);
-            formattedValue = this._formatStreamPost(formattedValue);
-            this.$el.html(formattedValue);
+            this.$el.html(this._formatPost(this.value));
         }
     },
 });
 
 FieldRegistry.add('social_kanban_field_stream_post', SocialKanbanMessageWrapper);
 
-return SocialKanbanMessageWrapper;
-
-});
+export default SocialKanbanMessageWrapper;

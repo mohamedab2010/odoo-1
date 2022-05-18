@@ -52,7 +52,7 @@
                                 <div class="o_kanban_record_top">
                                     <div class="o_kanban_record_headings">
                                         <div t-attf-class="o_kanban_referral_top_right font-weight-bold #{(record.points_missing.raw_value &lt; 1) ? '' : 'text-danger'}">
-                                            <img src="/hr_referral/static/src/img/points.svg" class="mr-2" height="20px" alt=""/>
+                                            <img src="/hr_referral/static/src/img/points.svg" class="mr-2" height="20px" alt="Point icon"/>
                                             <span><field name="cost"/> Points</span>
                                         </div>
                                         <div class="o_text_title_left">
@@ -63,7 +63,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <p><field name="description"/></p>
+                                    <t t-out="record.description.value"/>
                                 </div>
                                 <div groups="base.group_multi_company">
                                     <i><field name="company_id"/></i>
@@ -71,7 +71,7 @@
 
                                 <div>
                                     <t t-if="record.points_missing.raw_value &lt; 1">
-                                        <button name="buy" type="object" class="btn btn-primary w-100 " confirm="Do you want to confirm this purchase? After comfirmation, a HR will contact you.">
+                                        <button name="buy" type="object" class="btn btn-primary w-100 " confirm="Do you want to confirm this reward? After confirmation an HR will contact you.">
                                             <span title='Buy'><i class='fa fa-shopping-basket mr-3' role="img" aria-label="Buy"/>Buy</span>
                                         </button>
                                     </t>
@@ -125,12 +125,13 @@
                     </group>
                     <group name="description">
                         <field name="description"/>
+                        <field name="active" invisible="1"/>
                     </group>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
-                    <field name="activity_ids" widget="mail_activity"/>
-                    <field name="message_ids" widget="mail_thread"/>
+                    <field name="message_follower_ids" groups="base.group_user"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
                 </div>
             </form>
         </field>
@@ -140,10 +141,11 @@
         <field name="name">hr.referral.reward.tree</field>
         <field name="model">hr.referral.reward</field>
         <field name="arch" type="xml">
-            <tree>
+            <tree sample="1">
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="cost"/>
+                <field name="activity_ids" widget="list_activity" optional="show"/>
                 <field name="awarded_employees"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </tree>
@@ -153,8 +155,13 @@
     <record model="ir.actions.act_window" id="action_hr_referral_reward_configuration">
         <field name="name">Rewards</field>
         <field name="res_model">hr.referral.reward</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,kanban,form,activity</field>
         <field name="groups_id" eval="[(4, ref('hr_recruitment.group_hr_recruitment_manager'))]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Let's create Super Rewards to thank your employees.
+            </p>
+        </field>
     </record>
 
     <record model="ir.actions.act_window" id="action_hr_referral_reward">
@@ -162,6 +169,11 @@
         <field name="res_model">hr.referral.reward</field>
         <field name="view_mode">kanban,form</field>
         <field name="view_id" ref="hr_referral.view_hr_referral_reward_kanban"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_referral_kanban">
+                Let's create super Rewards to thank<br/>your employees.
+            </p>
+        </field>
     </record>
 
     <menuitem parent="menu_hr_referral_configuration" id="menu_hr_referral_reward_configuration" action="action_hr_referral_reward_configuration" sequence="2"/>

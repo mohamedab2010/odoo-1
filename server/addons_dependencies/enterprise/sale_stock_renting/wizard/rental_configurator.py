@@ -25,8 +25,8 @@ class RentalWizard(models.TransientModel):
     tracking = fields.Selection(related='product_id.tracking')
     lot_ids = fields.Many2many(
         'stock.production.lot',
-        string="Serial Numbers", help="Only available serial numbers are suggested",
-        domain="[('id', 'not in', rented_lot_ids), ('id', 'in', rentable_lot_ids)]")
+        string="Serial Numbers", help="Only available serial numbers are suggested.",
+        domain="[(qty_available_during_period > 0, '=', 1), ('id', 'not in', rented_lot_ids), ('id', 'in', rentable_lot_ids)]")
     rentable_lot_ids = fields.Many2many(
         'stock.production.lot',
         string="Serials available in Stock", compute='_compute_rentable_lots')
@@ -37,7 +37,7 @@ class RentalWizard(models.TransientModel):
     # Rental Availability
     qty_available_during_period = fields.Float(
         string="Quantity available for given period (Stock - In Rent)",
-        compute='_compute_rental_availability')
+        compute='_compute_rental_availability', digits='Product Unit of Measure')
 
     is_product_storable = fields.Boolean(compute="_compute_is_product_storable")
 
@@ -113,7 +113,7 @@ class RentalWizard(models.TransientModel):
 
     @api.onchange('lot_ids')
     def _onchange_lot_ids(self):
-        if len(self.lot_ids) > self.quantity:
+        if self.tracking == 'serial' and self.lot_ids:
             self.quantity = len(self.lot_ids)
 
     @api.onchange('quantity')
@@ -122,24 +122,6 @@ class RentalWizard(models.TransientModel):
         if len(self.lot_ids) > self.quantity:
             self.lot_ids = self.lot_ids[:int(self.quantity)]
 
-    @api.onchange('qty_available_during_period')
-    def _onchange_qty_available_during_period(self):
-        """If no quantity is available for given period, don't show any choice for the serial numbers."""
-        if self.qty_available_during_period <= 0:
-            return {
-                'domain':
-                {
-                    'lot_ids': [(0, '=', 1)]
-                }
-            }
-        else:
-            return {
-                'domain':
-                {
-                    'lot_ids': "['&', ('id', 'not in', rented_lot_ids), ('id', 'in', rentable_lot_ids)]"
-                }
-            }
-
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.lot_ids and self.lot_ids.mapped('product_id') != self.product_id:
@@ -147,5 +129,6 @@ class RentalWizard(models.TransientModel):
 
     @api.constrains('product_id', 'rental_order_line_id')
     def _pickedup_product_no_change(self):
-        if self.rental_order_line_id and self.product_id != self.rental_order_line_id.product_id and self.rental_order_line_id.qty_delivered > 0:
-            raise ValidationError(_("You cannot change the product of a picked-up line."))
+        for wizard in self:
+            if wizard.rental_order_line_id and wizard.product_id != wizard.rental_order_line_id.product_id and wizard.rental_order_line_id.qty_delivered > 0:
+                raise ValidationError(_("You cannot change the product of a picked-up line."))

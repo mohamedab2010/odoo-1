@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 13.3alpha1+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-16 13:11+0000\n"
-"PO-Revision-Date: 2020-04-16 13:11+0000\n"
+"POT-Creation-Date: 2020-05-15 17:04+0000\n"
+"PO-Revision-Date: 2020-05-15 17:04+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 #. module: l10n_ar_edi
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_account_move__l10n_ar_afip_auth_code_due
 msgid " Authorization Due date"
-msgstr "Fecha ce vencimiento de la Autorización"
+msgstr "Fecha de vencimiento de la Autorización"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/res_company.py:0
@@ -88,16 +88,6 @@ msgstr ""
 "* Obtener Última Factura: Se conecta a la AFIP para obtener el último numero de factura y mostrarlo en el campo número"
 
 #. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
-msgid "- CAE Due Date:"
-msgstr "- Fecha Vto. CAE:"
-
-#. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
-msgid "<br/><span>Incoterm: </span>"
-msgstr ""
-
-#. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.res_config_settings_view_form
 msgid ""
 "<span attrs=\"{'invisible': [('l10n_ar_afip_ws_crt','!=', False)]}\"> "
@@ -123,9 +113,9 @@ msgstr ""
 "                            <span class=\"fa fa-lg fa-building-o\" title=\"Los valores establecidos aquí son específicos de la empresa.\" groups=\"base.group_multi_company\"/>"
 
 #. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
-msgid "<span>VAT Cond.: </span>"
-msgstr "<span>Cond. IVA: </span>"
+#: model:ir.model.fields.selection,name:l10n_ar_edi.selection__res_config_settings__l10n_ar_afip_fce_transmission__adc
+msgid "ADC - AGENTE DE DEPOSITO COLECTIVO"
+msgstr ""
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_move_form
@@ -138,14 +128,9 @@ msgid "AFIP Authorization Mode"
 msgstr "Modo Autorización AFIP"
 
 #. module: l10n_ar_edi
-#: model:ir.model.fields,field_description:l10n_ar_edi.field_account_move__l10n_ar_afip_barcode
-msgid "AFIP Barcode"
-msgstr "Código de Barra AFIP"
-
-#. module: l10n_ar_edi
 #: model:ir.actions.act_window,name:l10n_ar_edi.act_afipws_auth
 msgid "AFIP Connections"
-msgstr "Conecciones AFIP"
+msgstr "Conexiones AFIP"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_afipws_auth_form
@@ -181,6 +166,11 @@ msgstr "Verificación de factura en AFIP"
 #, python-format
 msgid "AFIP Messages"
 msgstr "Mensajes AFIP"
+
+#. module: l10n_ar_edi
+#: model:ir.model.fields,field_description:l10n_ar_edi.field_account_move__l10n_ar_afip_qr_code
+msgid "AFIP QR Code"
+msgstr "Código QR AFIP"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_afipws_auth_form
@@ -344,14 +334,14 @@ msgid "Available Document Type"
 msgstr "Tipo de Documentos Disponibles"
 
 #. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
-msgid "Barcode"
-msgstr "Código de barra"
-
-#. module: l10n_ar_edi
 #: model:ir.model.fields.selection,name:l10n_ar_edi.selection__account_move__l10n_ar_afip_auth_mode__cae
 msgid "CAE"
 msgstr ""
+
+#. module: l10n_ar_edi
+#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
+msgid "CAE Due Date:"
+msgstr "Fecha Vto. CAE:"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
@@ -401,11 +391,6 @@ msgstr ""
 "AFIP"
 
 #. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
-msgid "Cod"
-msgstr ""
-
-#. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_move_form
 msgid "Code"
 msgstr "Código"
@@ -432,10 +417,28 @@ msgid "Config Settings"
 msgstr "Opciones de Configuración"
 
 #. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
+#, python-format
+msgid "Connection failed"
+msgstr "Conexión fallida"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
+#, python-format
+msgid "Connection failed. This is what we get"
+msgstr "Conexión fallida. Esto es lo que obtenemos"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
+#, python-format
+msgid "Connection is available"
+msgstr "Conexión disponible"
+
+#. module: l10n_ar_edi
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_res_company__l10n_ar_connection_ids
 #: model:ir.ui.menu,name:l10n_ar_edi.menu_action_afipws_auth
 msgid "Connections"
-msgstr "Conecciones"
+msgstr "Conexiones"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.l10n_ar_afip_ws_consult_form
@@ -461,6 +464,16 @@ msgstr ""
 #: model:ir.ui.menu,name:l10n_ar_edi.menu_l10n_ar_afip_ws_consult
 msgid "Consult invoice in AFIP"
 msgstr "Consultar factura en AFIP"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/afip_errors.py:0
+#, python-format
+msgid ""
+"Could happen that the VAT is calculated without the discount, then it throws"
+" another amount."
+msgstr ""
+"Puede estar pasando que calcula el IVA sin el descuento, entonces arroja "
+"otro monto."
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/account_journal.py:0
@@ -490,6 +503,11 @@ msgstr "Creado el"
 #: model:ir.model,name:l10n_ar_edi.model_res_currency
 msgid "Currency"
 msgstr "Moneda"
+
+#. module: l10n_ar_edi
+#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.res_config_settings_view_form
+msgid "Default MiPyME FCE Transmission Option"
+msgstr "Opción de Transmisión por defecto FCE MiPyME"
 
 #. module: l10n_ar_edi
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_l10n_ar_afip_ws_consult__display_name
@@ -553,6 +571,11 @@ msgstr "Comprobante Exportación - Web Service"
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_account_move__l10n_ar_afip_fce_is_cancellation
 msgid "FCE: Is Cancellation?"
 msgstr "FCE: Es Cancelación?"
+
+#. module: l10n_ar_edi
+#: model:ir.model.fields,field_description:l10n_ar_edi.field_res_config_settings__l10n_ar_afip_fce_transmission
+msgid "FCE: Transmission Option"
+msgstr "FCE: Opción de Trasmisión"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/account_journal.py:0
@@ -679,7 +702,7 @@ msgstr "Como obtener un certificado para producción?"
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_l10n_ar_afip_ws_consult__id
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_l10n_ar_afipws_connection__id
 msgid "ID"
-msgstr ""
+msgstr "ID (identificación)"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/afip_errors.py:0
@@ -740,11 +763,13 @@ msgstr ""
 #: code:addons/l10n_ar_edi/models/afip_errors.py:0
 #, python-format
 msgid ""
-"Is possible that you are making a CN/DN but you need to set it as \"FCE: Is "
-"cancellation\""
+"It is possible that you are making a CN/DN but you are setting a wrong value in the \"FCE: Is cancellation\" field. If the AFIP message indicates:\n"
+"\t * \"OK - Comprobante electrónico autorizado, NO rechazado por el Comprador\" it means that the \"FCE: Is cancellation\" should NOT be set.\n"
+"\t * \"OK - Comprobante electrónico autorizado pero fue rechazado por el comprador\" it means that the \"FCE: Is cancellation\" should be set."
 msgstr ""
-"Es posible que este haciendo una NC/ND pero no debe marcar \"FCE: Es "
-"anulación\""
+"Es posible que estés intentado hacer una NC/ND configurando mal el campo \"FCE: Es cancelación\". Si el mensaje de AFIP indica:\n"
+"\t * \"OK - Comprobante electrónico autorizado, NO rechazado por el Comprador\" significa que el campo  \"FCE: Is cancelación\" NO debe estar activo.\n"
+"\t * \"OK - Comprobante electrónico autorizado pero fue rechazado por el comprador\" significa que el campo  \"FCE: Is cancelación\" debe estar activo."
 
 #. module: l10n_ar_edi
 #: model:ir.model.fields,help:l10n_ar_edi.field_res_company__l10n_ar_afip_verification_type
@@ -848,13 +873,13 @@ msgstr "Código NCM"
 #: code:addons/l10n_ar_edi/models/res_company.py:0
 #, python-format
 msgid "No AFIP WS selected"
-msgstr "No se ha selecionado WS AFIP"
+msgstr "No se ha seleccionado WS AFIP"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/wizards/l10n_ar_afip_ws_consult.py:0
 #, python-format
 msgid "No AFIP WS selected on point of sale %s"
-msgstr "No hay WS AFIP selecionado en el Punto de Venta %s"
+msgstr "No hay WS AFIP seleccionado en el Punto de Venta %s"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/res_currency.py:0
@@ -867,7 +892,6 @@ msgstr ""
 "código AFIP consultado la información en la página de AFIP"
 
 #. module: l10n_ar_edi
-#: code:addons/l10n_ar_edi/models/account_move.py:0
 #: code:addons/l10n_ar_edi/models/account_move.py:0
 #, python-format
 msgid "No AFIP code in %s UOM"
@@ -893,6 +917,18 @@ msgstr "No hay cotización para PESOS (es la moneda base para AFIP)"
 #: model:ir.model.fields.selection,name:l10n_ar_edi.selection__res_company__l10n_ar_afip_verification_type__not_available
 msgid "Not Available"
 msgstr "No Disponible"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_company.py:0
+#, python-format
+msgid "Not a valid certificate file"
+msgstr "Archivo de Certificado no válido"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_company.py:0
+#, python-format
+msgid "Not a valid private key file"
+msgstr "Archivo de private key no válido"
 
 #. module: l10n_ar_edi
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_l10n_ar_afip_ws_consult__number
@@ -961,6 +997,11 @@ msgid "Production"
 msgstr "Producción"
 
 #. module: l10n_ar_edi
+#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
+msgid "QR Code"
+msgstr "Código QR"
+
+#. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/res_currency.py:0
 #, python-format
 msgid "Rate:"
@@ -981,6 +1022,11 @@ msgstr "Requerido"
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_account_move__l10n_ar_afip_result
 msgid "Result"
 msgstr "Resultado"
+
+#. module: l10n_ar_edi
+#: model:ir.model.fields.selection,name:l10n_ar_edi.selection__res_config_settings__l10n_ar_afip_fce_transmission__sca
+msgid "SCA - TRANSFERENCIA AL SISTEMA DE CIRCULACION ABIERTA"
+msgstr ""
 
 #. module: l10n_ar_edi
 #: model:ir.model.fields,field_description:l10n_ar_edi.field_l10n_ar_afipws_connection__sign
@@ -1019,20 +1065,15 @@ msgid "Specific Invoice Number"
 msgstr "Número de Factura específico"
 
 #. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_account_journal_form
-msgid "Sync documents next number in Odoo against last numbers in AFIP"
-msgstr "Sincronizar el próximo número en Odoo con los últimos numeros en AFIP"
-
-#. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.report_invoice_document
 msgid ""
 "THE PURCHASER ASSUMES THE COMMITMENT, IN THE NATURE OF AN AFFECTED "
 "DECLARATION, OF NOT EXPORTING THE PROPERTY DURING THE TERM OF THREE 3 YEARS "
-"FROM THE ACQUISITION"
+"FROM THE ACQUISITION<br/>"
 msgstr ""
 "EL ADQUIRENTE ASUME EL COMPROMISO, EN CARÁCTER DE DECLARACION JURADA, DE NO "
 "EXPORTAR EL BIEN DURANTE EL PLAZO DE TRES 3 AÑOS CONTADOS A PARTIR DE SU "
-"ADQUISICION"
+"ADQUISICION<br/>"
 
 #. module: l10n_ar_edi
 #: model:ir.model.fields,help:l10n_ar_edi.field_l10n_ar_afip_ws_consult__available_document_type_ids
@@ -1068,6 +1109,27 @@ msgid ""
 msgstr ""
 "El código ISO de aís es de dos caracteres. \n"
 "Puedes usar este campo para búsqueda rápida."
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/l10n_ar_afipws_connection.py:0
+#, python-format
+msgid "The certificate and private key do not match"
+msgstr "El certificado y la private key no coinciden"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_company.py:0
+#, python-format
+msgid "The certificate can not be uploaded!"
+msgstr "El certificado no puede ser cargado!"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/l10n_ar_afipws_connection.py:0
+#, python-format
+msgid ""
+"The certificate is not authorized (delegated) to work with this web service"
+msgstr ""
+"El certificado no está autorizado (delegado) para trabajar con este servicio"
+" web"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/res_config_settings.py:0
@@ -1107,6 +1169,18 @@ msgstr "La factura esta intentando ser reprocesado"
 #: code:addons/l10n_ar_edi/models/afip_errors.py:0
 #, python-format
 msgid ""
+"The new RG 4919/2021 define that MiPYME document requires to inform the FCE Transmission Option. Set this one in your System Parameters creating a parameter with name \"l10n_ar_edi.fce_transmission\". Possible values are: SCA or ADC. These options means:\n"
+" * SCA - TRANSFERENCIA AL SISTEMA DE CIRCULACION ABIERTA\n"
+" * ADC - AGENTE DE DEPOSITO COLECTIVO"
+msgstr ""
+"La nueva RG 4919/2021 obliga a informar en los comprobantes MiPyme la opción de Transmisión del FCE. Este lo defines en tu Paramestros del Sistema creando un parámetro con el nombre \"l10n_ar_edi.fce_transmission\". Los valores posibles son: SCA o ADC. Estas opciones corresponden a:\n"
+" * SCA - TRANSFERENCIA AL SISTEMA DE CIRCULACION ABIERTA\n"
+" * ADC - AGENTE DE DEPOSITO COLECTIVO"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/afip_errors.py:0
+#, python-format
+msgid ""
 "The number or date of the document does not correspond to the next one to be authorized.\n"
 " * The invoice date not be after the last invoice validated in AFIP.\n"
 " * Verify that the next invoice number in the Journal corresponds with the next one in AFIP\n"
@@ -1121,6 +1195,12 @@ msgstr ""
 "\n"
 "\n"
 "Puedes ir a menú \"Consultar Datos de la Factura en AFIP\" y obtener la información de la última factura"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_company.py:0
+#, python-format
+msgid "The private key can not be uploaded!"
+msgstr "La private key no puede ser cargada!"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/afip_errors.py:0
@@ -1171,16 +1251,13 @@ msgid "There was a problem with the connection to the %s webservice: %s"
 msgstr "Hubo un problema con la conexión al webservice %s: %s"
 
 #. module: l10n_ar_edi
-#: model:ir.model.fields,help:l10n_ar_edi.field_account_move__l10n_ar_afip_barcode
+#: model:ir.model.fields,help:l10n_ar_edi.field_account_move__l10n_ar_afip_qr_code
 msgid ""
-"This barcode is included in the invoice report and is built using the CAE "
-"returned by the AFIP when the invoice has been validated. This barcode is "
-"mandatory by the AFIP in the electronic invoices when this ones are printed"
+"This QR code is mandatory by the AFIP in the electronic invoices when this "
+"ones are printed."
 msgstr ""
-"Este código de barras se incluye en el informe de la factura y se crea "
-"utilizando el CAE devuelto por la AFIP cuando la factura ha sido validada. "
-"Este código de barras es obligatorio por la AFIP en las facturas "
-"electrónicas cuando se imprimen"
+"Este código QR es obligatorio por la AFIP en las facturas electrónicas "
+"cuando se imprimen"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_currency_form
@@ -1244,6 +1321,22 @@ msgstr ""
 " y usar la que coincida con el nuevo entorno"
 
 #. module: l10n_ar_edi
+#: model:ir.model.fields,help:l10n_ar_edi.field_res_config_settings__l10n_ar_afip_fce_transmission
+msgid ""
+"This field only need to be set when you are reporting a MiPyME FCE documents"
+msgstr ""
+"Este campo solo debe ser llenado cuando se informen documentos FCE MiPyME"
+
+#. module: l10n_ar_edi
+#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.res_config_settings_view_form
+msgid ""
+"This information will be sent to AFIP when validation electronic FCE "
+"documents. RG 4919/2021 requirement."
+msgstr ""
+"Esta información será enviada a AFIP cuando se validen los comprobantes FCE electrónicos. "
+"Requerimiento RG 4919/2021."
+
+#. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/afip_errors.py:0
 #, python-format
 msgid ""
@@ -1251,7 +1344,7 @@ msgid ""
 " let it know that is happening and to investigate what is going on with the "
 "AFIP service"
 msgstr ""
-"Esto es un error interno de AFIP. Informe lo que sucedde a su proveedor de "
+"Esto es un error interno de AFIP. Informe lo que sucede a su proveedor de "
 "Odoo para investigar que puede estar sucendiendo con el servicio de AFIP"
 
 #. module: l10n_ar_edi
@@ -1286,6 +1379,12 @@ msgstr ""
 "  * CAEA (Código de Autorización Electrónica Anticipada): Significa que es una factura electrónica. Este tipo de facturas se genera utilizando un código pregenerado por AFIP para las empresas que tienen una facturación masiva por mes para que puedan procesar previamente todas las facturas de la quincena en una operación con un CAEA único. Seleccione esta opción solo cuando verifique en AFIP una factura de proveedor que tenga CAEA (las facturas con CAEA no tendrán CAE)"
 
 #. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
+#, python-format
+msgid "This is what we get"
+msgstr "Esto es lo que obtenemos"
+
+#. module: l10n_ar_edi
 #: model:ir.model.fields,help:l10n_ar_edi.field_res_company__l10n_ar_afip_ws_key
 #: model:ir.model.fields,help:l10n_ar_edi.field_res_config_settings__l10n_ar_afip_ws_key
 msgid ""
@@ -1317,18 +1416,6 @@ msgid "Unique ID"
 msgstr "ID Único"
 
 #. module: l10n_ar_edi
-#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
-#, python-format
-msgid ""
-"Unknown error.\n"
-"X509 return this message:\n"
-" %s"
-msgstr ""
-"Error desconocido.\n"
-"X509 retorna este mensaje:\n"
-" %s"
-
-#. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/l10n_ar_afipws_connection.py:0
 #, python-format
 msgid "Verification of Invoices (WSCDC)"
@@ -1338,17 +1425,6 @@ msgstr "Verificación de Facturas (WSCDC)"
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.res_config_settings_view_form
 msgid "Verify Vendor Bills validity in AFIP"
 msgstr "Verificar la validez de las facturas de proveedor en AFIP"
-
-#. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_account_journal_form
-msgid ""
-"Warning! This is normally used only when you start to use Odoo to sync the "
-"last numbers of each document. It shouldn't be needed to use it again. "
-"Please double check before confirming."
-msgstr ""
-"¡Cuidado! Esto es normalmente usado cuando comienzas a usar Odoo para "
-"sincronizar los últimos números de cada documento. No sería necesario usarlo"
-" nuevamente. Por favor revise antes de confirmar."
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/account_move.py:0
@@ -1363,12 +1439,14 @@ msgstr ""
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/account_move.py:0
 #, python-format
-msgid ""
-"We couldn't validate the invoice \"%s\" (Draft Invoice *%s) in AFIP. This is what we get:\n"
-"%s"
-msgstr ""
-"No pudimos validar la factura \"%s\" (Draft Invoice *%s) en AFIP. Esto es lo que recibimos:\n"
-"%s"
+msgid "We couldn't validate the invoice \"%s\" (Draft Invoice *%s) in AFIP"
+msgstr "No pudimos validar la factura \"%s\" (Factura Borrador *%s) en AFIP"
+
+#. module: l10n_ar_edi
+#: code:addons/l10n_ar_edi/models/account_move.py:0
+#, python-format
+msgid "We couldn't validate the invoice in AFIP."
+msgstr "No pudimos validar la factura en AFIP"
 
 #. module: l10n_ar_edi
 #: code:addons/l10n_ar_edi/models/account_journal.py:0
@@ -1403,16 +1481,6 @@ msgid "Webservice is down"
 msgstr "El servicio web esta caído"
 
 #. module: l10n_ar_edi
-#: code:addons/l10n_ar_edi/models/afip_errors.py:0
-#, python-format
-msgid ""
-"What happens is that it calculates VAT without the discount, then it throws "
-"another amount."
-msgstr ""
-"Lo que pasa es que calcula el IVA sin el descuento, entonces arroja otro "
-"monto."
-
-#. module: l10n_ar_edi
 #: model:ir.model.fields,help:l10n_ar_edi.field_account_move__l10n_ar_afip_fce_is_cancellation
 msgid ""
 "When informing a MiPyMEs (FCE) debit/credit notes in AFIP it is require to "
@@ -1431,7 +1499,7 @@ msgstr ""
 "factura.asp"
 
 #. module: l10n_ar_edi
-#: code:addons/l10n_ar_edi/models/res_config_settings.py:0
+#: code:addons/l10n_ar_edi/models/res_company.py:0
 #, python-format
 msgid ""
 "Wrong Certificate file format.\n"
@@ -1514,11 +1582,6 @@ msgstr "⇒ Configurar otro certificado de demo"
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_currency_form
 msgid "⇒ Show latest AFIP Rate"
 msgstr "⇒ Mostrar Última Tasa AFIP"
-
-#. module: l10n_ar_edi
-#: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_account_journal_form
-msgid "⇒ Sync Next Numbers with AFIP"
-msgstr "⇒ Sincronizar los próximos números con AFIP"
 
 #. module: l10n_ar_edi
 #: model_terms:ir.ui.view,arch_db:l10n_ar_edi.view_move_form

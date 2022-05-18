@@ -3,7 +3,8 @@
 
 {
     'name': 'Indian Payroll',
-    'category': 'Payroll Localization',
+    'icon': '/l10n_in/static/description/icon.png',
+    'category': 'Human Resources/Payroll',
     'depends': ['hr_payroll', 'l10n_in'],
     'description': """
 Indian Payroll Salary Rules.
@@ -23,7 +24,9 @@ Indian Payroll Salary Rules.
     """,
     'data': [
         'views/l10n_in_hr_payroll_view.xml',
+        'views/hr_employee_view.xml',
         'data/l10n_in_hr_payroll_data.xml',
+        'data/l10n_in_hr_payroll_rule_data.xml',
         'security/ir.model.access.csv',
         'views/l10n_in_hr_payroll_report.xml',
         'data/l10n_in_hr_payroll_sequence_data.xml',
@@ -34,5 +37,5 @@ Indian Payroll Salary Rules.
         'views/report_hr_yearly_salary_detail_template.xml',
         'views/report_payroll_advice_template.xml',
     ],
-    'demo': ['data/l10n_in_hr_payroll_demo.xml'],
+    'license': 'OEEL-1',
 }

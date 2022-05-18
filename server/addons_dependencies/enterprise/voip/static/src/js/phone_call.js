@@ -3,6 +3,8 @@ odoo.define('voip.PhoneCall', function (require) {
 
 const Widget = require('web.Widget');
 
+const { Component } = owl;
+
 const PhoneCall = Widget.extend({
     template: 'voip.PhoneCall',
     events: {
@@ -28,7 +30,7 @@ const PhoneCall = Widget.extend({
      * @param {string} param1.name
      * @param {string} param1.partner_email
      * @param {integer} param1.partner_id
-     * @param {string} param1.partner_image_128
+     * @param {string} param1.partner_avatar_128
      * @param {string} [param1.partner_name]
      * @param {string} param1.phone
      * @param {string} param1.state ['cancel', 'done', 'open', 'pending']
@@ -49,7 +51,7 @@ const PhoneCall = Widget.extend({
         name,
         partner_email,
         partner_id,
-        partner_image_128,
+        partner_avatar_128,
         partner_name,
         phone,
         state,
@@ -64,14 +66,14 @@ const PhoneCall = Widget.extend({
         this.date = call_date;
         this.email = partner_email;
         this.id = id;
-        this.imageSmall = partner_image_128;
+        this.imageSmall = partner_avatar_128;
         this.isContact = isContact;
         this.isRecent = isRecent;
         this.minutes = Math.floor(duration).toString();
         this.mobileNumber = mobile;
         this.name = name;
         this.partnerId = partner_id;
-        this.partnerName = partner_name ? partner_name : name;
+        this.partnerName = partner_name;
         this.phoneNumber = phone;
         this.seconds = (duration % 1 * 60).toFixed();
         this.state = state;
@@ -107,7 +109,7 @@ const PhoneCall = Widget.extend({
                 },
             });
         }
-        this.call('mail_service', 'getMailBus').trigger('voip_reload_chatter');
+        Component.env.bus.trigger('voip_reload_chatter');
     },
     /**
      * Makes rpc to set the call as canceled.

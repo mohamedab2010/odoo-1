@@ -2,9 +2,10 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo.addons.helpdesk.tests import common
-from odoo.tests.common import Form
+from odoo.tests.common import Form, tagged
 
 
+@tagged('post_install', '-at_install')
 class TestHelpdeskStock(common.HelpdeskCommon):
     """ Test used to check that the functionalities of After sale in Helpdesk (stock).
     """
@@ -19,6 +20,7 @@ class TestHelpdeskStock(common.HelpdeskCommon):
         product = self.env['product.product'].create({
             'name': 'product 1',
             'type': 'product',
+            'invoice_policy': 'order',
         })
         so = self.env['sale.order'].create({
             'partner_id': partner.id,
@@ -32,9 +34,9 @@ class TestHelpdeskStock(common.HelpdeskCommon):
         so.action_confirm()
         so._create_invoices()
         invoice = so.invoice_ids
-        invoice.post()
+        invoice.action_post()
         so.picking_ids[0].move_lines[0].quantity_done = 1
-        so.picking_ids[0].action_done()
+        so.picking_ids[0]._action_done()
         ticket = self.env['helpdesk.ticket'].create({
             'name': 'test',
             'partner_id': partner.id,

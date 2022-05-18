@@ -3,8 +3,8 @@
 # See LICENSE file for full copyright and licensing details.
 {
     'name': 'LT - Accounting Reports',
+    'icon': '/l10n_lt/static/description/icon.png',
     'version': '1.0.0',
-    'summary': 'accounting, report, Lithuanian',
     'description': """
         Accounting reports for Lithuania
 
@@ -13,7 +13,7 @@
     'license': 'OEEL-1',
     'author': "Focusate",
     'website': "http://www.focusate.eu",
-    'category': 'Localization',
+    'category': 'Accounting/Localizations/Reporting',
     'depends': [
         'account_reports',
         'l10n_lt'

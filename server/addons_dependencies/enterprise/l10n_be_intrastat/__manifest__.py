@@ -3,7 +3,8 @@
 
 {
     'name': 'Belgian Intrastat Declaration',
-    'category': 'Accounting/Accounting',
+    'icon': '/l10n_be/static/description/icon.png',
+    'category': 'Accounting/Localizations/Reporting',
     'description': """
 Generates Intrastat XML report for declaration
 Based on invoices.
@@ -14,8 +15,6 @@ Adds the possibility to specify the origin country of goods and the partner VAT 
         'data/code_region_data.xml',
         'data/intrastat_export.xml',
         'views/res_config_settings.xml',
-        'views/account_invoice_line_view.xml',
-        'views/report_invoice.xml',
     ],
     'auto_install': True,
     'license': 'OEEL-1',

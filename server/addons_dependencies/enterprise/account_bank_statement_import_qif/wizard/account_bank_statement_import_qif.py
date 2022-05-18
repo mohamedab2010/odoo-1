@@ -22,6 +22,8 @@ class AccountBankStatementImport(models.TransientModel):
         help="Accounting journal related to the bank statement you're importing. It has to be manually chosen "
              "for statement formats which doesn't allow automatic journal detection (QIF for example).")
     hide_journal_field = fields.Boolean(string='Hide the journal field in the view', default=_get_hide_journal_field)
+    qif_decimal_point = fields.Char(string="Decimal Separator", default='.',
+        help="Field used to avoid conversion issues.")
 
     show_qif_date_format = fields.Boolean(default=False, store=False,
         help="Technical field used to ask the user for the date format used in the QIF file, as this format is ambiguous.")
@@ -32,7 +34,7 @@ class AccountBankStatementImport(models.TransientModel):
     @api.onchange('attachment_ids')
     def _onchange_data_file(self):
         file_contents = self.attachment_ids.mapped('datas')
-        self.show_qif_date_format = any(self._check_qif(content) for content in file_contents)
+        self.show_qif_date_format = any(self._check_qif(base64.b64decode(content)) for content in file_contents)
 
     def _find_additional_data(self, *args):
         """ As .QIF format does not allow us to detect the journal, we need to let the user choose it.
@@ -51,7 +53,7 @@ class AccountBankStatementImport(models.TransientModel):
 
         data_list = [
             line.rstrip(b'\r\n')
-            for line in io.BytesIO(data_file)
+            for line in io.BytesIO(data_file.strip())
         ]
         try:
             header = data_list[0].strip().split(b':')[1]
@@ -59,7 +61,7 @@ class AccountBankStatementImport(models.TransientModel):
             raise UserError(_('Could not decipher the QIF file.'))
 
         transactions = []
-        vals_line = {'name': []}
+        vals_line = {'payment_ref': []}
         total = 0.0
         # Identified header types of the QIF format that we support.
         # Other types might need to be added. Here are the possible values
@@ -76,29 +78,29 @@ class AccountBankStatementImport(models.TransientModel):
                     dayfirst = self.env.context.get('qif_date_format') == 'day_first'
                     vals_line['date'] = dateutil.parser.parse(data, fuzzy=True, dayfirst=dayfirst).date()
                 elif line[:1] == TOTAL_AMOUNT:
-                    amount = float(data.replace(b',', b''))
+                    amount = float(data.replace(b',', b'.' if self.qif_decimal_point == ',' else b''))
                     total += amount
                     vals_line['amount'] = amount
                 elif line[:1] == CHECK_NUMBER:
                     vals_line['ref'] = data.decode('utf-8')
                 elif line[:1] == PAYEE:
                     name = data.decode('utf-8')
-                    vals_line['name'].append(name)
+                    vals_line['payment_ref'].append(name)
                     # Since QIF doesn't provide account numbers, we'll have to find res.partner and res.partner.bank here
                     # (normal behavious is to provide 'account_number', which the generic module uses to find partner/bank)
                     partner_bank = self.env['res.partner.bank'].search([('partner_id.name', '=', name)], limit=1)
                     if partner_bank:
-                        vals_line['bank_account_id'] = partner_bank.id
+                        vals_line['partner_bank_id'] = partner_bank.id
                         vals_line['partner_id'] = partner_bank.partner_id.id
                 elif line[:1] == MEMO:
-                    vals_line['name'].append(data.decode('utf-8'))
+                    vals_line['payment_ref'].append(data.decode('utf-8'))
                 elif line[:1] == END_OF_ITEM:
-                    if vals_line['name']:
-                        vals_line['name'] = u': '.join(vals_line['name'])
+                    if vals_line['payment_ref']:
+                        vals_line['payment_ref'] = u': '.join(vals_line['payment_ref'])
                     else:
-                        del vals_line['name']
+                        del vals_line['payment_ref']
                     transactions.append(vals_line)
-                    vals_line = {'name': []}
+                    vals_line = {'payment_ref': []}
                 elif line[:1] == b'\n':
                     transactions = []
         else:

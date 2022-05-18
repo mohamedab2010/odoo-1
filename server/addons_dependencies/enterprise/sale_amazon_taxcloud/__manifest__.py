@@ -10,4 +10,5 @@
     'depends': ['sale_amazon', 'account_taxcloud'],
     'application': False,
     'auto_install': True,
+    'license': 'OEEL-1',
 }

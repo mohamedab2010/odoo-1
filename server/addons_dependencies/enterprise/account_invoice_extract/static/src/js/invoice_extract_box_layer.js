@@ -1,9 +1,7 @@
-odoo.define('account_invoice_extract.BoxLayer', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var InvoiceExtractBox = require('account_invoice_extract.Box');
-
-var Widget = require('web.Widget');
+import InvoiceExtractBox from '@account_invoice_extract/js/invoice_extract_box';
+import Widget from 'web.Widget';
 
 /**
  * This widget is layer on top of a page in the attachment preview, in which
@@ -148,6 +146,4 @@ var InvoiceExtractBoxLayer = Widget.extend({
     },
 });
 
-return InvoiceExtractBoxLayer;
-
-});
+export default InvoiceExtractBoxLayer;

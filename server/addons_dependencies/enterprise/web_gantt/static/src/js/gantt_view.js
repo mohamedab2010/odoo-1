@@ -20,6 +20,9 @@ var GanttView = AbstractView.extend({
         Controller: GanttController,
         Renderer: GanttRenderer,
     }),
+    jsLibs: [
+        '/web/static/lib/nearest/jquery.nearest.js',
+    ],
     viewType: 'gantt',
 
     /**
@@ -27,6 +30,9 @@ var GanttView = AbstractView.extend({
      */
     init: function (viewInfo, params) {
         this._super.apply(this, arguments);
+
+        const { domain } = params.action || {};
+        this.controllerParams.actionDomain = domain || [];
 
         this.SCALES = {
             day: { string: _t('Day'), cellPrecisions: { full: 60, half: 30, quarter: 15 }, defaultPrecision: 'full', time: 'minutes', interval: 'hour' },
@@ -107,8 +113,8 @@ var GanttView = AbstractView.extend({
             allowedScales = Object.keys(this.SCALES);
         }
 
-        var scale = arch.attrs.default_scale || 'month';
-        var initialDate = moment(params.initialDate || params.context.initialDate || new Date());
+        var scale = params.context.default_scale || arch.attrs.default_scale || 'month';
+        var initialDate = moment(params.context.initialDate || params.initialDate || arch.attrs.initial_date || new Date());
         var offset = arch.attrs.offset;
         if (offset && scale) {
             initialDate.add(offset, scale);
@@ -118,6 +124,8 @@ var GanttView = AbstractView.extend({
         var thumbnails = this.arch.attrs.thumbnails ? pyUtils.py_eval(this.arch.attrs.thumbnails) : {};
         // plan option
         var canPlan = this.arch.attrs.plan ? !!JSON.parse(this.arch.attrs.plan) : true;
+        // cell create option
+        const canCellCreate = this.arch.attrs.cell_create ? !!JSON.parse(this.arch.attrs.cell_create) : true;
 
         this.controllerParams.context = params.context || {};
         this.controllerParams.dialogViews = dialogViews;
@@ -134,12 +142,15 @@ var GanttView = AbstractView.extend({
         this.loadParams.progressField = arch.attrs.progress;
         this.loadParams.decorationFields = decorationFields;
         this.loadParams.defaultGroupBy = this.arch.attrs.default_group_by;
+        this.loadParams.dynamicRange = this.arch.attrs.dynamic_range;
         this.loadParams.displayUnavailability = displayUnavailability;
         this.loadParams.fields = this.fields;
         this.loadParams.scale = scale;
+        this.loadParams.SCALES = this.SCALES;
         this.loadParams.consolidationParams = consolidationParams;
 
         this.rendererParams.canCreate = this.controllerParams.activeActions.create;
+        this.rendererParams.canCellCreate = canCellCreate;
         this.rendererParams.canEdit = this.controllerParams.activeActions.edit;
         this.rendererParams.canPlan = canPlan && this.rendererParams.canEdit;
         this.rendererParams.fieldsInfo = viewInfo.fields;
@@ -149,6 +160,7 @@ var GanttView = AbstractView.extend({
         this.rendererParams.string = arch.attrs.string || _t('Gantt View');
         this.rendererParams.popoverTemplate = _.findWhere(arch.children, {tag: 'templates'});
         this.rendererParams.colorField = colorField;
+        this.rendererParams.disableDragdrop = arch.attrs.disable_drag_drop ? !!JSON.parse(arch.attrs.disable_drag_drop) : false;
         this.rendererParams.progressField = arch.attrs.progress;
         this.rendererParams.displayUnavailability = displayUnavailability;
         this.rendererParams.collapseFirstLevel = collapseFirstLevel;

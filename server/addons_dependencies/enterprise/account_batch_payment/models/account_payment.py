@@ -1,42 +1,38 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo import models, fields, Command, api, _
 
 
 class AccountPayment(models.Model):
     _inherit = "account.payment"
 
-    batch_payment_id = fields.Many2one('account.batch.payment', ondelete='set null', copy=False)
+    batch_payment_id = fields.Many2one('account.batch.payment', ondelete='set null', copy=False,
+        compute="_compute_batch_payment_id", store=True, readonly=False)
+    amount_signed = fields.Monetary(
+        currency_field='currency_id', compute='_compute_amount_signed',
+        help='Negative value of amount field if payment_type is outbound')
+    payment_method_name = fields.Char(related='payment_method_line_id.name')
 
-    def unreconcile(self):
+    @api.depends('state')
+    def _compute_batch_payment_id(self):
+        for payment in self.filtered(lambda p: p.state != 'posted'):
+            # unlink the payment from the batch payment ids, hovewer _compute_amount
+            # is not triggered by the ORM when setting batch_payment_id to None
+            payment.batch_payment_id.write({'payment_ids': [Command.unlink(payment.id)]})
+
+    @api.depends('amount', 'payment_type')
+    def _compute_amount_signed(self):
         for payment in self:
-            if payment.batch_payment_id and payment.batch_payment_id.state == 'reconciled':
-                # removing the link between a payment and a statement line means that the batch
-                # payment the payment was in, is not reconciled anymore.
-                payment.batch_payment_id.write({'state': 'sent'})
-        return super(AccountPayment, self).unreconcile()
-
-    def write(self, vals):
-        result = super(AccountPayment, self).write(vals)
-        # Mark a batch payment as reconciled if all its payments are reconciled
-        for rec in self:
-            if rec.batch_payment_id:
-                if all(payment.state == 'reconciled' for payment in rec.batch_payment_id.payment_ids):
-                    rec.batch_payment_id.state = 'reconciled'
-        return result
+            if payment.payment_type == 'outbound':
+                payment.amount_signed = -payment.amount
+            else:
+                payment.amount_signed = payment.amount
 
     @api.model
     def create_batch_payment(self):
         # We use self[0] to create the batch; the constrains on the model ensure
         # the consistency of the generated data (same journal, same payment method, ...)
-        if any([p.payment_type == 'transfer' for p in self]):
-            raise UserError(
-                _('You cannot make a batch payment with internal transfers. Internal transfers ids: %s')
-                % ([p.id for p in self if p.payment_type == 'transfer'])
-            )
-
         batch = self.env['account.batch.payment'].create({
             'journal_id': self[0].journal_id.id,
             'payment_ids': [(4, payment.id, None) for payment in self],
@@ -49,4 +45,19 @@ class AccountPayment(models.Model):
             "res_model": "account.batch.payment",
             "views": [[False, "form"]],
             "res_id": batch.id,
+        }
+
+    def button_open_batch_payment(self):
+        ''' Redirect the user to the batch payments containing this payment.
+        :return:    An action on account.batch.payment.
+        '''
+        self.ensure_one()
+
+        return {
+            'name': _("Batch Payment"),
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.batch.payment',
+            'context': {'create': False},
+            'view_mode': 'form',
+            'res_id': self.batch_payment_id.id,
         }

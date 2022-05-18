@@ -13,4 +13,4 @@ class ResConfigSettings(models.TransientModel):
     mode = fields.Selection([
         ('demo', 'Demo'),
         ('prod', 'Production'),
-    ], string="VoIP Environment", default='demo', config_parameter='voip.mode')
+    ], string="VoIP Environment", default='demo', config_parameter='voip.mode', required=True)

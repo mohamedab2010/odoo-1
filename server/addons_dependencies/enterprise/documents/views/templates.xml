@@ -13,7 +13,7 @@
         <t t-call="web.layout">
             <t t-set="head">
                 <script type="text/javascript">
-                    odoo.session_info = <t t-raw="json.dumps({
+                    odoo.__session_info__ = <t t-out="json.dumps({
                         'is_admin': request.env.user._is_admin(),
                         'is_system': request.env.user._is_system(),
                         'user_id': request.env.user.id,
@@ -34,11 +34,12 @@
                     }
                 </style>
 
-                <t t-raw="head"/>
+                <t t-out="head"/>
             </t>
 
             <t t-set="body_classname" t-value="'o_docs_share_page o_home_menu_background'"/>
             <t t-set="shareType" t-value="shareType or ''"/>
+            <t t-set="share_redirect_URL" t-value="base_url + '/document/share/' + share_id + '/' + token"/>
             <div id="wrap" t-att-class="'h-100 flex-column flex-nowrap d-flex position-relative container ' + shareType">
                 <header class="mt8">
                     <span class="o_company_logo" t-field="res_company.logo" t-options="{'widget': 'image'}" t-att-alt="'Logo of %s' % res_company.name" t-att-title="res_company.name"/>
@@ -46,25 +47,25 @@
                     <ul class="list-inline mt8 float-right">
                         <li class="dropdown hidden-sm hidden-xs" t-ignore="true" t-if="not user_id._is_public()">
                             <a href="#" class="dropdown-toggle o_docs_btn" data-toggle="dropdown">
-                                <img class="o_object_fit_cover rounded-circle" width="13" height="13" t-attf-src="/web/image?model=res.users&amp;field=image_128&amp;id=#{json.dumps(request.env.user.id)}" alt=""/>
+                                <img class="o_object_fit_cover rounded-circle" width="13" height="13" t-attf-src="/web/image?model=res.users&amp;field=avatar_128&amp;id=#{json.dumps(request.env.user.id)}" alt=""/>
                                 <span t-esc="user_id.name[:23] + '...' if user_id.name and len(user_id.name) &gt; 25 else user_id.name"/><span class="caret"/>
                             </a>
                             <ul class="dropdown-menu js_usermenu" role="menu">
-                                <li id="o_logout"><a t-attf-href="/web/session/logout?redirect=/" role="menuitem">Logout</a></li>
+                                <li id="o_logout"><a t-attf-href="/web/session/logout?redirect={{share_redirect_URL}}" role="menuitem">Logout</a></li>
                             </ul>
                         </li>
                         <li t-ignore="true" t-if="user_id._is_public()">
-                            <a href="/web/login" class="col-sm-6 o_docs_btn">Login</a>
+                            <a t-attf-href="/web/login?redirect={{share_redirect_URL}}" class="col-sm-6 o_docs_btn">Login</a>
                         </li>
                     </ul>
                 </header>
                 <main class="d-flex flex-column flex-nowrap">
-                    <t t-raw="0"/>
+                    <t t-out="0"/>
                 </main>
                 <footer class="flex-grow-0 flex-shrink-0 mb16 mt32 ">
                     <div class="text-center col-sm-12">
                         <p t-if="expiration_date">shared by <t t-esc="author"/>, expired on <t t-esc="expiration_date"/></p>
-                        <br/>Powered by <a target="_blank" title="Odoo Website" href="http://www.odoo.com/page/documents"><img class="o_object_fit_cover align-text-top" width="15" height="15" src="/web/static/src/img/logo_inverse_white_206px.png" alt="Odoo Logo"/><span style="color:white;">&amp;nbsp;Documents.</span></a>
+                        <br/>Powered by <a target="_blank" title="Odoo Website" href="http://www.odoo.com/app/documents"><img class="o_object_fit_cover align-text-top" height="15" src="/web/static/img/logo_inverse_white_206px.png" alt="Odoo Logo"/><span style="color:white;">&amp;nbsp;Documents.</span></a>
                     </div>
                 </footer>
             </div>
@@ -142,7 +143,7 @@
                     </div>
                 </t>
             </div>
-            <div class="text-center col-sm-12 visible-xs">
+            <div class="text-center col-sm-12 d-sm-none">
                 <div class="row no-gutters justify-content-center">
                     <div class="mr-3">
                         <form class="o_docs_upload_wrapper position-relative d-inline-block" t-if="upload" enctype="multipart/form-data" t-attf-action="/document/upload/#{share_id}/#{token}" method="POST">
@@ -151,7 +152,7 @@
                         </form>
                     </div>
                     <div>
-                        <a t-if="all_button" t-att-href="zip_URL" title="Downlaod all files" t-attf-class="btn  #{upload and 'o_docs_btn' or 'btn-primary'}"><i class="fa fa-download fa-fw"/>  Download All</a>
+                        <a t-if="all_button" t-att-href="zip_URL" title="Download all files" t-attf-class="btn  #{upload and 'o_docs_btn' or 'btn-primary'}"><i class="fa fa-download fa-fw"/>  Download All</a>
                     </div>
                 </div>
             </div>

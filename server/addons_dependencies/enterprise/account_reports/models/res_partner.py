@@ -8,6 +8,8 @@ class ResPartner(models.Model):
     _name = 'res.partner'
     _inherit = 'res.partner'
 
+    account_represented_company_ids = fields.One2many('res.company', 'account_representative_id')
+
     def change_expected_date(self, options=False):
         if not options or 'expected_pay_date' not in options or 'move_line_id' not in options:
             return True
@@ -26,7 +28,9 @@ class ResPartner(models.Model):
             'type': 'ir.actions.client',
             'name': _('Partner Ledger'),
             'tag': 'account_report',
-            'options': {'partner_ids': [self.id]},
-            'ignore_session': 'both',
+            'params': {
+                'options': {'partner_ids': [self.id]},
+                'ignore_session': 'both',
+            },
             'context': "{'model':'account.partner.ledger'}"
         }

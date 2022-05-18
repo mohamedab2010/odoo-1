@@ -8,7 +8,7 @@
     'description': """
 Add a dynamic report about contracts and employees.
     """,
-    'website': 'https://www.odoo.com/page/employees',
+    'website': 'https://www.odoo.com/app/employees',
     'depends': ['hr_contract', 'web_dashboard'],
     'data': [
         'security/ir.model.access.csv',
@@ -16,4 +16,5 @@ Add a dynamic report about contracts and employees.
     ],
     'installable': True,
     'auto_install': True,
+    'license': 'OEEL-1',
 }

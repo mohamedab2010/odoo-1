@@ -64,7 +64,7 @@ class StockReport(models.Model):
             res = [{}]
 
         if stock_value:
-            products = self.env['product.product']
+            products = self.env['product.product'].with_context(active_test=False)
             # Split the recordset for faster computing.
             value = sum(
                 product.value_svl
@@ -91,16 +91,16 @@ class StockReport(models.Model):
                         INNER JOIN stock_valuation_layer AS svl ON svl.stock_move_id = move.id
                     WHERE
                         move.id IN (
-                            SELECT id
-                            FROM stock_report
-                            WHERE %s )
+                            SELECT "stock_report".id FROM %s WHERE %s)
                  GROUP BY
                         move.id
                 ) as move_valuation
             """
 
-            where, args = expression(domain + [('company_id', '=', self.env.company.id)], self).to_sql()
-            self.env.cr.execute(query % where, args)
+            subdomain = domain + [('company_id', '=', self.env.company.id)]
+            subtables, subwhere, subparams = expression(subdomain, self).query.get_sql()
+
+            self.env.cr.execute(query % (subtables, subwhere), subparams)
             res[0].update({
                 '__count': 1,
                 valuation.split(':')[0]: self.env.cr.fetchall()[0][0],

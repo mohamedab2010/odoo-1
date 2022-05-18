@@ -3,20 +3,21 @@
 # 	* social
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Link Up링크업 <linkup.way@gmail.com>, 2019
-# Seongseok Shin <shinss61@hotmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# SeongHyeon Cho <jaymz9634@gmail.com>, 2020
-# JH CHOI <hwangtog@gmail.com>, 2020
+# SeongHyeon Cho <jaymz9634@gmail.com>, 2021
+# Link Up링크업 <linkup.way@gmail.com>, 2021
+# Seongseok Shin <shinss61@hotmail.com>, 2021
+# Martin Trigaux, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
+# Heesoo Choi, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:38+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 10:59+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Heesoo Choi, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25,18 +26,21 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #. module: social
-#. openerp-web
-#: code:addons/social/static/src/xml/social_templates.xml:0
-#, python-format
-msgid ""
-"It appears there is an issue with the Social Media link, click here to link "
-"the account again"
-msgstr "소셜 미디어 링크에 문제가 있는 것 같습니다. 계정을 다시 연결하려면 여기를 클릭하십시오."
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__accounts_count
 msgid "# Accounts"
 msgstr "# 계정"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid ", you must first link a social media."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_http_error_view
+msgid "<b>An error occurred while trying to link your account</b>"
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
@@ -47,7 +51,7 @@ msgstr "<small>클릭 :</small>"
 #: model:ir.model.fields,field_description:social.field_social_media__message_needaction
 #: model:ir.model.fields,field_description:social.field_social_post__message_needaction
 msgid "Action Needed"
-msgstr "작업이 필요함"
+msgstr "조치 필요"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__active
@@ -70,6 +74,18 @@ msgid "Activity State"
 msgstr "활동 상태"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__activity_type_icon
+msgid "Activity Type Icon"
+msgstr "활동 유형 아이콘"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "Add"
+msgstr "추가"
+
+#. module: social
 #. openerp-web
 #: code:addons/social/static/src/js/add_stream_modal.js:0
 #: code:addons/social/static/src/xml/social_templates.xml:0
@@ -87,17 +103,10 @@ msgstr "기존 계정에 스트림 추가하기"
 #. module: social
 #. openerp-web
 #: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#: model_terms:ir.actions.act_window,help:social.action_social_stream
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
 #, python-format
 msgid "Add a stream"
 msgstr "스트림 추가하기"
-
-#. module: social
-#. openerp-web
-#: code:addons/social/static/src/xml/social_templates.xml:0
-#, python-format
-msgid "Add an emoji"
-msgstr "이모티콘 추가하기"
 
 #. module: social
 #. openerp-web
@@ -107,14 +116,11 @@ msgid "Add an image"
 msgstr "이미지 추가하기"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream
-msgid "Add stream to your dashboard to monitor your social media."
-msgstr "소셜 미디어를 모니터링하기 위해 대시보드에 스트림을 추가하십시오."
-
-#. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
-msgid "Add your first stream"
-msgstr "첫 번째 스트림 추가하기"
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid "All Companies"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_utm_campaign__social_post_ids
@@ -122,12 +128,24 @@ msgid "All related social media posts"
 msgstr "모든 관련 소셜 미디어 게시물"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__account_allowed_ids
+msgid "Allowed Accounts"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+msgid "Archived"
+msgstr "보관됨"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__has_active_accounts
+#: model:ir.model.fields,field_description:social.field_social_post_template__has_active_accounts
 msgid "Are Accounts Available?"
 msgstr "계정이 있습니까?"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__image_ids
+#: model:ir.model.fields,field_description:social.field_social_post_template__image_ids
 msgid "Attach Images"
 msgstr "이미지 첨부"
 
@@ -172,12 +190,20 @@ msgid "By Stream"
 msgstr "스트림 별"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__csrf_token
+msgid "CSRF Token"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__calendar_date
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
 msgid "Calendar Date"
 msgstr "일정표 날짜"
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form_quick_create_social
 msgid "Campaign"
 msgstr "캠페인"
 
@@ -189,8 +215,10 @@ msgstr "캠페인"
 
 #. module: social
 #: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
-msgid "Campaigns are the perfect tool to track your posts results."
-msgstr "캠페인은 게시물 결과를 추적 할 수 있는 완벽한 도구입니다."
+msgid ""
+"Campaigns are used to centralize your marketing efforts and track their "
+"results."
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__can_link_accounts
@@ -204,6 +232,20 @@ msgstr "계정을 연결할 수 있습니까?"
 #, python-format
 msgid "Cancel"
 msgstr "취소"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Choose which <b>account</b> you would like to link first."
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_renderer.js:0
+#, python-format
+msgid "Click to refresh."
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
@@ -222,12 +264,29 @@ msgstr "댓글 이미지"
 #: code:addons/social/static/src/js/stream_post_comments.js:0
 #, python-format
 msgid "Comments"
-msgstr "댓글"
+msgstr "의견"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_account__company_id
+#: model:ir.model.fields,field_description:social.field_social_live_post__company_id
+#: model:ir.model.fields,field_description:social.field_social_post__company_id
+#: model:ir.model.fields,field_description:social.field_social_stream__company_id
+#: model:ir.model.fields,field_description:social.field_social_stream_post__company_id
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_stream_view_search
+msgid "Company"
+msgstr "회사"
+
+#. module: social
+#: model:ir.model,name:social.model_res_config_settings
+msgid "Config Settings"
+msgstr "설정 구성"
 
 #. module: social
 #: model:ir.ui.menu,name:social.menu_social_configuration
 msgid "Configuration"
-msgstr "환경 설정"
+msgstr "구성"
 
 #. module: social
 #. openerp-web
@@ -235,6 +294,13 @@ msgstr "환경 설정"
 #, python-format
 msgid "Connecting Problem"
 msgstr "연결 문제"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_live_post__message
+msgid ""
+"Content of the social post message that is post-processed (links are "
+"shortened, UTMs, ...)"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_media__has_streams
@@ -247,38 +313,48 @@ msgid "Controls if we can link accounts or not."
 msgstr "계정을 연결 여부를 제어합니다."
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_post
-msgid "Create a new post"
-msgstr "새 게시물 만들기"
+#: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
+msgid "Create a Campaign"
+msgstr ""
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_view_utm_campaigns
-msgid "Create your first campaign"
-msgstr "첫 캠페인 만들기"
+#: model_terms:ir.actions.act_window,help:social.action_social_post
+msgid "Create a Post"
+msgstr ""
+
+#. module: social
+#: code:addons/social/models/social_account.py:0
+#, python-format
+msgid ""
+"Create other accounts for %(media_names)s for this company or ask "
+"%(company_names)s to share their accounts"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__create_uid
 #: model:ir.model.fields,field_description:social.field_social_live_post__create_uid
 #: model:ir.model.fields,field_description:social.field_social_media__create_uid
 #: model:ir.model.fields,field_description:social.field_social_post__create_uid
+#: model:ir.model.fields,field_description:social.field_social_post_template__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__create_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_type__create_uid
 msgid "Created by"
-msgstr "작성인"
+msgstr "작성자"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__create_date
 #: model:ir.model.fields,field_description:social.field_social_live_post__create_date
 #: model:ir.model.fields,field_description:social.field_social_media__create_date
 #: model:ir.model.fields,field_description:social.field_social_post__create_date
+#: model:ir.model.fields,field_description:social.field_social_post_template__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__create_date
 #: model:ir.model.fields,field_description:social.field_social_stream_type__create_date
 msgid "Created on"
-msgstr "작성일"
+msgstr "작성일자"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_account__has_account_stats
@@ -287,7 +363,7 @@ msgid ""
 "        Account with stats are displayed on the dashboard."
 msgstr ""
 "이 계정에 잠재 고객/참여/스토리 통계가 있는지 여부를 정의합니다. \n"
-"        통계가 있는 계정이 대시보드에 표시됩니다."
+"        통계가 있는 계정이 현황판에 표시됩니다."
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_account__has_trends
@@ -303,7 +379,12 @@ msgid "Delete Comment"
 msgstr "댓글 삭제하기"
 
 #. module: social
-#: model:ir.model.fields,field_description:social.field_social_media__description
+#: model_terms:ir.ui.view,arch_db:social.res_config_settings_view_form
+msgid "Demo Mode"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__media_description
 msgid "Description"
 msgstr "설명"
 
@@ -312,12 +393,13 @@ msgstr "설명"
 #: model:ir.model.fields,field_description:social.field_social_live_post__display_name
 #: model:ir.model.fields,field_description:social.field_social_media__display_name
 #: model:ir.model.fields,field_description:social.field_social_post__display_name
+#: model:ir.model.fields,field_description:social.field_social_post_template__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream_post__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__display_name
 #: model:ir.model.fields,field_description:social.field_social_stream_type__display_name
 msgid "Display Name"
-msgstr "표시 이름"
+msgstr "표시명"
 
 #. module: social
 #. openerp-web
@@ -329,7 +411,7 @@ msgstr "정말로 삭제 하시겠습니까?"
 #. module: social
 #: model:ir.model.fields.selection,name:social.selection__social_post__state__draft
 msgid "Draft"
-msgstr "초안"
+msgstr "임시"
 
 #. module: social
 #. openerp-web
@@ -337,6 +419,18 @@ msgstr "초안"
 #, python-format
 msgid "Edit Comment"
 msgstr "댓글 수정하기"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_res_config_settings__module_social_demo
+msgid "Enable Demo Mode"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.res_config_settings_view_form
+msgid ""
+"Enable this option and load demo data to test the social module.<br/>\n"
+"                                    This must never be used on a production database!"
+msgstr ""
 
 #. module: social
 #. openerp-web
@@ -365,6 +459,7 @@ msgstr "계정이 생성될 때마다 utm.medium도 생성되어 계정에 연�
 
 #. module: social
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__failed
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
 msgid "Failed"
 msgstr "실패함"
 
@@ -398,16 +493,15 @@ msgid "Followers"
 msgstr "팔로워"
 
 #. module: social
-#: model:ir.model.fields,field_description:social.field_social_media__message_channel_ids
-#: model:ir.model.fields,field_description:social.field_social_post__message_channel_ids
-msgid "Followers (Channels)"
-msgstr "팔로워 (채널)"
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_partner_ids
 #: model:ir.model.fields,field_description:social.field_social_post__message_partner_ids
 msgid "Followers (Partners)"
-msgstr "팔로워 (협력사)"
+msgstr "팔로워 (파트너)"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_post__activity_type_icon
+msgid "Font awesome icon e.g. fa-tasks"
+msgstr "멋진 아이콘 폰트 예 : fa-tasks"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__formatted_published_date
@@ -421,14 +515,40 @@ msgid ""
 msgstr "소셜 계정의 일반 사용자 (페이지 좋아요, 계정 팔로우, ...)"
 
 #. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_http_error_view
+msgid "Go back to Odoo"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "Go to the"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
 #: model_terms:ir.ui.view,arch_db:social.social_stream_post_view_search
+#: model_terms:ir.ui.view,arch_db:social.social_stream_view_search
 msgid "Group By"
 msgstr "그룹별"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Happy with the result? Let's post it!"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__has_account_stats
 msgid "Has Account Stats"
 msgstr "계정 통계가 있습니다"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__has_message
+#: model:ir.model.fields,field_description:social.field_social_post__has_message
+msgid "Has Message"
+msgstr "메시지가 있습니다"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_account__has_trends
@@ -440,6 +560,7 @@ msgstr "경향이 있습니까?"
 #: model:ir.model.fields,field_description:social.field_social_live_post__id
 #: model:ir.model.fields,field_description:social.field_social_media__id
 #: model:ir.model.fields,field_description:social.field_social_post__id
+#: model:ir.model.fields,field_description:social.field_social_post_template__id
 #: model:ir.model.fields,field_description:social.field_social_stream__id
 #: model:ir.model.fields,field_description:social.field_social_stream_post__id
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__id
@@ -455,7 +576,7 @@ msgstr "아이콘"
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__activity_exception_icon
 msgid "Icon to indicate an exception activity."
-msgstr "예외활동을 표시하기 위한 아이콘"
+msgstr "예외 활동을 표시하기 위한 아이콘"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_media__message_needaction
@@ -463,11 +584,13 @@ msgstr "예외활동을 표시하기 위한 아이콘"
 #: model:ir.model.fields,help:social.field_social_post__message_needaction
 #: model:ir.model.fields,help:social.field_social_post__message_unread
 msgid "If checked, new messages require your attention."
-msgstr "선택하면 새로운 메시지를 주목할 필요가 있습니다."
+msgstr "만약 선택하였으면, 신규 메시지에 주의를 기울여야 합니다."
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_media__message_has_error
+#: model:ir.model.fields,help:social.field_social_media__message_has_sms_error
 #: model:ir.model.fields,help:social.field_social_post__message_has_error
+#: model:ir.model.fields,help:social.field_social_post__message_has_sms_error
 msgid "If checked, some messages have a delivery error."
 msgstr "이 옵션을 선택하면 일부 정보가 전달 오류를 생성합니다."
 
@@ -491,6 +614,7 @@ msgstr "이미지 URL"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__image_urls
+#: model:ir.model.fields,field_description:social.field_social_post_template__image_urls
 msgid "Images URLs"
 msgstr "이미지 URL"
 
@@ -510,7 +634,23 @@ msgstr "통찰력"
 #: model:ir.model.fields,field_description:social.field_social_media__message_is_follower
 #: model:ir.model.fields,field_description:social.field_social_post__message_is_follower
 msgid "Is Follower"
-msgstr "팔로워 여부"
+msgstr "팔로워임"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid ""
+"It appears there is an issue with the Social Media link, click here to link "
+"the account again"
+msgstr "소셜 미디어 링크에 문제가 있는 것 같습니다. 계정을 다시 연결하려면 여기를 클릭하십시오."
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "It will appear in the Feed once it has posts to display."
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_stream_post__stream_post_image_urls
@@ -524,6 +664,7 @@ msgstr "칸반보기에 이미지를 쉽게 표시 할 수 있도록 이미지�
 #: model:ir.model.fields,field_description:social.field_social_live_post____last_update
 #: model:ir.model.fields,field_description:social.field_social_media____last_update
 #: model:ir.model.fields,field_description:social.field_social_post____last_update
+#: model:ir.model.fields,field_description:social.field_social_post_template____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream_post____last_update
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image____last_update
@@ -536,6 +677,7 @@ msgstr "최근 수정일"
 #: model:ir.model.fields,field_description:social.field_social_live_post__write_uid
 #: model:ir.model.fields,field_description:social.field_social_media__write_uid
 #: model:ir.model.fields,field_description:social.field_social_post__write_uid
+#: model:ir.model.fields,field_description:social.field_social_post_template__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post__write_uid
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__write_uid
@@ -548,12 +690,34 @@ msgstr "최근 갱신한 사람"
 #: model:ir.model.fields,field_description:social.field_social_live_post__write_date
 #: model:ir.model.fields,field_description:social.field_social_media__write_date
 #: model:ir.model.fields,field_description:social.field_social_post__write_date
+#: model:ir.model.fields,field_description:social.field_social_post_template__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__write_date
 #: model:ir.model.fields,field_description:social.field_social_stream_type__write_date
 msgid "Last Updated on"
-msgstr "최근 갱신일"
+msgstr "최근 갱신 일자"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's <b>connect</b> to Facebook, LinkedIn or Twitter."
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's create your own <b>social media</b> dashboard."
+msgstr "나만의 <b>소셜 미디어</b> 현황판을 만들어 봅시다."
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Let's start posting."
+msgstr ""
 
 #. module: social
 #. openerp-web
@@ -604,7 +768,22 @@ msgid "Link account"
 msgstr "계정 연결"
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "Link an Account"
+msgstr ""
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_account__company_id
+#: model:ir.model.fields,help:social.field_social_live_post__company_id
+#: model:ir.model.fields,help:social.field_social_stream__company_id
+#: model:ir.model.fields,help:social.field_social_stream_post__company_id
+msgid ""
+"Link an account to a company to restrict its usage or keep empty to let all "
+"companies use it."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Link social accounts"
 msgstr "소셜 계정 연결"
 
@@ -617,6 +796,11 @@ msgstr "외부 소셜 계정 통계에 연결"
 #: model:ir.model.fields,field_description:social.field_social_account__is_media_disconnected
 msgid "Link with external Social Media is broken"
 msgstr "외부 소셜 미디어와의 연결이 끊어졌습니다"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_post__account_allowed_ids
+msgid "List of the accounts which can be selected for this post."
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__live_posts_by_media
@@ -637,11 +821,6 @@ msgid "Main Attachment"
 msgstr "주요 첨부 파일"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_post
-msgid "Manage and edit your posts from here."
-msgstr "여기에서 게시물을 관리하고 편집하십시오."
-
-#. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__media_ids
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_kanban
 msgid "Media"
@@ -659,7 +838,9 @@ msgid "Medium Name"
 msgstr "중간 이름"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_live_post__message
 #: model:ir.model.fields,field_description:social.field_social_post__message
+#: model:ir.model.fields,field_description:social.field_social_post_template__message
 #: model:ir.model.fields,field_description:social.field_social_stream_post__message
 msgid "Message"
 msgstr "메시지"
@@ -677,6 +858,13 @@ msgid "Message posted"
 msgstr "메시지 게시됨"
 
 #. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid ""
+"Message posted partially. These are the ones that couldn't be posted: <br>%s"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_ids
 #: model:ir.model.fields,field_description:social.field_social_post__message_ids
 msgid "Messages"
@@ -692,6 +880,16 @@ msgstr ""
 "        '게시' 상태는 일괄 게시(예를 들면 푸시 알림)를 통해 전송되는 상태에도 사용할 수 있습니다."
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__my_activity_date_deadline
+msgid "My Activity Deadline"
+msgstr "내 활동 마감일"
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_view_search
+msgid "My Posts"
+msgstr ""
+
+#. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_stream_post_view_search
 msgid "My Streams"
 msgstr "나의 스트림"
@@ -700,6 +898,7 @@ msgstr "나의 스트림"
 #: model:ir.model.fields,field_description:social.field_social_media__name
 #: model:ir.model.fields,field_description:social.field_social_stream_type__name
 #: model_terms:ir.ui.view,arch_db:social.social_account_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_account_view_search
 msgid "Name"
 msgstr "이름"
 
@@ -713,10 +912,22 @@ msgstr "새로운 게시물"
 
 #. module: social
 #. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_renderer.js:0
+#, python-format
+msgid "New content available."
+msgstr ""
+
+#. module: social
+#. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "Next"
 msgstr "다음"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_post__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__activity_date_deadline
@@ -734,6 +945,21 @@ msgid "Next Activity Type"
 msgstr "다음 활동 유형"
 
 #. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "No Social Account yet!"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "No Social Streams yet!"
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
+msgid "No Stream added yet!"
+msgstr ""
+
+#. module: social
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
@@ -744,17 +970,8 @@ msgstr "아직 댓글이 없습니다."
 #. openerp-web
 #: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
 #, python-format
-msgid ""
-"No social accounts currently configured, please contact your administrator."
-msgstr "현재 구성된 소셜 계정이 없습니다. 관리자에게 문의하십시오."
-
-#. module: social
-#. openerp-web
-#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
-#, python-format
-msgid "Not allowed"
-msgstr "허용되지 않음"
+msgid "No social accounts configured, please contact your administrator."
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_needaction_counter
@@ -795,7 +1012,7 @@ msgstr "연결된 피드 게시물 수"
 #: model:ir.model.fields,help:social.field_social_media__message_needaction_counter
 #: model:ir.model.fields,help:social.field_social_post__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr "작업이 필요한 메시지 수"
+msgstr "조치가 필요한 메시지 수"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_media__message_has_error_counter
@@ -875,17 +1092,16 @@ msgstr "정해진 기간 동안 스토리의 증가 / 감소 비율."
 
 #. module: social
 #: code:addons/social/models/social_post.py:0
-#: code:addons/social/models/social_post.py:0
 #, python-format
-msgid "Please specify a message and at least one account to post into."
-msgstr "게시할 메시지와 하나 이상의 계정을 지정하십시오."
+msgid "Please specify at least one account to post into (for post ID(s) %s)."
+msgstr ""
 
 #. module: social
 #: code:addons/social/models/social_post.py:0
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 #, python-format
 msgid "Post"
-msgstr "게시하기"
+msgstr "전기"
 
 #. module: social
 #. openerp-web
@@ -928,7 +1144,7 @@ msgid ""
 msgstr "외부 social.media에 대한 게시물 링크 (예 : 실제 Facebook 게시물에 대한 링크)"
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Post on"
 msgstr "게시일"
 
@@ -936,7 +1152,7 @@ msgstr "게시일"
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__posted
 #: model:ir.model.fields.selection,name:social.selection__social_post__state__posted
 msgid "Posted"
-msgstr "게시됨"
+msgstr "전기됨"
 
 #. module: social
 #: model:ir.model.fields.selection,name:social.selection__social_live_post__state__posting
@@ -945,6 +1161,7 @@ msgid "Posting"
 msgstr "게시중"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_stream__stream_post_ids
 #: model:ir.ui.menu,name:social.menu_social_post
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_kanban
@@ -965,11 +1182,11 @@ msgstr "계정별 게시물"
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
-msgid "Press Enter to post."
-msgstr "게시하려면 Enter를 누르십시오."
+msgid "Press Enter to post. Press Shift+Enter to insert a Line Break."
+msgstr ""
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Preview your post"
 msgstr "게시물 미리보기"
 
@@ -992,6 +1209,10 @@ msgstr "게시자"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__published_date
+msgid "Published Date"
+msgstr "게시한 날"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post__published_date
 msgid "Published date"
 msgstr "게시 날짜"
@@ -1035,6 +1256,12 @@ msgid "Retry"
 msgstr "재시도"
 
 #. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__message_has_sms_error
+#: model:ir.model.fields,field_description:social.field_social_post__message_has_sms_error
+msgid "SMS Delivery error"
+msgstr "SMS 전송 에러"
+
+#. module: social
 #: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 msgid "Schedule"
 msgstr "예약"
@@ -1051,8 +1278,14 @@ msgstr "예약됨"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__scheduled_date
-msgid "Scheduled post date"
-msgstr "예정된 게시일"
+msgid "Scheduled Date"
+msgstr "계획된 날짜"
+
+#. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid "Selected accounts (%s) do not match the selected company (%s)"
+msgstr ""
 
 #. module: social
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form
@@ -1071,8 +1304,8 @@ msgstr "순서"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_stream__sequence
-msgid "Sequence used to order streams (mainly for the 'Feed' kanban view."
-msgstr "스트림을 주문하는 데 사용되는 시퀀스입니다 (주로 '피드' 칸반보기에 사용."
+msgid "Sequence used to order streams (mainly for the 'Feed' kanban view)"
+msgstr ""
 
 #. module: social
 #: model:ir.actions.act_window,name:social.action_social_global_settings
@@ -1092,6 +1325,7 @@ msgstr "소셜 계정"
 #: model:ir.actions.act_window,name:social.action_social_account
 #: model:ir.model.fields,field_description:social.field_social_media__account_ids
 #: model:ir.model.fields,field_description:social.field_social_post__account_ids
+#: model:ir.model.fields,field_description:social.field_social_post_template__account_ids
 #: model:ir.ui.menu,name:social.menu_social_account
 #: model_terms:ir.ui.view,arch_db:social.social_account_view_list
 msgid "Social Accounts"
@@ -1126,7 +1360,7 @@ msgstr "소셜 마케팅"
 #: model_terms:ir.ui.view,arch_db:social.utm_campaign_view_form
 #, python-format
 msgid "Social Media"
-msgstr "소셜 미디어"
+msgstr "소셜미디어"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_utm_campaign__social_posts_count
@@ -1137,9 +1371,19 @@ msgstr "소셜 미디어 게시물"
 #: model:ir.model,name:social.model_social_post
 #: model:ir.model.fields,field_description:social.field_social_live_post__post_id
 #: model_terms:ir.ui.view,arch_db:social.social_live_post_view_form
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
 msgid "Social Post"
-msgstr "소셜 게시물"
+msgstr "소셜 게시"
+
+#. module: social
+#: model:ir.model,name:social.model_social_post_template
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
+msgid "Social Post Template"
+msgstr ""
+
+#. module: social
+#: model:ir.actions.act_window,name:social.social_post_template_action
+msgid "Social Post Templates"
+msgstr ""
 
 #. module: social
 #: model:res.groups,name:social.group_social_user
@@ -1209,7 +1453,7 @@ msgstr "통계 링크"
 #: model:ir.model.fields,field_description:social.field_social_live_post__state
 #: model:ir.model.fields,field_description:social.field_social_post__state
 msgid "Status"
-msgstr "단계"
+msgstr "상태"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__activity_state
@@ -1219,10 +1463,10 @@ msgid ""
 "Today: Activity date is today\n"
 "Planned: Future activities."
 msgstr ""
-"활동별 현황\n"
-"기한 초과 : 이미 기한이 지났습니다\n"
-"오늘 : 활동 날짜가 오늘입니다\n"
-"계획 : 향후 활동입니다."
+"활동에 기조한 상태입니다\n"
+"기한초과: 이미 기한이 지났습니다\n"
+"오늘: 활동 날짜가 오늘입니다\n"
+"계획: 향후 활동입니다."
 
 #. module: social
 #. openerp-web
@@ -1236,6 +1480,13 @@ msgstr "스토리"
 #: model:ir.model.fields,field_description:social.field_social_account__stories_trend
 msgid "Stories Trend"
 msgstr "스토리 경향"
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/js/stream_post_kanban_controller.js:0
+#, python-format
+msgid "Stream Added (%s)"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream_post_image__stream_post_id
@@ -1282,6 +1533,7 @@ msgstr "동기화"
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__image_urls
+#: model:ir.model.fields,help:social.field_social_post_template__image_urls
 msgid ""
 "Technical JSON array capturing the URLs of the images to make it easy to "
 "display them in the kanban view."
@@ -1293,7 +1545,14 @@ msgid "Technical field for the calendar view."
 msgstr "일정표 보기의 기술 필드입니다."
 
 #. module: social
+#: code:addons/social/models/social_post_template.py:0
+#, python-format
+msgid "The 'message' field is required for post ID %s"
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,help:social.field_social_post__account_ids
+#: model:ir.model.fields,help:social.field_social_post_template__account_ids
 msgid "The accounts on which this post will be published."
 msgstr "이 게시물이 게시될 계정입니다."
 
@@ -1338,6 +1597,13 @@ msgid "There are post errors on sub-posts"
 msgstr "하위 게시물에 게시물 오류가 있습니다"
 
 #. module: social
+#: model:ir.model.fields,help:social.field_social_media__csrf_token
+msgid ""
+"This token can be used to verify that an incoming request from a social "
+"provider has not been forged."
+msgstr ""
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream__name
 msgid "Title"
 msgstr "제목"
@@ -1346,8 +1612,8 @@ msgstr "제목"
 #. openerp-web
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
-msgid "To add a stream, you must first link a social media."
-msgstr "스트림을 추가하려면 먼저 소셜 미디어를 연결해야 합니다."
+msgid "To add a stream"
+msgstr ""
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_stream__stream_type_id
@@ -1357,7 +1623,7 @@ msgstr "유형"
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__activity_exception_decoration
 msgid "Type of the exception activity on record."
-msgstr "레코드에서 예외 활동의 유형입니다."
+msgstr "레코드에 있는 예외 활동의 유형입니다."
 
 #. module: social
 #: model:ir.model,name:social.model_utm_campaign
@@ -1376,19 +1642,25 @@ msgid "UTM Source"
 msgstr "UTM 소스"
 
 #. module: social
+#: code:addons/social/models/social_post.py:0
+#, python-format
+msgid "Unknown error"
+msgstr "알 수 없는 오류"
+
+#. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_unread
 #: model:ir.model.fields,field_description:social.field_social_post__message_unread
 msgid "Unread Messages"
-msgstr "읽지 않은 메시지"
+msgstr "읽지 않은 메세지"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_media__message_unread_counter
 #: model:ir.model.fields,field_description:social.field_social_post__message_unread_counter
 msgid "Unread Messages Counter"
-msgstr "읽지 않은 메시지 수"
+msgstr "읽지 않은 메세지 수"
 
 #. module: social
-#: code:addons/social/models/social_post.py:0
+#: code:addons/social/models/social_post_template.py:0
 #, python-format
 msgid "Uploaded file does not seem to be a valid image."
 msgstr "업로드된 파일이 올바른 이미지가 아닌 것 같습니다."
@@ -1407,7 +1679,19 @@ msgstr "일부 기능을 특정 미디어 ( 'facebook', 'twitter' 등)로 제한
 #: code:addons/social/static/src/xml/social_templates.xml:0
 #, python-format
 msgid "View"
-msgstr "보기"
+msgstr "화면"
+
+#. module: social
+#: model:ir.model.fields,field_description:social.field_social_media__website_message_ids
+#: model:ir.model.fields,field_description:social.field_social_post__website_message_ids
+msgid "Website Messages"
+msgstr "웹사이트 메시지"
+
+#. module: social
+#: model:ir.model.fields,help:social.field_social_media__website_message_ids
+#: model:ir.model.fields,help:social.field_social_post__website_message_ids
+msgid "Website communication history"
+msgstr "웹사이트 대화 이력"
 
 #. module: social
 #: model:ir.model.fields,field_description:social.field_social_post__post_method
@@ -1423,6 +1707,7 @@ msgstr "글로벌 게시물이 게시된 시점. 실제 하위 게시물 게시 
 
 #. module: social
 #: model:ir.model.fields,help:social.field_social_post__image_ids
+#: model:ir.model.fields,help:social.field_social_post_template__image_ids
 msgid "Will attach images to your posts (if the social media supports it)."
 msgstr "게시물에 이미지를 첨부합니다(소셜 미디어에서 지원하는 경우)."
 
@@ -1434,7 +1719,14 @@ msgid "Write a comment..."
 msgstr "댓글 쓰기..."
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#. openerp-web
+#: code:addons/social/static/src/js/tours/social.js:0
+#, python-format
+msgid "Write a message to get a preview of your post."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Write a message to see the preview."
 msgstr "미리보기를 보려면 메시지를 작성하십시오."
 
@@ -1446,6 +1738,13 @@ msgid "Write a reply..."
 msgstr "답글 쓰기..."
 
 #. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_post
+msgid ""
+"Write an enticing post, add images and schedule it to be posted later on "
+"multiple platforms at once."
+msgstr ""
+
+#. module: social
 #: code:addons/social/models/social_post.py:0
 #: code:addons/social/models/social_post.py:0
 #, python-format
@@ -1454,7 +1753,6 @@ msgid ""
 msgstr "\"초안\" 이외의 상태에서 게시물을 작성/업데이트 할 수 없습니다."
 
 #. module: social
-#: code:addons/social/models/social_post.py:0
 #: code:addons/social/models/social_post.py:0
 #, python-format
 msgid "You are not allowed to do this operation."
@@ -1467,19 +1765,26 @@ msgid "You can only move posts that are scheduled."
 msgstr "예약된 게시물만 이동할 수 있습니다."
 
 #. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "Your Post"
 msgstr "귀하의 게시물"
 
 #. module: social
-#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
-msgid "and start posting."
-msgstr "그리고 게시를 시작하십시오."
-
-#. module: social
-#: model_terms:ir.ui.view,arch_db:social.social_post_view_form
+#: model_terms:ir.ui.view,arch_db:social.social_post_template_view_form
 msgid "before posting."
 msgstr "게시하기 전에."
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "dashboard"
+msgstr ""
+
+#. module: social
+#. openerp-web
+#: code:addons/social/static/src/xml/social_templates.xml:0
+#, python-format
+msgid "for"
+msgstr "for"
 
 #. module: social
 #. openerp-web
@@ -1487,3 +1792,18 @@ msgstr "게시하기 전에."
 #, python-format
 msgid "replies..."
 msgstr "답글..."
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream_post
+msgid "to keep an eye on your own posts and monitor all social activities."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_stream
+msgid "to link your accounts and start posting."
+msgstr ""
+
+#. module: social
+#: model_terms:ir.actions.act_window,help:social.action_social_account
+msgid "to start posting from Odoo."
+msgstr ""

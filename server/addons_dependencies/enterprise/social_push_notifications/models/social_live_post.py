@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import ast
 import pytz
 
 from odoo import models, fields, _
 from odoo.osv import expression
-from odoo.tools.safe_eval import safe_eval
 
 
 class SocialLivePostPushNotifications(models.Model):
@@ -29,27 +29,27 @@ class SocialLivePostPushNotifications(models.Model):
             post = live_post.post_id
             account = live_post.account_id
             title = post.push_notification_title or _('New Message')
-            icon_url = '/web/image/social.post/%s/push_notification_image/64x64' % post.id if post.push_notification_image else '/mail/static/src/img/odoobot_transparent.png'
+            icon_url = '/social_push_notifications/social_post/%s/push_notification_image' % post.id if post.push_notification_image else '/mail/static/src/img/odoobot_transparent.png'
 
             # TODO awa: force push_token domain here in case user manually removed it in form view?
-            visitor_domain = safe_eval(live_post.post_id.visitor_domain)
+            visitor_domain = ast.literal_eval(live_post.post_id.visitor_domain)
             target_link = ''
             if post.push_notification_target_url:
                 link_tracker_values = live_post._get_utm_values()
                 link_tracker_values['url'] = post.push_notification_target_url
-                link_tracker = self.env['link.tracker'].create(link_tracker_values)
+                link_tracker = self.env['link.tracker'].search_or_create(link_tracker_values)
                 target_link = link_tracker.short_url
 
-            if not post.use_visitor_timezone:
+            if not post.use_visitor_timezone or not post.scheduled_date:
                 target_visitors = self.env['website.visitor'].search(visitor_domain)
             else:
                 # We need to filter the target_visitors based on their timezone
-                post_date = post.scheduled_date or live_post.create_date
+                post_date = post.scheduled_date
                 post_user_datetime = pytz.utc.localize(post_date).astimezone(pytz.timezone(post.create_uid.tz)).replace(tzinfo=None)
                 now_utc = pytz.utc.localize(fields.Datetime.now())
 
                 def get_filtered_timezone_visitors(visitor):
-                    visitor_tz = pytz.timezone(visitor.timezone or self.env.user.tz)
+                    visitor_tz = pytz.timezone(visitor.timezone or 'UTC')
                     visitor_local_datetime = now_utc.astimezone(visitor_tz).replace(tzinfo=None)
                     return visitor_local_datetime > post_user_datetime
 
@@ -58,7 +58,7 @@ class SocialLivePostPushNotifications(models.Model):
 
             account._firebase_send_message({
                 'title': title,
-                'body': self.env['link.tracker'].sudo()._convert_links_text(post.message, live_post._get_utm_values()),
+                'body': live_post.message,
                 'icon': icon_url,
                 'target_url': target_link
             }, target_visitors)

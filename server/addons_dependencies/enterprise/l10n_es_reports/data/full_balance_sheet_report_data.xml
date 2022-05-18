@@ -4,18 +4,18 @@
 
         <record id="financial_report_balance_sheet_full" model="account.financial.html.report">
             <field name="name">Complete Balance Sheet</field>
-            <field name="debit_credit" eval="False"/>
             <field name="date_range" eval="False"/>
             <field name="analytic" eval="True"/>
             <field name="unfold_all_filter" eval="True"/>
             <field name="generated_menu_id" ref="spanish_balance_sheet_menu"/>
+            <field name="country_id" ref="base.es"/>
         </record>
 
         <record id="balance_full_line_10000" model="account.financial.html.report.line">
             <field name="name">TOTAL ACTIVO (A + B)</field>
             <field name="code">l10n_es_full_line_10000</field>
             <field name="financial_report_id" ref="financial_report_balance_sheet_full"/>
-            <field name="formulas">balance = l10n_es_full_line_11000.balance + l10n_es_full_line_12000.balance</field>
+            <field name="formulas">l10n_es_full_line_11000 + l10n_es_full_line_12000</field>
             <field name="sequence" eval="0"/>
             <field name="level" eval="0"/>
         </record>
@@ -24,7 +24,7 @@
             <field name="name">A) ACTIVO NO CORRIENTE</field>
             <field name="code">l10n_es_full_line_11000</field>
             <field name="parent_id" ref="balance_full_line_10000"/>
-            <field name="formulas">balance = l10n_es_full_line_11100.balance + l10n_es_full_line_11200.balance + l10n_es_full_line_11300.balance + l10n_es_full_line_11400.balance + l10n_es_full_line_11500.balance + l10n_es_full_line_11600.balance + l10n_es_full_line_11700.balance</field>
+            <field name="formulas">l10n_es_full_line_11100 + l10n_es_full_line_11200 + l10n_es_full_line_11300 + l10n_es_full_line_11400 + l10n_es_full_line_11500 + l10n_es_full_line_11600 + l10n_es_full_line_11700</field>
             <field name="sequence" eval="1"/>
             <field name="level" eval="1"/>
         </record>
@@ -33,7 +33,7 @@
             <field name="name">I. Inmovilizado intangible</field>
             <field name="code">l10n_es_full_line_11100</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
-            <field name="formulas">balance = l10n_es_full_line_11110.balance + l10n_es_full_line_11120.balance + l10n_es_full_line_11130.balance + l10n_es_full_line_11140.balance + l10n_es_full_line_11150.balance + l10n_es_full_line_11160.balance + l10n_es_full_line_11170.balance</field>
+            <field name="formulas">l10n_es_full_line_11110 + l10n_es_full_line_11120 + l10n_es_full_line_11130 + l10n_es_full_line_11140 + l10n_es_full_line_11150 + l10n_es_full_line_11160 + l10n_es_full_line_11170</field>
             <field name="sequence" eval="2"/>
             <field name="level" eval="2"/>
         </record>
@@ -45,7 +45,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','201%'),
                                         '|', ('account_id.code','=like','2801%'),
                                         ('account_id.code','=like','2901%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="3"/>
@@ -59,7 +59,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','202%'),
                                         '|', ('account_id.code','=like','2802%'),
                                         ('account_id.code','=like','2902%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="4"/>
@@ -73,7 +73,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','203%'),
                                         '|', ('account_id.code','=like','2803%'),
                                         ('account_id.code','=like','2903%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="5"/>
@@ -85,7 +85,7 @@
             <field name="code">l10n_es_full_line_11140</field>
             <field name="parent_id" ref="balance_full_line_11100"/>
             <field name="domain" eval="[('account_id.code','=like','204%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="6"/>
@@ -99,7 +99,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','206%'),
                                         '|', ('account_id.code','=like','2806%'),
                                         ('account_id.code','=like','2906%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="7"/>
@@ -113,7 +113,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','200%'),
                                         '|', ('account_id.code','=like','2800%'),
                                         ('account_id.code','=like','2900%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="8"/>
@@ -128,7 +128,7 @@
                                         '|', ('account_id.code','=like','209%'),
                                         '|', ('account_id.code','=like','2805%'),
                                         ('account_id.code','=like','2905%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="9"/>
@@ -139,7 +139,7 @@
             <field name="name">II. Inmovilizado material</field>
             <field name="code">l10n_es_full_line_11200</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
-            <field name="formulas">balance = l10n_es_full_line_11210.balance + l10n_es_full_line_11220.balance + l10n_es_full_line_11230.balance</field>
+            <field name="formulas">l10n_es_full_line_11210 + l10n_es_full_line_11220 + l10n_es_full_line_11230</field>
             <field name="sequence" eval="10"/>
             <field name="level" eval="2"/>
         </record>
@@ -153,7 +153,7 @@
                                         '|', ('account_id.code','=like','2811%'),
                                         '|', ('account_id.code','=like','2910%'),
                                         ('account_id.code','=like','2911%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="11"/>
@@ -188,7 +188,7 @@
                                         '|', ('account_id.code','=like','2917%'),
                                         '|', ('account_id.code','=like','2918%'),
                                         ('account_id.code','=like','2919%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="12"/>
@@ -200,7 +200,7 @@
             <field name="code">l10n_es_full_line_11230</field>
             <field name="parent_id" ref="balance_full_line_11200"/>
             <field name="domain" eval="[('account_id.code','=like','23%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="13"/>
@@ -211,7 +211,7 @@
             <field name="name">III. Inversiones inmobiliarias</field>
             <field name="code">l10n_es_full_line_11300</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
-            <field name="formulas">balance = l10n_es_full_line_11310.balance + l10n_es_full_line_11320.balance</field>
+            <field name="formulas">l10n_es_full_line_11310 + l10n_es_full_line_11320</field>
             <field name="sequence" eval="14"/>
             <field name="level" eval="2"/>
         </record>
@@ -222,7 +222,7 @@
             <field name="parent_id" ref="balance_full_line_11300"/>
             <field name="domain" eval="['|', ('account_id.code','=like','220%'),
                                         ('account_id.code','=like','2920%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="15"/>
@@ -236,7 +236,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','221%'),
                                         '|', ('account_id.code','=like','282%'),
                                         ('account_id.code','=like','2921%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="16"/>
@@ -247,7 +247,7 @@
             <field name="name">IV. Inversiones en empresas del grupo y asociadas a largo plazo</field>
             <field name="code">l10n_es_full_line_11400</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
-            <field name="formulas">balance = l10n_es_full_line_11410.balance + l10n_es_full_line_11420.balance + l10n_es_full_line_11430.balance + l10n_es_full_line_11440.balance + l10n_es_full_line_11450.balance + l10n_es_full_line_11460.balance</field>
+            <field name="formulas">l10n_es_full_line_11410 + l10n_es_full_line_11420 + l10n_es_full_line_11430 + l10n_es_full_line_11440 + l10n_es_full_line_11450 + l10n_es_full_line_11460</field>
             <field name="sequence" eval="17"/>
             <field name="level" eval="2"/>
         </record>
@@ -261,7 +261,7 @@
                                         '|', ('account_id.code','=like','2493%'),
                                         '|', ('account_id.code','=like','2494%'),
                                         ('account_id.code','=like','293%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="18"/>
@@ -276,7 +276,7 @@
                                         '|', ('account_id.code','=like','2424%'),
                                         '|', ('account_id.code','=like','2953%'),
                                         ('account_id.code','=like','2954%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="19"/>
@@ -291,7 +291,7 @@
                                         '|', ('account_id.code','=like','2414%'),
                                         '|', ('account_id.code','=like','2943%'),
                                         ('account_id.code','=like','2944%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="20"/>
@@ -303,7 +303,7 @@
             <field name="code">l10n_es_full_line_11440</field>
             <field name="parent_id" ref="balance_full_line_11400"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_11440_account)d')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="21"/>
@@ -315,7 +315,7 @@
             <field name="code">l10n_es_full_line_11450</field>
             <field name="parent_id" ref="balance_full_line_11400"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_11450_account)d')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="22"/>
@@ -327,7 +327,7 @@
             <field name="code">l10n_es_full_line_11460</field>
             <field name="parent_id" ref="balance_full_line_11400"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_11460_account)d')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="23"/>
@@ -338,7 +338,7 @@
             <field name="name">V. Inversiones financieras a largo plazo</field>
             <field name="code">l10n_es_full_line_11500</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
-            <field name="formulas">balance = l10n_es_full_line_11510.balance + l10n_es_full_line_11520.balance + l10n_es_full_line_11530.balance + l10n_es_full_line_11540.balance + l10n_es_full_line_11550.balance + l10n_es_full_line_11560.balance</field>
+            <field name="formulas">l10n_es_full_line_11510 + l10n_es_full_line_11520 + l10n_es_full_line_11530 + l10n_es_full_line_11540 + l10n_es_full_line_11550 + l10n_es_full_line_11560</field>
             <field name="sequence" eval="24"/>
             <field name="level" eval="2"/>
         </record>
@@ -351,7 +351,7 @@
                                         '|', ('account_id.code','=like','2495%'),
                                         '|', ('account_id.code','=like','250%'),
                                         ('account_id.code','=like','259%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="25"/>
@@ -368,7 +368,7 @@
                                         '|', ('account_id.code','=like','254%'),
                                         '|', ('account_id.code','=like','2955%'),
                                         ('account_id.code','=like','298%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="26"/>
@@ -383,7 +383,7 @@
                                         '|', ('account_id.code','=like','251%'),
                                         '|', ('account_id.code','=like','2945%'),
                                         ('account_id.code','=like','297%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="27"/>
@@ -395,7 +395,7 @@
             <field name="code">l10n_es_full_line_11540</field>
             <field name="parent_id" ref="balance_full_line_11500"/>
             <field name="domain" eval="[('account_id.code','=like','255%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="28"/>
@@ -408,7 +408,7 @@
             <field name="parent_id" ref="balance_full_line_11500"/>
             <field name="domain" eval="['|', ('account_id.code','=like','258%'),
                                         ('account_id.code','=like','26%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="29"/>
@@ -420,7 +420,7 @@
             <field name="code">l10n_es_full_line_11560</field>
             <field name="parent_id" ref="balance_full_line_11500"/>
             <field name="domain" eval="[('account_id.code','=like','257%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="30"/>
@@ -432,7 +432,7 @@
             <field name="code">l10n_es_full_line_11600</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
             <field name="domain" eval="[('account_id.code','=like','474%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="31"/>
@@ -444,7 +444,7 @@
             <field name="code">l10n_es_full_line_11700</field>
             <field name="parent_id" ref="balance_full_line_11000"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_11700_account)d')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="32"/>
@@ -455,7 +455,7 @@
             <field name="name">B) ACTIVO CORRIENTE</field>
             <field name="code">l10n_es_full_line_12000</field>
             <field name="parent_id" ref="balance_full_line_10000"/>
-            <field name="formulas">balance = l10n_es_full_line_12100.balance + l10n_es_full_line_12200.balance + l10n_es_full_line_12300.balance + l10n_es_full_line_12400.balance + l10n_es_full_line_12500.balance + l10n_es_full_line_12600.balance + l10n_es_full_line_12700.balance</field>
+            <field name="formulas">l10n_es_full_line_12100 + l10n_es_full_line_12200 + l10n_es_full_line_12300 + l10n_es_full_line_12400 + l10n_es_full_line_12500 + l10n_es_full_line_12600 + l10n_es_full_line_12700</field>
             <field name="sequence" eval="33"/>
             <field name="level" eval="1"/>
         </record>
@@ -470,7 +470,7 @@
                                         '|', ('account_id.code','=like','583%'),
                                         '|', ('account_id.code','=like','584%'),
                                         ('account_id.code','=like','599%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="34"/>
@@ -481,7 +481,7 @@
             <field name="name">II. Existencias</field>
             <field name="code">l10n_es_full_line_12200</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
-            <field name="formulas">balance = l10n_es_full_line_12210.balance + l10n_es_full_line_12220.balance + l10n_es_full_line_12230.balance + l10n_es_full_line_12240.balance + l10n_es_full_line_12250.balance + l10n_es_full_line_12260.balance</field>
+            <field name="formulas">l10n_es_full_line_12210 + l10n_es_full_line_12220 + l10n_es_full_line_12230 + l10n_es_full_line_12240 + l10n_es_full_line_12250 + l10n_es_full_line_12260</field>
             <field name="sequence" eval="35"/>
             <field name="level" eval="2"/>
         </record>
@@ -492,7 +492,7 @@
             <field name="parent_id" ref="balance_full_line_12200"/>
             <field name="domain" eval="['|', ('account_id.code','=like','30%'),
                                         ('account_id.code','=like','390%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="36"/>
@@ -507,7 +507,7 @@
                                         '|', ('account_id.code','=like','32%'),
                                         '|', ('account_id.code','=like','391%'),
                                         ('account_id.code','=like','392%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="37"/>
@@ -522,7 +522,7 @@
                                         '|', ('account_id.code','=like','34%'),
                                         '|', ('account_id.code','=like','393%'),
                                         ('account_id.code','=like','394%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="38"/>
@@ -535,7 +535,7 @@
             <field name="parent_id" ref="balance_full_line_12200"/>
             <field name="domain" eval="['|', ('account_id.code','=like','35%'),
                                         ('account_id.code','=like','395%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="41"/>
@@ -548,7 +548,7 @@
             <field name="parent_id" ref="balance_full_line_12200"/>
             <field name="domain" eval="['|', ('account_id.code','=like','36%'),
                                         ('account_id.code','=like','396%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="44"/>
@@ -560,7 +560,7 @@
             <field name="code">l10n_es_full_line_12260</field>
             <field name="parent_id" ref="balance_full_line_12200"/>
             <field name="domain" eval="[('account_id.code','=like','407%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="45"/>
@@ -571,7 +571,7 @@
             <field name="name">III. Deudores comerciales y otras cuentas a cobrar</field>
             <field name="code">l10n_es_full_line_12300</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
-            <field name="formulas">balance = l10n_es_full_line_12310.balance + l10n_es_full_line_12320.balance + l10n_es_full_line_12330.balance + l10n_es_full_line_12340.balance + l10n_es_full_line_12350.balance + l10n_es_full_line_12360.balance + l10n_es_full_line_12370.balance</field>
+            <field name="formulas">l10n_es_full_line_12310 + l10n_es_full_line_12320 + l10n_es_full_line_12330 + l10n_es_full_line_12340 + l10n_es_full_line_12350 + l10n_es_full_line_12360 + l10n_es_full_line_12370</field>
             <field name="sequence" eval="46"/>
             <field name="level" eval="2"/>
         </record>
@@ -588,7 +588,7 @@
                                         '|', ('account_id.code','=like','437%'),
                                         '|', ('account_id.code','=like','490%'),
                                         ('account_id.code','=like','4935%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="47"/>
@@ -603,7 +603,7 @@
                                         '|', ('account_id.code','=like','434%'),
                                         '|', ('account_id.code','=like','4933%'),
                                         ('account_id.code','=like','4934%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="50"/>
@@ -617,7 +617,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','44%'),
                                         '|', ('account_id.code','=like','5531%'),
                                         ('account_id.code','=like','5533%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="51"/>
@@ -630,7 +630,7 @@
             <field name="parent_id" ref="balance_full_line_12300"/>
             <field name="domain" eval="['|', ('account_id.code','=like','460%'),
                                         ('account_id.code','=like','544%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="52"/>
@@ -642,7 +642,7 @@
             <field name="code">l10n_es_full_line_12350</field>
             <field name="parent_id" ref="balance_full_line_12300"/>
             <field name="domain" eval="[('account_id.code','=like','4709%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="53"/>
@@ -658,7 +658,7 @@
                                         '|', ('account_id.code','=like','471%'),
                                         '|', ('account_id.code','=like','472%'),
                                         ('account_id.code','=like','473%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="54"/>
@@ -670,7 +670,7 @@
             <field name="code">l10n_es_full_line_12370</field>
             <field name="parent_id" ref="balance_full_line_12300"/>
             <field name="domain" eval="[('account_id.code','=like','5580%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="55"/>
@@ -681,7 +681,7 @@
             <field name="name">IV. Inversiones en empresas del grupo y asociadas a corto plazo</field>
             <field name="code">l10n_es_full_line_12400</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
-            <field name="formulas">balance = l10n_es_full_line_12410.balance + l10n_es_full_line_12420.balance + l10n_es_full_line_12430.balance + l10n_es_full_line_12440.balance + l10n_es_full_line_12450.balance + l10n_es_full_line_12460.balance</field>
+            <field name="formulas">l10n_es_full_line_12410 + l10n_es_full_line_12420 + l10n_es_full_line_12430 + l10n_es_full_line_12440 + l10n_es_full_line_12450 + l10n_es_full_line_12460</field>
             <field name="sequence" eval="56"/>
             <field name="level" eval="2"/>
         </record>
@@ -695,7 +695,7 @@
                                         '|', ('account_id.code','=like','5393%'),
                                         '|', ('account_id.code','=like','5394%'),
                                         ('account_id.code','=like','593%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="57"/>
@@ -712,7 +712,7 @@
                                         '|', ('account_id.code','=like','5344%'),
                                         '|', ('account_id.code','=like','5953%'),
                                         ('account_id.code','=like','5954%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="58"/>
@@ -729,7 +729,7 @@
                                         '|', ('account_id.code','=like','5334%'),
                                         '|', ('account_id.code','=like','5943%'),
                                         ('account_id.code','=like','5944%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="59"/>
@@ -741,7 +741,7 @@
             <field name="code">l10n_es_full_line_12440</field>
             <field name="parent_id" ref="balance_full_line_12400"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_12440_account)d')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="60"/>
@@ -753,7 +753,7 @@
             <field name="code">l10n_es_full_balances_sum_12450</field>
             <field name="domain" eval="['|', ('account_id.code','=like','5353%'),
                                         ('account_id.code','=like','5354%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -762,9 +762,8 @@
         <record id="balance_full_line_12450_debits" model="account.financial.html.report.line">
             <field name="name">12450 debits sum</field>
             <field name="code">l10n_es_full_debits_sum_12450</field>
-            <field name="domain" eval="['|', ('account_id.code','=like','5523%'),
-                                        ('account_id.code','=like','5524%')]"/>
-            <field name="formulas">balance = -sum.debit</field>
+            <field name="domain" eval="['|', ('account_id.code','=like','5523%'), ('account_id.code','=like','5524%')]"/>
+            <field name="formulas">-sum_if_pos</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -774,7 +773,7 @@
             <field name="name">5. Otros activos financieros</field>
             <field name="code">l10n_es_full_line_12450</field>
             <field name="parent_id" ref="balance_full_line_12400"/>
-            <field name="formulas">balance = -(l10n_es_full_balances_sum_12450.balance + l10n_es_full_debits_sum_12450.balance)</field>
+            <field name="formulas">-(l10n_es_full_balances_sum_12450 + l10n_es_full_debits_sum_12450)</field>
             <field name="sequence" eval="61"/>
             <field name="level" eval="3"/>
         </record>
@@ -784,7 +783,7 @@
             <field name="code">l10n_es_full_line_12460</field>
             <field name="parent_id" ref="balance_full_line_12400"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_12460_account)d')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="62"/>
@@ -795,7 +794,7 @@
             <field name="name">V. Inversiones financieras a corto plazo</field>
             <field name="code">l10n_es_full_line_12500</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
-            <field name="formulas">balance = l10n_es_full_line_12510.balance + l10n_es_full_line_12520.balance + l10n_es_full_line_12530.balance + l10n_es_full_line_12540.balance + l10n_es_full_line_12550.balance + l10n_es_full_line_12560.balance</field>
+            <field name="formulas">l10n_es_full_line_12510 + l10n_es_full_line_12520 + l10n_es_full_line_12530 + l10n_es_full_line_12540 + l10n_es_full_line_12550 + l10n_es_full_line_12560</field>
             <field name="sequence" eval="63"/>
             <field name="level" eval="2"/>
         </record>
@@ -808,7 +807,7 @@
                                         '|', ('account_id.code','=like','540%'),
                                         '|', ('account_id.code','=like','5395%'),
                                         ('account_id.code','=like','549%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="64"/>
@@ -826,7 +825,7 @@
                                         '|', ('account_id.code','=like','547%'),
                                         '|', ('account_id.code','=like','5955%'),
                                         ('account_id.code','=like','598%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="65"/>
@@ -843,7 +842,7 @@
                                         '|', ('account_id.code','=like','546%'),
                                         '|', ('account_id.code','=like','5945%'),
                                         ('account_id.code','=like','597%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="66"/>
@@ -856,7 +855,7 @@
             <field name="parent_id" ref="balance_full_line_12500"/>
             <field name="domain" eval="['|', ('account_id.code','=like','5590%'),
                                         ('account_id.code','=like','5593%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="67"/>
@@ -871,7 +870,7 @@
                                         '|', ('account_id.code','=like','548%'),
                                         '|', ('account_id.code','=like','565%'),
                                         ('account_id.code','=like','566%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -884,7 +883,7 @@
                                         '|', ('account_id.code','=like','551%'),
                                         '|', ('account_id.code','=like','554%'),
                                         ('account_id.code','=like','5525%')]"/>
-            <field name="formulas">balance = -sum.debit</field>
+            <field name="formulas">-sum_if_pos</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -894,7 +893,7 @@
             <field name="name">5. Otros activos financieros</field>
             <field name="code">l10n_es_full_line_12550</field>
             <field name="parent_id" ref="balance_full_line_12500"/>
-            <field name="formulas">balance = -(l10n_es_full_balances_sum_12550.balance + l10n_es_full_debits_sum_12550.balance)</field>
+            <field name="formulas">-(l10n_es_full_balances_sum_12550 + l10n_es_full_debits_sum_12550)</field>
             <field name="sequence" eval="68"/>
             <field name="level" eval="3"/>
         </record>
@@ -904,7 +903,7 @@
             <field name="code">l10n_es_full_line_12560</field>
             <field name="parent_id" ref="balance_full_line_12500"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_12560_account)d')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="69"/>
@@ -917,7 +916,7 @@
             <field name="parent_id" ref="balance_full_line_12000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','480%'),
                                         ('account_id.code','=like','567%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="70"/>
@@ -928,7 +927,7 @@
             <field name="name">VII. Efectivo y otros activos líquidos equivalentes</field>
             <field name="code">l10n_es_full_line_12700</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
-            <field name="formulas">balance = l10n_es_full_line_12710.balance + l10n_es_full_line_12720.balance</field>
+            <field name="formulas">l10n_es_full_line_12710 + l10n_es_full_line_12720</field>
             <field name="sequence" eval="71"/>
             <field name="level" eval="2"/>
         </record>
@@ -943,7 +942,7 @@
                                         '|', ('account_id.code','=like','573%'),
                                         '|', ('account_id.code','=like','574%'),
                                         ('account_id.code','=like','575%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="72"/>
@@ -955,7 +954,7 @@
             <field name="code">l10n_es_full_line_12720</field>
             <field name="parent_id" ref="balance_full_line_12000"/>
             <field name="domain" eval="[('account_id.code','=like','576%')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="73"/>
@@ -966,7 +965,7 @@
             <field name="name">TOTAL PATRIMONIO NETO Y PASIVO (A + B + C)</field>
             <field name="code">l10n_es_full_line_30000</field>
             <field name="financial_report_id" ref="financial_report_balance_sheet_full"/>
-            <field name="formulas">balance = l10n_es_full_line_20000.balance + l10n_es_full_line_31000.balance + l10n_es_full_line_32000.balance</field>
+            <field name="formulas">l10n_es_full_line_20000 + l10n_es_full_line_31000 + l10n_es_full_line_32000</field>
             <field name="sequence" eval="74"/>
             <field name="level" eval="0" />
         </record>
@@ -975,7 +974,7 @@
             <field name="name">A) PATRIMONIO NETO</field>
             <field name="code">l10n_es_full_line_20000</field>
             <field name="parent_id" ref="balance_full_line_30000"/>
-            <field name="formulas">balance = l10n_es_full_line_21000.balance + l10n_es_full_line_22000.balance + l10n_es_full_line_23000.balance</field>
+            <field name="formulas">l10n_es_full_line_21000 + l10n_es_full_line_22000 + l10n_es_full_line_23000</field>
             <field name="sequence" eval="75"/>
             <field name="level" eval="1"/>
         </record>
@@ -984,7 +983,7 @@
             <field name="name">A-1) Fondos propios</field>
             <field name="code">l10n_es_full_line_21000</field>
             <field name="parent_id" ref="balance_full_line_20000"/>
-            <field name="formulas">balance = l10n_es_full_line_21100.balance + l10n_es_full_line_21200.balance + l10n_es_full_line_21300.balance + l10n_es_full_line_21400.balance + l10n_es_full_line_21500.balance + l10n_es_full_line_21600.balance + l10n_es_full_line_21700.balance + l10n_es_full_line_21800.balance + l10n_es_full_line_21900.balance</field>
+            <field name="formulas">l10n_es_full_line_21100 + l10n_es_full_line_21200 + l10n_es_full_line_21300 + l10n_es_full_line_21400 + l10n_es_full_line_21500 + l10n_es_full_line_21600 + l10n_es_full_line_21700 + l10n_es_full_line_21800 + l10n_es_full_line_21900</field>
             <field name="sequence" eval="76"/>
             <field name="level" eval="2"/>
         </record>
@@ -993,7 +992,7 @@
             <field name="name">I. Capital</field>
             <field name="code">l10n_es_full_line_21100</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
-            <field name="formulas">balance = l10n_es_full_line_21110.balance + l10n_es_full_line_21120.balance</field>
+            <field name="formulas">l10n_es_full_line_21110 + l10n_es_full_line_21120</field>
             <field name="sequence" eval="77"/>
             <field name="level" eval="3"/>
         </record>
@@ -1005,7 +1004,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','100%'),
                                         '|', ('account_id.code','=like','101%'),
                                         ('account_id.code','=like','102%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="78"/>
@@ -1018,7 +1017,7 @@
             <field name="parent_id" ref="balance_full_line_21100"/>
             <field name="domain" eval="['|', ('account_id.code','=like','1030%'),
                                         ('account_id.code','=like','1040%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="79"/>
@@ -1030,7 +1029,7 @@
             <field name="code">l10n_es_full_line_21200</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
             <field name="domain" eval="[('account_id.code','=like','110%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="80"/>
@@ -1041,7 +1040,7 @@
             <field name="name">III. Reservas</field>
             <field name="code">l10n_es_full_line_21300</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
-            <field name="formulas">balance = l10n_es_full_line_21310.balance + l10n_es_full_line_21320.balance</field>
+            <field name="formulas">l10n_es_full_line_21310 + l10n_es_full_line_21320</field>
             <field name="sequence" eval="81"/>
             <field name="level" eval="3"/>
         </record>
@@ -1052,7 +1051,7 @@
             <field name="parent_id" ref="balance_full_line_21300"/>
             <field name="domain" eval="['|', ('account_id.code','=like','112%'),
                                         ('account_id.code','=like','1141%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="82"/>
@@ -1070,7 +1069,7 @@
                                         '|', ('account_id.code','=like','1144%'),
                                         '|', ('account_id.code','=like','115%'),
                                         ('account_id.code','=like','119%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="83"/>
@@ -1083,7 +1082,7 @@
             <field name="parent_id" ref="balance_full_line_21000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','108%'),
                                         ('account_id.code','=like','109%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="84"/>
@@ -1094,7 +1093,7 @@
             <field name="name">V. Resultados de ejercicios anteriores</field>
             <field name="code">l10n_es_full_line_21500</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
-            <field name="formulas">balance = l10n_es_full_line_21510.balance + l10n_es_full_line_21520.balance</field>
+            <field name="formulas">l10n_es_full_line_21510 + l10n_es_full_line_21520</field>
             <field name="sequence" eval="85"/>
             <field name="level" eval="3"/>
         </record>
@@ -1104,7 +1103,7 @@
             <field name="code">l10n_es_full_line_21510</field>
             <field name="parent_id" ref="balance_full_line_21500"/>
             <field name="domain" eval="[('account_id.code','=like','120%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="86"/>
@@ -1116,7 +1115,7 @@
             <field name="code">l10n_es_full_line_21520</field>
             <field name="parent_id" ref="balance_full_line_21500"/>
             <field name="domain" eval="[('account_id.code','=like','121%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="87"/>
@@ -1128,7 +1127,7 @@
             <field name="code">l10n_es_full_line_21600</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
             <field name="domain" eval="[('account_id.code','=like','118%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="88"/>
@@ -1142,7 +1141,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','129%'),
                                         '|', ('account_id.code','=like','6%'),
                                         ('account_id.code','=like','7%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="special_date_changer">from_beginning</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
@@ -1155,7 +1154,7 @@
             <field name="code">l10n_es_full_line_21800</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
             <field name="domain" eval="[('account_id.code','=like','557%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="90"/>
@@ -1167,7 +1166,7 @@
             <field name="code">l10n_es_full_line_21900</field>
             <field name="parent_id" ref="balance_full_line_21000"/>
             <field name="domain" eval="[('account_id.code','=like','111%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="91"/>
@@ -1178,7 +1177,7 @@
             <field name="name">A-2) Ajustes por cambios de valor</field>
             <field name="code">l10n_es_full_line_22000</field>
             <field name="parent_id" ref="balance_full_line_20000"/>
-            <field name="formulas">balance = l10n_es_full_line_22100.balance + l10n_es_full_line_22200.balance + l10n_es_full_line_22300.balance + l10n_es_full_line_22400.balance + l10n_es_full_line_22500.balance</field>
+            <field name="formulas">l10n_es_full_line_22100 + l10n_es_full_line_22200 + l10n_es_full_line_22300 + l10n_es_full_line_22400 + l10n_es_full_line_22500</field>
             <field name="sequence" eval="92"/>
             <field name="level" eval="2"/>
         </record>
@@ -1188,7 +1187,7 @@
             <field name="code">l10n_es_full_line_22100</field>
             <field name="parent_id" ref="balance_full_line_22000"/>
             <field name="domain" eval="[('account_id.code','=like','133%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="93"/>
@@ -1201,7 +1200,7 @@
             <field name="parent_id" ref="balance_full_line_22000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','1340%'),
                                         ('account_id.code','=like','1341%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="94"/>
@@ -1213,7 +1212,7 @@
             <field name="code">l10n_es_full_line_22300</field>
             <field name="parent_id" ref="balance_full_line_22000"/>
             <field name="domain" eval="[('account_id.code','=like','136%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="95"/>
@@ -1225,7 +1224,7 @@
             <field name="code">l10n_es_full_line_22400</field>
             <field name="parent_id" ref="balance_full_line_22000"/>
             <field name="domain" eval="[('account_id.code','=like','135%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="96"/>
@@ -1237,7 +1236,7 @@
             <field name="code">l10n_es_full_line_22500</field>
             <field name="parent_id" ref="balance_full_line_22000"/>
             <field name="domain" eval="[('account_id.code','=like','137%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="97"/>
@@ -1251,7 +1250,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','130%'),
                                         '|', ('account_id.code','=like','131%'),
                                         ('account_id.code','=like','132%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="98"/>
@@ -1262,7 +1261,7 @@
             <field name="name">B) PASIVO NO CORRIENTE</field>
             <field name="code">l10n_es_full_line_31000</field>
             <field name="parent_id" ref="balance_full_line_30000"/>
-            <field name="formulas">balance = l10n_es_full_line_31100.balance + l10n_es_full_line_31200.balance + l10n_es_full_line_31300.balance + l10n_es_full_line_31400.balance + l10n_es_full_line_31500.balance + l10n_es_full_line_31600.balance + l10n_es_full_line_31700.balance</field>
+            <field name="formulas">l10n_es_full_line_31100 + l10n_es_full_line_31200 + l10n_es_full_line_31300 + l10n_es_full_line_31400 + l10n_es_full_line_31500 + l10n_es_full_line_31600 + l10n_es_full_line_31700</field>
             <field name="sequence" eval="99"/>
             <field name="level" eval="1"/>
         </record>
@@ -1271,7 +1270,7 @@
             <field name="name">I. Provisiones a largo plazo</field>
             <field name="code">l10n_es_full_line_31100</field>
             <field name="parent_id" ref="balance_full_line_31000"/>
-            <field name="formulas">balance = l10n_es_full_line_31110.balance + l10n_es_full_line_31120.balance + l10n_es_full_line_31130.balance + l10n_es_full_line_31140.balance</field>
+            <field name="formulas">l10n_es_full_line_31110 + l10n_es_full_line_31120 + l10n_es_full_line_31130 + l10n_es_full_line_31140</field>
             <field name="sequence" eval="100"/>
             <field name="level" eval="2"/>
         </record>
@@ -1281,7 +1280,7 @@
             <field name="code">l10n_es_full_line_31110</field>
             <field name="parent_id" ref="balance_full_line_31100"/>
             <field name="domain" eval="[('account_id.code','=like','140%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="101"/>
@@ -1293,7 +1292,7 @@
             <field name="code">l10n_es_full_line_31120</field>
             <field name="parent_id" ref="balance_full_line_31100"/>
             <field name="domain" eval="[('account_id.code','=like','145%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="102"/>
@@ -1305,7 +1304,7 @@
             <field name="code">l10n_es_full_line_31130</field>
             <field name="parent_id" ref="balance_full_line_31100"/>
             <field name="domain" eval="[('account_id.code','=like','146%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="103"/>
@@ -1320,7 +1319,7 @@
                                         '|', ('account_id.code','=like','142%'),
                                         '|', ('account_id.code','=like','143%'),
                                         ('account_id.code','=like','147%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="104"/>
@@ -1331,7 +1330,7 @@
             <field name="name">II. Deudas a largo plazo</field>
             <field name="code">l10n_es_full_line_31200</field>
             <field name="parent_id" ref="balance_full_line_31000"/>
-            <field name="formulas">balance = l10n_es_full_line_31210.balance + l10n_es_full_line_31220.balance + l10n_es_full_line_31230.balance + l10n_es_full_line_31240.balance + l10n_es_full_line_31250.balance</field>
+            <field name="formulas">l10n_es_full_line_31210 + l10n_es_full_line_31220 + l10n_es_full_line_31230 + l10n_es_full_line_31240 + l10n_es_full_line_31250</field>
             <field name="sequence" eval="105"/>
             <field name="level" eval="2"/>
         </record>
@@ -1343,7 +1342,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','177%'),
                                         '|', ('account_id.code','=like','178%'),
                                         ('account_id.code','=like','179%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="106"/>
@@ -1356,7 +1355,7 @@
             <field name="parent_id" ref="balance_full_line_31200"/>
             <field name="domain" eval="['|', ('account_id.code','=like','1605%'),
                                         ('account_id.code','=like','170%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="107"/>
@@ -1369,7 +1368,7 @@
             <field name="parent_id" ref="balance_full_line_31200"/>
             <field name="domain" eval="['|', ('account_id.code','=like','1625%'),
                                         ('account_id.code','=like','174%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="108"/>
@@ -1381,7 +1380,7 @@
             <field name="code">l10n_es_full_line_31240</field>
             <field name="parent_id" ref="balance_full_line_31200"/>
             <field name="domain" eval="[('account_id.code','=like','176%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="109"/>
@@ -1401,7 +1400,7 @@
                                         '|', ('account_id.code','=like','180%'),
                                         '|', ('account_id.code','=like','185%'),
                                         ('account_id.code','=like','189%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="110"/>
@@ -1420,7 +1419,7 @@
                                         '|', ('account_id.code','=like','1624%'),
                                         '|', ('account_id.code','=like','1633%'),
                                         ('account_id.code','=like','1634%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="111"/>
@@ -1432,7 +1431,7 @@
             <field name="code">l10n_es_full_line_31400</field>
             <field name="parent_id" ref="balance_full_line_31000"/>
             <field name="domain" eval="[('account_id.code','=like','479%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="112"/>
@@ -1444,7 +1443,7 @@
             <field name="code">l10n_es_full_line_31500</field>
             <field name="parent_id" ref="balance_full_line_31000"/>
             <field name="domain" eval="[('account_id.code','=like','181%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="113"/>
@@ -1456,7 +1455,7 @@
             <field name="code">l10n_es_full_line_31600</field>
             <field name="parent_id" ref="balance_full_line_31000"/>
             <field name="domain" eval="[('account_id.tag_ids', '=', '%(balance_sheet_31600_account)d')]"/>
-            <field name="formulas">balance = sum.balance</field>
+            <field name="formulas">sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="114"/>
@@ -1469,7 +1468,7 @@
             <field name="parent_id" ref="balance_full_line_31000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','15%'),
                                         ('account_id.code','=like','5585%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="115"/>
@@ -1480,7 +1479,7 @@
             <field name="name">C) PASIVO CORRIENTE</field>
             <field name="code">l10n_es_full_line_32000</field>
             <field name="parent_id" ref="balance_full_line_30000"/>
-            <field name="formulas">balance = l10n_es_full_line_32100.balance + l10n_es_full_line_32200.balance + l10n_es_full_line_32300.balance + l10n_es_full_line_32400.balance + l10n_es_full_line_32500.balance + l10n_es_full_line_32600.balance + l10n_es_full_line_32700.balance</field>
+            <field name="formulas">l10n_es_full_line_32100 + l10n_es_full_line_32200 + l10n_es_full_line_32300 + l10n_es_full_line_32400 + l10n_es_full_line_32500 + l10n_es_full_line_32600 + l10n_es_full_line_32700</field>
             <field name="sequence" eval="116"/>
             <field name="level" eval="1"/>
         </record>
@@ -1494,7 +1493,7 @@
                                         '|', ('account_id.code','=like','587%'),
                                         '|', ('account_id.code','=like','588%'),
                                         ('account_id.code','=like','589%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="117"/>
@@ -1507,7 +1506,7 @@
             <field name="parent_id" ref="balance_full_line_32000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','499%'),
                                         ('account_id.code','=like','529%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="118"/>
@@ -1519,7 +1518,7 @@
             <field name="code">l10n_es_full_line_32300</field>
             <field name="parent_id" ref="balance_full_line_32000"/>
             <field name="sequence" eval="119"/>
-            <field name="formulas">balance = l10n_es_full_line_32310.balance + l10n_es_full_line_32320.balance + l10n_es_full_line_32330.balance + l10n_es_full_line_32340.balance + l10n_es_full_line_32350.balance</field>
+            <field name="formulas">l10n_es_full_line_32310 + l10n_es_full_line_32320 + l10n_es_full_line_32330 + l10n_es_full_line_32340 + l10n_es_full_line_32350</field>
             <field name="level" eval="2"/>
         </record>
 
@@ -1531,7 +1530,7 @@
                                         '|', ('account_id.code','=like','501%'),
                                         '|', ('account_id.code','=like','505%'),
                                         ('account_id.code','=like','506%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="120"/>
@@ -1545,7 +1544,7 @@
             <field name="domain" eval="['|', ('account_id.code','=like','5105%'),
                                         '|', ('account_id.code','=like','520%'),
                                         ('account_id.code','=like','527%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="121"/>
@@ -1558,7 +1557,7 @@
             <field name="parent_id" ref="balance_full_line_32300"/>
             <field name="domain" eval="['|', ('account_id.code','=like','5125%'),
                                         ('account_id.code','=like','524%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="122"/>
@@ -1571,7 +1570,7 @@
             <field name="parent_id" ref="balance_full_line_32300"/>
             <field name="domain" eval="['|', ('account_id.code','=like','5595%'),
                                         ('account_id.code','=like','5598%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="123"/>
@@ -1604,7 +1603,7 @@
                                         '|', ('account_id.code','=like','560%'),
                                         '|', ('account_id.code','=like','561%'),
                                         ('account_id.code','=like','569%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -1617,7 +1616,7 @@
                                         '|', ('account_id.code','=like','551%'),
                                         '|', ('account_id.code','=like','554%'),
                                         ('account_id.code','=like','5525%')]"/>
-            <field name="formulas">balance = sum.credit</field>
+            <field name="formulas">-sum_if_neg</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="3"/>
@@ -1627,7 +1626,7 @@
             <field name="name">5. Otros pasivos financieros</field>
             <field name="code">l10n_es_full_line_32350</field>
             <field name="parent_id" ref="balance_full_line_32300"/>
-            <field name="formulas">balance = l10n_es_full_balances_sum_32350.balance + l10n_es_full_credits_sum_32350.balance</field>
+            <field name="formulas">l10n_es_full_balances_sum_32350 + l10n_es_full_credits_sum_32350</field>
             <field name="sequence" eval="124"/>
             <field name="level" eval="3"/>
         </record>
@@ -1647,7 +1646,7 @@
                                         '|', ('account_id.code','=like','5144%'),
                                         '|', ('account_id.code','=like','5563%'),
                                         ('account_id.code','=like','5564%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="2"/>
@@ -1656,9 +1655,8 @@
         <record id="balance_full_line_32400_credits" model="account.financial.html.report.line">
             <field name="name">32400 credits sum</field>
             <field name="code">l10n_es_full_credits_sum_32400</field>
-            <field name="domain" eval="['|', ('account_id.code','=like','5523%'),
-                                        ('account_id.code','=like','5524%')]"/>
-            <field name="formulas">balance = sum.credit</field>
+            <field name="domain" eval="['|', ('account_id.code','=like','5523%'), ('account_id.code','=like','5524%')]"/>
+            <field name="formulas">-sum_if_neg</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="level" eval="2"/>
@@ -1668,7 +1666,7 @@
             <field name="name">IV. Deudas con empresas del grupo y asociadas a corto plazo</field>
             <field name="code">l10n_es_full_line_32400</field>
             <field name="parent_id" ref="balance_full_line_32000"/>
-            <field name="formulas">balance = l10n_es_full_balances_sum_32400.balance + l10n_es_full_credits_sum_32400.balance</field>
+            <field name="formulas">l10n_es_full_balances_sum_32400 + l10n_es_full_credits_sum_32400</field>
             <field name="sequence" eval="125"/>
             <field name="level" eval="2"/>
         </record>
@@ -1677,7 +1675,7 @@
             <field name="name">V. Acreedores comerciales y otras cuentas a pagar</field>
             <field name="code">l10n_es_full_line_32500</field>
             <field name="parent_id" ref="balance_full_line_32000"/>
-            <field name="formulas">balance = l10n_es_full_line_32510.balance + l10n_es_full_line_32520.balance + l10n_es_full_line_32530.balance + l10n_es_full_line_32540.balance + l10n_es_full_line_32550.balance + l10n_es_full_line_32560.balance + l10n_es_full_line_32570.balance</field>
+            <field name="formulas">l10n_es_full_line_32510 + l10n_es_full_line_32520 + l10n_es_full_line_32530 + l10n_es_full_line_32540 + l10n_es_full_line_32550 + l10n_es_full_line_32560 + l10n_es_full_line_32570</field>
             <field name="sequence" eval="126"/>
             <field name="level" eval="2"/>
         </record>
@@ -1690,7 +1688,7 @@
                                         '|', ('account_id.code','=like','401%'),
                                         '|', ('account_id.code','=like','405%'),
                                         ('account_id.code','=like','406%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="127"/>
@@ -1703,7 +1701,7 @@
             <field name="parent_id" ref="balance_full_line_32500"/>
             <field name="domain" eval="['|', ('account_id.code','=like','403%'),
                                         ('account_id.code','=like','404%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="130"/>
@@ -1715,7 +1713,7 @@
             <field name="code">l10n_es_full_line_32530</field>
             <field name="parent_id" ref="balance_full_line_32500"/>
             <field name="domain" eval="[('account_id.code','=like','41%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="131"/>
@@ -1728,7 +1726,7 @@
             <field name="parent_id" ref="balance_full_line_32500"/>
             <field name="domain" eval="['|', ('account_id.code','=like','465%'),
                                         ('account_id.code','=like','466%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="132"/>
@@ -1740,7 +1738,7 @@
             <field name="code">l10n_es_full_line_32550</field>
             <field name="parent_id" ref="balance_full_line_32500"/>
             <field name="domain" eval="[('account_id.code','=like','4752%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="133"/>
@@ -1757,7 +1755,7 @@
                                         '|', ('account_id.code','=like','4759%'),
                                         '|', ('account_id.code','=like','476%'),
                                         ('account_id.code','=like','477%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="134"/>
@@ -1769,7 +1767,7 @@
             <field name="code">l10n_es_full_line_32570</field>
             <field name="parent_id" ref="balance_full_line_32500"/>
             <field name="domain" eval="[('account_id.code','=like','438%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="135"/>
@@ -1782,7 +1780,7 @@
             <field name="parent_id" ref="balance_full_line_32000"/>
             <field name="domain" eval="['|', ('account_id.code','=like','485%'),
                                         ('account_id.code','=like','568%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="136"/>
@@ -1798,7 +1796,7 @@
                                         '|', ('account_id.code','=like','199%'),
                                         '|', ('account_id.code','=like','502%'),
                                         ('account_id.code','=like','507%')]"/>
-            <field name="formulas">balance = -sum.balance</field>
+            <field name="formulas">-sum</field>
             <field name="groupby">account_id</field>
             <field name="show_domain">foldable</field>
             <field name="sequence" eval="137"/>

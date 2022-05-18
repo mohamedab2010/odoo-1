@@ -10,7 +10,7 @@ odoo.define('sign_widgets_tour', function (require) {
         test: true,
         url: "/web",
         },
-         [tour.STEPS.SHOW_APPS_MENU_ITEM,
+         [tour.stepUtils.showAppsMenuItem(),
             {
                 content: "Settings",
                 trigger: 'a[data-menu-xmlid="base.menu_administration"]',
@@ -33,13 +33,14 @@ odoo.define('sign_widgets_tour', function (require) {
                 run: 'click',
             },
             {
-                content: "Check widget sign is present",
-                trigger: '.o_signature',
-            },
-            {
                 content: "Edit Mitchell",
                 trigger: 'div.o_cp_buttons .o_form_button_edit',
+                extra_trigger: '.o_signature', // Check widget sign is present
                 run: 'click',
+            },
+            {
+                content: "Editor loaded",
+                trigger: '.note-editable',
             },
             {
                 content: "Click on widget sign",
@@ -73,8 +74,14 @@ odoo.define('sign_widgets_tour', function (require) {
             },
             {
                 content: "Sign",
-                trigger: 'button.btn-primary',
+                trigger: 'button.btn-primary:contains("Adopt and Sign")',
                 run: 'click',
+                extra_trigger: 'canvas.jSignature',
+                run: function () {
+                    setTimeout(() => {
+                        this.$anchor.click();
+                    }, 1000);
+                },
             },
             {
                 content: "Save Mitchell",

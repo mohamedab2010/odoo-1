@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import re
 import requests
 
-from odoo import models, fields
+from odoo import models, fields, api
+from odoo.exceptions import UserError
 from werkzeug.urls import url_join
 
 
@@ -30,8 +32,9 @@ class SocialLivePostTwitter(models.Model):
             )
             result = requests.get(
                 tweets_endpoint_url,
-                query_params,
-                headers=headers
+                params=query_params,
+                headers=headers,
+                timeout=5
             )
 
             result_tweets = result.json()
@@ -71,10 +74,17 @@ class SocialLivePostTwitter(models.Model):
             post = live_post.post_id
 
             params = {
-                'status': self.env['link.tracker'].sudo()._convert_links_text(post.message, live_post._get_utm_values()),
+                'status': live_post.message,
             }
 
-            images_attachments_ids = account._format_attachments_to_images_twitter(post.image_ids)
+            try:
+                images_attachments_ids = account._format_attachments_to_images_twitter(post.image_ids)
+            except UserError as e:
+                live_post.write({
+                    'state': 'failed',
+                    'failure_reason': e.name
+                })
+                continue
             if images_attachments_ids:
                 params['media_ids'] = ','.join(images_attachments_ids)
 
@@ -84,8 +94,9 @@ class SocialLivePostTwitter(models.Model):
             )
             result = requests.post(
                 post_endpoint_url,
-                params,
-                headers=headers
+                data=params,
+                headers=headers,
+                timeout=5
             )
 
             if (result.status_code == 200):
@@ -101,3 +112,8 @@ class SocialLivePostTwitter(models.Model):
                 }
 
             live_post.write(values)
+
+    @api.model
+    def _remove_mentions(self, message):
+        """Remove mentions in the Tweet message."""
+        return re.sub(r'(^|[^\w\#])@(\w)', r'\1@ \2', message)

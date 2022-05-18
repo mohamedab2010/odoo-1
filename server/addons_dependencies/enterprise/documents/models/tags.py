@@ -65,7 +65,7 @@ class Tags(models.Model):
                     facet.tooltip AS group_tooltip,
                     documents_tag.sequence AS sequence,
                     documents_tag.id AS id,
-                    COUNT(rel.documents_document_id) AS count
+                    COUNT(rel.documents_document_id) AS __count
             FROM documents_tag
                 JOIN documents_facet facet ON documents_tag.facet_id = facet.id
                     AND facet.folder_id = ANY(%s)
@@ -90,6 +90,6 @@ class Tags(models.Model):
 
         for r in result:
             r['group_name'] = group_names.get(r['group_id'])
-            r['name'] = tags_names.get(r['id'])
+            r['display_name'] = tags_names.get(r['id'])
 
         return result

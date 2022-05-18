@@ -22,24 +22,23 @@ class payroll_advice_report(models.AbstractModel):
             res['to_name'] = to_date.strftime('%d') + '-' + to_date.strftime('%B') + '-' + to_date.strftime('%Y')
         return res
 
-    def get_bysal_total(self):
-        return self.total_bysal
-
     def get_detail(self, line_ids):
-        result = []
-        self.total_bysal = 0.00
+        total_bysal = 0
+        result_lines = []
         for l in line_ids:
-            res = {}
-            res.update({
-                    'name': l.employee_id.name,
-                    'acc_no': l.name,
-                    'ifsc_code': l.ifsc_code,
-                    'bysal': l.bysal,
-                    'debit_credit': l.debit_credit,
-                    })
-            self.total_bysal += l.bysal
-            result.append(res)
-        return result
+            result_lines.append({
+                'name': l.employee_id.name,
+                'acc_no': l.name,
+                'ifsc_code': l.ifsc_code,
+                'bysal': l.bysal,
+                'debit_credit': l.debit_credit,
+            })
+            total_bysal += l.bysal
+
+        return {
+            'lines': result_lines,
+            'total_bysal': total_bysal,
+        }
 
     @api.model
     def _get_report_values(self, docids, data=None):
@@ -52,5 +51,4 @@ class payroll_advice_report(models.AbstractModel):
             'time': time,
             'get_month': self.get_month,
             'get_detail': self.get_detail,
-            'get_bysal_total': self.get_bysal_total,
         }

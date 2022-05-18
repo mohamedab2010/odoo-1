@@ -43,8 +43,8 @@ class WebStudioReportController(main.WebStudioController):
         if layout == 'web.basic_layout':
             arch = etree.fromstring("""
                 <t t-name="studio_main_report">
-                    <t t-call="%(layout)s">
-                        <t t-foreach="docs" t-as="doc">
+                    <t t-foreach="docs" t-as="doc">
+                        <t t-call="%(layout)s">
                             <t t-call="%(document)s_document"/>
                             <p style="page-break-after: always;"/>
                         </t>
@@ -72,9 +72,9 @@ class WebStudioReportController(main.WebStudioController):
         view.name = new_view_document_xml_id
         view.key = new_view_document_xml_id
 
-        model = request.env['ir.model'].search([('model', '=', model_name)])
+        model = request.env['ir.model']._get(model_name)
         report = request.env['ir.actions.report'].create({
-            'name': _('%s Report') % model.name,
+            'name': _('%s Report', model.name),
             'model': model.model,
             'report_type': 'qweb-pdf',
             'report_name': view.name,
@@ -95,6 +95,12 @@ class WebStudioReportController(main.WebStudioController):
     def edit_report(self, report_id, values):
         report = request.env['ir.actions.report'].browse(report_id)
         if report:
+            if 'attachment_use' in values:
+                if values['attachment_use']:
+                    values['attachment'] = "'%s'" % report.name
+                else:
+                    # disable saving as attachment altogether
+                    values['attachment'] = False
             if 'groups_id' in values:
                 values['groups_id'] = [(6, 0, values['groups_id'])]
             if 'display_in_print' in values:
@@ -121,7 +127,9 @@ class WebStudioReportController(main.WebStudioController):
         return fields
 
     @http.route('/web_studio/get_report_views', type='json', auth='user')
-    def get_report_views(self, report_name, record_id):
+    def get_report_views(self, report_name, record_id=None):
+        if record_id is None:
+            raise UserError(_("To edit this document please create a record first"))
         loaded = set()
         views = {}
 
@@ -152,7 +160,7 @@ class WebStudioReportController(main.WebStudioController):
 
             view = get_report_view(view_name)
             studio_view = self._get_studio_view(view)
-            element, document = request.env['ir.qweb'].get_template(view.id, {"full_branding": True})
+            element = request.env['ir.qweb']._get_template(view.id, {"full_branding": True})[0]
 
             process_template_groups(element)
 
@@ -271,12 +279,12 @@ class WebStudioReportController(main.WebStudioController):
         Qweb = request.env['ir.qweb']
         Attachment = request.env['ir.attachment']
 
-        html = Qweb.render('web.report_layout', values={
+        html = Qweb._render('web.report_layout', values={
             'studio': True,
         })
         root = etree.fromstring(html).getroottree()
         links = [link.get('href') for link in root.findall("//link")]
-        link_ids = [int(link.replace('/web/content/', '').split('-', 1)[0]) for link in links]
+        link_ids = [int(link.replace('/web/assets/', '').split('-', 1)[0]) for link in links]
         css = {a.name: base64.b64decode(a.datas) for a in Attachment.browse(link_ids)}
 
         return {
@@ -287,7 +295,7 @@ class WebStudioReportController(main.WebStudioController):
         # render the report to catch a rendering error
         report = request.env['ir.actions.report']._get_report_from_name(report_name)
         try:
-            return report.render_qweb_html([record_id], {
+            return report._render_qweb_html([record_id], {
                 'full_branding': True,
                 'studio': True,
             })

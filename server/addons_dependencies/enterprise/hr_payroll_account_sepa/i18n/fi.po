@@ -3,39 +3,25 @@
 # 	* hr_payroll_account_sepa
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Kari Lindgren <kari.lindgren@emsystems.fi>, 2019
-# Mikko Salmela <salmemik@gmail.com>, 2019
-# Svante Suominen <svante.suominen@web-veistamo.fi>, 2019
-# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2019
-# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2019
-# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2019
+# Kari Lindgren <kari.lindgren@emsystems.fi>, 2021
+# Svante Suominen <svante.suominen@web-veistamo.fi>, 2021
+# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2021
+# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2021
+# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-27 09:18+0000\n"
-"PO-Revision-Date: 2019-08-26 09:36+0000\n"
-"Last-Translator: Veikko Väätäjä <veikko.vaataja@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:40+0000\n"
+"Last-Translator: Veikko Väätäjä <veikko.vaataja@gmail.com>, 2021\n"
 "Language-Team: Finnish (https://www.transifex.com/odoo/teams/41243/fi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Language: fi\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-#. module: hr_payroll_account_sepa
-#: model:ir.model.fields,help:hr_payroll_account_sepa.field_hr_payslip__state
-msgid ""
-"* When the payslip is created the status is 'Draft'\n"
-"                \n"
-"* If the payslip is under verification, the status is 'Waiting'.\n"
-"                \n"
-"* If the payslip is confirmed then status is set to 'Done'.\n"
-"                \n"
-"* When user cancel payslip the status is 'Rejected'."
-msgstr ""
 
 #. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__journal_id
@@ -56,6 +42,12 @@ msgid "Confirm"
 msgstr "Vahvista"
 
 #. module: hr_payroll_account_sepa
+#: model_terms:ir.ui.view,arch_db:hr_payroll_account_sepa.hr_payslip_run_view_form
+#: model_terms:ir.ui.view,arch_db:hr_payroll_account_sepa.hr_payslip_view_form
+msgid "Create Payment Report"
+msgstr ""
+
+#. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__create_uid
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_sepa_wizard__create_uid
 msgid "Created by"
@@ -70,7 +62,7 @@ msgstr "Luotu"
 #. module: hr_payroll_account_sepa
 #: model:ir.model.fields,help:hr_payroll_account_sepa.field_hr_payslip__sepa_export_date
 #: model:ir.model.fields,help:hr_payroll_account_sepa.field_hr_payslip_run__sepa_export_date
-msgid "Creation date of the related export file."
+msgid "Creation date of the payment file."
 msgstr ""
 
 #. module: hr_payroll_account_sepa
@@ -102,9 +94,13 @@ msgstr ""
 #. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip__sepa_export_filename
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run__sepa_export_filename
-#: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__file_name
 msgid "File Name"
 msgstr "Tiedostonimi"
+
+#. module: hr_payroll_account_sepa
+#: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__file_name
+msgid "File name"
+msgstr ""
 
 #. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip__sepa_export_date
@@ -129,6 +125,15 @@ msgid "ID"
 msgstr "Tunniste (ID)"
 
 #. module: hr_payroll_account_sepa
+#: code:addons/hr_payroll_account_sepa/wizard/hr_payroll_account_sepa_wizard.py:0
+#: code:addons/hr_payroll_account_sepa/wizard/hr_payroll_account_sepa_wizard.py:0
+#, python-format
+msgid ""
+"Invalid bank account for the following employees:\n"
+"%s"
+msgstr ""
+
+#. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard____last_update
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_sepa_wizard____last_update
 msgid "Last Modified on"
@@ -138,7 +143,7 @@ msgstr "Viimeksi muokattu"
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__write_uid
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_sepa_wizard__write_uid
 msgid "Last Updated by"
-msgstr "Viimeksi päivitetty"
+msgstr "Viimeksi päivittänyt"
 
 #. module: hr_payroll_account_sepa
 #: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run_sepa_wizard__write_date
@@ -147,21 +152,9 @@ msgid "Last Updated on"
 msgstr "Viimeksi päivitetty"
 
 #. module: hr_payroll_account_sepa
-#: model_terms:ir.ui.view,arch_db:hr_payroll_account_sepa.hr_payslip_run_view_form
-#: model_terms:ir.ui.view,arch_db:hr_payroll_account_sepa.hr_payslip_view_form
-msgid "Make Payment"
-msgstr "Tee maksu"
-
-#. module: hr_payroll_account_sepa
 #: model:ir.model.fields,help:hr_payroll_account_sepa.field_hr_payslip__sepa_export_filename
 msgid "Name of the export file generated for this payslip"
 msgstr ""
-
-#. module: hr_payroll_account_sepa
-#: model:ir.model.fields.selection,name:hr_payroll_account_sepa.selection__hr_payslip__state__paid
-#: model:ir.model.fields.selection,name:hr_payroll_account_sepa.selection__hr_payslip_run__state__paid
-msgid "Paid"
-msgstr "Maksettu"
 
 #. module: hr_payroll_account_sepa
 #: model:ir.model,name:hr_payroll_account_sepa.model_hr_payslip
@@ -198,7 +191,15 @@ msgid "Some employees (%s) don't have a private address."
 msgstr ""
 
 #. module: hr_payroll_account_sepa
-#: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip__state
-#: model:ir.model.fields,field_description:hr_payroll_account_sepa.field_hr_payslip_run__state
-msgid "Status"
-msgstr "Tila"
+#: code:addons/hr_payroll_account_sepa/models/hr_payslip.py:0
+#, python-format
+msgid "Some employees (%s) don't have a valid name on the private address."
+msgstr ""
+
+#. module: hr_payroll_account_sepa
+#: code:addons/hr_payroll_account_sepa/models/hr_payslip.py:0
+#, python-format
+msgid ""
+"The journal '%s' requires a proper IBAN account to pay via SEPA. Please "
+"configure it first."
+msgstr ""

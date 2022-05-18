@@ -1,6 +1,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import exceptions, fields, models, _
+from odoo import api, exceptions, fields, models, _
 
 
 class AmazonMarketplace(models.Model):
@@ -14,6 +14,8 @@ class AmazonMarketplace(models.Model):
         "Domain", help="The domain name associated with the marketplace", required=True)
     api_ref = fields.Char(
         "API Identifier", help="The Amazon-defined marketplace reference", required=True)
+    tax_included = fields.Boolean(
+        "Tax Included", help="The price includes the tax amount")
 
     _sql_constraints = [(
         'unique_api_ref',
@@ -21,5 +23,6 @@ class AmazonMarketplace(models.Model):
         "There can only exist one marketplace for a given API Identifier."
     )]
 
-    def unlink(self):
+    @api.ondelete(at_uninstall=False)
+    def _unlink_never(self):
         raise exceptions.UserError(_('Amazon marketplaces cannot be deleted.'))

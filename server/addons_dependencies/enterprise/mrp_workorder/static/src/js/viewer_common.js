@@ -104,7 +104,10 @@ var mrpViewerCommon = {
         // Save the PDFViewerApp on the DOM element since this widget will be destroyed on any action
         $iFrame.on('load', function () {
             if (this.contentWindow.window.PDFViewerApplication) {
-                $el.data('pdfViewer', this.contentWindow.window.PDFViewerApplication.pdfViewer);
+                // TODO: This used to directly store the PDFViewerApplication.pdfViewer, but pdfjs 2.2.228 upgrade made
+                // it so the pdfViewer is sometimes created/set after this save. Future versions of pdfjs may allow us to
+                // switch back to storing just the pdfViewer.
+                $el.data('PDFViewerApplication', this.contentWindow.window.PDFViewerApplication);
             }
         });
 

@@ -12,10 +12,19 @@ It also provides new tools to analyse your data.
     'depends': ['website_sale', 'web_dashboard'],
     'data': [
         'views/dashboard_view.xml',
-        'views/assets.xml',
         'views/res_config_settings_views.xml'
     ],
-    'qweb': ['static/src/xml/*.xml'],
     'auto_install': ['website_sale'],
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'website_sale_dashboard/static/src/js/**/*',
+        ],
+        'web.qunit_suite_tests': [
+            'website_sale_dashboard/static/tests/**/*',
+        ],
+        'web.assets_qweb': [
+            'website_sale_dashboard/static/src/xml/*.xml',
+        ],
+    }
 }

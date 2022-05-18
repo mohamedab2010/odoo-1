@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import logging
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 from .taxcloud_request import TaxCloudRequest
 
+
+_logger = logging.getLogger(__name__)
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
@@ -24,6 +26,7 @@ class ResConfigSettings(models.TransientModel):
                 _('Unable to retrieve taxes from TaxCloud: ') + '\n' +
                 res['error_message']
             )
+        _logger.info('fetched %s TICs from Taxcloud, saving in database', len(res['data']))
 
         for category in res['data']:
             if not Category.search([('code', '=', category['TICID'])], limit=1):

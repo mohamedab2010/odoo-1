@@ -10,12 +10,12 @@ class IrActionsReport(models.Model):
     _inherit = ['studio.mixin', 'ir.actions.report']
 
     @api.model
-    def render_qweb_html(self, docids, data=None):
+    def _render_qweb_html(self, docids, data=None):
         if data and data.get('full_branding'):
             self = self.with_context(full_branding=True)
-        if data and data.get('studio') and self.report_type == 'qweb-pdf':
+        if data and data.get('studio') and self.sudo().report_type == 'qweb-pdf':
             data['report_type'] = 'pdf'
-        return super(IrActionsReport, self).render_qweb_html(docids, data)
+        return super(IrActionsReport, self)._render_qweb_html(docids, data)
 
     def copy_report_and_template(self):
         new = self.copy()
@@ -43,7 +43,7 @@ class IrActionsReport(models.Model):
 
         if report_model is None:
             parts = report_model_name.split('_copy_')
-            if not all(part.isdecimal() for part in parts[1:]):
+            if any(not part.isdecimal() for part in parts[1:]):
                 return report_model
             report_model_name = parts[0]
             report_model = self.env.get(report_model_name)

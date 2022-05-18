@@ -16,8 +16,12 @@ Module with the required configuration to connect to OnSIP.
     'data': [
         'views/res_config_settings_views.xml',
         'views/res_users_views.xml',
-        'views/voip_onsip_templates.xml',
-    ],
+        ],
     'application': False,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'voip_onsip/static/src/**/*',
+        ],
+    }
 }

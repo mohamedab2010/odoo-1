@@ -4,7 +4,8 @@
 import json
 import requests
 
-from odoo import models, fields
+from odoo import models, fields, _
+from odoo.exceptions import UserError
 from werkzeug.urls import url_join
 
 
@@ -18,11 +19,14 @@ class SocialLivePostFacebook(models.Model):
         accounts = self.env['social.account'].search([('media_type', '=', 'facebook')])
 
         for account in accounts:
-            posts_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v3.3/%s/%s" % (account.facebook_account_id, 'feed'))
-            result = requests.get(posts_endpoint_url, {
-                'access_token': account.facebook_access_token,
-                'fields': 'id,shares,insights.metric(post_impressions),likes.limit(1).summary(true),comments.summary(true)'
-            })
+            posts_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v10.0/%s/%s" % (account.facebook_account_id, 'feed'))
+            result = requests.get(posts_endpoint_url,
+                params={
+                    'access_token': account.facebook_access_token,
+                    'fields': 'id,shares,insights.metric(post_impressions),likes.limit(1).summary(true),comments.summary(true)'
+                },
+                timeout=5
+            )
 
             result_posts = result.json().get('data')
             if not result_posts:
@@ -52,53 +56,83 @@ class SocialLivePostFacebook(models.Model):
         facebook_live_posts = self.filtered(lambda post: post.account_id.media_type == 'facebook')
         super(SocialLivePostFacebook, (self - facebook_live_posts))._post()
 
-        facebook_live_posts._post_facebook()
+        for live_post in facebook_live_posts:
+            live_post._post_facebook(live_post.account_id.facebook_account_id)
 
-    def _post_facebook(self):
-        for live_post in self:
-            account = live_post.account_id
-            post_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v3.3/%s/feed" % account.facebook_account_id)
+    def _post_facebook(self, facebook_target_id):
+        self.ensure_one()
+        account = self.account_id
+        post_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v10.0/%s/feed" % facebook_target_id)
 
-            post = live_post.post_id
+        post = self.post_id
 
-            message_with_shortened_urls = self.env['link.tracker'].sudo()._convert_links_text(post.message, live_post._get_utm_values())
+        params = {
+            'message': self.message,
+            'access_token': account.facebook_access_token
+        }
 
-            params = {
-                'message': message_with_shortened_urls,
-                'access_token': account.facebook_access_token
+        if post.image_ids and len(post.image_ids) == 1:
+            # if you have only 1 image, you have to use another endpoint with different parameters...
+            image = post.image_ids[0]
+            if image.mimetype == 'image/gif':
+                # gifs are posted on the '/videos' endpoint, with a different base url
+                endpoint_url = url_join(
+                    "https://graph-video.facebook.com",
+                    f'/v10.0/{facebook_target_id}/videos'
+                )
+                params['description'] = params['message']
+            else:
+                # a single regular image is posted on the '/photos' endpoint
+                endpoint_url = url_join(
+                    self.env['social.media']._FACEBOOK_ENDPOINT,
+                    f'/v10.0/{facebook_target_id}/photos'
+                )
+                params['caption'] = params['message']
+
+            result = requests.request('POST', endpoint_url, params=params, timeout=15,
+                files={'source': (image.name, image.with_context(bin_size=False).raw, image.mimetype)})
+            if not result.ok:
+                generic_api_error = json.loads(result.text or '{}').get('error', {}).get('message', '')
+                self.write({
+                    'state': 'failed',
+                    'failure_reason': _("We could not upload your image, try reducing its size and posting it again (error: %s).", generic_api_error)
+                })
+                return
+        else:
+            if post.image_ids:
+                try:
+                    images_attachments = post._format_images_facebook(account.facebook_account_id, account.facebook_access_token)
+                except UserError as e:
+                    self.write({
+                        'state': 'failed',
+                        'failure_reason': e.name
+                    })
+                    return
+                images_attachments = post._format_images_facebook(facebook_target_id, account.facebook_access_token)
+                if images_attachments:
+                    for index, image_attachment in enumerate(images_attachments):
+                        params.update({'attached_media[' + str(index) + ']': json.dumps(image_attachment)})
+
+            link_url = self.env['social.post']._extract_url_from_message(self.message)
+            # can't combine with images
+            if link_url and not post.image_ids:
+                params.update({'link': link_url})
+
+            result = requests.post(post_endpoint_url, data=params, timeout=15)
+
+        if (result.status_code == 200):
+            result_json = result.json()
+            # when posting an image, the id of the related post is in 'post_id'
+            # otherwise, we use the 'id' key that matches the post id we retrieve in stream.posts
+            self.facebook_post_id = result_json.get('post_id', result_json.get('id', False))
+            values = {
+                'state': 'posted',
+                'failure_reason': False
+            }
+        else:
+            values = {
+                'state': 'failed',
+                'failure_reason': json.loads(result.text or '{}').get('error', {}).get('message', '')
             }
 
-            if post.image_ids and len(post.image_ids) == 1:
-                # if you have only 1 image, you have to use another endpoint with different parameters...
-                params['caption'] = params['message']
-                photos_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, '/v3.3/%s/photos' % account.facebook_account_id)
-                image = post.image_ids[0]
-                result = requests.request('POST', photos_endpoint_url, params=params,
-                    files={'source': ('source', open(image._full_path(image.store_fname), 'rb'), image.mimetype)})
-            else:
-                if post.image_ids:
-                    images_attachments = post._format_images_facebook(account.facebook_account_id, account.facebook_access_token)
-                    if images_attachments:
-                        for index, image_attachment in enumerate(images_attachments):
-                            params.update({'attached_media[' + str(index) + ']': json.dumps(image_attachment)})
-
-                link_url = self.env['social.post']._extract_url_from_message(message_with_shortened_urls)
-                # can't combine with images
-                if link_url and not post.image_ids:
-                    params.update({'link': link_url})
-
-                result = requests.post(post_endpoint_url, params)
-
-            if (result.status_code == 200):
-                live_post.facebook_post_id = result.json().get('id', False)
-                values = {
-                    'state': 'posted',
-                    'failure_reason': False
-                }
-            else:
-                values = {
-                    'state': 'failed',
-                    'failure_reason': json.loads(result.text or '{}').get('error', {}).get('message', '')
-                }
-
-            live_post.write(values)
+        self.write(values)

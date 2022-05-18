@@ -13,14 +13,38 @@ _logger = logging.getLogger(__name__)
 class MarketingActivity(models.Model):
     _inherit = ['marketing.activity']
 
-    activity_type = fields.Selection(selection_add=[('sms', 'SMS')])
+    activity_type = fields.Selection(selection_add=[
+        ('sms', 'SMS')
+    ], ondelete={'sms': 'cascade'})
     mass_mailing_id_mailing_type = fields.Selection(selection_add=[('sms', 'SMS')])
+    trigger_type = fields.Selection(selection_add=[
+        ('sms_click', 'SMS: clicked'),
+        ('sms_not_click', 'SMS: not clicked'),
+        ('sms_bounce', 'SMS: bounced')
+    ], ondelete={
+        'sms_click': 'cascade',
+        'sms_not_click': 'cascade',
+        'sms_bounce': 'cascade',
+    })
+    trigger_category = fields.Selection(selection_add=[('sms', 'SMS')], compute='_compute_trigger_category')
 
-    @api.onchange('activity_type')
-    def _onchange_activity_type(self):
-        if self.activity_type == 'sms':
-            self.mass_mailing_id_mailing_type = 'sms'
-        super(MarketingActivity, self)._onchange_activity_type()
+    @api.depends('activity_type')
+    def _compute_mass_mailing_id_mailing_type(self):
+        for activity in self:
+            if activity.activity_type == 'sms':
+                activity.mass_mailing_id_mailing_type = 'sms'
+        super(MarketingActivity, self)._compute_mass_mailing_id_mailing_type()
+
+    @api.depends('trigger_type')
+    def _compute_trigger_category(self):
+        non_sms_trigger_category = self.env['marketing.activity']
+        for activity in self:
+            if activity.trigger_type in ['sms_click', 'sms_not_click', 'sms_bounce']:
+                activity.trigger_category = 'sms'
+            else:
+                non_sms_trigger_category |= activity
+
+        super(MarketingActivity, non_sms_trigger_category)._compute_trigger_category()
 
     def _execute_sms(self, traces):
         res_ids = [r for r in set(traces.mapped('res_id'))]
@@ -35,30 +59,31 @@ class MarketingActivity(models.Model):
         try:
             mailing.sudo().action_send_sms(res_ids)
         except Exception as e:
-            _logger.warning(_('Marketing Automation: activity <%s> encountered mass mailing issue %s'), self.id, str(e), exc_info=True)
+            _logger.warning('Marketing Automation: activity <%s> encountered mass mailing issue %s', self.id, str(e), exc_info=True)
             traces.write({
                 'state': 'error',
                 'schedule_date': Datetime.now(),
-                'state_msg': _('Exception in SMS Marketing: %s') % str(e),
+                'state_msg': _('Exception in SMS Marketing: %s', e),
             })
         else:
             failed_stats = self.env['mailing.trace'].sudo().search([
                 ('marketing_trace_id', 'in', traces.ids),
-                '|', ('exception', '!=', False), ('ignored', '!=', False)])
-            ignored_doc_ids = [stat.res_id for stat in failed_stats if stat.ignored]
-            error_doc_ids = [stat.res_id for stat in failed_stats if stat.exception]
+                ('trace_status', 'in', ['error', 'cancel'])
+            ])
+            cancel_doc_ids = [stat.res_id for stat in failed_stats if stat.trace_status == 'cancel']
+            error_doc_ids = [stat.res_id for stat in failed_stats if stat.trace_status == 'error']
 
             processed_traces = traces
-            ignored_traces = traces.filtered(lambda trace: trace.res_id in ignored_doc_ids)
+            canceled_traces = traces.filtered(lambda trace: trace.res_id in cancel_doc_ids)
             error_traces = traces.filtered(lambda trace: trace.res_id in error_doc_ids)
 
-            if ignored_traces:
-                ignored_traces.write({
+            if canceled_traces:
+                canceled_traces.write({
                     'state': 'canceled',
                     'schedule_date': Datetime.now(),
-                    'state_msg': _('SMS ignored')
+                    'state_msg': _('SMS canceled')
                 })
-                processed_traces = processed_traces - ignored_traces
+                processed_traces = processed_traces - canceled_traces
             if error_traces:
                 error_traces.write({
                     'state': 'error',

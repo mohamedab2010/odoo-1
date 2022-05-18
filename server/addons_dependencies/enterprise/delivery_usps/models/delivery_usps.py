@@ -11,7 +11,9 @@ import math
 class ProviderUSPS(models.Model):
     _inherit = 'delivery.carrier'
 
-    delivery_type = fields.Selection(selection_add=[('usps', "USPS")])
+    delivery_type = fields.Selection(selection_add=[
+        ('usps', "USPS")
+    ], ondelete={'usps': lambda recs: recs.write({'delivery_type': 'fixed', 'fixed_price': 0})})
     # Fields required to configure
     usps_username = fields.Char(string='USPS User ID', groups="base.group_system")
     usps_account_validated = fields.Boolean(string="Account Validated", help="Check this box if your account is validated by USPS")
@@ -75,10 +77,10 @@ class ProviderUSPS(models.Model):
                                           ('RETURN', 'Return'),
                                           ('MERCHANDISE', 'Merchandise')],
                                          default='MERCHANDISE', string="Content Type")
-    usps_custom_container_width = fields.Float(string='Package width (in inches)')
-    usps_custom_container_length = fields.Float(string='Package length (in inches)')
-    usps_custom_container_height = fields.Float(string='Package height (in inches)')
-    usps_custom_container_girth = fields.Float(string='Package girth (in inches)')
+    usps_custom_container_width = fields.Float(string='Package Width')
+    usps_custom_container_length = fields.Float(string='Package Length')
+    usps_custom_container_height = fields.Float(string='Package Height')
+    usps_custom_container_girth = fields.Float(string='Package Girth')
     usps_intl_non_delivery_option = fields.Selection([('RETURN', 'Return'),
                                                       ('REDIRECT', 'Redirect'),
                                                       ('ABANDON', 'Abandon')],
@@ -86,6 +88,7 @@ class ProviderUSPS(models.Model):
     usps_redirect_partner_id = fields.Many2one('res.partner', string="Redirect Partner")
     usps_machinable = fields.Boolean(string="Machinable", help="Please check on USPS website to ensure that your package is machinable.")
 
+    @api.depends('usps_delivery_nature')
     def _compute_can_generate_return(self):
         super(ProviderUSPS, self)._compute_can_generate_return()
         for carrier in self:
@@ -110,7 +113,7 @@ class ProviderUSPS(models.Model):
         if quotes.get('error_message'):
             return {'success': False,
                     'price': 0.0,
-                    'error_message': _('Error:\n%s') % quotes['error_message'],
+                    'error_message': _('Error:\n%s', quotes['error_message']),
                     'warning_message': False}
 
         # USPS always returns prices in USD
@@ -156,7 +159,12 @@ class ProviderUSPS(models.Model):
             carrier_tracking_ref = booking['tracking_number']
 
             logmessage = (_("Shipment created into USPS <br/> <b>Tracking Number : </b>%s") % (carrier_tracking_ref))
-            picking.message_post(body=logmessage, attachments=[('LabelUSPS-%s.%s' % (carrier_tracking_ref, self.usps_label_file_type), booking['label'])])
+            usps_labels = [('LabelUSPS-%s.%s' % (carrier_tracking_ref, self.usps_label_file_type), booking['label'])]
+            if picking.sale_id:
+                for pick in picking.sale_id.picking_ids:
+                    pick.message_post(body=logmessage, attachments=usps_labels)
+            else:
+                picking.message_post(body=logmessage, attachments=usps_labels)
 
             shipping_data = {'exact_price': price,
                              'tracking_number': carrier_tracking_ref}
@@ -194,7 +202,7 @@ class ProviderUSPS(models.Model):
         if result['error_found']:
             raise UserError(result['error_message'])
         else:
-            picking.message_post(body=_(u'Shipment N° %s has been cancelled' % picking.carrier_tracking_ref))
+            picking.message_post(body=_(u'Shipment #%s has been cancelled', picking.carrier_tracking_ref))
             picking.write({'carrier_tracking_ref': '',
                            'carrier_price': 0.0})
 

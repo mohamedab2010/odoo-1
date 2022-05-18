@@ -6,6 +6,8 @@
         <field name="unfold_all_filter" eval="True"/>
         <field name="date_range" eval="False" />
         <field name='parent_id' ref='l10n_lu.account_reports_lu_statements_menu'/>
+        <field name="show_journal_filter" eval="True"/>
+        <field name="country_id" ref="base.lu"/>
     </record>
 
     <record id="account_financial_report_l10n_lu_bs_line_1" model="account.financial.html.report.line">
@@ -19,7 +21,7 @@
         <field name="code">LU_BS_101</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_103.balance + LU_BS_105.balance; credit = LU_BS_103.credit + LU_BS_105.credit; debit = LU_BS_103.debit + LU_BS_105.debit</field>
+        <field name="formulas">LU_BS_103 + LU_BS_105</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_1_1" model="account.financial.html.report.line">
@@ -29,7 +31,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '102%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_1_2" model="account.financial.html.report.line">
@@ -39,7 +41,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '103%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_2" model="account.financial.html.report.line">
@@ -49,7 +51,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '20%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3" model="account.financial.html.report.line">
@@ -57,7 +59,7 @@
         <field name="code">LU_BS_109</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_111.balance + LU_BS_125.balance + LU_BS_135.balance; credit = LU_BS_111.credit + LU_BS_125.credit + LU_BS_135.credit; debit = LU_BS_111.debit + LU_BS_125.debit + LU_BS_135.debit</field>
+        <field name="formulas">LU_BS_111 + LU_BS_125 + LU_BS_135</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1" model="account.financial.html.report.line">
@@ -65,7 +67,7 @@
         <field name="code">LU_BS_111</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_113.balance + LU_BS_115.balance + LU_BS_121.balance + LU_BS_123.balance; credit = LU_BS_113.credit + LU_BS_115.credit + LU_BS_121.credit + LU_BS_123.credit; debit = LU_BS_113.debit + LU_BS_115.debit + LU_BS_121.debit + LU_BS_123.debit</field>
+        <field name="formulas">LU_BS_113 + LU_BS_115 + LU_BS_121 + LU_BS_123</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_1" model="account.financial.html.report.line">
@@ -75,7 +77,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '211%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_2" model="account.financial.html.report.line">
@@ -83,7 +85,7 @@
         <field name="code">LU_BS_115</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_117.balance + LU_BS_119.balance; credit = LU_BS_117.credit + LU_BS_119.credit; debit = LU_BS_117.debit + LU_BS_119.debit</field>
+        <field name="formulas">LU_BS_117 + LU_BS_119</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_2_1" model="account.financial.html.report.line">
@@ -93,7 +95,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '2121%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_2_2" model="account.financial.html.report.line">
@@ -103,7 +105,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '2122%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_3" model="account.financial.html.report.line">
@@ -113,7 +115,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '213%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_1_4" model="account.financial.html.report.line">
@@ -123,7 +125,7 @@
         <field name="sequence" eval="4"/>
         <field name="domain" eval="[('account_id.code', '=like', '214%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_2" model="account.financial.html.report.line">
@@ -131,7 +133,7 @@
         <field name="code">LU_BS_125</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_127.balance + LU_BS_129.balance + LU_BS_131.balance + LU_BS_133.balance; credit = LU_BS_127.credit + LU_BS_129.credit + LU_BS_131.credit + LU_BS_133.credit; debit = LU_BS_127.debit + LU_BS_129.debit + LU_BS_131.debit + LU_BS_133.debit</field>
+        <field name="formulas">LU_BS_127 + LU_BS_129 + LU_BS_131 + LU_BS_133</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_2_1" model="account.financial.html.report.line">
@@ -141,7 +143,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '221%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_2_2" model="account.financial.html.report.line">
@@ -151,7 +153,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '222%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_2_3" model="account.financial.html.report.line">
@@ -161,7 +163,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '223%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_2_4" model="account.financial.html.report.line">
@@ -171,7 +173,7 @@
         <field name="sequence" eval="4"/>
         <field name="domain" eval="[('account_id.code', '=like', '224%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3" model="account.financial.html.report.line">
@@ -179,7 +181,7 @@
         <field name="code">LU_BS_135</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_137.balance + LU_BS_139.balance + LU_BS_141.balance + LU_BS_143.balance + LU_BS_145.balance + LU_BS_147.balance; credit = LU_BS_137.credit + LU_BS_139.credit + LU_BS_141.credit + LU_BS_143.credit + LU_BS_145.credit + LU_BS_147.credit; debit = LU_BS_137.debit + LU_BS_139.debit + LU_BS_141.debit + LU_BS_143.debit + LU_BS_145.debit + LU_BS_147.debit</field>
+        <field name="formulas">LU_BS_137 + LU_BS_139 + LU_BS_141 + LU_BS_143 + LU_BS_145 + LU_BS_147</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_1" model="account.financial.html.report.line">
@@ -189,7 +191,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '231%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_2" model="account.financial.html.report.line">
@@ -199,7 +201,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '232%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_3" model="account.financial.html.report.line">
@@ -209,7 +211,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '233%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_4" model="account.financial.html.report.line">
@@ -219,7 +221,7 @@
         <field name="sequence" eval="4"/>
         <field name="domain" eval="[('account_id.code', '=like', '234%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_5" model="account.financial.html.report.line">
@@ -229,7 +231,7 @@
         <field name="sequence" eval="5"/>
         <field name="domain" eval="[('account_id.code', '=like', '235%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_3_3_6" model="account.financial.html.report.line">
@@ -239,7 +241,7 @@
         <field name="sequence" eval="6"/>
         <field name="domain" eval="[('account_id.code', '=like', '236%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4" model="account.financial.html.report.line">
@@ -247,7 +249,7 @@
         <field name="code">LU_BS_151</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_153.balance + LU_BS_163.balance + LU_BS_189.balance + LU_BS_197.balance; credit = LU_BS_153.credit + LU_BS_163.credit + LU_BS_189.credit + LU_BS_197.credit; debit = LU_BS_153.debit + LU_BS_163.debit + LU_BS_189.debit + LU_BS_197.debit</field>
+        <field name="formulas">LU_BS_153 + LU_BS_163 + LU_BS_189 + LU_BS_197</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_1" model="account.financial.html.report.line">
@@ -255,7 +257,7 @@
         <field name="code">LU_BS_153</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_155.balance + LU_BS_157.balance + LU_BS_159.balance + LU_BS_161.balance; credit = LU_BS_155.credit + LU_BS_157.credit + LU_BS_159.credit + LU_BS_161.credit; debit = LU_BS_155.debit + LU_BS_157.debit + LU_BS_159.debit + LU_BS_161.debit</field>
+        <field name="formulas">LU_BS_155 + LU_BS_157 + LU_BS_159 + LU_BS_161</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_1_1" model="account.financial.html.report.line">
@@ -265,7 +267,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '30%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_1_2" model="account.financial.html.report.line">
@@ -275,7 +277,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '31%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_1_3" model="account.financial.html.report.line">
@@ -285,7 +287,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '32%'), ('account_id.code', '=like', '36%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_1_4" model="account.financial.html.report.line">
@@ -295,7 +297,7 @@
         <field name="sequence" eval="4"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '34%'), ('account_id.code', '=like', '37%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2" model="account.financial.html.report.line">
@@ -303,7 +305,7 @@
         <field name="code">LU_BS_163</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_165.balance + LU_BS_171.balance + LU_BS_177.balance + LU_BS_183.balance; credit = LU_BS_165.credit + LU_BS_171.credit + LU_BS_177.credit + LU_BS_183.credit; debit = LU_BS_165.debit + LU_BS_171.debit + LU_BS_177.debit + LU_BS_183.debit</field>
+        <field name="formulas">LU_BS_165 + LU_BS_171 + LU_BS_177 + LU_BS_183</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_1" model="account.financial.html.report.line">
@@ -311,7 +313,7 @@
         <field name="code">LU_BS_165</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_167.balance + LU_BS_169.balance; credit = LU_BS_167.credit + LU_BS_169.credit; debit = LU_BS_167.debit + LU_BS_169.debit</field>
+        <field name="formulas">LU_BS_167 + LU_BS_169</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_1_1" model="account.financial.html.report.line">
@@ -319,9 +321,19 @@
         <field name="code">LU_BS_167</field>
         <field name="level" eval="4"/>
         <field name="sequence" eval="1"/>
-        <field name="domain" eval="['|', ('account_id.code', '=like', '401%'), ('account_id.code', '=like', '44113%')]" />
+        <field name="domain" eval="
+            [
+                '|', '|', '|', '|', '|',
+                ('account_id.code', '=like', '4011%'),
+                ('account_id.code', '=like', '4012%'),
+                ('account_id.code', '=like', '4013%'),
+                ('account_id.code', '=like', '4014%'),
+                ('account_id.code', '=like', '4019%'),
+                ('account_id.code', '=like', '44113%')
+            ]"
+        />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_1_2" model="account.financial.html.report.line">
@@ -329,9 +341,16 @@
         <field name="code">LU_BS_169</field>
         <field name="level" eval="4"/>
         <field name="sequence" eval="2"/>
-        <field name="domain" eval="['|', ('account_id.code', '=like', '402%'), ('account_id.code', '=like', '44123%')]" />
+        <field name="domain" eval="
+            [
+                '|', '|',
+                ('account_id.code', '=like', '4021%'),
+                ('account_id.code', '=like', '4029%'),
+                ('account_id.code', '=like', '44123%')
+            ]"
+        />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_2" model="account.financial.html.report.line">
@@ -339,7 +358,7 @@
         <field name="code">LU_BS_171</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_173.balance + LU_BS_175.balance; credit = LU_BS_173.credit + LU_BS_175.credit; debit = LU_BS_173.debit + LU_BS_175.debit</field>
+        <field name="formulas">LU_BS_173 + LU_BS_175</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_2_1" model="account.financial.html.report.line">
@@ -349,7 +368,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '4111%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_2_2" model="account.financial.html.report.line">
@@ -359,7 +378,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '4112%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_3" model="account.financial.html.report.line">
@@ -367,7 +386,7 @@
         <field name="code">LU_BS_177</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_179.balance + LU_BS_181.balance; credit = LU_BS_179.credit + LU_BS_181.credit; debit = LU_BS_179.debit + LU_BS_181.debit</field>
+        <field name="formulas">LU_BS_179 + LU_BS_181</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_3_1" model="account.financial.html.report.line">
@@ -377,7 +396,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '4121%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_3_2" model="account.financial.html.report.line">
@@ -387,7 +406,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '4122%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_4" model="account.financial.html.report.line">
@@ -395,7 +414,7 @@
         <field name="code">LU_BS_183</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_185.balance + LU_BS_187.balance; credit = LU_BS_185.credit + LU_BS_187.credit; debit = LU_BS_185.debit + LU_BS_187.debit</field>
+        <field name="formulas">LU_BS_185 + LU_BS_187</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_4_1" model="account.financial.html.report.line">
@@ -405,7 +424,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '421%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_2_4_2" model="account.financial.html.report.line">
@@ -415,7 +434,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '422%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_2_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_3" model="account.financial.html.report.line">
@@ -423,7 +442,7 @@
         <field name="code">LU_BS_189</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_191.balance + LU_BS_209.balance + LU_BS_195.balance; credit = LU_BS_191.credit + LU_BS_209.credit + LU_BS_195.credit; debit = LU_BS_191.debit + LU_BS_209.debit + LU_BS_195.debit</field>
+        <field name="formulas">LU_BS_191 + LU_BS_209 + LU_BS_195</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_3_1" model="account.financial.html.report.line">
@@ -433,7 +452,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '501%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_3_2" model="account.financial.html.report.line">
@@ -443,7 +462,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '503%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_3_3" model="account.financial.html.report.line">
@@ -453,7 +472,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '502%'), ('account_id.code', '=like', '508%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_4_4" model="account.financial.html.report.line">
@@ -461,9 +480,17 @@
         <field name="code">LU_BS_197</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="4"/>
-        <field name="domain" eval="[('account_id.code', '=like', '51%')]" />
+        <field name="domain" eval="
+            [
+                '|', ('account_id.code', '=like', '5130%'),
+                '|', ('account_id.code', '=like', '5131%'),
+                '|', ('account_id.code', '=like', '516%'),
+                '|', ('account_id.code', '=like', '5171%'),
+                ('account_id.code', '=like', '518%')
+            ]"
+        />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_5" model="account.financial.html.report.line">
@@ -473,7 +500,7 @@
         <field name="sequence" eval="5"/>
         <field name="domain" eval="['|', '|', ('account_id.code', '=like', '481%'), ('account_id.code', '=like', '484%'), ('account_id.code', '=like', '486%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_1_6" model="account.financial.html.report.line">
@@ -481,7 +508,7 @@
         <field name="code">LU_BS_201</field>
         <field name="level" eval="0"/>
         <field name="sequence" eval="6"/>
-        <field name="formulas">balance = LU_BS_101.balance + LU_BS_107.balance + LU_BS_109.balance + LU_BS_151.balance + LU_BS_199.balance; credit = LU_BS_101.credit + LU_BS_107.credit + LU_BS_109.credit + LU_BS_151.credit + LU_BS_199.credit; debit = LU_BS_101.debit + LU_BS_107.debit + LU_BS_109.debit + LU_BS_151.debit + LU_BS_199.debit</field>
+        <field name="formulas">LU_BS_101 + LU_BS_107 + LU_BS_109 + LU_BS_151 + LU_BS_199</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_1"/>
     </record>
 
@@ -496,7 +523,7 @@
         <field name="code">LU_BS_301</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_303.balance + LU_BS_305.balance + LU_BS_307.balance + LU_BS_309.balance + LU_BS_319.balance + LU_BS_321.balance + LU_BS_323.balance + LU_BS_325.balance; credit = LU_BS_303.credit + LU_BS_305.credit + LU_BS_307.credit + LU_BS_309.credit + LU_BS_319.credit + LU_BS_321.credit + LU_BS_323.credit + LU_BS_325.credit; debit = LU_BS_303.debit + LU_BS_305.debit + LU_BS_307.debit + LU_BS_309.debit + LU_BS_319.debit + LU_BS_321.debit + LU_BS_323.debit + LU_BS_325.debit</field>
+        <field name="formulas">LU_BS_303 + LU_BS_305 + LU_BS_307 + LU_BS_309 + LU_BS_319 + LU_BS_321 + LU_BS_323 + LU_BS_325</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_1" model="account.financial.html.report.line">
@@ -506,7 +533,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="['|', '|', '|', ('account_id.code', '=like', '101%'), ('account_id.code', '=like', '104%'), ('account_id.code', '=like', '105%'), ('account_id.code', '=like', '106%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_2" model="account.financial.html.report.line">
@@ -516,7 +543,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '11%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_3" model="account.financial.html.report.line">
@@ -526,7 +553,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '12%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4" model="account.financial.html.report.line">
@@ -534,7 +561,7 @@
         <field name="code">LU_BS_309</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_311.balance + LU_BS_313.balance + LU_BS_315.balance + LU_BS_429.balance; credit = LU_BS_311.credit + LU_BS_313.credit + LU_BS_315.credit + LU_BS_429.credit; debit = LU_BS_311.debit + LU_BS_313.debit + LU_BS_315.debit + LU_BS_429.debit</field>
+        <field name="formulas">LU_BS_311 + LU_BS_313 + LU_BS_315 + LU_BS_429</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_1" model="account.financial.html.report.line">
@@ -544,7 +571,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '131%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_2" model="account.financial.html.report.line">
@@ -554,7 +581,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '132%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_3" model="account.financial.html.report.line">
@@ -564,7 +591,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '133%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_4" model="account.financial.html.report.line">
@@ -572,7 +599,7 @@
         <field name="code">LU_BS_429</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_431.balance + LU_BS_433.balance; credit = LU_BS_431.credit + LU_BS_433.credit; debit = LU_BS_431.debit + LU_BS_433.debit</field>
+        <field name="formulas">LU_BS_431 + LU_BS_433</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_4_1" model="account.financial.html.report.line">
@@ -582,7 +609,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '1381%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_4_4_2" model="account.financial.html.report.line">
@@ -592,7 +619,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '1382%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1_4_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_5" model="account.financial.html.report.line">
@@ -602,7 +629,7 @@
         <field name="sequence" eval="5"/>
         <field name="domain" eval="[('account_id.code', '=like', '141%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_6" model="account.financial.html.report.line">
@@ -613,7 +640,7 @@
         <field name="domain" eval="['|', ('account_id.user_type_id', 'in', [ref('account.data_account_type_other_income'), ref('account.data_account_type_revenue'), ref('account.data_account_type_depreciation'), ref('account.data_account_type_expenses'), ref('account.data_account_type_direct_costs')]), ('account_id.code', '=like', '142%')]" />
         <field name="groupby"/>
         <field name="special_date_changer">from_beginning</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
         <field name="action_id" ref="account_financial_report_l10n_lu_pl_action"/>
     </record>
@@ -624,7 +651,7 @@
         <field name="sequence" eval="7"/>
         <field name="domain" eval="[('account_id.code', '=like', '15%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_1_8" model="account.financial.html.report.line">
@@ -634,7 +661,7 @@
         <field name="sequence" eval="8"/>
         <field name="domain" eval="[('account_id.code', '=like', '16%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_2" model="account.financial.html.report.line">
@@ -642,7 +669,7 @@
         <field name="code">LU_BS_331</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_333.balance + LU_BS_335.balance + LU_BS_337.balance; credit = LU_BS_333.credit + LU_BS_335.credit + LU_BS_337.credit; debit = LU_BS_333.debit + LU_BS_335.debit + LU_BS_337.debit</field>
+        <field name="formulas">LU_BS_333 + LU_BS_335 + LU_BS_337</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_2_1" model="account.financial.html.report.line">
@@ -652,7 +679,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '181%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_2_2" model="account.financial.html.report.line">
@@ -662,7 +689,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '182%'), ('account_id.code', '=like', '183%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_2_3" model="account.financial.html.report.line">
@@ -672,7 +699,7 @@
         <field name="sequence" eval="3"/>
         <field name="domain" eval="[('account_id.code', '=like', '188%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3" model="account.financial.html.report.line">
@@ -680,7 +707,7 @@
         <field name="code">LU_BS_435</field>
         <field name="level" eval="1"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_437.balance + LU_BS_355.balance + LU_BS_361.balance + LU_BS_367.balance + LU_BS_373.balance + LU_BS_379.balance + LU_BS_385.balance + LU_BS_451.balance; credit = LU_BS_437.credit + LU_BS_355.credit + LU_BS_361.credit + LU_BS_367.credit + LU_BS_373.credit + LU_BS_379.credit + LU_BS_385.credit + LU_BS_451.credit; debit = LU_BS_437.debit + LU_BS_355.debit + LU_BS_361.debit + LU_BS_367.debit + LU_BS_373.debit + LU_BS_379.debit + LU_BS_385.debit + LU_BS_451.debit</field>
+        <field name="formulas">LU_BS_437 + LU_BS_355 + LU_BS_361 + LU_BS_367 + LU_BS_373 + LU_BS_379 + LU_BS_385 + LU_BS_451</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1" model="account.financial.html.report.line">
@@ -688,7 +715,7 @@
         <field name="code">LU_BS_437</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_439.balance + LU_BS_439.balance; credit = LU_BS_439.credit + LU_BS_439.credit; debit = LU_BS_439.debit + LU_BS_439.debit</field>
+        <field name="formulas">LU_BS_439 + LU_BS_445</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_1" model="account.financial.html.report.line">
@@ -696,7 +723,7 @@
         <field name="code">LU_BS_439</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="1"/>
-        <field name="formulas">balance = LU_BS_441.balance + LU_BS_443.balance; credit = LU_BS_441.credit + LU_BS_443.credit; debit = LU_BS_441.debit + LU_BS_443.debit</field>
+        <field name="formulas">LU_BS_441 + LU_BS_443</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_1_1" model="account.financial.html.report.line">
@@ -706,7 +733,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '1911%'), ('account_id.code', '=like', '1921%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_1_2" model="account.financial.html.report.line">
@@ -716,7 +743,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '1912%'), ('account_id.code', '=like', '1922%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_2" model="account.financial.html.report.line">
@@ -724,7 +751,7 @@
         <field name="code">LU_BS_445</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_447.balance + LU_BS_449.balance; credit = LU_BS_447.credit + LU_BS_449.credit; debit = LU_BS_447.debit + LU_BS_449.debit</field>
+        <field name="formulas">LU_BS_447 + LU_BS_449</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_2_1" model="account.financial.html.report.line">
@@ -734,7 +761,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '1931%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_1_2_2" model="account.financial.html.report.line">
@@ -744,7 +771,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '1932%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_1_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_2" model="account.financial.html.report.line">
@@ -752,7 +779,7 @@
         <field name="code">LU_BS_355</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="2"/>
-        <field name="formulas">balance = LU_BS_357.balance + LU_BS_357.balance; credit = LU_BS_357.credit + LU_BS_357.credit; debit = LU_BS_357.debit + LU_BS_357.debit</field>
+        <field name="formulas">LU_BS_357 + LU_BS_359</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_2_1" model="account.financial.html.report.line">
@@ -760,9 +787,15 @@
         <field name="code">LU_BS_357</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="1"/>
-        <field name="domain" eval="['|', '|', ('account_id.code', '=like', '1941%'), ('account_id.code', '=like', '5132%'), ('account_id.code', '=like', '5172%')]" />
+        <field name="domain" eval="
+            [
+                '|', ('account_id.code', '=like', '1941%'),
+                '|', ('account_id.code', '=like', '5132%'),
+                ('account_id.code', '=like', '5172%')
+            ]"
+        />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_2_2" model="account.financial.html.report.line">
@@ -772,7 +805,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '1942%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_3" model="account.financial.html.report.line">
@@ -780,7 +813,7 @@
         <field name="code">LU_BS_361</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_363.balance + LU_BS_363.balance; credit = LU_BS_363.credit + LU_BS_363.credit; debit = LU_BS_363.debit + LU_BS_363.debit</field>
+        <field name="formulas">LU_BS_363 + LU_BS_365</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_3_1" model="account.financial.html.report.line">
@@ -790,7 +823,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '431%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_3_2" model="account.financial.html.report.line">
@@ -800,7 +833,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '432%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_4" model="account.financial.html.report.line">
@@ -808,7 +841,7 @@
         <field name="code">LU_BS_367</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="4"/>
-        <field name="formulas">balance = LU_BS_369.balance + LU_BS_371.balance; credit = LU_BS_369.credit + LU_BS_371.credit; debit = LU_BS_369.debit + LU_BS_371.debit</field>
+        <field name="formulas">LU_BS_369 + LU_BS_371</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_4_1" model="account.financial.html.report.line">
@@ -816,9 +849,9 @@
         <field name="code">LU_BS_369</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="1"/>
-        <field name="domain" eval="['|', ('account_id.code', '=like', '4015%'), ('account_id.code', '=like', '4411%')]" />
+        <field name="domain" eval="['|', '|', ('account_id.code', '=like', '4015%'), ('account_id.code', '=like', '44111%'), ('account_id.code', '=like', '44112%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_4_2" model="account.financial.html.report.line">
@@ -828,7 +861,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="['|', ('account_id.code', '=like', '4025%'), ('account_id.code', '=like', '4412%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_4"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_5" model="account.financial.html.report.line">
@@ -836,7 +869,7 @@
         <field name="code">LU_BS_373</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="5"/>
-        <field name="formulas">balance = LU_BS_375.balance + LU_BS_377.balance; credit = LU_BS_375.credit + LU_BS_377.credit; debit = LU_BS_375.debit + LU_BS_377.debit</field>
+        <field name="formulas">LU_BS_375 + LU_BS_377</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_5_1" model="account.financial.html.report.line">
@@ -846,7 +879,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '4421%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_5"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_5_2" model="account.financial.html.report.line">
@@ -856,7 +889,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '4422%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_5"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_6" model="account.financial.html.report.line">
@@ -864,7 +897,7 @@
         <field name="code">LU_BS_379</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="6"/>
-        <field name="formulas">balance = LU_BS_381.balance + LU_BS_383.balance; credit = LU_BS_381.credit + LU_BS_383.credit; debit = LU_BS_381.debit + LU_BS_383.debit</field>
+        <field name="formulas">LU_BS_381 + LU_BS_383</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_6_1" model="account.financial.html.report.line">
@@ -874,7 +907,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '4511%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_6"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_6_2" model="account.financial.html.report.line">
@@ -884,7 +917,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '4512%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_6"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_7" model="account.financial.html.report.line">
@@ -892,7 +925,7 @@
         <field name="code">LU_BS_385</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="7"/>
-        <field name="formulas">balance = LU_BS_387.balance + LU_BS_389.balance; credit = LU_BS_387.credit + LU_BS_389.credit; debit = LU_BS_387.debit + LU_BS_389.debit</field>
+        <field name="formulas">LU_BS_387 + LU_BS_389</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_7_1" model="account.financial.html.report.line">
@@ -902,7 +935,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '4521%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_7"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_7_2" model="account.financial.html.report.line">
@@ -912,7 +945,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '4522%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_7"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8" model="account.financial.html.report.line">
@@ -920,7 +953,7 @@
         <field name="code">LU_BS_451</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="8"/>
-        <field name="formulas">balance = LU_BS_393.balance + LU_BS_395.balance + LU_BS_397.balance; credit = LU_BS_393.credit + LU_BS_395.credit + LU_BS_397.credit; debit = LU_BS_393.debit + LU_BS_395.debit + LU_BS_397.debit</field>
+        <field name="formulas">LU_BS_393 + LU_BS_395 + LU_BS_397</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8_1" model="account.financial.html.report.line">
@@ -930,7 +963,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '461%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_8"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8_2" model="account.financial.html.report.line">
@@ -940,7 +973,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '462%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_8"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8_3" model="account.financial.html.report.line">
@@ -948,7 +981,7 @@
         <field name="code">LU_BS_397</field>
         <field name="level" eval="3"/>
         <field name="sequence" eval="3"/>
-        <field name="formulas">balance = LU_BS_399.balance + LU_BS_401.balance; credit = LU_BS_399.credit + LU_BS_401.credit; debit = LU_BS_399.debit + LU_BS_401.debit</field>
+        <field name="formulas">LU_BS_399 + LU_BS_401</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_8"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8_3_1" model="account.financial.html.report.line">
@@ -958,7 +991,7 @@
         <field name="sequence" eval="1"/>
         <field name="domain" eval="[('account_id.code', '=like', '471%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_8_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_3_8_3_2" model="account.financial.html.report.line">
@@ -968,7 +1001,7 @@
         <field name="sequence" eval="2"/>
         <field name="domain" eval="[('account_id.code', '=like', '472%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2_3_8_3"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_4" model="account.financial.html.report.line">
@@ -978,7 +1011,7 @@
         <field name="sequence" eval="5"/>
         <field name="domain" eval="['|', '|', '|', ('account_id.code', '=like', '482%'), ('account_id.code', '=like', '483%'), ('account_id.code', '=like', '485%'), ('account_id.code', '=like', '487%')]" />
         <field name="groupby">account_id</field>
-        <field name="formulas">balance = -sum.balance; credit = sum.credit; debit = sum.debit</field>
+        <field name="formulas">-sum</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2"/>
     </record>
     <record id="account_financial_report_l10n_lu_bs_line_2_5" model="account.financial.html.report.line">
@@ -986,7 +1019,7 @@
         <field name="code">LU_BS_405</field>
         <field name="level" eval="0"/>
         <field name="sequence" eval="6"/>
-        <field name="formulas">balance = LU_BS_301.balance + LU_BS_331.balance + LU_BS_435.balance + LU_BS_403.balance; credit = LU_BS_301.credit + LU_BS_331.credit + LU_BS_435.credit + LU_BS_403.credit; debit = LU_BS_301.debit + LU_BS_331.debit + LU_BS_435.debit + LU_BS_403.debit</field>
+        <field name="formulas">LU_BS_301 + LU_BS_331 + LU_BS_435 + LU_BS_403</field>
         <field name="parent_id" ref="account_financial_report_l10n_lu_bs_line_2"/>
     </record>
 </odoo>

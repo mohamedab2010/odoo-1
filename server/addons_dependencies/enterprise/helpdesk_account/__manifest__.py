@@ -3,7 +3,7 @@
 
 {
     'name': 'Helpdesk Account',
-    'category': 'Operations/Helpdesk',
+    'category': 'Services/Helpdesk',
     'summary': 'Project, Tasks, Account',
     'depends': ['helpdesk_sale', 'account'],
     'auto_install': False,
@@ -14,4 +14,5 @@ Create Credit Notes from Helpdesk tickets
         'wizard/account_move_reversal_views.xml',
         'views/helpdesk_views.xml',
     ],
+    'license': 'OEEL-1',
 }

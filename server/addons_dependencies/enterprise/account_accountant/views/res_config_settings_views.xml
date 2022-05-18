@@ -34,10 +34,22 @@
                                 Define fiscal years of more or less than one year
                             </div>
                             <div class="mt16">
-                                <button name="%(account.actions_account_fiscal_year)d" icon="fa-arrow-right"
+                                <button name="%(account_accountant.actions_account_fiscal_year)d" icon="fa-arrow-right"
                                         type="action" string="Fiscal Years" class="btn-link"
                                         attrs="{'invisible': [('group_fiscal_year', '=', False)]}"/>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6" style="padding-left: 0; padding-right: 0;" groups="account.group_account_manager">
+                    <div class="col-12 col-lg-12 o_setting_box">
+                        <div class="o_setting_left_pane"/>
+                        <div class="o_setting_right_pane">
+                            <label for="invoicing_switch_threshold"/>
+                            <div class="text-muted">
+                                The invoices up to this date will not be taken into account as accounting entries
+                            </div>
+                            <field name="invoicing_switch_threshold"/>
                         </div>
                     </div>
                 </div>
@@ -68,24 +80,6 @@
                         <label for="module_account_predictive_bills" string='Predict vendor bill accounts'/>
                         <div class="text-muted">
                             The system will try to predict the accounts on vendor bill lines based on history of previous bills
-                        </div>
-                    </div>
-                </div>
-            </xpath>
-            <xpath expr="//div[@id='account_yodlee']" position="before">
-                <field name="module_account_accountant" invisible="1"/>
-                <div class="col-12 col-lg-6 o_setting_box" attrs="{'invisible': [('chart_template_id','=',False), ('module_account_accountant','=',False)]}">
-                    <div class="o_setting_left_pane"/>
-                    <div class="o_setting_right_pane">
-                        <span class="o_form_label">Inter-Banks Transfers</span>
-                        <div class="text-muted">
-                            Account used when transferring between banks
-                        </div>
-                        <div class="content-group">
-                            <div class="row mt16">
-                                <label for="transfer_account_id" class="col-lg-3 o_light_label"/>
-                                <field name="transfer_account_id"/>
-                            </div>
                         </div>
                     </div>
                 </div>

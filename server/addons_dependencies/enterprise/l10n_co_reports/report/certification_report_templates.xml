@@ -13,7 +13,7 @@
                             </h2>
                             <div class="row">
                                 <div class="col-6">
-                                    NIT: <t t-esc="partner['partner_id'].vat"/>-<t t-esc="partner['partner_id'].l10n_co_verification_code"/>
+                                    NIT: <t t-esc="partner['partner_id'].vat"/>
                                 </div>
                                 <div class="col-6">
                                     Fecha de Expedición: <t t-esc="options['expedition_date']"/>
@@ -40,9 +40,12 @@
                             <div class="row">
                                 <div class="col-12">
                                     Durante el año gravable de <t t-esc="current_year"/>, practicó en la ciudad de
-                                    <t t-esc="env.company.city"/> retención en la fuente a
+                                    <t t-esc="env.company.city"/>
+                                    <span t-if="report_name.endswith('fuente')"> retención en la fuente a</span>
+                                    <span t-if="report_name.endswith('ica')"> retención de ICA a</span>
+                                    <span t-if="report_name.endswith('iva')"> retención de IVA a</span>
                                     <t t-esc="partner['partner_id'].display_name"/> con NIT:
-                                    <t t-esc="partner['partner_id'].vat"/>-<t t-esc="partner['partner_id'].l10n_co_verification_code"/>.
+                                    <t t-esc="partner['partner_id'].vat"/>.
                                 </div>
                             </div>
                             <div class="row">
@@ -122,15 +125,21 @@
                             </div>
                             <div class="row" style="margin-top: 50px;">
                                 <div class="col-12" t-if="report_name.endswith('fuente')">
-                                    Señor contribuyente: Favor tener en cuenta que la base certificada por nostotros corresponde a la somatida a retención durante el periodo gravable según las normas vigentes sobre la materia y podría ser diferente a lo facturado por usted durante el mismo periodo. al declarar tenerlo presente.
+                                    Señor contribuyente: Favor tener en cuenta que la base certificada por nosotros corresponde a la sometida a retención durante el periodo gravable según las normas vigentes sobre la materia y podría ser diferente a lo facturado por usted durante el mismo periodo. al declarar tenerlo presente.
                                 </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-12">
                                     El presente certificado se expide on concordancia con las disposiciones legales contenidas en al artículo 381 del Estatuto Tributario.
                                 </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-12">
                                     Dicha Retención fue consignada oportunamente a nombre de la Dirección de Impuestos y Aduanas Nacionales en la Ciudad de
                                     <t t-esc="env.company.city"/>
                                 </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-12">
                                     NO REQUIRE FIRMA AUTOGRAFA. <t t-esc="options['article']"/>
                                 </div>
@@ -141,14 +150,13 @@
             </t>
         </template>
 
-        <report
-            id="action_report_certification"
-            string="Certification Report"
-            model="l10n_co_reports.certification_report"
-            report_type="qweb-pdf"
-            name="l10n_co_reports.report_certification"
-            file="l10n_co_reports.report_certification"
-            groups="account.group_account_user"
-            menu="False"/>
+        <record id="action_report_certification" model="ir.actions.report">
+            <field name="name">Certification Report</field>
+            <field name="model">l10n_co_reports.certification_report</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_co_reports.report_certification</field>
+            <field name="report_file">l10n_co_reports.report_certification</field>
+            <field name="groups_id" eval="[(4, ref('account.group_account_readonly'))]"/>
+        </record>
     </data>
 </odoo>

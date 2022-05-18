@@ -21,11 +21,12 @@ class AccountJournal(models.Model):
         remains unchanged).
         """
         if self.type == 'purchase':
-            return ("""SELECT state, amount_residual as amount_total, currency_id AS currency
+            return ("""SELECT state, (CASE WHEN move_type = 'in_refund' THEN -1 ELSE 1 END) *
+                   amount_residual as amount_total, currency_id AS currency
                    FROM account_move
                    WHERE journal_id = %(journal_id)s
                    AND (release_to_pay = 'yes' OR invoice_date_due < %(today)s)
                    AND state = 'posted'
-                   AND invoice_payment_state = 'not_paid';""",
+                   AND payment_state in ('not_paid', 'partial');""",
                    {'journal_id': self.id, 'today': fields.Date.today()})
         return super(AccountJournal, self)._get_open_bills_to_pay_query()

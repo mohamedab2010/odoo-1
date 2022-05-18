@@ -8,9 +8,9 @@ class HrPayslip(models.Model):
     _inherit = 'hr.payslip'
 
     expense_sheet_ids = fields.One2many(
-        'hr.expense.sheet', 'payslip_id', string='Expenses',
+        'hr.expense.sheet', 'payslip_id', string='Expenses', readonly=False,
         help="Expenses to reimburse to employee.",
-        states={'draft': [('readonly', False)], 'verify': [('readonly', False)]})
+        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]})
     expenses_count = fields.Integer(compute='_compute_expenses_count')
 
     @api.depends('expense_sheet_ids.expense_line_ids', 'expense_sheet_ids.payslip_id')
@@ -18,42 +18,50 @@ class HrPayslip(models.Model):
         for payslip in self:
             payslip.expenses_count = len(payslip.mapped('expense_sheet_ids.expense_line_ids'))
 
-    @api.onchange('input_line_ids')
-    def _onchange_input_line_ids(self):
-        expense_type = self.env.ref('hr_payroll_expense.expense_other_input', raise_if_not_found=False)
-        if not self.input_line_ids.filtered(lambda line: line.input_type_id == expense_type):
-            self.expense_sheet_ids.write({'payslip_id': False})
+    @api.model_create_multi
+    def create(self, vals_list):
+        payslips = super().create(vals_list)
+        draft_slips = payslips.filtered(lambda p: p.employee_id and p.state == 'draft')
+        if not draft_slips:
+            return payslips
+        sheets = self.env['hr.expense.sheet'].search([
+            ('employee_id', 'in', draft_slips.mapped('employee_id').ids),
+            ('state', '=', 'approve'),
+            ('payment_mode', '=', 'own_account'),
+            ('refund_in_payslip', '=', True),
+            ('payslip_id', '=', False)])
+        for slip in draft_slips:
+            payslip_sheets = sheets.filtered(lambda s: s.employee_id == slip.employee_id)
+            slip.expense_sheet_ids = [(5, 0, 0)] + [(4, s.id, False) for s in payslip_sheets]
+        return payslips
 
-    @api.onchange('employee_id', 'struct_id', 'contract_id', 'date_from', 'date_to')
-    def _onchange_employee(self):
-        res = super()._onchange_employee()
-        if self.state == 'draft':
-            self.expense_sheet_ids = self.env['hr.expense.sheet'].search([
-                ('employee_id', '=', self.employee_id.id),
-                ('state', '=', 'approve'),
-                ('payment_mode', '=', 'own_account'),
-                ('refund_in_payslip', '=', True),
-                ('payslip_id', '=', False)])
-            self._onchange_expense_sheet_ids()
+    def write(self, vals):
+        res = super().write(vals)
+        if 'expense_sheet_ids' in vals:
+            self._compute_expense_input_line_ids()
+        if 'input_line_ids' in vals:
+            self._update_expense_sheets()
         return res
 
-    @api.onchange('expense_sheet_ids')
-    def _onchange_expense_sheet_ids(self):
+    def _compute_expense_input_line_ids(self):
         expense_type = self.env.ref('hr_payroll_expense.expense_other_input', raise_if_not_found=False)
-        if not expense_type:
-            return
+        for payslip in self:
+            total = sum(payslip.expense_sheet_ids.mapped('total_amount'))
+            if not total or not expense_type:
+                continue
+            lines_to_remove = payslip.input_line_ids.filtered(lambda x: x.input_type_id == expense_type)
+            input_lines_vals = [(2, line.id, False) for line in lines_to_remove]
+            input_lines_vals.append((0, 0, {
+                'amount': total,
+                'input_type_id': expense_type.id
+            }))
+            payslip.update({'input_line_ids': input_lines_vals})
 
-        total = sum(sheet.total_amount for sheet in self.expense_sheet_ids)
-        if not total:
-            return
-
-        lines_to_keep = self.input_line_ids.filtered(lambda x: x.input_type_id != expense_type)
-        input_lines_vals = [(5, 0, 0)] + [(4, line.id, False) for line in lines_to_keep]
-        input_lines_vals.append((0, 0, {
-            'amount': total,
-            'input_type_id': expense_type
-        }))
-        self.update({'input_line_ids': input_lines_vals})
+    def _update_expense_sheets(self):
+        expense_type = self.env.ref('hr_payroll_expense.expense_other_input', raise_if_not_found=False)
+        for payslip in self:
+            if not payslip.input_line_ids.filtered(lambda line: line.input_type_id == expense_type):
+                payslip.expense_sheet_ids.write({'payslip_id': False})
 
     def action_payslip_done(self):
         res = super(HrPayslip, self).action_payslip_done()

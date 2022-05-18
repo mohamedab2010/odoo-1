@@ -18,6 +18,8 @@ class StockMove(models.Model):
         for move in self:
             product = move.product_id
             if product.cost_method not in ('average', 'fifo'):
+                res |= super(StockMove, move)._create_out_svl(
+                    forced_quantity=forced_quantity)
                 continue
             candidates = res.search([
                 ('product_id', '=', product.id),

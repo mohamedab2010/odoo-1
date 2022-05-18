@@ -21,4 +21,10 @@ Turn your event into an interactive experience by letting everybody post to your
         'views/website_twitter_wall_templates.xml',
         'views/website_twitter_wall_views.xml',
     ],
+    'assets': {
+        'web.assets_frontend': [
+            'website_twitter_wall/static/src/js/website_twitter_wall.js',
+            'website_twitter_wall/static/src/scss/website_twitter_wall.scss',
+        ],
+    }
 }

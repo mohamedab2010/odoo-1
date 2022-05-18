@@ -1,99 +1,33 @@
 odoo.define('pos_iot.chrome', function (require) {
-"use strict";
+    'use strict';
 
-var chrome = require('point_of_sale.chrome');
-var core = require('web.core');
+    const core = require('web.core');
+    const Chrome = require('point_of_sale.Chrome');
+    const Registries = require('point_of_sale.Registries');
+    const { Gui } = require('point_of_sale.Gui');
 
-var _t = core._t;
+    const _t = core._t;
 
-chrome.Chrome.include({
-    balance_button_widget: {
-        'name': 'balance_button',
-        'widget': chrome.HeaderButtonWidget,
-        'append': '.pos-rightheader',
-        'args': {
-            label: _t('Send Balance'),
-            action: function () {
-                this.chrome._sendBalance();
+    const PosIoTChrome = (Chrome) =>
+        class extends Chrome {
+            get lastTransactionStatusButtonIsShown() {
+                return this.env.pos.payment_methods.some(pm => pm.use_payment_terminal === 'worldline');
             }
-        }
-    },
 
-    /**
-     * Instanciates the Balance button
-     * 
-     * @override
-     */
-    build_widgets: function () {
-        if (this.pos.useIoTPaymentTerminal() && 
-                this.pos.payment_methods.some((payment_method) => payment_method.use_payment_terminal === "six")) {
-            // Place it left to the Close button
-            var close_button_index = _.findIndex(this.widgets, function (widget) {
-                return widget.name === "close_button";
-            });
-            this.widgets.splice(close_button_index, 0, this.balance_button_widget);
-        }
-        this._super();
-    },
+            __showScreen () {
+                if (this.mainScreen.name === 'PaymentScreen' &&
+                    this.env.pos.get_order().paymentlines.some(pl => pl.payment_method.use_payment_terminal === 'worldline' && ['waiting', 'waitingCard', 'waitingCancel'].includes(pl.payment_status))) {
+                        Gui.showPopup('ErrorPopup', {
+                            title: _t('Transaction in progress'),
+                            body: _t('Please process or cancel the current transaction.'),
+                        });
+                } else {
+                    return super.__showScreen(...arguments);
+                }
+            }
+        };
 
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
+    Registries.Component.extend(Chrome, PosIoTChrome);
 
-    /**
-     * Sends an action to the terminal to perform a Balance operation
-     *
-     * @private
-     */
-    _sendBalance: function () {
-        var self = this;
-        this.pos.payment_methods.forEach(function(payment_method) {
-            if (payment_method.use_payment_terminal == 'six' && payment_method.terminal_proxy) {
-                payment_method.terminal_proxy.add_listener(self._onValueChange.bind(self, payment_method.terminal_proxy));
-                payment_method.terminal_proxy.action({ messageType: 'Balance' })
-                    .then(self._onTerminalActionResult.bind(self));
-            };
-        });
-    },
-
-    //--------------------------------------------------------------------------
-    // Handlers
-    //--------------------------------------------------------------------------
-
-    /**
-     * Processes the return value of an action sent to the terminal
-     *
-     * @param {Object} data 
-     * @param {boolean} data.result
-     */
-    _onTerminalActionResult: function (data) {
-        if (data.result === false) {
-            this.pos.gui.show_popup('error', {
-                'title': _t('Connection to terminal failed'),
-                'body':  _t('Please check if the terminal is still connected.'),
-            });
-        }
-    },
-
-    /**
-     * Listens for changes from the payment terminal and prints receipts
-     * destined to the merchant.
-     *
-     * @param {Object} data
-     * @param {String} data.Error
-     * @param {String} data.TicketMerchant
-     */
-    _onValueChange: function (terminal_proxy, data) {
-        if (data.Error) {
-            this.pos.gui.show_popup('error', {
-                'title': _t('Terminal Error'),
-                'body': data.Error,
-            });
-        } else if (data.TicketMerchant && this.pos.proxy.printer) {
-            this.pos.proxy.printer.print_receipt("<div class='pos-receipt'><div class='pos-payment-terminal-receipt'>" + data.TicketMerchant.replace(/\n/g, "<br />") + "</div></div>");
-        }
-        terminal_proxy.remove_listener();
-    },
-});
-
+    return PosIoTChrome;
 });

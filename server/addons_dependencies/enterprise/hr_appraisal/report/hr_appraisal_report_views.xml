@@ -4,7 +4,7 @@
             <field name="name">hr.appraisal.report.pivot</field>
             <field name="model">hr.appraisal.report</field>
             <field name="arch" type="xml">
-            <pivot string="Appraisal Analysis" disable_linking="True">
+            <pivot string="Appraisal Analysis" sample="1">
                  <field name="employee_id" type="row"/>
                  <field name="create_date" interval="month" type="col"/>
              </pivot>
@@ -15,11 +15,25 @@
             <field name="name">hr.appraisal.report.graph</field>
             <field name="model">hr.appraisal.report</field>
             <field name="arch" type="xml">
-            <graph string="Appraisal Analysis">
-                 <field name="employee_id" type="row"/>
-                 <field name="create_date" interval="month" type="col"/>
+            <graph string="Appraisal Analysis" sample="1">
+                 <field name="employee_id"/>
+                 <field name="create_date" interval="month"/>
              </graph>
          </field>
+    </record>
+
+    <record id="hr_appraisal_report_view_tree" model="ir.ui.view">
+        <field name="name">hr.appraisal.report.view.tree</field>
+        <field name="model">hr.appraisal.report</field>
+        <field name="arch" type="xml">
+            <tree string="Appraisal Analysis">
+                <field name="employee_id" widget="many2one_avatar_employee"/>
+                <field name="department_id" optional="show"/>
+                <field name="deadline" optional="show"/>
+                <field name="final_interview" optional="hide"/>
+                <field name="state" optional="show"/>
+            </tree>
+        </field>
     </record>
 
     <record id="hr_appraisal_report_view_gantt" model="ir.ui.view">
@@ -27,10 +41,18 @@
         <field name="model">hr.appraisal.report</field>
         <field name="arch" type="xml">
             <gantt
+                edit="0"
+                create="0"
                 color="color"
                 date_start="deadline"
                 date_stop="deadline"
-                default_group_by='department_id'>
+                default_group_by='department_id'
+                sample="1">
+                <templates>
+                    <div t-name="gantt-popover">
+                        <div><strong>Date — </strong><t t-esc="userTimezoneStartDate.format('l LT')"/></div>
+                    </div>
+                </templates>
             </gantt>
         </field>
     </record>
@@ -41,6 +63,7 @@
         <field name="arch" type="xml">
             <calendar date_start="deadline" date_stop="deadline" mode="month" color="state">
                 <field name="display_name"/>
+                <field name="state" filters="1" invisible="1"/>
             </calendar>
         </field>
     </record>
@@ -53,6 +76,8 @@
                 <filter string="To Start" name="to_start" icon="fa-check" domain="[('state', '=' ,'new')]" help = "In progress Evaluations"/>
                 <filter string="Appraisal Sent" name="appraisal_sent" icon="fa-check" domain="[('state','=','pending')]" help = "Final Interview Date"/>
                 <filter string="Done" name="done" domain="[('state','=','done')]"/>
+                <separator/>
+                <filter string="Creation Date" name="filter_create_date" date="create_date"/>
                 <field name="employee_id"/>
                 <group expand="0" string="Extended Filters...">
                     <field name="deadline"/>

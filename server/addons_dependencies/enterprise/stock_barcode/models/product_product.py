@@ -6,28 +6,33 @@ from odoo import models, api
 
 class Product(models.Model):
     _inherit = 'product.product'
+    _barcode_field = 'barcode'
 
     @api.model
-    def get_all_products_by_barcode(self):
-        products = self.env['product.product'].search_read(
-            [('barcode', '!=', None), ('type', '!=', 'service')],
-            ['barcode', 'display_name', 'uom_id', 'tracking']
+    def _get_fields_stock_barcode(self):
+        return ['barcode', 'default_code', 'detailed_type', 'tracking', 'display_name', 'uom_id']
+
+    def _get_stock_barcode_specific_data(self):
+        return {
+            'uom.uom': self.uom_id.read(self.env['uom.uom']._get_fields_stock_barcode(), load=False)
+        }
+
+    def prefilled_owner_package_stock_barcode(self, lot_id=False, lot_name=False):
+        quant = self.env['stock.quant'].search_read(
+            [
+                lot_id and ('lot_id', '=', lot_id) or lot_name and ('lot_id.name', '=', lot_name),
+                ('location_id.usage', '=', 'internal'),
+                ('product_id', '=', self.id),
+            ],
+            ['package_id', 'owner_id'],
+            limit=1, load=False
         )
-        packagings = self.env['product.packaging'].search_read(
-            [('barcode', '!=', None), ('product_id', '!=', None)],
-            ['barcode', 'product_id', 'qty']
-        )
-        # for each packaging, grab the corresponding product data
-        to_add = []
-        to_read = []
-        products_by_id = {product['id']: product for product in products}
-        for packaging in packagings:
-            if products_by_id.get(packaging['product_id']):
-                product = products_by_id[packaging['product_id']]
-                to_add.append(dict(product, **{'qty': packaging['qty']}))
-            # if the product doesn't have a barcode, you need to read it directly in the DB
-            to_read.append((packaging, packaging['product_id'][0]))
-        products_to_read = self.env['product.product'].browse(list(set(t[1] for t in to_read))).sudo().read(['display_name', 'uom_id', 'tracking'])
-        products_to_read = {product['id']: product for product in products_to_read}
-        to_add.extend([dict(t[0], **products_to_read[t[1]]) for t in to_read])
-        return {product.pop('barcode'): product for product in products + to_add}
+        if quant:
+            quant = quant[0]
+        res = {'quant': quant, 'records': {}}
+        if quant and quant['package_id']:
+            res['records']['stock.quant.package'] = self.env['stock.quant.package'].browse(quant['package_id']).read(self.env['stock.quant.package']._get_fields_stock_barcode(), load=False)
+        if quant and quant['owner_id']:
+            res['records']['res.partner'] = self.env['res.partner'].browse(quant['owner_id']).read(self.env['res.partner']._get_fields_stock_barcode(), load=False)
+
+        return res

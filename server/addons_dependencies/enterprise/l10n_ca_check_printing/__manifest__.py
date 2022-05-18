@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Canadian Checks Layout',
+    'icon': '/l10n_ca/static/description/icon.png',
     'version': '1.0',
     'author': 'Odoo SA, OERP Canada',
-    'category': 'Accounting/Accounting',
+    'category': 'Accounting/Localizations/Check',
     'summary': 'Print CA Checks',
     'description': """
 This module allows to print your payments on pre-printed checks.
@@ -17,7 +18,7 @@ Supported formats
 - Check on middle: Peachtree standard
 - Check on bottom: ADP standard
     """,
-    'website': 'https://www.odoo.com/page/accounting',
+    'website': 'https://www.odoo.com/app/accounting',
     'depends': ['account_check_printing', 'l10n_ca'],
     'data': [
         'data/ca_check_printing.xml',
@@ -29,4 +30,9 @@ Supported formats
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.report_assets_common': [
+            'l10n_ca_check_printing/static/**/*',
+        ],
+    }
 }

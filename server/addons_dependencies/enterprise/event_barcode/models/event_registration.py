@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
+
 import logging
-import random
+import os
 
 from odoo import api, fields, models
 
@@ -21,12 +23,12 @@ class EventRegistration(models.Model):
         Generate 8 bytes (64 bits) barcodes as 16 bytes barcodes are not
         compatible with all scanners.
          """
-        return str(random.getrandbits(64))
+        return str(int.from_bytes(os.urandom(8), 'little'))
 
-    barcode = fields.Char(default=_get_random_token, readonly=True, copy=False)
+    barcode = fields.Char(default=_get_random_token, readonly=True, copy=False, index=True)
 
     _sql_constraints = [
-        ('barcode_event_uniq', 'unique(barcode, event_id)', "Barcode should be unique per event")
+        ('barcode_event_uniq', 'unique(barcode)', "Barcode should be unique")
     ]
 
     def _init_column(self, column_name):
@@ -43,3 +45,24 @@ class EventRegistration(models.Model):
 
         else:
             super(EventRegistration, self)._init_column(column_name)
+
+    @api.model
+    def register_attendee(self, barcode, event_id):
+        attendee = self.search([('barcode', '=', barcode)], limit=1)
+        if not attendee:
+            return {'error': 'invalid_ticket'}
+        res = attendee._get_registration_summary()
+        if attendee.state == 'cancel':
+            status = 'canceled_registration'
+        elif not attendee.event_id.is_ongoing:
+            status = 'not_ongoing_event'
+        elif attendee.state != 'done':
+            if event_id and attendee.event_id.id != event_id:
+                status = 'need_manual_confirmation'
+            else:
+                attendee.action_set_done()
+                status = 'confirmed_registration'
+        else:
+            status = 'already_registered'
+        res.update({'status': status, 'event_id': event_id})
+        return res

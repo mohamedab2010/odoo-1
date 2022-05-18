@@ -5,9 +5,8 @@ from odoo import models, fields, api, exceptions, _
 class WorkflowActionRuleSign(models.Model):
     _inherit = ['documents.workflow.rule']
 
-    has_business_option = fields.Boolean(default=True, compute='_get_business')
-    create_model = fields.Selection(selection_add=[('sign.template.new', "Create signature request"),
-                                                   ('sign.template.direct', "Sign directly")])
+    create_model = fields.Selection(selection_add=[('sign.template.new', "Signature PDF Template"),
+                                                   ('sign.template.direct', "PDF to Sign")])
 
     def _compute_limited_to_single_record(self):
         super(WorkflowActionRuleSign, self)._compute_limited_to_single_record()
@@ -22,8 +21,8 @@ class WorkflowActionRuleSign(models.Model):
             template_ids = []
             for document in documents:
                 create_values = {
-                    'name': document.name.rsplit('.', 1)[0],
                     'attachment_id': document.attachment_id.id,
+                    'favorited_ids': [(4, self.env.user.id)],
                 }
                 if self.folder_id:
                     create_values['folder_id'] = self.folder_id.id

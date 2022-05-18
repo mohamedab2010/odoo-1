@@ -14,7 +14,7 @@ This is meant to be used with localization specific modules.
         'account_reports'
     ],
     'data': [
-        'views/saft_templates.xml',
+        'data/saft_report.xml',
     ],
     'license': 'OEEL-1',
 }

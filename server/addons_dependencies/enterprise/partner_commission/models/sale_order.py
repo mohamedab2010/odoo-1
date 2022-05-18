@@ -47,13 +47,14 @@ class SaleOrder(models.Model):
     @api.depends('partner_id', 'referrer_id', 'referrer_id.commission_plan_id')
     def _compute_commission_plan(self):
         for so in self:
-            so.commission_plan_id = so.referrer_id.commission_plan_id
+            if so.state in ('draft', 'sent'):
+                so.commission_plan_id = so.referrer_id.commission_plan_id
 
     def _set_commission_plan(self):
         for so in self:
             # forward commission plan to subscription
             subs = so.mapped('order_line.subscription_id')
-            subs.filtered(lambda s: s.in_progress and not s.commission_plan_frozen).sudo().write({
+            subs.filtered(lambda s: s.stage_category == 'progress' and not s.commission_plan_frozen).sudo().write({
                 'commission_plan_id': so.commission_plan_id.id,
             })
 

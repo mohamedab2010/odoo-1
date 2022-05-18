@@ -3,22 +3,16 @@
 # 	* delivery_bpost
 # 
 # Translators:
-# Francesco Garganese <francesco.garganese@aeromnia.aero>, 2019
-# SebastianoPistore <SebastianoPistore.info@protonmail.ch>, 2019
-# Alberto Vincenzi <alberto.vincenzi@gmail.com>, 2019
-# Riccardo Di Maio <riccardodimaio11@gmail.com>, 2019
-# Paolo Valier, 2019
-# Léonie Bouchat <lbo@odoo.com>, 2019
-# mymage <stefano.consolaro@mymage.it>, 2019
-# Sergio Zanchetta <primes2h@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Friederike Fasterling-Nesselbosch, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Sergio Zanchetta <primes2h@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Friederike Fasterling-Nesselbosch, 2022\n"
 "Language-Team: Italian (https://www.transifex.com/odoo/teams/41243/it/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -89,6 +83,11 @@ msgid "Bpost Label Stock Type"
 msgstr "Tipo di etichetta bpost"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Bpost Package Type"
+msgstr "Tipo di collo bpost"
+
+#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_parcel_return_instructions
 msgid "Bpost Parcel Return Instructions"
 msgstr "Istruzioni per il ritorno di pacchi bpost"
@@ -106,7 +105,7 @@ msgid "Bpost World Express Pro"
 msgstr "Bpost World Express Pro"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_product_packaging__package_carrier_type
+#: model:ir.model.fields,field_description:delivery_bpost.field_stock_package_type__package_carrier_type
 msgid "Carrier"
 msgstr "Vettore"
 
@@ -146,9 +145,24 @@ msgid "International"
 msgstr "Internazionale"
 
 #. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Format"
+msgstr "Formato etichetta"
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Label Type"
+msgstr "Tipo etichetta"
+
+#. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_shipment_type__other
 msgid "OTHER"
 msgstr "ALTRI"
+
+#. module: delivery_bpost
+#: model_terms:ir.ui.view,arch_db:delivery_bpost.view_delivery_carrier_form_with_provider_bpost
+msgid "Options"
+msgstr "Opzioni"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_label_format__pdf
@@ -178,21 +192,25 @@ msgid "Please provide at least one item to ship."
 msgstr "Si prega di selezionare almeno un elemento da spedire."
 
 #. module: delivery_bpost
-#: model:ir.model,name:delivery_bpost.model_product_packaging
-msgid "Product Packaging"
-msgstr "Imballaggio prodotto"
-
-#. module: delivery_bpost
 #: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__delivery_type
 msgid "Provider"
 msgstr "Fornitore"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
+#, python-format
+msgid ""
+"Return labels created into bpost <br/> <b>Tracking Numbers: </b><br/>%s"
+msgstr ""
+"Etichette di ritorno create in bpost <br/> <b> Codice di tracciabilità: "
+"</b><br/>%s "
+
+#. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
 msgid "Return shipment created into bpost <br/> <b>Tracking Number : </b>%s"
 msgstr ""
+"Spedizione di reso creata in bpost <br/> <b>Codice di tracciabilità: </b>%s"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__bpost_parcel_return_instructions__rta
@@ -212,14 +230,15 @@ msgstr "CAMPIONE"
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment N° %s has been cancelled"
-msgstr "La Spedizione N° %s è stata cancellata"
+msgid "Shipment #%s has been cancelled"
+msgstr "La spedizione n° %s è stata annullata"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/delivery_bpost.py:0
 #, python-format
-msgid "Shipment created into bpost <br/> <b>Tracking Number : </b>%s"
-msgstr "Spedizione creata in bpost <br/> <b>Codice di tracciabilità: </b>%s"
+msgid "Shipment created into bpost <br/> <b>Tracking Links</b> <br/>%s"
+msgstr ""
+"Spedizione creata in bpost<br/><b>Codici di tracciabilità:</b> <br/> %s"
 
 #. module: delivery_bpost
 #: model:ir.model,name:delivery_bpost.model_delivery_carrier
@@ -227,10 +246,15 @@ msgid "Shipping Methods"
 msgstr "Metodi di spedizione"
 
 #. module: delivery_bpost
+#: model:ir.model,name:delivery_bpost.model_stock_package_type
+msgid "Stock package type"
+msgstr ""
+
+#. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid "The BPost shipping service is unresponsive, please retry later."
-msgstr ""
+msgstr "Il servizio di spedizione BPost non risponde, riprova più tardi."
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
@@ -246,21 +270,21 @@ msgstr ""
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid ""
-"The estimated shipping cannot be computed because the weight of your product"
-" is missing."
+"The estimated shipping price cannot be computed because all your products "
+"are service."
 msgstr ""
-"Impossibile calcolare una stima di spedizione perché manca il peso del "
-"prodotto."
+"Impossibile calcolare una stima del prezzo di spedizione, tutti i prodotti "
+"sono servizi."
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
 #, python-format
 msgid ""
-"The estimated shipping price cannot be computed because all your products "
-"are service/digital."
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
 msgstr ""
-"Impossibile calcolare una stima dei costi di spedizione perché tutti i "
-"prodotti sono servizi o digitali. "
+"Impossibile calcolare una stima della spedizione, manca il peso dei seguenti prodotti:\n"
+"%s"
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0
@@ -327,7 +351,7 @@ msgstr "bpack World Express Pro"
 
 #. module: delivery_bpost
 #: model:ir.model.fields.selection,name:delivery_bpost.selection__delivery_carrier__delivery_type__bpost
-#: model:ir.model.fields.selection,name:delivery_bpost.selection__product_packaging__package_carrier_type__bpost
+#: model:ir.model.fields.selection,name:delivery_bpost.selection__stock_package_type__package_carrier_type__bpost
 msgid "bpost"
 msgstr "bpost"
 
@@ -337,9 +361,9 @@ msgid "bpost Configuration"
 msgstr "Configurazione bpost"
 
 #. module: delivery_bpost
-#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_packaging_id
-msgid "bpost Default Packaging Type"
-msgstr "Tipo imballaggio predefinito bpost"
+#: model:ir.model.fields,field_description:delivery_bpost.field_delivery_carrier__bpost_default_package_type_id
+msgid "bpost Default Package Type"
+msgstr ""
 
 #. module: delivery_bpost
 #: code:addons/delivery_bpost/models/bpost_request.py:0

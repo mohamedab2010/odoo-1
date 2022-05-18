@@ -13,12 +13,14 @@ from .easypost_request import EasypostRequest
 class DeliverCarrier(models.Model):
     _inherit = 'delivery.carrier'
 
-    delivery_type = fields.Selection(selection_add=[('easypost', 'Easypost')])
+    delivery_type = fields.Selection(selection_add=[
+        ('easypost', 'Easypost')
+    ], ondelete={'easypost': lambda recs: recs.write({'delivery_type': 'fixed', 'fixed_price': 0})})
     easypost_test_api_key = fields.Char("Test API Key", groups="base.group_system", help="Enter your API test key from Easypost account.")
     easypost_production_api_key = fields.Char("Production API Key", groups="base.group_system", help="Enter your API production key from Easypost account")
     easypost_delivery_type = fields.Char('Easypost Carrier Type')
     easypost_delivery_type_id = fields.Char('Easypost Carrier Type ID, technical for API request')
-    easypost_default_packaging_id = fields.Many2one("product.packaging", string="Default Package Type for Easypost", domain="[('easypost_carrier', '=', easypost_delivery_type)]")
+    easypost_default_package_type_id = fields.Many2one("stock.package.type", string="Default Package Type for Easypost", domain="[('easypost_carrier', '=', easypost_delivery_type)]")
     easypost_default_service_id = fields.Many2one("easypost.service", string="Default Service Level", help="If not set, the less expensive available service level will be chosen.", domain="[('easypost_carrier', '=', easypost_delivery_type)]")
     easypost_label_file_type = fields.Selection([
         ('PNG', 'PNG'), ('PDF', 'PDF'),
@@ -39,7 +41,7 @@ class DeliverCarrier(models.Model):
             ep = EasypostRequest(self.sudo().easypost_production_api_key, self.log_xml)
             carriers = ep.fetch_easypost_carrier()
             if carriers:
-                action = self.env.ref('delivery_easypost.act_delivery_easypost_carrier_type').read()[0]
+                action = self.env["ir.actions.actions"]._for_xml_id("delivery_easypost.act_delivery_easypost_carrier_type")
                 action['context'] = {
                     'carrier_types': carriers,
                     'default_delivery_carrier_id': self.id,
@@ -89,7 +91,7 @@ class DeliverCarrier(models.Model):
         for picking in pickings:
             result = ep.send_shipping(self, picking.partner_id, picking.picking_type_id.warehouse_id.partner_id, picking=picking)
             if result.get('error_message'):
-                raise UserError(_(result['error_message']))
+                raise UserError(result['error_message'])
             rate = result.get('rate')
             if rate['currency'] == picking.company_id.currency_id.name:
                 price = float(rate['rate'])
@@ -111,7 +113,11 @@ class DeliverCarrier(models.Model):
 
             logmessage = _("Shipment created into Easypost<br/>"
                            "<b>Tracking Numbers:</b> %s<br/>") % (carrier_tracking_link)
-            pickings.message_post(body=logmessage, attachments=labels)
+            if picking.sale_id:
+                for pick in picking.sale_id.picking_ids:
+                    pick.message_post(body=logmessage, attachments=labels)
+            else:
+                picking.message_post(body=logmessage, attachments=labels)
 
             shipping_data = {'exact_price': price,
                              'tracking_number': carrier_tracking_ref}
@@ -123,10 +129,10 @@ class DeliverCarrier(models.Model):
         return res
 
     def easypost_get_return_label(self, pickings, tracking_number=None, origin_date=None):
-        ep = EasypostRequest(self.easypost_production_api_key if self.prod_environment else self.easypost_test_api_key, self.log_xml)
+        ep = EasypostRequest(self.sudo().easypost_production_api_key if self.prod_environment else self.sudo().easypost_test_api_key, self.log_xml)
         result = ep.send_shipping(self, pickings.partner_id, pickings.picking_type_id.warehouse_id.partner_id, picking=pickings, is_return=True)
         if result.get('error_message'):
-            raise UserError(_(result['error_message']))
+            raise UserError(result['error_message'])
         rate = result.get('rate')
         if rate['currency'] == pickings.company_id.currency_id.name:
             price = rate['rate']
@@ -154,23 +160,28 @@ class DeliverCarrier(models.Model):
         carrier use a single link for all packages.
         """
         ep = EasypostRequest(self.sudo().easypost_production_api_key if self.prod_environment else self.sudo().easypost_test_api_key, self.log_xml)
-        tracking_urls = ep.get_tracking_link(picking.ep_order_ref)
+        if picking.ep_order_ref:
+            tracking_urls = ep.get_tracking_link(picking.ep_order_ref)
+        else:
+            tracking_urls = []
+            for code in picking.carrier_tracking_ref.split('+'):
+                tracking_urls += ep.get_tracking_link_from_code(code.strip())
         return len(tracking_urls) == 1 and tracking_urls[0][1] or json.dumps(tracking_urls)
 
     def easypost_cancel_shipment(self, pickings):
         # Note: Easypost API not provide shipment/order cancel mechanism
         raise UserError(_("You can't cancel Easypost shipping."))
 
-    def _easypost_get_services_and_product_packagings(self):
-        """ Get the list of services and product packagings by carrier
+    def _easypost_get_services_and_package_types(self):
+        """ Get the list of services and package types by carrier
         type. They are stored in 2 dict stored in 2 distinct static json file.
         The dictionaries come from an easypost doc parsing since packages and
         services list are not available with an API request. The purpose of a
         json is to replace the static file request by an API request if easypost
         implements a way to do it.
         """
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        response_package = requests.get(url_join(base_url, '/delivery_easypost/static/data/packagings_by_carriers.json'))
+        base_url = self.get_base_url()
+        response_package = requests.get(url_join(base_url, '/delivery_easypost/static/data/package_types_by_carriers.json'))
         response_service = requests.get(url_join(base_url, '/delivery_easypost/static/data/services_by_carriers.json'))
         packages = response_package.json()
         services = response_service.json()
@@ -208,7 +219,23 @@ class DeliverCarrier(models.Model):
         """ Each API request for easypost required
         a weight in pounds.
         """
+        if weight == 0:
+            return weight
         weight_uom_id = self.env['product.template']._get_weight_uom_id_from_ir_config_parameter()
         weight_in_pounds = weight_uom_id._compute_quantity(weight, self.env.ref('uom.product_uom_lb'))
-        weigth_in_ounces = float_round((weight_in_pounds * 16), precision_digits=1)
+        weigth_in_ounces = max(0.1, float_round((weight_in_pounds * 16), precision_digits=1))
         return weigth_in_ounces
+
+    def _easypost_convert_size(self, dimensions):
+        size_uom_id = self.env['product.template']._get_length_uom_id_from_ir_config_parameter()
+        width = size_uom_id._compute_quantity(dimensions.width, self.env.ref('uom.product_uom_inch'), 1)
+        height = size_uom_id._compute_quantity(dimensions.height, self.env.ref('uom.product_uom_inch'), 1)
+        length = size_uom_id._compute_quantity(dimensions.packaging_length, self.env.ref('uom.product_uom_inch'), 1)
+        return width, height, length
+
+    def _get_delivery_type(self):
+        """ Override of delivery to return the easypost delivery type."""
+        res = super()._get_delivery_type()
+        if self.delivery_type != 'easypost':
+            return res
+        return self.easypost_delivery_type

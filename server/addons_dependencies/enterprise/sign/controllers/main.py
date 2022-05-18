@@ -6,14 +6,13 @@ import io
 import logging
 import mimetypes
 import re
-import werkzeug
 
 from PyPDF2 import PdfFileReader
 
 from odoo import http, _
 from odoo.http import request
 from odoo.addons.web.controllers.main import content_disposition
-from odoo.addons.iap.models.iap import InsufficientCreditError
+from odoo.addons.iap.tools import iap_tools
 
 _logger = logging.getLogger()
 
@@ -21,8 +20,8 @@ _logger = logging.getLogger()
 class Sign(http.Controller):
 
     def get_document_qweb_context(self, id, token):
-        sign_request = http.request.env['sign.request'].sudo().browse(id)
-        if not sign_request:
+        sign_request = http.request.env['sign.request'].sudo().browse(id).exists()
+        if http.request.is_frontend and (not sign_request or not sign_request.active):
             if token:
                 return http.request.render('sign.deleted_sign_request')
             else:
@@ -62,16 +61,13 @@ class Sign(http.Controller):
                     'longitude': request.session['geoip'].get('longitude') if 'geoip' in request.session else 0,
                 })
 
-        sr_values = http.request.env['sign.request.item.value'].sudo().search([('sign_request_id', '=', sign_request.id)])
         item_values = {}
+        sr_values = http.request.env['sign.request.item.value'].sudo().search([('sign_request_id', '=', sign_request.id), '|', ('sign_request_item_id', '=', current_request_item.id), ('sign_request_item_id.state', '=', 'completed')])
         for value in sr_values:
             item_values[value.sign_item_id.id] = value.value
 
-        Log = request.env['sign.log'].sudo()
-        vals = Log._prepare_vals_from_item(current_request_item) if current_request_item else Log._prepare_vals_from_request(sign_request)
-        vals['action'] = 'open'
-        vals = Log._update_vals_with_http_request(vals)
-        Log.create(vals)
+        is_request, record = (False, current_request_item) if current_request_item else (True, sign_request)
+        request.env['sign.log']._create_log(record, "open", is_request)
 
         return {
             'sign_request': sign_request,
@@ -103,42 +99,49 @@ class Sign(http.Controller):
             return http.request.render('sign.deleted_sign_request')
         current_request_item = sign_request.request_item_ids.filtered(lambda r: r.access_token == token)
         current_request_item.access_via_link = True
-        return werkzeug.redirect('/sign/document/%s/%s' % (id, token))
+        return request.redirect('/sign/document/%s/%s' % (id, token))
 
-    @http.route(["/sign/document/<int:id>/<token>"], type='http', auth='public')
+    @http.route(["/sign/document/<int:id>/<token>"], type='http', auth='public', website=True)
     def sign_document_public(self, id, token, **post):
         document_context = self.get_document_qweb_context(id, token)
         if not isinstance(document_context, dict):
             return document_context
 
+        document_context['portal'] = post.get('portal')
+        current_request_item = document_context.get('current_request_item')
+        if current_request_item and current_request_item.partner_id.lang:
+            http.request.env.context = dict(http.request.env.context, lang=current_request_item.partner_id.lang)
         return http.request.render('sign.doc_sign', document_context)
 
     @http.route(['/sign/download/<int:id>/<token>/<download_type>'], type='http', auth='public')
     def download_document(self, id, token, download_type, **post):
-        sign_request = http.request.env['sign.request'].sudo().browse(id)
-        if sign_request.access_token != token or not sign_request:
+        sign_request = http.request.env['sign.request'].sudo().browse(id).exists()
+        if not sign_request or sign_request.access_token != token:
             return http.request.not_found()
 
         document = None
         if download_type == "log":
             report_action = http.request.env.ref('sign.action_sign_request_print_logs').sudo()
-            pdf_content, __ = report_action.render_qweb_pdf(sign_request.id)
+            pdf_content, __ = report_action._render_qweb_pdf(sign_request.id)
             pdfhttpheaders = [
                 ('Content-Type', 'application/pdf'),
                 ('Content-Length', len(pdf_content)),
-                ('Content-Disposition', 'attachment; filename=' + "Activity Logs.pdf;")
+                ('Content-Disposition', 'attachment; filename=' + "Certificate.pdf;")
             ]
             return request.make_response(pdf_content, headers=pdfhttpheaders)
         elif download_type == "origin":
             document = sign_request.template_id.attachment_id.datas
         elif download_type == "completed":
             document = sign_request.completed_document
-            if not document: # if the document is completed but the document is encrypted
-                return http.redirect_with_hash('/sign/password/%(request_id)s/%(access_token)s' % {'request_id': id, 'access_token': token})
+            if not document:
+                if sign_request.check_is_encrypted():# if the document is completed but the document is encrypted
+                    return request.redirect('/sign/password/%(request_id)s/%(access_token)s' % {'request_id': id, 'access_token': token})
+                sign_request.generate_completed_document()
+                document = sign_request.completed_document
 
         if not document:
             # Shouldn't it fall back on 'origin' download type?
-            return http.redirect_with_hash("/sign/document/%(request_id)s/%(access_token)s" % {'request_id': id, 'access_token': token})
+            return request.redirect("/sign/document/%(request_id)s/%(access_token)s" % {'request_id': id, 'access_token': token})
 
         # Avoid to have file named "test file.pdf (V2)" impossible to open on Windows.
         # This line produce: test file (V2).pdf
@@ -166,9 +169,9 @@ class Sign(http.Controller):
         })
 
         request_item = http.request.env['sign.request.item'].sudo().create({'sign_request_id': sign_request.id, 'role_id': template.sign_item_ids.mapped('responsible_id').id})
-        sign_request.action_sent()
+        sign_request.action_sent_without_mail()
 
-        return http.redirect_with_hash('/sign/document/%(request_id)s/%(access_token)s' % {'request_id': sign_request.id, 'access_token': request_item.access_token})
+        return request.redirect('/sign/document/%(request_id)s/%(access_token)s' % {'request_id': sign_request.id, 'access_token': request_item.access_token})
 
     @http.route(['/sign/password/<int:sign_request_id>/<token>'], type='http', auth='public')
     def check_password_page(self, sign_request_id, token, **post):
@@ -193,7 +196,7 @@ class Sign(http.Controller):
 
         request_item.sign_request_id.generate_completed_document(password)
         request_item.sign_request_id.send_completed_document()
-        return http.redirect_with_hash('/sign/document/%(request_id)s/%(access_token)s' % {'request_id': sign_request_id, 'access_token': token})
+        return request.redirect('/sign/document/%(request_id)s/%(access_token)s' % {'request_id': sign_request_id, 'access_token': token})
 
     # -------------
     #  JSON Routes
@@ -201,6 +204,16 @@ class Sign(http.Controller):
     @http.route(["/sign/get_document/<int:id>/<token>"], type='json', auth='user')
     def get_document(self, id, token):
         return http.Response(template='sign._doc_sign', qcontext=self.get_document_qweb_context(id, token)).render()
+
+    @http.route(["/sign/update_user_signature"], type="json", auth="user")
+    def update_signature(self, sign_request_id, role, signature_type=None, datas=None):
+        sign_request_item_sudo = http.request.env['sign.request.item'].sudo().search([('sign_request_id', '=', sign_request_id), ('role_id', '=', role)], limit=1)
+        user = http.request.env.user
+        allowed = sign_request_item_sudo.partner_id.id == user.partner_id.id
+        if not allowed or signature_type not in ['sign_signature', 'sign_initials'] or not user:
+            return False
+        user[signature_type] = datas[datas.find(',') + 1:]
+        return True
 
     @http.route(['/sign/new_partners'], type='json', auth='user')
     def new_partners(self, partners=[]):
@@ -250,24 +263,22 @@ class Sign(http.Controller):
             request_item.sms_number = phone_number
             try:
                 request_item._send_sms()
-            except InsufficientCreditError:
+            except iap_tools.InsufficientCreditError:
                 _logger.warning('Unable to send SMS: no more credits')
-                http.request.env['mail.activity'].sudo().create({
-                    'activity_type_id': http.request.env.ref('mail.mail_activity_data_todo').id,
-                    'note': _("%s couldn't sign the document due to an insufficient credit error." % (request_item.partner_id.display_name)),
-                    'user_id': request_item.sign_request_id.create_uid.id,
-                    'res_id': request_item.sign_request_id.id,
-                    'res_model_id': http.request.env['ir.model'].sudo().search([('model', '=', request_item.sign_request_id._name)], limit=1).id,
-                })
+                request_item.sign_request_id.activity_schedule(
+                    'mail.mail_activity_data_todo',
+                    note=_("%s couldn't sign the document due to an insufficient credit error.", request_item.partner_id.display_name),
+                    user_id=request_item.sign_request_id.create_uid.id
+                )
                 return False
         return True
 
     @http.route([
-        '/sign/sign/<int:id>/<token>',
-        '/sign/sign/<int:id>/<token>/<sms_token>'
+        '/sign/sign/<int:sign_request_id>/<token>',
+        '/sign/sign/<int:sign_request_id>/<token>/<sms_token>'
         ], type='json', auth='public')
-    def sign(self, id, token, sms_token=False, signature=None):
-        request_item = http.request.env['sign.request.item'].sudo().search([('sign_request_id', '=', id), ('access_token', '=', token), ('state', '=', 'sent')], limit=1)
+    def sign(self, sign_request_id, token, sms_token=False, signature=None, new_sign_items=None):
+        request_item = http.request.env['sign.request.item'].sudo().search([('sign_request_id', '=', sign_request_id), ('access_token', '=', token), ('state', '=', 'sent')], limit=1)
         if not request_item:
             return False
         if request_item.role_id and request_item.role_id.sms_authentification:
@@ -280,21 +291,16 @@ class Sign(http.Controller):
             if sms_token == request_item.sms_token:
                 request_item.sign_request_id._message_log(body=_('%s validated the signature by SMS with the phone number %s.') % (request_item.partner_id.display_name, request_item.sms_number))
 
-        if not request_item.sign(signature):
+        if not request_item.sign(signature, new_sign_items):
             return False
 
         # mark signature as done in next activity
         user_ids = http.request.env['res.users'].search([('partner_id', '=', request_item.partner_id.id)])
-        sign_users = user_ids.filtered(lambda u: u.has_group('sign.group_sign_user'))
+        sign_users = user_ids.filtered(lambda u: u.has_group('sign.group_sign_employee'))
         for sign_user in sign_users:
             request_item.sign_request_id.activity_feedback(['mail.mail_activity_data_todo'], user_id=sign_user.id)
 
-        Log = request.env['sign.log'].sudo()
-        vals = Log._prepare_vals_from_item(request_item)
-        vals['action'] = 'sign'
-        vals['token'] = token
-        vals = Log._update_vals_with_http_request(vals)
-        Log.create(vals)
+        request.env['sign.log']._create_log(request_item, "sign", is_request=False, token=token)
         request_item.action_completed()
         return True
 
@@ -334,3 +340,8 @@ class Sign(http.Controller):
     def save_location(self, id, token, latitude=0, longitude=0):
         sign_request_item = http.request.env['sign.request.item'].sudo().search([('sign_request_id', '=', id), ('access_token', '=', token)], limit=1)
         sign_request_item.write({'latitude': latitude, 'longitude': longitude})
+
+    @http.route("/sign/render_assets_pdf_iframe", type="json", auth="public")
+    def render_assets_pdf_iframe(self, **kw):
+        context = {'debug': kw.get('debug')} if 'debug' in kw else {}
+        return request.env['ir.ui.view'].sudo()._render_template('sign.compiled_assets_pdf_iframe', context)

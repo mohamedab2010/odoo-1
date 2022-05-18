@@ -9,9 +9,8 @@
                 <form string="Account Report">
                     <sheet>
                         <div class="oe_title">
-                            <label for="name" class="oe_edit_only"/>
-                            <h1><field name="name"/></h1>
-                            <field name="company_id" groups="base.group_multi_company"/>
+                            <h1><field name="name" placeholder="Report Name"/></h1>
+                            <field name="company_id" placeholder="Related Company" groups="base.group_multi_company"/>
                         </div>
                         <group string="Report Definition">
                             <group>
@@ -19,7 +18,7 @@
                                 <field name="tax_report"/>
                             </group>
                             <group>
-                                <field name="debit_credit"/>
+                                <field name="country_id"/>
                                 <field name="generated_menu_id"/>
                             </group>
                         </group>
@@ -27,7 +26,6 @@
                             <group>
                                 <field name="comparison"/>
                                 <field name="unfold_all_filter"/>
-                                <field name="hierarchy_option"/>
                             </group>
                             <group>
                                 <field name="show_journal_filter"/>
@@ -77,6 +75,7 @@
                       <group string="Computation">
                         <field name="formulas"/>
                         <field name="domain"/>
+                        <field name="control_domain"/>
                         <field name="groupby"/>
                         <field name="special_date_changer"/>
                       </group>
@@ -109,7 +108,25 @@
                 </tree>
             </field>
         </record>
-        <menuitem id="menu_account_financial_reports_tree" name="Financial Reports" parent="account.account_management_menu" action="account_reports.action_account_financial_report_tree" groups="base.group_no_one"/>
+        <menuitem id="menu_account_financial_reports_tree" name="Financial Reports" sequence="6" parent="account.account_management_menu" action="account_reports.action_account_financial_report_tree" groups="base.group_no_one"/>
+
+        <record id="view_account_coa" model="ir.ui.view">
+            <field name="name">account.view.coa</field>
+            <field name="model">account.account</field>
+            <field name="arch" type="xml">
+                <tree editable="top" create="1" delete="1">
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="company_id" invisible="1"/>
+                    <field name="user_type_id" widget="account_hierarchy_selection"/>
+                    <field name="current_balance"/>
+                    <field name="tax_ids" optional="hide" widget="many2many_tags"/>
+                    <field name="tag_ids" optional="hide" widget="many2many_tags"/>
+                    <field name="allowed_journal_ids" optional="hide" widget="many2many_tags"/>
+                    <button name="action_read_account" type="object" string="Setup" class="float-right btn-secondary"/>
+                </tree>
+            </field>
+        </record>
 
     </data>
 </odoo>

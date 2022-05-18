@@ -3,7 +3,8 @@
 
 {
     'name': 'Netherlands Intrastat Declaration',
-    'category': 'Localization',
+    'icon': '/l10n_nl/static/description/icon.png',
+    'category': 'Accounting/Localizations/Reporting',
     'description': """
 Generates Netherlands Intrastat report for declaration based on invoices.
     """,

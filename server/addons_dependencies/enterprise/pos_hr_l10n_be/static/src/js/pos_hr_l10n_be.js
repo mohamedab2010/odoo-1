@@ -1,12 +1,10 @@
 odoo.define('pos_hr_l10n_be.pos_hr_l10n_be', function (require) {
     var core = require('web.core');
-    var chrome = require('point_of_sale.chrome');
-    var gui = require('point_of_sale.gui');
+    var { Gui } = require('point_of_sale.Gui');
     var models = require('point_of_sale.models');
     var devices = require('point_of_sale.devices');
 
     var _t = core._t;
-    var _lt = core._lt;
 
      devices.ProxyDevice.include({
         //allow the use of the employee INSZ number
@@ -14,7 +12,7 @@ odoo.define('pos_hr_l10n_be.pos_hr_l10n_be', function (require) {
             if(this.pos.config.module_pos_hr) {
                 var insz = this.pos.get_cashier().insz_or_bis_number;
                 if (! insz) {
-                    this.pos.gui.show_popup('error',{
+                    Gui.showPopup('ErrorPopup',{
                         'title': _t("Fiscal Data Module error"),
                         'body': _t("INSZ or BIS number not set for current cashier."),
                     });
@@ -25,25 +23,6 @@ odoo.define('pos_hr_l10n_be.pos_hr_l10n_be', function (require) {
             else
                 return this._super();
         }
-     });
-
-     chrome.Chrome.include({
-        return_to_login_screen: function() {
-            var insz = this.pos.get_cashier().insz_or_bis_number;
-            if (this.pos.config.blackbox_pos_production_id && !insz) {
-                this.pos.gui.show_popup('error',{
-                    'title': _t("Fiscal Data Module error"),
-                    'body': _t("INSZ or BIS number not set for current cashier."),
-                });
-            } else if(this.pos.config.blackbox_pos_production_id && this.pos.check_if_user_clocked()) {
-                this.pos.gui.show_popup("error", {
-                    'title': _t("POS error"),
-                    'body':  _t("You need to clock out before closing the POS."),
-                });
-            } else{
-                this.gui.show_screen('login');
-            }
-        },
      });
 
     var posmodel_super = models.PosModel.prototype;
@@ -74,6 +53,56 @@ odoo.define('pos_hr_l10n_be.pos_hr_l10n_be', function (require) {
                return posmodel_super.set_method_call_for_clocking.apply(this,arguments);
             return 'set_employee_session_work_status';
         }
+    });
+
+    models.load_models({
+        model: "pos.order",
+        domain: function (self) { return [['config_id', '=', self.config.id]]; },
+        fields: ['name', 'hash_chain'],
+        order:  _.map(['date_order'], function (name) { return {name: name, asc: false}; }),
+        limit: 1,  // TODO this works?
+        loaded: function (self, params) {
+            self.config.backend_sequence_number = self._extract_order_number(params);
+            self.config.blackbox_most_recent_hash = self._get_hash_chain(params);
+        }
+    }, {
+        'after': "pos.config"
+    });
+
+    // pro forma and regular orders share numbers, so we also need to check the pro forma orders and pick the max
+    models.load_models({
+        model: "pos.order_pro_forma",
+        domain: function (self) { return [['config_id', '=', self.config.id]]; },
+        fields: ['name', 'hash_chain'],
+        order:  _.map(['date_order'], function (name) { return {name: name, asc: false}; }),
+        limit: 1,
+        loaded: function (self, params) {
+            var pro_forma_number = self._extract_order_number(params);
+
+            if (pro_forma_number > self.config.backend_sequence_number) {
+                self.config.backend_sequence_number = pro_forma_number;
+                self.config.most_recent_hash = self._get_hash_chain(params);
+            }
+        }
+    }, {
+        'after': "pos.order"
+    });
+
+    models.load_models({
+        'model': "ir.model.data",
+        'domain': ['|', ['name', '=', 'product_product_work_in'], ['name', '=', 'product_product_work_out']],
+        'fields': ['name', 'res_id'],
+        'loaded': function (self, params) {
+            params.forEach(function (current, index, array) {
+                if (current.name === "product_product_work_in") {
+                    self.work_in_product = self.db.product_by_id[current['res_id']];
+                } else if (current.name === "product_product_work_out") {
+                    self.work_out_product = self.db.product_by_id[current['res_id']];
+                }
+            });
+        }
+    }, {
+        'after': "product.product"
     });
 
     models.load_fields("hr.employee", "insz_or_bis_number");

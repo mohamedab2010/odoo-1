@@ -1,9 +1,8 @@
-odoo.define('account_invoice_extract.BoxLayerTests', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var invoiceExtractTestUtils = require('account_invoice_extract.testUtils');
+import invoiceExtractTestUtils from '@account_invoice_extract/tests/helpers/invoice_extract_test_utils';
 
-var testUtils = require('web.test_utils');
+import testUtils from 'web.test_utils';
 
 QUnit.module('account_invoice_extract', {}, function () {
 QUnit.module('BoxLayer', {
@@ -215,7 +214,7 @@ QUnit.module('BoxLayer', {
 
     QUnit.test('multi-page', async function (assert) {
         assert.expect(3);
-        var parent = testUtils.createParent({});
+        var parent = await testUtils.createParent({});
         var boxesData = invoiceExtractTestUtils.createBoxesData();
         boxesData = boxesData.concat([
             invoiceExtractTestUtils.createBoxData({
@@ -254,6 +253,5 @@ QUnit.module('BoxLayer', {
         parent.destroy();
     });
 
-});
 });
 });

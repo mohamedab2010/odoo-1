@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
-from odoo.tests.common import HttpCase, tagged, SavepointCase, TransactionCase, post_install
+from odoo.tests.common import tagged, TransactionCase
 
 GIF = b"R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs="
 TEXT = base64.b64encode(bytes("workflow bridge product", 'utf-8'))

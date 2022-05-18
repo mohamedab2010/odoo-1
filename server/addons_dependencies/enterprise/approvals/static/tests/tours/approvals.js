@@ -41,7 +41,7 @@ odoo.define('approvals_tour', function(require) {
             run: 'text Berlin, Schulz Hotel',
         },
         {
-            trigger: 'textarea[name="reason"]',
+            trigger: 'div[name="reason"]',
             content: 'give description',
             run: 'text We need to go, because reason (and also for beer))',
         },
@@ -82,7 +82,7 @@ odoo.define('approvals_tour', function(require) {
             run: 'click',
         },
         {
-            trigger: '.o_activity_action_approve',
+            trigger: '.o_Approval_approveButton',
             content: 'approve the request via activity',
             run: 'click',
         },
@@ -121,6 +121,11 @@ odoo.define('approvals_tour', function(require) {
             content: 'approve request',
             run: 'click',
         },
+        {
+            trigger: 'button[name="action_withdraw"]',
+            content: 'wait the the request to be approved',
+            run: function(){},
+        }
     ]);
 
 });

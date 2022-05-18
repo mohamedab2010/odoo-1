@@ -20,13 +20,13 @@ class Website(models.Model):
     notification_request_delay = fields.Integer('Notification Request Delay (seconds)', default=3)
     notification_request_icon = fields.Binary("Notification Request Icon")
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """ Overridden to automatically create push accounts for every created website """
-        res = super(Website, self).create(vals)
-        res._create_push_accounts()
+        websites = super(Website, self).create(vals_list)
+        websites._create_push_accounts()
 
-        return res
+        return websites
 
     def _create_push_accounts(self):
         social_media_push_notifications = self.env.ref('social_push_notifications.social_media_push_notifications').sudo()

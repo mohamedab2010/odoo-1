@@ -5,7 +5,7 @@
 {
     'name': 'Loyalty Program',
     'version': '1.0',
-    'category': 'Sales/Point Of Sale',
+    'category': 'Sales/Point of Sale',
     'sequence': 6,
     'summary': 'Loyalty Program for the Point of Sale ',
     'description': """
@@ -20,13 +20,23 @@ and get rewards.
         'views/pos_loyalty_views.xml',
         'views/pos_config_views.xml',
         'security/ir.model.access.csv',
-        'views/pos_loyalty_templates.xml'
-    ],
-    'qweb': ['static/src/xml/loyalty.xml'],
+        ],
     'demo': [
         'data/pos_loyalty_demo.xml',
     ],
     'installable': True,
-    'auto_install': False,
+    'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'point_of_sale.assets': [
+            'pos_loyalty/static/src/css/pos.css',
+            'pos_loyalty/static/src/js/Loyalty.js',
+            'pos_loyalty/static/src/js/RewardButton.js',
+            'pos_loyalty/static/src/js/PointsCounter.js',
+            'pos_loyalty/static/src/js/ClientDetailsEdit.js',
+        ],
+        'web.assets_qweb': [
+            'pos_loyalty/static/src/xml/**/*',
+        ],
+    }
 }

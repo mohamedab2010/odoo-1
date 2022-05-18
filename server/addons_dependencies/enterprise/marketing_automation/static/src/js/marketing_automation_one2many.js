@@ -17,13 +17,6 @@ var HierarchyKanban = FieldOne2Many.extend({
         'add_child_act': '_onAddChild',
     }),
 
-    /**
-     * @override
-     */
-    on_attach_callback: function () {
-        this.renderer.on_attach_callback();
-    },
-
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
@@ -118,6 +111,21 @@ var HierarchyKanban = FieldOne2Many.extend({
     //--------------------------------------------------------------------------
 
     /**
+     * @override
+     * @param ev
+     * @private
+     */
+    _onAddRecord: function (ev) {
+        var self = this;
+        var fnSuper = this._super;
+        var fnArguments = arguments;
+        ev.data = { 'disable_multiple_selection': true };
+        this.trigger_up('save_form_before_new_activity', {
+            callback: function() { fnSuper.apply(self, fnArguments); }
+        });
+    },
+
+    /**
      * Opens the record with custom context and adds the child activity on saved.
      *
      * @private
@@ -132,6 +140,7 @@ var HierarchyKanban = FieldOne2Many.extend({
             fields_view: this.attrs.views && this.attrs.views.form,
             parentID: this.value.id,
             viewInfo: this.view,
+            disable_multiple_selection: true,
             on_saved: function (record) {
                 self._setValue({operation: 'ADD', id: record.id});
             },
@@ -171,7 +180,7 @@ var HierarchyKanbanRenderer = KanbanRenderer.extend({
 var HierarchyKanbanRecord = KanbanRecord.extend({
     events: _.extend({}, KanbanRecord.prototype.events, {
         'click .o_ma_switch span': '_onClickSwitch',
-        'click .o_add_child': '_onKanbanActionClicked',
+        'click .o_add_child_activity': '_onAddChildActivity',
     }),
 
     //--------------------------------------------------------------------------
@@ -203,7 +212,7 @@ var HierarchyKanbanRecord = KanbanRecord.extend({
 
     /**
      * Displays dialog if user try to delete record having children.
-     * Triggers custom actions related to add child activities.
+     * Triggers actions (DELETE, EDIT...)
      *
      * @private
      * @override
@@ -229,20 +238,55 @@ var HierarchyKanbanRecord = KanbanRecord.extend({
                     html: _t("This Activity has a dependant child activity. 'DELETE ALL' will delete all child activities."),
                 }),
             }).open();
-        } else if (_.indexOf(['act', 'mail_open', 'mail_not_open', 'mail_reply', 'mail_not_reply', 'mail_click', 'mail_not_click', 'mail_bounce'], type) !== -1) {
-            // If we are in edit mode and we create a new kanban record,
-            // we cannot add a child activity for this record before saving.
-            if (this.id) {
-                this.trigger_up('add_child_act', {
-                    'default_parent_id': this.id,
-                    'default_trigger_type': type
-                });
-            } else {
-                this.do_warn(_t('Please save the campaign to add a child activity'));
-            }
         } else {
             this._super.apply(this, arguments);
         }
+    },
+
+    /**
+     * Handles clicking on a button "Add a child activity".
+     *
+     * The dom element can have an attribute ``data-trigger_type`` with the default trigger type
+     *
+     * @private
+     * @param {Event} event
+     */
+    _onAddChildActivity: function (event) {
+        event.stopPropagation();
+        event.preventDefault();
+        var triggerType = $(event.currentTarget).data('triggerType');
+        var self = this;
+        this.trigger_up('save_form_before_new_activity', {
+            callback: function () {
+                var promise;
+                if (!self.id) {
+                    promise = self._rpc({
+                        model: 'marketing.activity',
+                        method: 'search_read',
+                        domain: [
+                            ['name', '=', self.recordData.name],
+                            ['parent_id', '=', self.recordData.parent_id.res_id],
+                            ['trigger_type', '=', self.recordData.trigger_type],
+                        ],
+                        fields: ['id'],
+                        limit: 1,
+                    });
+                } else {
+                    promise = Promise.resolve();
+                }
+                promise.then(function (result) {
+                    if (result && result.length) {
+                        self.id = result[0].id;
+                    }
+                    if (self.id) {
+                        self.trigger_up('add_child_act', {
+                            'default_parent_id': self.id,
+                            'default_trigger_type': triggerType
+                        });
+                    }
+                });
+            }
+        });
     },
 
     /**

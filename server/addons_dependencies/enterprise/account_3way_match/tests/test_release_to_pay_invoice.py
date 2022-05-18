@@ -2,18 +2,19 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import fields
-from odoo.addons.account.tests.account_test_classes import AccountingTestCase
+from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.tests import tagged, Form
 
 
 @tagged('post_install', '-at_install')
-class TestReleaseToPayInvoice(AccountingTestCase):
+class TestReleaseToPayInvoice(AccountTestInvoicingCommon):
 
-    def check_release_to_pay_scenario(self, ordered_qty, scenario, invoicing_policy='receive', order_price=500.0):
-        """ Generic test function to check that each use scenario behaves properly.
-        """
-        partner = self.env.ref('base.res_partner_1')
-        product = self.env['product.product'].create({
+    @classmethod
+    def setUpClass(cls, chart_template_ref=None):
+        super().setUpClass(chart_template_ref=chart_template_ref)
+
+        cls.partner = cls.env['res.partner'].create({'name': 'Zizizapartner'})
+        cls.product = cls.env['product.product'].create({
             'name': 'VR Computer',
             'standard_price': 2500.0,
             'list_price': 2899.0,
@@ -23,16 +24,20 @@ class TestReleaseToPayInvoice(AccountingTestCase):
             'purchase_method': 'receive',
         })
 
-        product.purchase_method = invoicing_policy
+    def check_release_to_pay_scenario(self, ordered_qty, scenario, invoicing_policy='receive', order_price=500.0):
+        """ Generic test function to check that each use scenario behaves properly.
+        """
+
+        self.product.purchase_method = invoicing_policy
 
         purchase_order = self.env['purchase.order'].create({
-            'partner_id': partner.id,
+            'partner_id': self.partner.id,
             'order_line': [
                 (0, 0, {
-                    'name': product.name,
-                    'product_id': product.id,
+                    'name': self.product.name,
+                    'product_id': self.product.id,
                     'product_qty': ordered_qty,
-                    'product_uom': product.uom_po_id.id,
+                    'product_uom': self.product.uom_po_id.id,
                     'price_unit': order_price,
                     'date_planned': fields.Datetime.now(),
                 })]
@@ -41,7 +46,7 @@ class TestReleaseToPayInvoice(AccountingTestCase):
 
         invoices_list = []
         purchase_line = purchase_order.order_line[-1]
-        AccountMove = self.env['account.move'].with_context(default_type='in_invoice')
+        AccountMove = self.env['account.move'].with_context(default_move_type='in_invoice')
         for (action, params) in scenario:
             if action == 'invoice':
                 move_form = Form(AccountMove)
@@ -54,14 +59,14 @@ class TestReleaseToPayInvoice(AccountingTestCase):
                 new_invoice = move_form.save()
                 invoices_list.append(new_invoice)
 
-                self.assertEquals(new_invoice.release_to_pay, params['rslt'], "Wrong invoice release to pay status for scenario " + str(scenario))
+                self.assertEqual(new_invoice.release_to_pay, params['rslt'], "Wrong invoice release to pay status for scenario " + str(scenario))
 
             elif action == 'receive':
                 purchase_line.write({'qty_received': params['qty']})  # as the product is a service, its recieved quantity is set manually
 
                 if 'rslt' in params:
                     for (invoice_index, status) in params['rslt']:
-                        self.assertEquals(invoices_list[invoice_index].release_to_pay, status, "Wrong invoice release to pay status for scenario " + str(scenario))
+                        self.assertEqual(invoices_list[invoice_index].release_to_pay, status, "Wrong invoice release to pay status for scenario " + str(scenario))
 
     def test_3_way_match(self):
         self.check_release_to_pay_scenario(10, [('receive',{'qty': 5}), ('invoice', {'qty': 5, 'rslt': 'yes'})], invoicing_policy='purchase')

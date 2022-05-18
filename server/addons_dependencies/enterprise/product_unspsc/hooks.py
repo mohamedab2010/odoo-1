@@ -11,6 +11,8 @@ _logger = logging.getLogger(__name__)
 def post_init_hook(cr, registry):
     _load_unspsc_codes(cr, registry)
     _assign_codes_uom(cr, registry)
+    if tools.config['demo'].get('product_unspsc'):
+        _assign_codes_demo(cr, registry)
 
 def uninstall_hook(cr, registry):
     cr.execute("DELETE FROM product_unspsc_code;")
@@ -42,3 +44,8 @@ def _assign_codes_uom(cr, registry):
     tools.convert.convert_file(
         cr, 'product_unspsc', 'data/product_data.xml', None, mode='init',
         kind='data')
+
+def _assign_codes_demo(cr, registry):
+    """Assign the codes in the products used in demo invoices, this is here because the data is
+    created in the last method"""
+    tools.convert.convert_file(cr, 'product_unspsc', 'demo/product_demo.xml', None, mode='init')

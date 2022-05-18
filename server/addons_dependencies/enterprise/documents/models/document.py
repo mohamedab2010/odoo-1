@@ -7,6 +7,7 @@ from odoo.tools import image_process
 from ast import literal_eval
 from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
+import re
 
 
 class Document(models.Model):
@@ -16,18 +17,22 @@ class Document(models.Model):
     _order = 'id desc'
 
     # Attachment
-    attachment_id = fields.Many2one('ir.attachment', auto_join=True, copy=False)
+    attachment_id = fields.Many2one('ir.attachment', ondelete='cascade', auto_join=True, copy=False)
     attachment_name = fields.Char('Attachment Name', related='attachment_id.name', readonly=False)
     attachment_type = fields.Selection(string='Attachment Type', related='attachment_id.type', readonly=False)
+    is_editable_attachment = fields.Boolean(default=False, help='True if we can edit the link attachment.')
     datas = fields.Binary(related='attachment_id.datas', related_sudo=True, readonly=False)
     file_size = fields.Integer(related='attachment_id.file_size', store=True)
     checksum = fields.Char(related='attachment_id.checksum')
-    mimetype = fields.Char(related='attachment_id.mimetype', default='application/octet-stream')
+    mimetype = fields.Char(related='attachment_id.mimetype')
     res_model = fields.Char('Resource Model', compute="_compute_res_record", inverse="_inverse_res_model", store=True)
-    res_id = fields.Integer('Resource ID', compute="_compute_res_record", inverse="_inverse_res_id", store=True)
+    res_id = fields.Integer('Resource ID', compute="_compute_res_record", inverse="_inverse_res_model", store=True)
     res_name = fields.Char('Resource Name', related='attachment_id.res_name')
     index_content = fields.Text(related='attachment_id.index_content')
     description = fields.Text('Attachment Description', related='attachment_id.description', readonly=False)
+
+    # Versioning
+    previous_attachment_ids = fields.Many2many('ir.attachment', string="History")
 
     # Document
     name = fields.Char('Name', copy=True, store=True, compute='_compute_name', inverse='_inverse_name')
@@ -39,6 +44,7 @@ class Document(models.Model):
                             string='Type', required=True, store=True, default='empty', change_default=True,
                             compute='_compute_type')
     favorited_ids = fields.Many2many('res.users', string="Favorite of")
+    is_favorited = fields.Boolean(compute='_compute_is_favorited')
     tag_ids = fields.Many2many('documents.tag', 'document_tag_rel', string="Tags")
     partner_id = fields.Many2one('res.partner', string="Contact", tracking=True)
     owner_id = fields.Many2one('res.users', default=lambda self: self.env.user.id, string="Owner",
@@ -85,22 +91,22 @@ class Document(models.Model):
                 record.res_model = attachment.res_model
                 record.res_id = attachment.res_id
 
-    def _inverse_res_id(self):
-        for record in self:
-            attachment = record.attachment_id.with_context(no_document=True)
-            if attachment:
-                attachment.res_id = record.res_id
 
     def _inverse_res_model(self):
         for record in self:
             attachment = record.attachment_id.with_context(no_document=True)
             if attachment:
-                attachment.res_model = record.res_model
+                # Avoid inconsistency in the data, write both at the same time.
+                # In case a check_access is done between res_id and res_model modification,
+                # an access error can be received. (Mail causes this check_access)
+                attachment.write({'res_model': record.res_model, 'res_id': record.res_id})
 
     @api.onchange('url')
     def _onchange_url(self):
-        if self.url and not self.name:
-            self.name = self.url.rsplit('/')[-1]
+        if self.url:
+            is_youtube = re.match(r"^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$", self.url)
+            if not self.name and not is_youtube:
+                self.name = self.url.rsplit('/')[-1]
 
     @api.depends('checksum')
     def _compute_thumbnail(self):
@@ -127,7 +133,7 @@ class Document(models.Model):
         :return: a list of model data, the latter being a dict with the keys
             'id' (technical name),
             'name' (display name) and
-            'count' (how many attachments with that domain).
+            '__count' (how many attachments with that domain).
         """
         not_a_file = []
         not_attached = []
@@ -138,32 +144,35 @@ class Document(models.Model):
             if not res_model:
                 not_a_file.append({
                     'id': res_model,
-                    'name': _('Not a file'),
-                    'count': group['res_model_count'],
+                    'display_name': _('Not a file'),
+                    '__count': group['res_model_count'],
                 })
             elif res_model == 'documents.document':
                 not_attached.append({
                     'id': res_model,
-                    'name': _('Not attached'),
-                    'count': group['res_model_count'],
+                    'display_name': _('Not attached'),
+                    '__count': group['res_model_count'],
                 })
             else:
                 models.append({
                     'id': res_model,
-                    'name': self.env['ir.model']._get(res_model).display_name,
-                    'count': group['res_model_count'],
+                    'display_name': self.env['ir.model']._get(res_model).display_name,
+                    '__count': group['res_model_count'],
                 })
-        return sorted(models, key=lambda m: m['name']) + not_attached + not_a_file
+        return sorted(models, key=lambda m: m['display_name']) + not_attached + not_a_file
+
+    @api.depends('favorited_ids')
+    @api.depends_context('uid')
+    def _compute_is_favorited(self):
+        favorited = self.filtered(lambda d: self.env.user in d.favorited_ids)
+        favorited.is_favorited = True
+        (self - favorited).is_favorited = False
 
     @api.depends('res_model')
     def _compute_res_model_name(self):
         for record in self:
             if record.res_model:
-                model = self.env['ir.model'].name_search(record.res_model, limit=1)
-                if model:
-                    record.res_model_name = model[0][1]
-                else:
-                    record.res_model_name = False
+                record.res_model_name = self.env['ir.model']._get(record.res_model).display_name
             else:
                 record.res_model_name = False
 
@@ -204,9 +213,9 @@ class Document(models.Model):
     @api.model
     def message_new(self, msg_dict, custom_values=None):
         """
-        creates a new attachment from any email sent to the alias
-        and adds the values defined in the share link upload settings
-        to the custom values.
+        creates a new attachment from any email sent to the alias.
+        The values defined in the share link upload settings are included
+        in the custom values (via the alias defaults, synchronized on update)
         """
         subject = msg_dict.get('subject', '')
         if custom_values is None:
@@ -268,30 +277,30 @@ class Document(models.Model):
                     settings_record.activity_user_id
         """
         if settings_record and settings_record.activity_type_id:
-            activity_vals = {
-                'activity_type_id': settings_record.activity_type_id.id,
-                'summary': settings_record.activity_summary or '',
-                'note': settings_record.activity_note or '',
-            }
-            if settings_record.activity_date_deadline_range > 0:
-                activity_vals['date_deadline'] = fields.Date.context_today(settings_record) + relativedelta(
-                    **{settings_record.activity_date_deadline_range_type: settings_record.activity_date_deadline_range})
-
-            if settings_record._fields.get('activity_user_id') and settings_record.activity_user_id:
-                user = settings_record.activity_user_id
-            elif settings_record._fields.get('user_id') and settings_record.user_id:
-                user = settings_record.user_id
-            elif settings_record._fields.get('owner_id') and settings_record.owner_id:
-                user = settings_record.owner_id
-            else:
-                user = self.env.user
-            if user:
-                activity_vals['user_id'] = user.id
-            self.activity_schedule(**activity_vals)
+            for record in self:
+                activity_vals = {
+                    'activity_type_id': settings_record.activity_type_id.id,
+                    'summary': settings_record.activity_summary or '',
+                    'note': settings_record.activity_note or '',
+                }
+                if settings_record.activity_date_deadline_range > 0:
+                    activity_vals['date_deadline'] = fields.Date.context_today(settings_record) + relativedelta(
+                        **{settings_record.activity_date_deadline_range_type: settings_record.activity_date_deadline_range})
+                if settings_record._fields.get('has_owner_activity') and settings_record.has_owner_activity and record.owner_id:
+                    user = record.owner_id
+                elif settings_record._fields.get('activity_user_id') and settings_record.activity_user_id:
+                    user = settings_record.activity_user_id
+                elif settings_record._fields.get('user_id') and settings_record.user_id:
+                    user = settings_record.user_id
+                else:
+                    user = self.env.user
+                if user:
+                    activity_vals['user_id'] = user.id
+                record.activity_schedule(**activity_vals)
 
     def toggle_favorited(self):
         self.ensure_one()
-        self.write({'favorited_ids': [(3 if self.env.user in self[0].favorited_ids else 4, self.env.user.id)]})
+        self.sudo().write({'favorited_ids': [(3 if self.env.user in self[0].favorited_ids else 4, self.env.user.id)]})
 
     def access_content(self):
         self.ensure_one()
@@ -312,7 +321,7 @@ class Document(models.Model):
             'document_ids': [(6, 0, self.ids)],
             'folder_id': self.folder_id.id,
         }
-        return self.env['documents.share'].create_share(vals)
+        return self.env['documents.share'].open_share_popup(vals)
 
     def open_resource(self):
         self.ensure_one()
@@ -351,7 +360,7 @@ class Document(models.Model):
     @api.model
     def create(self, vals):
         keys = [key for key in vals if
-                self._fields[key].related and self._fields[key].related[0] == 'attachment_id']
+                self._fields[key].related and self._fields[key].related.split('.')[0] == 'attachment_id']
         attachment_dict = {key: vals.pop(key) for key in keys if key in vals}
         attachment = self.env['ir.attachment'].browse(vals.get('attachment_id'))
 
@@ -378,7 +387,21 @@ class Document(models.Model):
                 body = _("Document Request: %s Uploaded by: %s") % (record.name, self.env.user.name)
                 record.message_post(body=body)
 
-            if vals.get('datas') and not vals.get('attachment_id') and not record.attachment_id:
+            if record.attachment_id:
+                # versioning
+                if attachment_id:
+                    if attachment_id in record.previous_attachment_ids.ids:
+                        record.previous_attachment_ids = [(3, attachment_id, False)]
+                    record.previous_attachment_ids = [(4, record.attachment_id.id, False)]
+                if 'datas' in vals:
+                    old_attachment = record.attachment_id.copy()
+                    # removes the link between the old attachment and the record.
+                    old_attachment.write({
+                        'res_model': 'documents.document',
+                        'res_id': record.id,
+                    })
+                    record.previous_attachment_ids = [(4, old_attachment.id, False)]
+            elif vals.get('datas') and not vals.get('attachment_id'):
                 res_model = vals.get('res_model', record.res_model or 'documents.document')
                 res_id = vals.get('res_id') if vals.get('res_model') else record.res_id if record.res_model else record.id
                 if res_model and res_model != 'documents.document' and not self.env[res_model].browse(res_id).exists():
@@ -409,26 +432,54 @@ class Document(models.Model):
             feedback = _("Document Request: %s Uploaded by: %s") % (self.name, self.env.user.name)
             self.request_activity_id.action_feedback(feedback=feedback, attachment_ids=[attachment_id])
 
-    def split_pdf(self, indices=None, remainder=False):
-        self.ensure_one()
-        if self.attachment_id:
-            attachment_ids = self.attachment_id.split_pdf(indices=indices, remainder=remainder)
-            for attachment in attachment_ids:
-                document = self.copy()
-                document.write({'attachment_id': attachment.id})
+    @api.model
+    def _pdf_split(self, new_files=None, open_files=None, vals=None):
+        vals = vals or {}
+        new_attachments = self.env['ir.attachment']._pdf_split(new_files=new_files, open_files=open_files)
+
+        return self.create([
+            dict(vals, attachment_id=attachment.id) for attachment in new_attachments
+        ])
 
     @api.model
-    def search_panel_select_range(self, field_name):
+    def search_panel_select_range(self, field_name, **kwargs):
         if field_name == 'folder_id':
+            enable_counters = kwargs.get('enable_counters', False)
             fields = ['display_name', 'description', 'parent_folder_id']
             available_folders = self.env['documents.folder'].search([])
             folder_domain = expression.OR([[('parent_folder_id', 'parent_of', available_folders.ids)], [('id', 'in', available_folders.ids)]])
             # also fetches the ancestors of the available folders to display the complete folder tree for all available folders.
             DocumentFolder = self.env['documents.folder'].sudo().with_context(hierarchical_naming=False)
+            records = DocumentFolder.search_read(folder_domain, fields)
+
+            domain_image = {}
+            if enable_counters:
+                model_domain = expression.AND([
+                    kwargs.get('search_domain', []),
+                    kwargs.get('category_domain', []),
+                    kwargs.get('filter_domain', []),
+                    [(field_name, '!=', False)]
+                ])
+                domain_image = self._search_panel_domain_image(field_name, model_domain, enable_counters)
+
+            values_range = OrderedDict()
+            for record in records:
+                record_id = record['id']
+                if enable_counters:
+                    image_element  = domain_image.get(record_id)
+                    record['__count'] = image_element['__count'] if image_element else 0
+                value = record['parent_folder_id']
+                record['parent_folder_id'] = value and value[0]
+                values_range[record_id] = record
+
+            if enable_counters:
+                self._search_panel_global_counters(values_range, 'parent_folder_id')
+
             return {
                 'parent_field': 'parent_folder_id',
-                'values': DocumentFolder.search_read(folder_domain, fields),
+                'values': list(values_range.values()),
             }
+
         return super(Document, self).search_panel_select_range(field_name)
 
     def _get_processed_tags(self, domain, folder_id):
@@ -454,15 +505,15 @@ class Document(models.Model):
         filter_domain = kwargs.get('filter_domain', [])
 
         if field_name == 'tag_ids':
-            folder_id = category_domain[0][2] if len(category_domain) else []
+            folder_id = category_domain[0][2] if len(category_domain) else False
             if folder_id:
                 domain = expression.AND([
                     search_domain, category_domain, filter_domain,
                     [(field_name, '!=', False)],
                 ])
-                return self._get_processed_tags(domain, folder_id)
+                return {'values': self._get_processed_tags(domain, folder_id)}
             else:
-                return []
+                return {'values': []}
 
         elif field_name == 'res_model':
             domain = expression.AND([search_domain, category_domain])
@@ -472,13 +523,13 @@ class Document(models.Model):
                 # fetch new counters
                 domain = expression.AND([search_domain, category_domain, filter_domain])
                 model_count = {
-                    model['id']: model['count']
+                    model['id']: model['__count']
                     for model in self._get_models(domain)
                 }
                 # update result with new counters
                 for model in model_values:
-                    model['count'] = model_count.get(model['id'], 0)
+                    model['__count'] = model_count.get(model['id'], 0)
 
-            return model_values
+            return {'values': model_values}
 
         return super(Document, self).search_panel_select_multi_range(field_name, **kwargs)

@@ -12,13 +12,16 @@
     ],
     'data': [
         'views/mailing_mailing_views.xml',
+        'views/mailing_trace_views.xml',
         'views/marketing_activity_views.xml',
         'views/marketing_campaign_views.xml',
         'views/marketing_participant_views.xml',
         'security/ir.model.access.csv',
         'security/sms_security.xml',
     ],
+    'uninstall_hook': '_uninstall_hook',
     'demo': [
     ],
     'auto_install': True,
+    'license': 'OEEL-1',
 }

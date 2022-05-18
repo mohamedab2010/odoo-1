@@ -1,335 +1,389 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+
 from dateutil.relativedelta import relativedelta
-from unittest.mock import patch
 
-from odoo.addons.base.models.ir_mail_server import IrMailServer
+from odoo.addons.base.tests.test_ir_cron import CronMixinCase
+from odoo.addons.test_mail.data.test_mail_data import MAIL_TEMPLATE
+from odoo.addons.test_marketing_automation.tests.common import TestMACommon
 from odoo.fields import Datetime
+from odoo.tests import tagged, users
 from odoo.tools import mute_logger
-
-from odoo.addons.test_marketing_automation.tests.common import MarketingCampaignTestBase
-
-from odoo.tests import tagged
 
 
 @tagged('marketing_automation')
-class MarketingCampaignTest(MarketingCampaignTestBase):
+class TestMarketAutoFlow(TestMACommon, CronMixinCase):
 
-    @mute_logger('odoo.addons.base.models.ir_model', 'odoo.models')
-    def test_simple_flow(self):
-        date = Datetime.from_string('2014-08-01 15:02:32')  # so long, little task
-        self.mock_datetime.now.return_value = date
-        self.mock_datetime2.now.return_value = date
+    @classmethod
+    def setUpClass(cls):
+        super(TestMarketAutoFlow, cls).setUpClass()
+        cls.date_reference = Datetime.from_string('2014-08-01 15:02:32')  # so long, little task
+        cls._set_mock_datetime_now(cls.date_reference)
 
-        Campaign = self.env['marketing.campaign'].with_user(self.user_market)
-        Activity = self.env['marketing.activity'].with_user(self.user_market)
-        MassMail = self.env['mailing.mailing'].with_user(self.user_market)
-        ServerAction = self.env['ir.actions.server'].with_user(self.user_market)
+        # --------------------------------------------------
+        # CAMPAIGN, based on marketing.test.sms (customers)
+        #
+        # ACT1           MAIL mailing
+        #   ACT2.1       -> reply -> send an SMS after 1h with a promotional link
+        #     ACT3.1       -> sms_click -> send a confirmation SMS right at click
+        #   ACT2.2       -> not opened within 1 day-> update description through server action
+        # --------------------------------------------------
 
-        # Create campaign
-        campaign = Campaign.create({
-            'name': 'My First Campaign',
-            'model_id': self.test_model.id,
+        cls.campaign = cls.env['marketing.campaign'].with_user(cls.user_markauto).create({
+            'name': 'Test Campaign',
+            'model_id': cls.env['ir.model']._get('marketing.test.sms').id,
             'domain': '%s' % ([('name', '!=', 'Invalid')]),
         })
+        # first activity: send a mailing
+        cls.act1_mailing = cls._create_mailing(
+            model='marketing.test.sms', email_from=cls.user_markauto.email_formatted,
+            keep_archives=True).with_user(cls.user_markauto)
+        cls.act1 = cls._create_activity(
+            cls.campaign, mailing=cls.act1_mailing,
+            trigger_type='begin', interval_number=0
+        ).with_user(cls.user_markauto)
 
-        # Create first activity flow
-        mass_mailing = MassMail.create({
-            'name': 'Hello',
-            'subject': 'Hello',
-            'body_html': '<div>My Email Body</div>',
-            'mailing_model_id': self.test_model.id,
-            'use_in_marketing_automation': True,
-        })
-        act_0 = Activity.create({
-            'name': 'Enter the campaign',
-            'campaign_id': campaign.id,
-            'activity_type': 'email',
-            'mass_mailing_id': mass_mailing.id,
-            'trigger_type': 'begin',
-            'interval_number': '0',
-        })
-
-        # NOTSURE: let us consider currently that a smart admin created the server action for the marketing user, is probably the case actually
-        server_action = ServerAction.sudo().create({
-            'name': 'Update name',
-            'state': 'code',
-            'model_id': self.test_model.id,
-            'code': '''
+        # second activity: send an SMS 1 hour after a reply
+        cls.act2_1_mailing = cls._create_mailing(
+            model='marketing.test.sms', mailing_type='sms',
+            body_plaintext='SMS for {{ object.name }}: mega promo on https://test.example.com',
+            sms_allow_unsubscribe=True).with_user(cls.user_markauto)
+        cls.act2_1 = cls._create_activity(
+            cls.campaign,
+            mailing=cls.act2_1_mailing, parent_id=cls.act1.id,
+            trigger_type='mail_reply', interval_number=1, interval_type='hours'
+        ).with_user(cls.user_markauto)
+        # other activity: update description if not opened after 1 day
+        # created by admin, should probably not give rights to marketing
+        cls.act2_2_sact = cls.env['ir.actions.server'].create({
+            'name': 'Update description', 'state': 'code',
+            'model_id': cls.env['ir.model']._get('marketing.test.sms').id,
+            'code': """
 for record in records:
-    record.write({'name': record.name + 'SA'})'''
+    record.write({'description': record.description + ' - Did not answer, sad campaign is sad.'})""",
         })
-        act_1 = Activity.create({
-            'name': 'Update name',
-            'activity_domain': '%s' % ([('name', 'ilike', 'Test')]),
-            'campaign_id': campaign.id,
-            'parent_id': act_0.id,
-            'activity_type': 'action',
-            'server_action_id': server_action.id,
-            'trigger_type': 'act',
-            'interval_number': '1',
-            'interval_type': 'hours',
+        cls.act2_2 = cls._create_activity(
+            cls.campaign,
+            action=cls.act2_2_sact, parent_id=cls.act1.id,
+            trigger_type='mail_not_open', interval_number=1, interval_type='days',
+            activity_domain='%s' % [('email_from', '!=', False)]
+        ).with_user(cls.user_markauto)
+
+        cls.act3_1_mailing = cls._create_mailing(
+            model='marketing.test.sms', mailing_type='sms',
+            body_plaintext='Confirmation for {{ object.name }}', sms_allow_unsubscribe=False).with_user(cls.user_markauto)
+        cls.act3_1 = cls._create_activity(
+            cls.campaign, mailing=cls.act3_1_mailing, parent_id=cls.act2_1.id,
+            trigger_type='sms_click', interval_number=0
+        ).with_user(cls.user_markauto)
+
+    @mute_logger('odoo.addons.base.models.ir_model', 'odoo.addons.mail.models.mail_mail')
+    @users('user_markauto')
+    def test_simple_flow(self):
+        """ Test a maketing automation flow """
+        # init test variables to ease code reading
+        date_reference = self.date_reference
+        test_records = self.test_records.with_user(self.env.user)
+        test_records_init = test_records.filtered(lambda r: r.name != 'Test_00')
+
+        # update campaign
+        act1 = self.act1.with_user(self.env.user)
+        act2_1 = self.act2_1.with_user(self.env.user)
+        act2_2 = self.act2_2.with_user(self.env.user)
+        act3_1 = self.act3_1.with_user(self.env.user)
+        campaign = self.campaign.with_user(self.env.user)
+        campaign.write({
+            'domain': '%s' % ([('name', '!=', 'Test_00')])
         })
+
+        # ensure initial data
+        self.assertEqual(len(test_records), 10)
+        self.assertEqual(len(test_records_init), 9)
+        self.assertEqual(campaign.state, 'draft')
+
+        # CAMPAIGN START
+        # ------------------------------------------------------------
 
         # User starts and syncs its campaign
-        campaign.action_start_campaign()
+        self.assertEqual(campaign.state, 'draft')
+        with self.capture_triggers('marketing_automation.ir_cron_campaign_sync_participants') as captured_triggers:
+            campaign.action_start_campaign()
         self.assertEqual(campaign.state, 'running')
-        campaign.sync_participants()
 
-        # All records not containing Invalid should be added as participants
-        self.assertEqual(campaign.running_participant_count, 4)
+        # a cron.trigger has been created to sync participants after campaign start
+        self.assertEqual(1, len(captured_triggers.records))
+        captured_trigger = captured_triggers.records[0]
+        self.assertEqual(
+            self.env.ref('marketing_automation.ir_cron_campaign_sync_participants'),
+            captured_trigger.cron_id)
+        self.assertEqual(self.date_reference, captured_trigger.call_at)
+
+        with self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            campaign.sync_participants()
+
+        # All records not containing Test_00 should be added as participants
+        self.assertEqual(campaign.running_participant_count, len(test_records_init))
         self.assertEqual(
             set(campaign.participant_ids.mapped('res_id')),
-            set((self.test_rec1 | self.test_rec2 | self.test_rec3 | self.test_rec4).ids)
+            set(test_records_init.ids)
         )
-        self.assertEqual(set(campaign.participant_ids.mapped('state')), set(['running']))
-
-        # Begin activity should contain a trace for each participant
         self.assertEqual(
-            act_0.trace_ids.mapped('participant_id'),
-            campaign.participant_ids,
+            set(campaign.participant_ids.mapped('state')),
+            set(['running'])
         )
-        self.assertEqual(set(act_0.trace_ids.mapped('state')), set(['scheduled']))
-        self.assertEqual(set(act_0.trace_ids.mapped('schedule_date')), set([date]))
+
+        # Beginning activity should contain a scheduled trace for each participant
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_init,
+            'participants': campaign.participant_ids,
+        }], act1, schedule_date=date_reference)
+
+        # a cron.trigger has been created to execute activities after campaign start
+        # there should only be one since we have 9 activities with the same scheduled_date
+        self.assertEqual(1, len(captured_triggers.records))
+        captured_trigger = captured_triggers.records[0]
+        self.assertEqual(
+            self.env.ref('marketing_automation.ir_cron_campaign_execute_activities'),
+            captured_trigger.cron_id)
+        self.assertEqual(self.date_reference, captured_trigger.call_at)
 
         # No other trace should have been created as the first one are waiting to be processed
-        self.assertEqual(act_1.trace_ids, self.env['marketing.trace'])
+        self.assertEqual(act2_1.trace_ids, self.env['marketing.trace'])
+        self.assertEqual(act2_2.trace_ids, self.env['marketing.trace'])
+        self.assertEqual(act3_1.trace_ids, self.env['marketing.trace'])
 
-        # First traces are processed, emails are sent
-        with patch.object(IrMailServer, 'connect'):
-            with patch.object(campaign.env.cr, 'commit'):
-                campaign.execute_activities()
+        # ACT1: LAUNCH MAILING
+        # ------------------------------------------------------------
+        test_records_1_ok = test_records_init.filtered(lambda r: r.email_from)
+        test_records_1_ko = test_records_init.filtered(lambda r: not r.email_from)
 
-        self.assertEqual(set(act_0.trace_ids.mapped('state')), set(['processed']))
-
-        # Child traces should have been generated for all traces of parent activity as filter is taken into account at processing, not generation
-        self.assertEqual(
-            set(act_1.trace_ids.mapped('participant_id.res_id')),
-            set((self.test_rec1 | self.test_rec2 | self.test_rec3 | self.test_rec4).ids)
-        )
-        self.assertEqual(set(act_1.trace_ids.mapped('state')), set(['scheduled']))
-        self.assertEqual(set(act_1.trace_ids.mapped('schedule_date')), set([date + relativedelta(hours=1)]))
-
-        # Traces are processed, but this is not the time to execute child traces
-        with patch.object(campaign.env.cr, 'commit'):
+        # First traces are processed, emails are sent (or failed)
+        with self.mock_mail_gateway(), \
+             self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
             campaign.execute_activities()
-        self.assertEqual(set(act_1.trace_ids.mapped('state')), set(['scheduled']))
 
-        # Time is coming, a bit like the winter
-        date = Datetime.from_string('2014-08-01 17:02:32')  # wow, a two hour span ! so much incredible !
-        self.mock_datetime.now.return_value = date
-        self.mock_datetime2.now.return_value = date
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_ok,
+            'trace_status': 'sent',
+            'schedule_date': date_reference,
+        }, {
+            'status': 'canceled',
+            'records': test_records_1_ko,
+            'schedule_date': date_reference,
+            # no email -> trace set as canceled
+            'trace_status': 'cancel',
+            'failure_type': 'mail_email_missing',
+        }], act1)
 
-        with patch.object(campaign.env.cr, 'commit'):
+        # Child traces should have been generated for all traces of parent activity as activity_domain
+        # is taken into account at processing, not generation (see act2_2)
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_init,
+            'participants': campaign.participant_ids,
+            'schedule_date': False
+        }], act2_1)
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_init,
+            'participants': campaign.participant_ids,
+            'schedule_date': date_reference + relativedelta(days=1),
+        }], act2_2)
+
+        # a cron.trigger has been created to execute activities 1 day after mailing is sent
+        # there should only be one since we have 9 activities with the same scheduled_date
+        self.assertEqual(1, len(captured_triggers.records))
+        captured_trigger = captured_triggers.records[0]
+        self.assertEqual(
+            self.env.ref('marketing_automation.ir_cron_campaign_execute_activities'),
+            captured_trigger.cron_id)
+        self.assertEqual(self.date_reference + relativedelta(days=1), captured_trigger.call_at)
+
+        # Processing does not change anything (not time yet)
+        campaign.execute_activities()
+        self.assertEqual(set(act2_1.trace_ids.mapped('state')), set(['scheduled']))
+        self.assertEqual(set(act2_2.trace_ids.mapped('state')), set(['scheduled']))
+
+        # ACT1 FOLLOWUP: PROCESS SOME REPLIES (+1 H)
+        # ------------------------------------------------------------
+
+        date_reference_reply = date_reference + relativedelta(hours=1)
+        self._set_mock_datetime_now(date_reference_reply)
+
+        test_records_1_replied = test_records_1_ok[:2]
+        with self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            for record in test_records_1_replied:
+                self.gateway_mail_reply_wrecord(MAIL_TEMPLATE, record)
+
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_replied,
+            'trace_status': 'reply',
+            'schedule_date': date_reference,
+        }, {
+            'status': 'processed',
+            'records': test_records_1_ok - test_records_1_replied,
+            'trace_status': 'sent',
+            'schedule_date': date_reference,
+        }, {
+            'status': 'canceled',
+            'records': test_records_1_ko,
+            'schedule_date': date_reference,
+            # no email -> trace set as canceled
+            'trace_status': 'cancel',
+            'failure_type': 'mail_email_missing',
+        }], act1)
+
+        # Replied records -> SMS scheduled
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_1_replied,
+            'schedule_date': date_reference_reply + relativedelta(hours=1),
+        }, {
+            'status': 'scheduled',
+            'records': test_records_init - test_records_1_replied,
+            'schedule_date': False,
+        }], act2_1)
+        # Replied records -> mail_not_open canceled
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_init - test_records_1_replied,
+            'schedule_date': date_reference + relativedelta(days=1),
+        }, {
+            'status': 'canceled',
+            'records': test_records_1_replied,
+            'schedule_date': date_reference_reply,
+        }], act2_2)
+
+        # a cron.trigger has been created after each separate reply exactly 1 hour after the reply
+        # to match the created marketing.trace (ACT2.1)
+        # (here we have 2 replies considered at the exact same time but real use cases will most
+        # likely not)
+        self.assertEqual(2, len(captured_triggers.records))
+        for captured_trigger in captured_triggers.records:
+            captured_trigger = captured_triggers.records[0]
+            self.assertEqual(
+                self.env.ref('marketing_automation.ir_cron_campaign_execute_activities'),
+                captured_trigger.cron_id)
+            self.assertEqual(date_reference_reply + relativedelta(hours=1), captured_trigger.call_at)
+
+        # ACT2_1: REPLIED GOT AN SMS (+2 H)
+        # ------------------------------------------------------------
+
+        date_reference_new = date_reference + relativedelta(hours=2)
+        self._set_mock_datetime_now(date_reference_new)
+
+        with self.mockSMSGateway(), \
+             self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
             campaign.execute_activities()
-        # There should be one rejected activity not matching the filter
-        self.assertEqual(
-            set(act_1.trace_ids.filtered(lambda tr: tr.participant_id.res_id != self.test_rec4.id).mapped('state')),
-            set(['processed'])
-        )
-        self.assertEqual(
-            set(act_1.trace_ids.filtered(lambda tr: tr.participant_id.res_id == self.test_rec4.id).mapped('state')),
-            set(['rejected'])
-        )
-        # Check server action was actually processed
-        self.assertTrue([
-            'SA' in record.name
-            for record in self.test_rec1 | self.test_rec2 | self.test_rec3])
-        self.assertTrue([
-            'SA' not in record.name
-            for record in self.test_rec4])
 
-    @mute_logger('odoo.addons.base.ir.ir_model', 'odoo.models')
-    def test_unique_field_many2one(self):
-        self.test_rec3.write({'partner_id': self.test_partner2.id})
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_replied,
+            'schedule_date': date_reference_reply + relativedelta(hours=1),
+            'trace_status': 'outgoing',
+        }, {
+            'status': 'scheduled',
+            'records': test_records_init - test_records_1_replied,
+            'schedule_date': False,
+        }], act2_1)
+        self.assertMarketAutoTraces([{
+            'status': 'scheduled',
+            'records': test_records_1_replied,
+            'schedule_date': False,
+        }], act3_1)
 
-        Campaign = self.env['marketing.campaign'].with_user(self.user_market)
-        Activity = self.env['marketing.activity'].with_user(self.user_market)
-        MassMail = self.env['mailing.mailing'].with_user(self.user_market)
+        self.assertEqual(0, len(captured_triggers.records))  # no trigger should be created
 
-        partner_field = self.env['ir.model.fields'].search(
-            [('model_id', '=', self.test_model.id), ('name', '=', 'partner_id')])
+        with self.mockSMSGateway(), \
+             self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            self.env['sms.sms'].sudo()._process_queue()
 
-        campaign = Campaign.create({
-            'name': 'My First Campaign',
-            'model_id': self.test_model.id,
-            'domain': '%s' % ([('name', '!=', 'Invalid')]),
-            'unique_field_id': partner_field.id,
-        })
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_replied,
+            'schedule_date': date_reference_reply + relativedelta(hours=1),
+            'trace_status': 'sent',
+        }, {
+            'status': 'processed',
+            'records': test_records_1_replied[1],
+            'schedule_date': date_reference_reply + relativedelta(hours=1),
+            'trace_status': 'sent',
+        }, {
+            'status': 'scheduled',
+            'records': test_records_init - test_records_1_replied,
+            'schedule_date': False,
+        }], act2_1)
 
-        mass_mailing = MassMail.create({
-            'name': 'Hello',
-            'subject': 'Hello',
-            'body_html': '<div>My Email Body</div>',
-            'mailing_model_id': self.test_model.id,
-            'use_in_marketing_automation': True,
-        })
-        act_0 = Activity.create({
-            'name': 'Enter the campaign',
-            'campaign_id': campaign.id,
-            'activity_type': 'email',
-            'mass_mailing_id': mass_mailing.id,
-            'trigger_type': 'begin',
-            'interval_number': '0',
-        })
+        self.assertEqual(0, len(captured_triggers.records))  # no trigger should be created
 
-        campaign.action_start_campaign()
-        self.assertEqual(campaign.state, 'running')
-        campaign.sync_participants()
+        # ACT2_1 FOLLOWUP: CLICK ON LINKS -> ACT3_1: CONFIRMATION SMS SENT
+        # ------------------------------------------------------------
 
-        self.assertEqual(campaign.running_participant_count, 2)
-        self.assertEqual(
-            self.TestModel.browse(campaign.participant_ids.mapped('res_id')).mapped(partner_field.name),
-            (self.test_rec1 | self.test_rec2).mapped(partner_field.name)
-        )
+        self._clear_outoing_sms()
+        # TDE CLEANME: improve those tools, but sms gateway resets finding existing
+        # sms, which is why we do in two steps
+        test_records_1_clicked = test_records_1_replied[0]
+        sms_sent = self._find_sms_sent(test_records_1_clicked.customer_id, test_records_1_clicked.phone_sanitized)
 
-        self.test_rec_new = self.TestModel.create({'name': 'Test_New', 'partner_id': self.test_partner3.id})
-        self.test_rec_old = self.TestModel.create({'name': 'Test_Old', 'partner_id': self.test_partner2.id})
-        campaign.sync_participants()
+        # mock SMS gateway as in the same transaction, next activity is processed
+        with self.mockSMSGateway(), \
+             self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            self.gateway_sms_sent_click(sms_sent)
 
-        self.assertEqual(campaign.running_participant_count, 3)
-        self.assertEqual(
-            self.TestModel.browse(campaign.participant_ids.mapped('res_id')).mapped(partner_field.name),
-            (self.test_rec1 | self.test_rec2 | self.test_rec_new).mapped(partner_field.name)
-        )
+        self.assertEqual(0, len(captured_triggers.records))  # no trigger should be created
 
-    @mute_logger('odoo.addons.base.ir.ir_model', 'odoo.models')
-    def test_unique_field(self):
-        Campaign = self.env['marketing.campaign'].with_user(self.user_market)
-        Activity = self.env['marketing.activity'].with_user(self.user_market)
-        MassMail = self.env['mailing.mailing'].with_user(self.user_market)
+        with self.mockSMSGateway(), \
+             self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            self.env['sms.sms'].sudo()._process_queue()
 
-        name_field = self.env['ir.model.fields'].search(
-            [('model_id', '=', self.test_model.id), ('name', '=', 'display_name')])
+        self.assertEqual(0, len(captured_triggers.records))  # no trigger should be created
 
-        campaign = Campaign.create({
-            'name': 'My First Campaign',
-            'model_id': self.test_model.id,
-            'domain': '%s' % ([('name', '!=', 'Invalid')]),
-            'unique_field_id': name_field.id,
-        })
+        # click triggers process_event and automatically launches act3_1 depending on sms_click
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_clicked,
+            'schedule_date': date_reference_new,
+            'trace_status': 'sent',
+            'trace_content': 'Confirmation for %s' % test_records_1_clicked.name,
+        }, {
+            'status': 'scheduled',
+            'records': test_records_1_replied - test_records_1_clicked,
+            'schedule_date': False,
+        }], act3_1)
 
-        mass_mailing = MassMail.create({
-            'name': 'Hello',
-            'subject': 'Hello',
-            'body_html': '<div>My Email Body</div>',
-            'mailing_model_id': self.test_model.id,
-            'use_in_marketing_automation': True,
-        })
-        act_0 = Activity.create({
-            'name': 'Enter the campaign',
-            'campaign_id': campaign.id,
-            'activity_type': 'email',
-            'mass_mailing_id': mass_mailing.id,
-            'trigger_type': 'begin',
-            'interval_number': '0',
-        })
+        # ACT2_2: PROCESS SERVER ACTION ON NOT-REPLIED (+1D 2H)
+        # ------------------------------------------------------------
 
-        campaign.action_start_campaign()
-        self.assertEqual(campaign.state, 'running')
-        campaign.sync_participants()
+        with self.capture_triggers('marketing_automation.ir_cron_campaign_execute_activities') as captured_triggers:
+            self._clear_outoing_sms()
 
-        first_recordset = self.test_rec1 | self.test_rec2 | self.test_rec3 | self.test_rec4
+            date_reference_new = date_reference + relativedelta(days=1, hours=2)
+            self._set_mock_datetime_now(date_reference_new)
 
-        self.assertEqual(campaign.running_participant_count, 4)
-        self.assertEqual(
-            set(self.TestModel.browse(campaign.participant_ids.mapped('res_id')).mapped(name_field.name)),
-            set(first_recordset.mapped(name_field.name))
-        )
+            campaign.execute_activities()
 
-        self.test_rec_new = self.TestModel.create({'name': 'Test_4'})
-        self.test_rec_old = self.TestModel.create({'name': 'Test_1'})
-        campaign.sync_participants()
+        self.assertMarketAutoTraces([{
+            'status': 'processed',
+            'records': test_records_1_ok - test_records_1_replied,
+            'schedule_date': date_reference_new,
+        }, {
+            'status': 'rejected',
+            'records': test_records_1_ko,  # no email_from -> rejected due to domain filter
+            'schedule_date': date_reference + relativedelta(days=1),
+        }, {
+            'status': 'canceled',
+            'records': test_records_1_replied,  # replied -> mail_not_open is canceled
+            'schedule_date': date_reference_reply,
+        }], act2_2)
 
-        # the record with a new value should have been added, not the other
-        self.assertEqual(campaign.running_participant_count, 5)
-        self.assertEqual(
-            set(self.TestModel.browse(campaign.participant_ids.mapped('res_id')).mapped(name_field.name)),
-            set((first_recordset | self.test_rec_new).mapped(name_field.name))
-        )
+        # check server action was actually processed
+        for record in test_records_1_ko | test_records_1_replied:
+            self.assertNotIn('Did not answer, sad campaign is sad', record.description)
+        for record in test_records_1_ok - test_records_1_replied:
+            self.assertIn('Did not answer, sad campaign is sad', record.description)
 
-    @mute_logger('odoo.addons.base.ir.ir_model', 'odoo.models')
-    def test_campaign_duplicate(self):
-        """
-        The copy/duplicate of a campaign :
-            - COPY activities, new activities related to the new campaign
-            - DO NOT COPY the recipients AND the trace_ids AND the state (draft by default)
-            - Normal Copy of other fields
-            - Copy child of activity and keep coherence in parent_id
-        """
-        Campaign = self.env['marketing.campaign'].with_user(self.user_market)
-        Activity = self.env['marketing.activity'].with_user(self.user_market)
-        MassMail = self.env['mailing.mailing'].with_user(self.user_market)
-
-        # Create campaign
-        campaign = Campaign.create({
-            'name': 'COPY CAMPAIGN',
-            'model_id': self.test_model.id,
-            'domain': '%s' % ([('name', '!=', 'Invalid')]),
-        })
-
-        # Create first activity flow
-        mass_mailing = MassMail.create({
-            'name': 'Hello',
-            'subject': 'Hello',
-            'body_html': '<div>My Email Body</div>',
-            'mailing_model_id': self.test_model.id,
-            'use_in_marketing_automation': True,
-        })
-        name_activity = "Name of the activity (2 after the duplicate with the same name)"
-        act_0 = Activity.create({
-            'name': name_activity,
-            'campaign_id': campaign.id,
-            'activity_type': 'email',
-            'mass_mailing_id': mass_mailing.id,
-            'trigger_type': 'begin',
-            'interval_number': '0',
-        })
-
-        child_act_1 = Activity.create({
-            'name': 'child_activity',
-            'campaign_id': campaign.id,
-            'activity_type': 'email',
-            'mass_mailing_id': mass_mailing.id,
-            'parent_id': act_0.id,
-            'trigger_type': 'act',
-            'interval_number': '1',
-            'interval_type': 'hours',
-        })
-
-        self.assertEqual(int(Activity.search_count([('name', '=', name_activity)])), 1)
-
-        # User starts and syncs its campaign
-        campaign.action_start_campaign()
-        self.assertEqual(campaign.state, 'running')
-        campaign.sync_participants()
-
-        # Begin activity should contain a trace for each participant (4)
-        self.assertEqual(
-            act_0.trace_ids.mapped('participant_id'),
-            campaign.participant_ids,
-        )
-
-        campaign2 = campaign.copy()
-
-        # Check if campaign activities is unchanged
-        self.assertEqual(len(campaign.marketing_activity_ids), 2)
-
-        # Two activities with the same name but not related to the same campaign
-        self.assertEqual(int(Activity.search_count([('name', '=', name_activity)])), 2)
-        self.assertEqual(len(campaign2.marketing_activity_ids), 2)
-
-        # The copied child activity has not the old activity as parent,
-        # but the new one
-        self.assertTrue(
-            campaign2.marketing_activity_ids[1].parent_id,
-            campaign2.marketing_activity_ids[0])
-
-        # State = draft
-        self.assertEqual(campaign2.state, 'draft')
-
-        act_0_copy = campaign2.marketing_activity_ids[0]
-        # No participant and no trace (in the activity) is copied
-        self.assertEqual(len(campaign2.participant_ids), 0)
-        self.assertEqual(len(act_0_copy.trace_ids), 0)
+        self.assertEqual(0, len(captured_triggers.records))  # no trigger should be created

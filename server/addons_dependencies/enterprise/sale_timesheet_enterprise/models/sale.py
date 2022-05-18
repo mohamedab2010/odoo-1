@@ -2,6 +2,7 @@
 
 from odoo import api, models
 from odoo.osv import expression
+from odoo.tools import float_is_zero
 
 DEFAULT_INVOICED_TIMESHEET = 'all'
 
@@ -12,6 +13,12 @@ class SaleOrderLine(models.Model):
     @api.depends('analytic_line_ids.validated')
     def _compute_qty_delivered(self):
         super(SaleOrderLine, self)._compute_qty_delivered()
+
+    def _timesheet_create_project_prepare_values(self):
+        """Generate project values"""
+        values = super(SaleOrderLine, self)._timesheet_create_project_prepare_values()
+        values['allow_timesheets'] = True
+        return values
 
     def _timesheet_compute_delivered_quantity_domain(self):
         domain = super(SaleOrderLine, self)._timesheet_compute_delivered_quantity_domain()

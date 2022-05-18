@@ -5,14 +5,12 @@ import requests
 class TaxFinancialReport(models.AbstractModel):
     _inherit = 'account.generic.tax.report'
 
-    filter_cash_basis = False
-
-    def _get_reports_buttons(self):
+    def _get_reports_buttons(self, options):
         """
             Add Buttons to Tax Report
         """
-        rslt = super(TaxFinancialReport, self)._get_reports_buttons()
-        if self.env.company.country_id.id == self.env.ref('base.uk').id:
+        rslt = super(TaxFinancialReport, self)._get_reports_buttons(options)
+        if self._get_report_country_code(options) == 'GB':
             # If token, but no refresh_token, check if you got the refresh_token on the server first
             # That way, you can see immediately if your login was successful after logging in
             # and the label of the button will be correct

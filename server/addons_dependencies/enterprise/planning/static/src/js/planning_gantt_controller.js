@@ -1,45 +1,56 @@
-odoo.define('planning.PlanningGanttController', function (require) {
-'use strict';
+/** @odoo-module alias=planning.PlanningGanttController **/
 
-var GanttController = require('web_gantt.GanttController');
-var core = require('web.core');
-var _t = core._t;
-var confirmDialog = require('web.Dialog').confirm;
-var dialogs = require('web.view_dialogs');
+import GanttController from 'web_gantt.GanttController';
+import {_t} from 'web.core';
+import {Markup} from 'web.utils';
+import Dialog from 'web.Dialog';
+import {FormViewDialog} from 'web.view_dialogs';
+import {_displayDialogWhenEmployeeNoEmail} from './planning_send/form_controller';
 
-var QWeb = core.qweb;
 var PlanningGanttController = GanttController.extend({
-    events: _.extend({}, GanttController.prototype.events, {
+    events: Object.assign({}, GanttController.prototype.events, {
         'click .o_gantt_button_copy_previous_week': '_onCopyWeekClicked',
         'click .o_gantt_button_send_all': '_onSendAllClicked',
     }),
+    buttonTemplateName: 'PlanningGanttView.buttons',
 
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
 
-    /**
-     * @override
-     * @param {jQueryElement} $node to which the buttons will be appended
-     */
-    renderButtons: function ($node) {
-        if ($node) {
-            var state = this.model.get();
-            this.$buttons = $(QWeb.render('PlanningGanttView.buttons', {
-                groupedBy: state.groupedBy,
-                widget: this,
-                SCALES: this.SCALES,
-                activateScale: state.scale,
-                allowedScales: this.allowedScales,
-                activeActions: this.activeActions,
-            }));
-            this.$buttons.appendTo($node);
-        }
+    _renderButtonQWebParameter: function () {
+        return Object.assign({}, this._super(...arguments), {
+            activeActions: this.activeActions
+        });
     },
 
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
+
+    /**
+     * @override
+     */
+    _onAddClicked: function (ev) {
+        ev.preventDefault();
+        const { startDate, stopDate } = this.model.get();
+        const today = moment().startOf('date'); // for the context we want the beginning of the day and not the actual hour.
+        if (startDate.isSameOrBefore(today, 'day') && stopDate.isSameOrAfter(today, 'day')) {
+            // get the today date if the interval dates contain the today date.
+            const context = this._getDialogContext(today);
+            for (const k in context) {
+                context[`default_${k}`] = context[k];
+            }
+            this._onCreate(context);
+            return;
+        }
+        this._super(...arguments);
+    },
+
+    /**
+     * @see {/planning_send/form_controller.js}
+     */
+    _displayDialogWhenEmployeeNoEmail,
 
     /**
      * Opens dialog to add/edit/view a record
@@ -54,15 +65,16 @@ var PlanningGanttController = GanttController.extend({
         var self = this;
         var record = resID ? _.findWhere(this.model.get().records, {id: resID,}) : {};
         var title = resID ? record.display_name : _t("Open");
+        const allContext = Object.assign({}, this.context, context);
 
-        var dialog = new dialogs.FormViewDialog(this, {
+        const dialog = new FormViewDialog(this, {
             title: _.str.sprintf(title),
             res_model: this.modelName,
             view_id: this.dialogViews[0][0],
             res_id: resID,
             readonly: !this.is_action_enabled('edit'),
             deletable: this.is_action_enabled('edit') && resID,
-            context: _.extend({}, this.context, context),
+            context: allContext,
             on_saved: this.reload.bind(this, {}),
             on_remove: this._onDialogRemove.bind(this, resID),
         });
@@ -70,8 +82,63 @@ var PlanningGanttController = GanttController.extend({
             // we reload as record can be created or modified (sent, unpublished, ...)
             self.reload();
         });
+        dialog.on('execute_action', this, async function(e) {
+            const action_name = e.data.action_data.name || e.data.action_data.special;
+            const event_data = _.clone(e.data);
 
-        return dialog.open();
+            /* YTI TODO: Refactor this stuff to use events instead of empirically reload the page*/
+            if (action_name === "action_unschedule") {
+                e.stopPropagation();
+                self.trigger_up('execute_action', event_data);
+                _.delay(function() { self.dialog.destroy(); }, 400);
+            } else if (action_name === "unlink") {
+                e.stopPropagation();
+                const message = _t('Are you sure you want to delete this shift?');
+
+                Dialog.confirm(self, message, {
+                    confirm_callback: function(evt) {
+                        self.trigger_up('execute_action', event_data);
+                        _.delay(function() { self.dialog.destroy() }, 200);
+                    },
+                    cancel_callback: function(evt) {
+                        self.dialog.$footer.find('button').removeAttr('disabled');
+                    }
+                });
+            } else {
+                const initialState = dialog.form_view.model.get(dialog.form_view.handle);
+                const state = dialog.form_view.renderer.state;
+                const resID = e.data.env.currentID;
+
+                if (initialState.data.template_creation != state.data.template_creation && state.data.template_creation) {
+                    // Then the shift should be saved as a template too.
+                    const message = _t("This shift was successfully saved as a template.")
+                    self.displayNotification({
+                        type: 'success',
+                        message: Markup`<i class="fa fa-fw fa-check"></i><span class="ml-1">${message}</span>`,
+                    });
+                }
+
+                if (action_name === 'action_send' && resID) {
+                    e.stopPropagation();
+                    // We want to check if all employees impacted to this action have a email.
+                    // For those who do not have any email in work_email field, then a FormViewDialog is displayed for each employee who is not email.
+                    try {
+                        const result = await this.model.getEmployeesWithoutWorkEmail({
+                            model: self.modelName,
+                            res_id: resID
+                        });
+                        await this._displayDialogWhenEmployeeNoEmail(result);
+                        self.trigger_up('execute_action', event_data);
+                        setTimeout(() => self.dialog.destroy(), 100);
+                    } catch (err) {
+                        self.dialog.$footer.find('button').removeAttr('disabled');
+                    }
+                }
+            }
+        });
+
+        self.dialog = dialog.open();
+        return self.dialog;
     },
 
     //--------------------------------------------------------------------------
@@ -82,21 +149,30 @@ var PlanningGanttController = GanttController.extend({
      * @private
      * @param {MouseEvent} ev
      */
-    _onCopyWeekClicked: function (ev) {
+    async _onCopyWeekClicked(ev) {
         ev.preventDefault();
-        var state = this.model.get();
-        var self = this;
-        self._rpc({
-            model: self.modelName,
+        const result = await this._rpc({
+            model: this.modelName,
             method: 'action_copy_previous_week',
             args: [
-                self.model.convertToServerTime(state.startDate),
+                this.model.convertToServerTime(this.model.get().startDate),
+                this.model._getDomain(),
             ],
-            context: _.extend({}, self.context || {}),
-        })
-        .then(function(){
-            self.reload();
+            context: this.context || {},
         });
+        if (result) {
+            const message = _t("The shifts from the previous week have successfully been copied.");
+            this.displayNotification({
+                type: 'success',
+                message: Markup`<i class="fa fa-fw fa-check"></i><span class="ml-1">${message}</span>`,
+            });
+        } else {
+            this.displayNotification({
+                type: 'danger',
+                message: _t('There are no shifts to copy or the previous shifts were already copied.'),
+            });
+        }
+        this.reload();
     },
     /**
      * @private
@@ -106,12 +182,23 @@ var PlanningGanttController = GanttController.extend({
         ev.preventDefault();
         var self = this;
         var state = this.model.get();
+
+        if (!state.records || state.records.length === 0) {
+            this.displayNotification({
+                type: 'danger',
+                message: _t("There are no shifts to send or publish.")
+            });
+            return;
+        }
+
         var additional_context = _.extend({}, this.context, {
            'default_start_datetime': this.model.convertToServerTime(state.startDate),
            'default_end_datetime': this.model.convertToServerTime(state.stopDate),
+           'default_slot_ids': _.pluck(this.model.get().records, 'id'),
            'scale': state.scale,
            'active_domain': this.model.domain,
-           'active_ids': this.model.get().records
+           'active_ids': this.model.get().records,
+           'default_employee_ids': _.filter(_.pluck(self.initialState.rows, 'resId'), Boolean),
         });
         return this.do_action('planning.planning_send_action', {
             additional_context: additional_context,
@@ -137,6 +224,4 @@ var PlanningGanttController = GanttController.extend({
     },
 });
 
-return PlanningGanttController;
-
-});
+export default PlanningGanttController;

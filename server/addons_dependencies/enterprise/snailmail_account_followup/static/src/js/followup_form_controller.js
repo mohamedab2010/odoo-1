@@ -12,30 +12,17 @@ FollowupFormController.include({
     /**
      * @override
      */
-    renderButtons: function ($node) {
+    renderButtons: function () {
         this._super.apply(this, arguments);
         this.$buttons.on('click', '.o_account_followup_send_letter_button',
             this._onSendLetter.bind(this));
     },
-
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * @override
-     * @private
-     */
-    _update: function () {
-        this._updateButtons();
-        return this._super.apply(this, arguments);
-    },
     /**
      * Update the buttons according to followup_level.
      *
-     * @private
+     * @override
      */
-    _updateButtons: function () {
+    updateButtons: function () {
         if (!this.$buttons) {
             return;
         }
@@ -51,6 +38,19 @@ FollowupFormController.include({
     },
 
     //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @override
+     * @private
+     */
+    _update: function () {
+        this.updateButtons();
+        return this._super.apply(this, arguments);
+    },
+
+    //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ FollowupFormController.include({
     _onSendLetter: function () {
         var self = this;
         this.model.doSendLetter(this.handle);
-        this._updateButtons();
+        this.updateButtons();
         var res_id = this.model.get(this.handle, {raw: true}).res_id;
         this.do_action('snailmail_account_followup.followup_send', {
             additional_context: { active_ids: [res_id] },

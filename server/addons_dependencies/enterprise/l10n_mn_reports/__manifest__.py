@@ -3,8 +3,9 @@
 
 {
     "name" : "Mongolia - Accounting Reports",
+    'icon': '/l10n_mn/static/description/icon.png',
     "version" : "1.0",
-    'category': 'Localization',
+    'category': 'Accounting/Localizations/Reporting',
     "author" : "BumanIT LLC, Odoo S.A",
     "description": """
 Mongolian accounting reports.

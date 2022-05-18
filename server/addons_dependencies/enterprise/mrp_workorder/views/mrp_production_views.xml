@@ -5,7 +5,7 @@
             <field name="name">mrp.production.tree.inherit.planning</field>
             <field name="model">mrp.production</field>
             <field name="arch" type="xml">
-                <tree decoration-bf="message_needaction==True" default_order="date_planned_start asc" decoration-info="state=='confirmed'" decoration-danger="date_planned_start&lt;current_date and state not in ('done','cancel')" decoration-muted="state in ('done','cancel')" string="Manufacturing Orders" name="Production">
+                <tree default_order="date_planned_start asc" decoration-info="state=='confirmed'" decoration-danger="date_planned_start&lt;current_date and state not in ('done','cancel')" decoration-muted="state in ('done','cancel')" string="Manufacturing Orders" name="Production">
                     <field name="message_needaction" invisible="1"/>
                     <field name="name"/>
                     <field name="date_planned_start"/>
@@ -13,7 +13,6 @@
                     <field name="product_qty" sum="Total Qty" string="Quantity"/>
                     <field name="product_uom_id" string="Unit of Measure" options="{'no_open':True,'no_create':True}" groups="uom.group_uom"/>
                     <field name="reservation_state" string="Availability"/>
-                    <field name="routing_id" groups="mrp.group_mrp_routings"/>
                     <field name="origin"/>
                     <field name="state"/>
                 </tree>
@@ -26,7 +25,7 @@
         <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
         <field name="arch" type="xml">
             <filter name="filter_planned" position="attributes">
-                <attribute name="domain">[('state','=','planned'), ('date_planned_start', '!=', False), ('date_planned_finished', '!=', False)]</attribute>
+                <attribute name="domain">[('is_planned', '=', True), ('date_planned_start', '!=', False), ('date_planned_finished', '!=', False)]</attribute>
             </filter>
         </field>
     </record>
@@ -41,7 +40,7 @@
     </record>
 
     <record id="mrp.act_product_mrp_production_workcenter" model="ir.actions.act_window">
-        <field name="domain">[('routing_id', '!=', False), ('routing_id.operation_ids.workcenter_id','=', active_id), ('date_planned_start', '!=', False), ('date_planned_finished', '!=', False)]</field>
+        <field name="domain">[('bom_id', '!=', False), ('bom_id.operation_ids.workcenter_id', '=', active_id), ('date_planned_start', '!=', False), ('date_planned_finished', '!=', False)]</field>
         <field name="view_id" ref="mrp_production_tree_view_planning"/>
     </record>
 

@@ -3,8 +3,7 @@
 
 from collections import defaultdict
 
-from odoo import api, models, _
-from odoo.exceptions import UserError
+from odoo import models
 
 
 class StockMove(models.Model):
@@ -12,54 +11,32 @@ class StockMove(models.Model):
 
     def _action_confirm(self, merge=True, merge_into=False):
         moves = super(StockMove, self)._action_confirm(merge=merge, merge_into=merge_into)
-        if self.env.context.get('skip_check'):
-            # Skip checks if extra moves were created during transfer
-            return moves
-
         moves._create_quality_checks()
         return moves
 
     def _create_quality_checks(self):
-        # Used to avoid duplicated quality points
-        quality_points_list = set([])
-
+        # Groupby move by picking. Use it in order to generate missing quality checks.
         pick_moves = defaultdict(lambda: self.env['stock.move'])
+        check_vals_list = []
         for move in self:
-            pick_moves[move.picking_id] |= move
-
+            if move.picking_id:
+                pick_moves[move.picking_id] |= move
         for picking, moves in pick_moves.items():
-            for check in picking.sudo().check_ids:
-                point_key = (check.picking_id.id, check.point_id.id, check.team_id.id, check.product_id.id)
-                quality_points_list.add(point_key)
-            quality_points = self.env['quality.point'].sudo().search([
-                ('picking_type_id', '=', picking.picking_type_id.id),
-                '|', ('product_id', 'in', moves.mapped('product_id').ids),
-                '&', ('product_id', '=', False), ('product_tmpl_id', 'in', moves.mapped('product_id').mapped('product_tmpl_id').ids)])
-            for point in quality_points:
-                if point.check_execute_now():
-                    if point.product_id:
-                        point_key = (picking.id, point.id, point.team_id.id, point.product_id.id)
-                        if point_key in quality_points_list:
-                            continue
-                        self.env['quality.check'].sudo().create({
-                            'picking_id': picking.id,
-                            'point_id': point.id,
-                            'team_id': point.team_id.id,
-                            'product_id': point.product_id.id,
-                            'company_id': picking.company_id.id,
-                        })
-                        quality_points_list.add(point_key)
-                    else:
-                        products = picking.move_lines.filtered(lambda move: move.product_id.product_tmpl_id == point.product_tmpl_id).mapped('product_id')
-                        for product in products:
-                            point_key = (picking.id, point.id, point.team_id.id, product.id)
-                            if point_key in quality_points_list:
-                                continue
-                            self.env['quality.check'].sudo().create({
-                                'picking_id': picking.id,
-                                'point_id': point.id,
-                                'team_id': point.team_id.id,
-                                'product_id': product.id,
-                                'company_id': picking.company_id.id,
-                            })
-                            quality_points_list.add(point_key)
+            quality_points_domain = self.env['quality.point']._get_domain(moves.product_id, picking.picking_type_id, measure_on='operation')
+            quality_points = self.env['quality.point'].sudo().search(quality_points_domain)
+
+            if not quality_points:
+                continue
+            picking_check_vals_list = quality_points._get_checks_values(moves.product_id, picking.company_id.id, existing_checks=picking.sudo().check_ids)
+            for check_value in picking_check_vals_list:
+                check_value.update({
+                    'picking_id': picking.id,
+                })
+            check_vals_list += picking_check_vals_list
+        self.env['quality.check'].sudo().create(check_vals_list)
+
+    def _action_cancel(self):
+        res = super()._action_cancel()
+        # self cannot contain moves that are done, so we can safely unlink all associated quality_check
+        self.picking_id.sudo().mapped('check_ids').filtered(lambda x: x.quality_state == 'none').unlink()
+        return res

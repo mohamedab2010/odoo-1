@@ -3,20 +3,16 @@
 # 	* account_invoice_extract
 # 
 # Translators:
-# Maxime Chambreuil <mchambreuil@ursainfosystems.com>, 2019
-# Aurélien Pillevesse <aurelienpillevesse@hotmail.fr>, 2019
-# Eloïse Stilmant <est@odoo.com>, 2019
-# Martin Trigaux, 2019
-# Cécile Collart <cco@odoo.com>, 2019
-# Alexandra Jubert <aju@odoo.com>, 2020
+# Martin Trigaux, 2021
+# Cécile Collart <cco@odoo.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:34+0000\n"
-"Last-Translator: Alexandra Jubert <aju@odoo.com>, 2020\n"
+"POT-Creation-Date: 2022-01-24 09:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Cécile Collart <cco@odoo.com>, 2022\n"
 "Language-Team: French (https://www.transifex.com/odoo/teams/41243/fr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -63,9 +59,19 @@ msgstr ""
 "specific.\"/>"
 
 #. module: account_invoice_extract
+#: model:mail.template,name:account_invoice_extract.account_invoice_extract_no_credit
 #: model:mail.template,subject:account_invoice_extract.account_invoice_extract_no_credit
 msgid "Account Invoice Extract Notification"
 msgstr "Notification de l'extraction de la facture du compte"
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid ""
+"All fields will be automated by Artificial Intelligence, it might take 5 "
+"seconds."
+msgstr ""
+"Tous les champs seront automatisés par l'Intelligence Artificielle, cela "
+"pourrait prendre 5 secondes."
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -85,12 +91,16 @@ msgid "Buy credits"
 msgstr "Acheter des crédits"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_resend_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_resend_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_resend_button
 msgid "Can show the ocr resend button"
 msgstr "Peut montrer le bouton de renvoi OCR"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_send_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_send_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_send_button
 msgid "Can show the ocr send button"
 msgstr "Peut montrer le bouton d'envoi OCR "
 
@@ -120,6 +130,27 @@ msgid "Created on"
 msgstr "Créé le"
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Currency"
+msgstr "Devise"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Customer"
+msgstr "Client"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Date"
+msgstr "Date"
+
+#. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__res_company__extract_show_ocr_option_selection__auto_send
 msgid "Digitalize all bills automatically"
 msgstr "Numériser toutes les factures automatiquement"
@@ -132,7 +163,7 @@ msgstr "Numériser les factures sur demande uniquement "
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__display_name
 msgid "Display Name"
-msgstr "Afficher Nom"
+msgstr "Nom affiché"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__res_company__extract_show_ocr_option_selection__no_send
@@ -140,7 +171,16 @@ msgid "Do not digitalize bills"
 msgstr "Ne pas numériser les factures"
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Due Date"
+msgstr "Date d'échéance"
+
+#. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__duplicated_vendor_ref
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__duplicated_vendor_ref
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__duplicated_vendor_ref
 msgid "Duplicated vendor reference"
 msgstr "Référence fournisseur dupliquée"
 
@@ -150,17 +190,23 @@ msgid "Enable to get only one invoice line per tax"
 msgstr "Activer pour n'obtenir qu'une ligne de facture par taxe"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_error_message
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_error_message
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_error_message
 msgid "Error message"
 msgstr "Message d'erreur"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_word_ids
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_word_ids
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_word_ids
 msgid "Extract Word"
 msgstr "Extraire mot"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_state
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_state
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_state
 msgid "Extract state"
 msgstr "Extraire état"
 
@@ -185,7 +231,9 @@ msgid "ID"
 msgstr "ID"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Id of the request to IAP-OCR"
 msgstr "Identifiant de la requête à IAP-OCR"
 
@@ -199,10 +247,12 @@ msgstr "Facture"
 #: model:ir.cron,cron_name:account_invoice_extract.ir_cron_update_ocr_status
 #: model:ir.cron,name:account_invoice_extract.ir_cron_update_ocr_status
 msgid "Invoice OCR: Update All Status"
-msgstr "OCR de facture: mise à jour de tous les statuts"
+msgstr "OCR de facture: mise à jour de tous les états"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,help:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,help:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,help:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Invoice extract id"
 msgstr "ID de l'extraction de la facture"
 
@@ -218,8 +268,8 @@ msgstr "Identifiant de la facture"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_account_move
-msgid "Journal Entries"
-msgstr "Pièces comptables"
+msgid "Journal Entry"
+msgstr "Pièce comptable"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words____last_update
@@ -264,9 +314,26 @@ msgid "Processing Option"
 msgstr "Option de Traitement"
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Reference"
+msgstr "Référence"
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid "Refresh"
+msgstr "Actualiser"
+
+#. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "Resend For Digitalization"
 msgstr "Renvoyer pour numérisation"
+
+#. module: account_invoice_extract
+#: model:ir.actions.server,name:account_invoice_extract.model_account_send_for_digitalization
+msgid "Send Bills for digitalization"
+msgstr "Numériser vos factures"
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
@@ -293,9 +360,19 @@ msgid "Server not available. Please retry later"
 msgstr "Serveur non disponible. Veuillez réessayer ultérieurement"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_status_code
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_status_code
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_status_code
 msgid "Status code"
 msgstr "Code du statut"
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
+"The 'invoice_ocr' IAP account token is invalid. Please delete it to let Odoo"
+" generate a new one or fill it with a valid token."
+msgstr ""
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -323,29 +400,36 @@ msgid "The document could not be found"
 msgstr "Le document n'a pas pu être trouvé"
 
 #. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid ""
-"The file has been sent and is being processed. It usually takes between 5 "
-"and 60 seconds."
-msgstr ""
-"Le fichier a été envoyé et est en cours de traitement. Cela prend "
-"habituellement entre 5 et 60 secondes."
-
-#. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "Unsupported image format"
 msgstr "Format d'image non supporté"
 
 #. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid "Update status"
-msgstr "Mettre à jour le statut"
-
-#. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__user_selected
 msgid "User Selected"
 msgstr "Utilisateur sélectionné"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "VAT"
+msgstr "TVA"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor"
+msgstr "Fournisseur"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor Reference"
+msgstr "Référence fournisseur"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_extraction
@@ -356,6 +440,16 @@ msgstr "Extraction en attente"
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_validation
 msgid "Waiting validation"
 msgstr "En attente de validation"
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
+"Warning: as the bill date is prior to the lock date, the accounting date was"
+" set for the first following day"
+msgstr ""
+"Attention : la date de facturation étant antérieure à la date de blocage, la"
+" date comptable a été fixée au premier jour suivant"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0

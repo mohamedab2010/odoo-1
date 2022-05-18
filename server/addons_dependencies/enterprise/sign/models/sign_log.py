@@ -18,10 +18,10 @@ class SignLog(models.Model):
     _name = 'sign.log'
     _order = 'log_date, id'
     _description = "Sign requests access history"
-    
+
     # Accessed on ?
     log_date = fields.Datetime(default=fields.Datetime.now, required=True)
-    sign_request_id = fields.Many2one('sign.request', required=True)
+    sign_request_id = fields.Many2one('sign.request', required=True, ondelete="cascade")
     sign_request_item_id = fields.Many2one('sign.request.item')
     # Accessed as ?
     user_id = fields.Many2one('res.users', groups="sign.group_sign_manager")
@@ -42,13 +42,16 @@ class SignLog(models.Model):
         selection=[
             ('create', 'Creation'),
             ('open', 'View/Download'),
+            ('save', 'Save'),
             ('sign', 'Signature'),
+            ('update_mail', 'Mail Update'),
+            ('update', 'Update')
         ], required=True,
     )
 
     request_state = fields.Selection([
-        ("sent", "Signatures in Progress"),
-        ("signed", "Fully Signed"),
+        ("sent", "Before Signature"),
+        ("signed", "After Signature"),
         ("canceled", "Canceled")
     ], required=True, string="State of the request on action log", groups="sign.group_sign_manager")
 
@@ -57,18 +60,21 @@ class SignLog(models.Model):
     def write(self, vals):
         raise ValidationError(_("Log history of sign requests cannot be modified !"))
 
-    def unlink(self):
+    @api.ondelete(at_uninstall=False)
+    def _unlink_never(self):
         raise ValidationError(_("Log history of sign requests cannot be deleted !"))
 
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         """
         1/ if action=='create': get initial shasign from template (checksum pdf)
         2/ if action == 'sign': search for logs with hash for the same request and use that to compute new hash
         """
-        vals['log_date'] = datetime.utcnow()
-        vals['log_hash'] = self._get_or_check_hash(vals)
-        res = super(SignLog, self).create(vals)
-        return res
+        now = datetime.utcnow()
+        for vals in vals_list:
+            vals['log_date'] = now
+            vals['log_hash'] = self._get_or_check_hash(vals)
+        return super(SignLog, self).create(vals_list)
 
     def _get_or_check_hash(self, vals):
         """ Returns the hash to write on sign log entries """
@@ -133,12 +139,12 @@ class SignLog(models.Model):
 
     def _update_vals_with_http_request(self, vals):
         vals.update({
-            'user_id': request.env.user.id if not request.env.user._is_public() else None,
+            'user_id': self.env.user.id if not self.env.user._is_public() else None,
             'ip': request.httprequest.remote_addr,
         })
         if not vals.get('partner_id', False):
             vals.update({
-                'partner_id': request.env.user.partner_id.id if not request.env.user._is_public() else None
+                'partner_id': self.env.user.partner_id.id if not self.env.user._is_public() else None
             })
         # NOTE: during signing, this method is always called after the log is generated based on the
         # request item. This means that if the signer accepted the browser geolocation request, the `vals`
@@ -150,3 +156,11 @@ class SignLog(models.Model):
                 'longitude': request.session['geoip'].get('longitude') or 0.0,
             })
         return vals
+
+    def _create_log(self, record, action, is_request=False, **kwargs):
+        Log = self.env['sign.log'].sudo()
+        vals = Log._prepare_vals_from_request(record) if is_request else Log._prepare_vals_from_item(record)
+        vals['action'] = action
+        vals.update(kwargs)
+        vals = Log._update_vals_with_http_request(vals)
+        Log.create(vals)

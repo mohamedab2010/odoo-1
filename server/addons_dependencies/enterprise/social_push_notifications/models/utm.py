@@ -8,9 +8,9 @@ from odoo.osv import expression
 class UtmCampaign(models.Model):
     _inherit = 'utm.campaign'
 
-    social_post_ids = fields.One2many(compute="_compute_social_post_ids")
-    social_push_notification_ids = fields.One2many("social.post", "utm_campaign_id", compute="_compute_social_post_ids", string="Push Notifications")
-    social_push_notifications_count = fields.Integer(compute='_compute_social_push_notifications_count', string='Number Of Push Notifications')
+    social_post_ids = fields.One2many(compute="_compute_social_post_ids", groups="social.group_social_user")
+    social_push_notification_ids = fields.One2many("social.post", "utm_campaign_id", compute="_compute_social_post_ids", string="Push Notifications", groups="social.group_social_user")
+    social_push_notifications_count = fields.Integer(compute='_compute_social_push_notifications_count', string='Number Of Push Notifications', groups="social.group_social_user")
 
     def _compute_social_post_ids(self):
         """social_post_ids has to contain every posts that have at least one 'real' social media
@@ -34,18 +34,19 @@ class UtmCampaign(models.Model):
             campaign.social_push_notifications_count = mapped_data.get(campaign.id, 0)
 
     def action_redirect_to_push_notifications(self):
-            action = self.env.ref('social.action_social_post').read()[0]
+            action = self.env["ir.actions.actions"]._for_xml_id("social.action_social_post")
             action['domain'] = [('utm_campaign_id', '=', self.id), ('media_ids.media_type', '=', 'push_notifications')]
             action['context'] = {
                 "with_searchpanel": True,
                 "searchpanel_default_state": "posted",
+                "search_default_utm_campaign_id": self.id,
                 "default_utm_campaign_id": self.id
             }
             return action
 
     def action_send_push_notification(self):
         push_media = self.env['social.media'].search([('media_type', '=', 'push_notifications')])
-        action = self.env.ref('social.action_social_post').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("social.action_social_post")
         action['views'] = [[False, 'form']]
         action['context'] = {
             'default_account_ids': push_media.account_ids.ids,
@@ -54,8 +55,8 @@ class UtmCampaign(models.Model):
         }
         return action
 
-    def _get_campaign_social_posts_domain(self):
-        domain = super(UtmCampaign, self)._get_campaign_social_posts_domain()
+    def _get_social_posts_domain(self):
+        domain = super(UtmCampaign, self)._get_social_posts_domain()
         return expression.AND([domain, [('media_ids.media_type', '!=', 'push_notifications')]])
 
     def _get_social_media_accounts_domain(self):

@@ -1,21 +1,44 @@
 odoo.define('planning.PlanningGanttView', function (require) {
-'use strict';
+    'use strict';
 
-var GanttView = require('web_gantt.GanttView');
-var PlanningGanttController = require('planning.PlanningGanttController');
-var PlanningGanttModel = require('planning.PlanningGanttModel');
+    const HrGanttView = require('hr_gantt.GanttView');
+    const PlanningGanttController = require('planning.PlanningGanttController');
+    const PlanningGanttModel = require('planning.PlanningGanttModel');
+    const PlanningGanttRenderer = require('planning.PlanningGanttRenderer');
 
-var view_registry = require('web.view_registry');
+    const view_registry = require('web.view_registry');
 
-var PlanningGanttView = GanttView.extend({
-    config: _.extend({}, GanttView.prototype.config, {
-        Controller: PlanningGanttController,
-        Model: PlanningGanttModel,
-    }),
-});
+    const PlanningGanttView = HrGanttView.extend({
+        config: Object.assign({}, HrGanttView.prototype.config, {
+            Renderer: PlanningGanttRenderer,
+            Controller: PlanningGanttController,
+            Model: PlanningGanttModel,
+        }),
 
-view_registry.add('planning_gantt', PlanningGanttView);
+        init: function (viewInfo, params) {
+            this._super.apply(this, arguments);
+            // take parameters from url if set https://example.com/web?date_start=2020-11-08&scale=week
+            // this is used by the mail of planning.planning
+            const url = new URLSearchParams(window.location.search);
+            if (url.get('date_start')) {
+                this.loadParams.initialDate = moment(url.get('date_start'));
 
-return PlanningGanttView;
+                if(url.get('date_end')) {
+                    const start = this.loadParams.initialDate;
+                    const end = moment(url.get('date_end'));
 
+                    if (start.isSame(end, 'week')) {
+                        this.loadParams.scale = 'week';
+                    } else {
+                        this.loadParams.scale = 'month';
+                    }
+                }
+            }
+
+        }
+    });
+
+    view_registry.add('planning_gantt', PlanningGanttView);
+
+    return PlanningGanttView;
 });

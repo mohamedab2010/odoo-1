@@ -3,6 +3,9 @@
     <template id="sign.items_view" name="Digital Signatures - Items View">
         <iframe class="o_sign_pdf_iframe" t-att-readonly="'readonly' if readonly else None"/>
 
+        <input id="o_sign_input_template_id" type="hidden"  t-attf-value="{{sign_request.template_id.id}}"/>
+        <input id="o_sign_input_template_in_progress_count" type="hidden"  t-attf-value="{{sign_request.template_id.in_progress_count}}"/>
+        <input id="o_sign_input_template_name" type="hidden" t-attf-value="{{sign_request.template_id.name}}"/>
         <input id="o_sign_input_attachment_location" type="hidden" t-attf-value="/sign/download/{{sign_request.id}}/{{sign_request.access_token}}/origin"/>
         <input id="o_sign_input_current_role" type="hidden" t-att-value="role"/>
 
@@ -20,6 +23,7 @@
                     t-att-data-required="item.required"
                     t-att-data-name="item.name"
                     t-att-data-responsible="item.responsible_id.id"
+                    t-att-data-responsible_name="item.responsible_id.name"
                     t-att-data-page="item.page"
                     t-att-data-option_ids="item.option_ids.ids"
                     t-att-data-template_id="item.template_id.ids"
@@ -27,6 +31,7 @@
                     t-att-data-pos-y="str(item.posY)"
                     t-att-data-width="item.width"
                     t-att-data-height="item.height"
+                    t-att-data-alignment="item.alignment"
                     t-att-data-value="item_values[item.id] if item_values and item.id in item_values else None"/>
             </t>
         </t>

@@ -3,8 +3,9 @@
 
 import re
 from datetime import datetime
+import json
 
-from odoo import models
+from odoo import models, fields
 from odoo.exceptions import UserError
 from odoo.tools.translate import _
 
@@ -40,11 +41,13 @@ class CertificationReport(models.AbstractModel):
         if not docs:
             raise UserError(_('You have to expand at least one partner.'))
 
+        current_date = fields.Datetime.to_datetime(data['wizard_values'].get("declaration_date")) or datetime.now()
         return {
             'docs': docs,
             'options': data['wizard_values'],
             'report_name': data['report_name'],
-            'current_year': self.env.company.compute_fiscalyear_dates(datetime.now())['date_from'].year,
+            'company': self.env.company,
+            'current_year': self.env.company.compute_fiscalyear_dates(current_date)['date_from'].year,
         }
 
 
@@ -76,7 +79,7 @@ class ReportCertificationReport(models.AbstractModel):
         return bimonth_names[bimonth_index]
 
     def _get_domain(self, options):
-        common_domain = [('partner_id', '!=', False)]
+        common_domain = [('partner_id', '!=', False), ('parent_state', 'not in', ('draft', 'cancel'))]
         if options.get('partner_id'):
             common_domain += [('partner_id.id', '=', options.get('partner_id'))]
         if options.get('date'):
@@ -157,7 +160,6 @@ class ReportCertificationReport(models.AbstractModel):
 
     def print_pdf(self, options):
         lines = self._get_lines(options)
-
         return {
             'type': 'ir.actions.act_window',
             'view_mode': 'form',
@@ -166,6 +168,7 @@ class ReportCertificationReport(models.AbstractModel):
             'view_id': self.env.ref('l10n_co_reports.retention_report_wizard_form').id,
             'target': 'new',
             'context': {'lines': lines, 'report_name': self._name},
+            'data': {'options': json.dumps(options), 'output_format': 'pdf'},
         }
 
 
@@ -238,7 +241,7 @@ class ReportCertificationReportIva(models.AbstractModel):
 
     def _get_domain(self, options):
         res = super(ReportCertificationReportIva, self)._get_domain(options)
-        res += ['|', ('account_id.code', '=', '236705'), ('account_id.code', '=like', '240810%')]
+        res += ['|', ('account_id.code', '=like', '2367%'), ('account_id.code', '=like', '2408%')]
         return res
 
     def _handle_aml(self, aml, lines_per_bimonth):
@@ -251,7 +254,7 @@ class ReportCertificationReportIva(models.AbstractModel):
                 'balance_15_over_19': 0,
             }
 
-        if aml.account_id.code.startswith('240810'):
+        if aml.account_id.code.startswith('2408'):
             lines_per_bimonth[bimonth]['balance_15_over_19'] += aml.credit - aml.debit
         else:
             lines_per_bimonth[bimonth]['balance'] += aml.credit - aml.debit

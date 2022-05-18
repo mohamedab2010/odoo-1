@@ -3,7 +3,7 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
     var _t = core._t;
     var QWeb = core.qweb;
 
-    var StreamPostComments = require('social.social_post_kanban_comments');
+    var StreamPostComments = require('@social/js/stream_post_comments')[Symbol.for("default")];
 
     var StreamPostTwitterComments = StreamPostComments.extend({
         init: function (parent, options) {
@@ -12,7 +12,9 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
             this.hasMoreComments = options.hasMoreComments;
             this.page = 1;
             this.allComments = options.allComments;
-            this.comments = this.allComments.slice(0, 20);
+            this.commentsCount = options.commentsCount;
+            this.comments = this.allComments.slice(0, this.commentsCount);
+            this.mediaType = 'twitter';
 
             this.options = _.defaults(options || {}, {
                 title: _t('Twitter Comments'),
@@ -29,12 +31,8 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
             var superDef = this._super.apply(this, arguments);
             var pageInfoDef = this._rpc({
                 model: 'social.account',
-                method: 'search_read',
-                fields: [
-                    'name',
-                    'twitter_user_id'
-                ],
-                domain: [['id', '=', this.accountId]]
+                method: 'read',
+                args: [this.accountId, ['name', 'twitter_user_id']],
             }).then(function (result) {
                 self.accountName = result[0].name;
                 self.twitterUserId = result[0].twitter_user_id;
@@ -69,7 +67,7 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
             return _.str.sprintf("https://twitter.com/intent/user?user_id=%s", comment.from.id);
         },
 
-        isCommentEditable: function (comment) {
+        isCommentDeletable: function (comment) {
             return comment.from.id === this.twitterUserId;
         },
 
@@ -78,15 +76,15 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
         },
 
         getDeleteCommentEndpoint: function () {
-            return 'delete_tweet';
+            return '/social_twitter/delete_tweet';
         },
 
-        isCommentDeletable: function () {
+        isCommentEditable: function () {
             return false;
         },
 
         showMoreComments: function (result) {
-            return this.page * 20 < this.allComments.length;
+            return this.page * this.commentsCount < this.allComments.length;
         },
 
         //--------------------------------------------------------------------------
@@ -115,8 +113,8 @@ odoo.define('social.StreamPostTwitterComments', function (require) {
             ev.preventDefault();
 
             this.page += 1;
-            var start = (this.page - 1) * 20;
-            var end = start + 20;
+            var start = (this.page - 1) * this.commentsCount;
+            var end = start + this.commentsCount;
             var $moreComments = $(QWeb.render("social.StreamPostCommentsWrapper", {
                 widget: this,
                 comments: this.allComments.slice(start, end)

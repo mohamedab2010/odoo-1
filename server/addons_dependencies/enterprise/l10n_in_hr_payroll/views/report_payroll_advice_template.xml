@@ -45,10 +45,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr t-foreach="get_detail(o.line_ids)" t-as="l">
+                            <t t-set="report_details" t-value="get_detail(o.line_ids)"/>
+                            <tr t-foreach="report_details['lines']" t-as="l">
                                 <td>
                                     <span t-esc="l_index+1">.</span>
-                                </td> 
+                                </td>
                                 <td>
                                   <span t-esc="l['name']"/>
                                 </td>
@@ -74,7 +75,7 @@
                                     <strong >Total :</strong>
                                 </td>
                                 <td colspan="2">
-                                    <strong><span t-esc="get_bysal_total()" t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/></strong>
+                                    <strong><span t-esc="report_details['total_bysal']" t-options="{'widget': 'monetary', 'display_currency': o.company_id.currency_id}"/></strong>
                                 </td>
                             </tr>
                         </tbody>

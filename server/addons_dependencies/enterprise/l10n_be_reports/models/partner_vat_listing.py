@@ -5,6 +5,7 @@ from odoo import api, models, _
 from odoo.tools.misc import formatLang
 from odoo.exceptions import UserError
 from itertools import groupby
+from markupsafe import Markup
 
 
 class ReportL10nBePartnerVatListing(models.AbstractModel):
@@ -14,18 +15,42 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
 
     filter_date = {'mode': 'range', 'filter': 'this_month'}
 
+    def _get_templates(self):
+        res = super()._get_templates()
+        res['line_caret_options'] = 'l10n_be_reports.line_caret_options'
+        return res
+
+    def l10n_be_open_invoices(self, options, params=None):
+        return {
+            'name': _('VAT Listing Audit'),
+            'type': 'ir.actions.act_window',
+            'views': [[self.env.ref('account.view_move_line_tree').id, 'list'], [False, 'form']],
+            'res_model': 'account.move.line',
+            'context': {
+                'search_default_partner_id': params['id'],
+                'search_default_group_by_partner': 1,
+                'expand': 1,
+            },
+            'domain': [
+                ('move_id.partner_id.vat', 'ilike', 'BE%'),
+                ('move_id.move_type', 'in', self.env['account.move'].get_sale_types(include_receipts=True)),
+                ('move_id.amount_tax_signed', '>', 0),
+                ('move_id.date', '>=', options['date']['date_from']),
+                ('move_id.date', '<=', options['date']['date_to']),
+                ('tax_ids', '!=', False),
+            ]
+        }
+
     @api.model
     def _get_lines(self, options, line_id=None):
         lines = []
         context = self.env.context
-        if not context.get('company_ids'):
-            return lines
-        partner_ids = self.env['res.partner'].search([('vat', 'ilike', 'BE%')]).ids
+        partner_ids = self.env['res.partner'].with_context(active_test=False).search([('vat', 'ilike', 'BE%')]).ids
         if not partner_ids:
             return lines
 
-        tag_ids = [self.env['ir.model.data'].xmlid_to_res_id(k) for k in ['l10n_be.tax_report_line_00', 'l10n_be.tax_report_line_01', 'l10n_be.tax_report_line_02', 'l10n_be.tax_report_line_03', 'l10n_be.tax_report_line_45', 'l10n_be.tax_report_line_49']]
-        tag_ids_2 = [self.env['ir.model.data'].xmlid_to_res_id(k) for k in ['l10n_be.tax_report_line_54', 'l10n_be.tax_report_line_64']]
+        tag_ids = [self.env['ir.model.data']._xmlid_to_res_id(k) for k in ['l10n_be.tax_report_line_00', 'l10n_be.tax_report_line_01', 'l10n_be.tax_report_line_02', 'l10n_be.tax_report_line_03', 'l10n_be.tax_report_line_45', 'l10n_be.tax_report_line_49']]
+        tag_ids_2 = [self.env['ir.model.data']._xmlid_to_res_id(k) for k in ['l10n_be.tax_report_line_54', 'l10n_be.tax_report_line_64']]
         query = """
             SELECT turnover_sub.partner_id, turnover_sub.name, turnover_sub.vat, turnover_sub.turnover, refund_vat_sub.refund_base, refund_base_sub.vat_amount, refund_base_sub.refund_vat_amount
               FROM (SELECT l.partner_id, p.name, p.vat, SUM(l.credit - l.debit) as turnover
@@ -41,7 +66,7 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
                   AND l.date <= %(date_to)s
                   AND l.company_id IN %(company_ids)s
                   AND ((l.move_id IS NULL AND l.credit > 0)
-                    OR (inv.type IN ('out_refund', 'out_invoice') AND inv.state = 'posted'))
+                    OR (inv.move_type IN ('out_refund', 'out_invoice') AND inv.state = 'posted'))
                   GROUP BY l.partner_id, p.name, p.vat) AS turnover_sub
                     FULL JOIN (SELECT l.partner_id, SUM(l.debit-l.credit) AS refund_base
                         FROM account_move_line l
@@ -56,32 +81,33 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
                         AND l.date <= %(date_to)s
                         AND l.company_id IN %(company_ids)s
                         AND ((l.move_id IS NULL AND l.credit > 0)
-                          OR (inv.type = 'out_refund' AND inv.state = 'posted'))
+                          OR (inv.move_type = 'out_refund' AND inv.state = 'posted'))
                         GROUP BY l.partner_id, p.name, p.vat) AS refund_vat_sub
                     ON turnover_sub.partner_id = refund_vat_sub.partner_id
-            LEFT JOIN (SELECT l2.partner_id, SUM(l2.credit - l2.debit) as vat_amount, SUM(l2.debit) AS refund_vat_amount
+            LEFT JOIN (SELECT COALESCE(l2.partner_id, inv.partner_id) as partner_id, SUM(l2.credit - l2.debit) as vat_amount, SUM(l2.debit) AS refund_vat_amount
                   FROM account_move_line l2
                   JOIN account_account_tag_account_move_line_rel aml_tag2 ON l2.id = aml_tag2.account_move_line_id
                   JOIN account_tax_report_line_tags_rel tag_rep_ln_2 ON tag_rep_ln_2.account_account_tag_id = aml_tag2.account_account_tag_id
                   LEFT JOIN account_move inv ON l2.move_id = inv.id
                   WHERE tag_rep_ln_2.account_tax_report_line_id IN %(tags2)s
-                  AND l2.partner_id IN %(partner_ids)s
+                  AND COALESCE(l2.partner_id, inv.partner_id) IN %(partner_ids)s
                   AND l2.date >= %(date_from)s
                   AND l2.date <= %(date_to)s
                   AND l2.company_id IN %(company_ids)s
                   AND ((l2.move_id IS NULL AND l2.credit > 0)
-                   OR (inv.type IN ('out_refund', 'out_invoice') AND inv.state = 'posted'))
-                GROUP BY l2.partner_id) AS refund_base_sub
+                   OR (inv.move_type IN ('out_refund', 'out_invoice') AND inv.state = 'posted'))
+                GROUP BY COALESCE(l2.partner_id, inv.partner_id)) AS refund_base_sub
               ON turnover_sub.partner_id = refund_base_sub.partner_id
            WHERE turnover > 250 OR refund_base > 0 OR refund_vat_amount > 0
+           ORDER BY turnover_sub.vat, turnover_sub.turnover DESC
         """
         params = {
             'tags': tuple(tag_ids),
             'tags2': tuple(tag_ids_2),
             'partner_ids': tuple(partner_ids),
-            'date_from': context['date_from'],
-            'date_to': context['date_to'],
-            'company_ids': tuple(context.get('company_ids')),
+            'date_from': options['date']['date_from'],
+            'date_to': options['date']['date_to'],
+            'company_ids': tuple(self.env.companies.ids),
         }
         self.env.cr.execute(query, params)
 
@@ -110,9 +136,9 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
     def _get_columns_name(self, options):
         return [{}, {'name': _('VAT Number')}, {'name': _('Turnover'), 'class': 'number'}, {'name': _('VAT Amount'), 'class': 'number'}]
 
-    def _get_reports_buttons(self):
-        buttons = super(ReportL10nBePartnerVatListing, self)._get_reports_buttons()
-        buttons += [{'name': _('Export (XML)'), 'sequence': 3, 'action': 'print_xml', 'file_export_type': _('XML')}]
+    def _get_reports_buttons(self, options):
+        buttons = super(ReportL10nBePartnerVatListing, self)._get_reports_buttons(options)
+        buttons += [{'name': _('XML'), 'sequence': 3, 'action': 'print_xml', 'file_export_type': _('XML')}]
         return buttons
 
     def get_xml(self, options):
@@ -137,7 +163,7 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
         addr = company.partner_id.address_get(['invoice'])
         if addr.get('invoice', False):
             ads = self.env['res.partner'].browse([addr['invoice']])[0]
-            phone = ads.phone and ads.phone.replace(' ', '') or ''
+            phone = ads.phone and self._raw_phonenumber(ads.phone) or address.phone and self._raw_phonenumber(address.phone)
             email = ads.email or ''
             city = ads.city or ''
             zip = ads.zip or ''
@@ -149,38 +175,6 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
                 street += ' ' + ads.street2
             if ads.country_id:
                 country = ads.country_id.code
-
-        annual_listing_data = {
-            'issued_by': issued_by,
-            'company_vat': company_vat,
-            'comp_name': company.name,
-            'street': street,
-            'zip': zip,
-            'city': city,
-            'country': country,
-            'email': email,
-            'phone': phone,
-            'SenderId': SenderId,
-            'period': options['date'].get('date_from')[0:4],
-            'comments': self._get_report_manager(options).summary or '',
-        }
-
-        data_file = """<?xml version="1.0" encoding="ISO-8859-1"?>
-  <ns2:ClientListingConsignment xmlns="http://www.minfin.fgov.be/InputCommon" xmlns:ns2="http://www.minfin.fgov.be/ClientListingConsignment" ClientListingsNbr="1">"""
-
-        data_comp = """
-        <ns2:Declarant>
-            <VATNumber>%(SenderId)s</VATNumber>
-            <Name>%(comp_name)s</Name>
-            <Street>%(street)s</Street>
-            <PostCode>%(zip)s</PostCode>
-            <City>%(city)s</City>
-            <CountryCode>%(country)s</CountryCode>
-            <EmailAddress>%(email)s</EmailAddress>
-            <Phone>%(phone)s</Phone>
-        </ns2:Declarant>
-        <ns2:Period>%(period)s</ns2:Period>
-        """ % annual_listing_data
 
         # Turnover and Farmer tags are not included
         ctx = self._set_context(options)
@@ -205,29 +199,53 @@ class ReportL10nBePartnerVatListing(models.AbstractModel):
                 'turnover': turnover,
                 'vat_amount': tax,
             }
-            data_client_info += """
+            data_client_info += Markup("""
         <ns2:Client SequenceNumber="%(seq)s">
             <ns2:CompanyVATNumber issuedBy="BE">%(only_vat)s</ns2:CompanyVATNumber>
             <ns2:TurnOver>%(turnover).2f</ns2:TurnOver>
             <ns2:VATAmount>%(vat_amount).2f</ns2:VATAmount>
-        </ns2:Client>""" % amount_data
+        </ns2:Client>""") % amount_data
 
-        amount_data_begin = {
+        annual_listing_data = {
+            'issued_by': issued_by,
+            'company_vat': company_vat,
+            'comp_name': company.name,
+            'street': street,
+            'zip': zip,
+            'city': city,
+            'country': country,
+            'email': email,
+            'phone': phone,
+            'SenderId': SenderId,
+            'period': options['date'].get('date_from')[0:4],
+            'comments': self._get_report_manager(options).summary or '',
             'seq': str(seq),
             'dnum': dnum,
             'sum_turnover': sum_turnover,
             'sum_tax': sum_tax,
+            'representative_node': self._get_belgian_xml_export_representative_node(),
         }
-        data_begin = """
+
+        data_begin = Markup("""<?xml version="1.0" encoding="ISO-8859-1"?>
+<ns2:ClientListingConsignment xmlns="http://www.minfin.fgov.be/InputCommon" xmlns:ns2="http://www.minfin.fgov.be/ClientListingConsignment" ClientListingsNbr="1">
     <ns2:ClientListing SequenceNumber="1" ClientsNbr="%(seq)s" DeclarantReference="%(dnum)s"
         TurnOverSum="%(sum_turnover).2f" VATAmountSum="%(sum_tax).2f">
-  """ % amount_data_begin
+        %(representative_node)s
+        <ns2:Declarant>
+            <VATNumber>%(SenderId)s</VATNumber>
+            <Name>%(comp_name)s</Name>
+            <Street>%(street)s</Street>
+            <PostCode>%(zip)s</PostCode>
+            <City>%(city)s</City>
+            <CountryCode>%(country)s</CountryCode>
+            <EmailAddress>%(email)s</EmailAddress>
+            <Phone>%(phone)s</Phone>
+        </ns2:Declarant>
+        <ns2:Period>%(period)s</ns2:Period>""") % annual_listing_data
 
-        data_end = """
-
+        data_end = Markup("""
         <ns2:Comment>%(comments)s</ns2:Comment>
     </ns2:ClientListing>
-  </ns2:ClientListingConsignment>
-  """ % annual_listing_data
+</ns2:ClientListingConsignment>""") % annual_listing_data
 
-        return (data_file + data_begin + data_comp + data_client_info + data_end).encode('ISO-8859-1')
+        return (data_begin + data_client_info + data_end).encode('ISO-8859-1', 'ignore')

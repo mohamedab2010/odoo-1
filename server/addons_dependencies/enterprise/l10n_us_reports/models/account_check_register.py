@@ -29,6 +29,14 @@ class ReportCheckRegister(models.AbstractModel):
         return self.env['account.account'].search([('user_type_id', '=', liquidity_type_id.id)])
 
     @api.model
+    def _get_options_journals_domain(self, options):
+        # OVERRIDE
+        domain = super(ReportCheckRegister, self)._get_options_journals_domain(options)
+        if not domain:
+            domain = [('journal_id.type', 'in', ('bank', 'cash', 'general'))]
+        return domain
+
+    @api.model
     def _get_lines(self, options, line_id=None):
         # Override to filter liquidity accounts using the context
         liquidity_account_ids = self._l10n_us_reports_liquidity_accounts()

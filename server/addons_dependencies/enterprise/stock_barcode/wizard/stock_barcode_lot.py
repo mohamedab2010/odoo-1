@@ -17,6 +17,10 @@ class StockBarcodeLot(models.TransientModel):
     default_move_id = fields.Many2one('stock.move')
     stock_barcode_lot_line_ids = fields.One2many('stock_barcode.lot.line', 'stock_barcode_lot_id')
 
+    @api.onchange('stock_barcode_lot_line_ids')
+    def _onchange_stock_barcode_lot_line_ids(self):
+        self._update_quantity_done()
+
     @api.model
     def default_get(self, fields):
         res = super(StockBarcodeLot, self).default_get(fields)

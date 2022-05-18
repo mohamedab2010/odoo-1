@@ -39,10 +39,13 @@ class ResPartner(models.Model):
         for record in self:
             record.contact_address_complete = ''
             if record.street:
-                record.contact_address_complete += record.street+','
+                record.contact_address_complete += record.street + ', '
             if record.zip:
-                record.contact_address_complete += record.zip+ ' '
+                record.contact_address_complete += record.zip + ' '
             if record.city:
-                record.contact_address_complete += record.city+','
+                record.contact_address_complete += record.city + ', '
+            if record.state_id:
+                record.contact_address_complete += record.state_id.name + ', '
             if record.country_id:
                 record.contact_address_complete += record.country_id.name
+            record.contact_address_complete = record.contact_address_complete.strip().strip(',')

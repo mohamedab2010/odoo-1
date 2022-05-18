@@ -15,6 +15,7 @@ class AccountIntrastatCode(models.Model):
     _name = 'account.intrastat.code'
     _description = 'Intrastat Code'
     _translate = False
+    _order = "code"
 
     name = fields.Char(string='Name')
     code = fields.Char(string='Code', required=True)
@@ -44,8 +45,7 @@ class AccountIntrastatCode(models.Model):
             domain = []
         else:
             domain = ['|', '|', ('code', operator, name), ('name', operator, name), ('description', operator, name)]
-        record_ids = self._search(expression.AND([args, domain]), limit=limit, access_rights_uid=name_get_uid)
-        return models.lazy_name_get(self.browse(record_ids).with_user(name_get_uid))
+        return self._search(expression.AND([args, domain]), limit=limit, access_rights_uid=name_get_uid)
 
     _sql_constraints = [
         ('intrastat_region_code_unique', 'UNIQUE (code, type, country_id)', 'Triplet code/type/country_id must be unique.'),

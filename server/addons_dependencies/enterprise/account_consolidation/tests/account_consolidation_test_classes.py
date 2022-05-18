@@ -68,7 +68,7 @@ class AccountConsolidationTestCase(common.TransactionCase):
                 })
             ]
         })
-        move.post()
+        move.action_post()
         return move
 
     def _create_account(self, code, name="Default account", type=False, company=False):

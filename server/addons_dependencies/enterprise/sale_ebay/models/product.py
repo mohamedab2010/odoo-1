@@ -4,12 +4,12 @@
 import base64
 import io
 import re
-import math
 import logging
 from PIL import Image
 
 from datetime import datetime, timedelta
 from ebaysdk.exception import ConnectionError
+from markupsafe import Markup
 from odoo.addons.sale_ebay.tools.ebaysdk import Trading
 from xml.sax.saxutils import escape
 
@@ -20,8 +20,6 @@ from odoo.osv import expression
 _logger = logging.getLogger(__name__)
 
 _30DAYS = timedelta(days=30)
-# eBay api limits ItemRevise calls to 150 per day
-MAX_REVISE_CALLS = 150
 EBAY_DATEFORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 
@@ -146,8 +144,8 @@ class ProductTemplate(models.Model):
             }
         }
         if self.ebay_description and self.ebay_template_id:
-            description = self.ebay_template_id._render_template(self.ebay_template_id.body_html, 'product.template', self.id)
-            item['Item']['Description'] = '<![CDATA['+description+']]>'
+            description = self.ebay_template_id._render_field('body_html', self.ids)[self.id]
+            item['Item']['Description'] = Markup('<![CDATA[{0}]]>').format(description)
         if self.ebay_subtitle:
             item['Item']['SubTitle'] = self._ebay_encode(self.ebay_subtitle)
         picture_urls = self._create_picture_url()
@@ -252,7 +250,7 @@ class ProductTemplate(models.Model):
     # returns true if the barcode string is encoded with the provided encoding.
     def check_encoding(self, barcode, encoding):
         if encoding == 'ean13':
-            return len(barcode) == 13 and re.match("^\d+$", barcode) and self.ean_checksum(barcode) == int(barcode[-1]) 
+            return len(barcode) == 13 and re.match("^\d+$", barcode) and self.ean_checksum(barcode) == int(barcode[-1])
         elif encoding == 'upc':
             return len(barcode) == 12 and re.match("^\d+$", barcode) and self.ean_checksum("0"+barcode) == int(barcode[-1])
         elif encoding == 'any':
@@ -334,11 +332,13 @@ class ProductTemplate(models.Model):
                 variant.ebay_variant_url = item.dict()['Item']['ListingDetails']['ViewItemURL']
 
     @api.model
-    def get_ebay_api(self, domain):
+    def _ebay_configured(self):
+        return bool(self._get_ebay_params())
+
+    @api.model
+    def _get_ebay_params(self):
         params = self.env['ir.config_parameter'].sudo()
-        dev_id = params.get_param('ebay_dev_id')
-        site_id = params.get_param('ebay_site')
-        site = self.env['ebay.site'].browse(int(site_id))
+        domain = params.get_param('ebay_domain')
         if domain == 'sand':
             app_id = params.get_param('ebay_sandbox_app_id')
             cert_id = params.get_param('ebay_sandbox_cert_id')
@@ -351,22 +351,35 @@ class ProductTemplate(models.Model):
             domain = 'api.ebay.com'
 
         if not app_id or not cert_id or not token:
+            return {}
+
+        dev_id = params.get_param('ebay_dev_id')
+        site_id = params.get_param('ebay_site')
+        site = self.env['ebay.site'].browse(int(site_id))
+        return dict(
+            domain=domain,
+            appid=app_id,
+            certid=cert_id,
+            token=token,
+            siteid=site.ebay_id,
+            devid=dev_id,
+            config_file=None,
+        )
+
+    @api.model
+    def get_ebay_api(self):
+        params = self._get_ebay_params()
+
+        if not params:
             action = self.env.ref('sale.action_sale_config_settings')
             raise RedirectWarning(_('One parameter is missing.'),
                                   action.id, _('Configure The eBay Integrator Now'))
 
-        return Trading(domain=domain,
-                       config_file=None,
-                       appid=app_id,
-                       devid=dev_id,
-                       certid=cert_id,
-                       token=token,
-                       siteid=site.ebay_id)
+        return Trading(**params)
 
     @api.model
     def ebay_execute(self, verb, data=None, list_nodes=[], verb_attrs=None, files=None):
-        domain = self.env['ir.config_parameter'].sudo().get_param('ebay_domain')
-        ebay_api = self.get_ebay_api(domain)
+        ebay_api = self.get_ebay_api()
         try:
             return ebay_api.execute(verb, data, list_nodes, verb_attrs, files)
         except ConnectionError as e:
@@ -412,7 +425,7 @@ class ProductTemplate(models.Model):
                 img = Image.open(data)
                 good_image = (max(img.size) >= 500 and
                               sum(img.size) <= 12000 and
-                              img.size[0] * img.size[1] <= 12000 and
+                              data.getbuffer().nbytes <= 12e6 and
                               (not img.format == 'JPEG' or img.mode == 'RGB'))
                 return good_image
             except Exception as e:
@@ -436,7 +449,6 @@ class ProductTemplate(models.Model):
         return urls
 
     def _update_ebay_data(self, response):
-        domain = self.env['ir.config_parameter'].sudo().get_param('ebay_domain')
         item = self.ebay_execute('GetItem', {'ItemID': response['ItemID']}).dict()
         qty = int(item['Item']['Quantity']) - int(item['Item']['SellingStatus']['QuantitySold'])
         for product in self:
@@ -489,150 +501,6 @@ class ProductTemplate(models.Model):
             product._update_ebay_data(response.dict())
 
     @api.model
-    def sync_product_status(self, sync_big_stocks=False, auto_commit=False):
-        self._sync_product_status(sync_big_stocks=sync_big_stocks, auto_commit=auto_commit)
-
-    @api.model
-    def _sync_recent_product_status(self, page_number=1, sync_big_stocks=False, auto_commit=False):
-        # TODO: remove in master
-        self._sync_product_status_ranged(page_number=page_number,
-                                         sync_big_stocks=sync_big_stocks,
-                                         auto_commit=auto_commit,
-                                         delta_days=0)
-
-    @api.model
-    def _sync_product_status_ranged(self, page_number=1, sync_big_stocks=False, auto_commit=False, delta_days=0):
-        """
-            Ebay specifies that the time ranges on which we query the seller's list
-            must be a value less than 120 days.
-            https://developer.ebay.com/devzone/xml/docs/reference/ebay/GetSellerList.html
-
-        """
-        call_data = {'StartTimeFrom': str(datetime.today()-timedelta(days=119+delta_days)),
-                     'StartTimeTo': str(datetime.today()-timedelta(days=delta_days)),
-                     'DetailLevel': 'ReturnAll',
-                     'Pagination': {'EntriesPerPage': 200,
-                                    'PageNumber': page_number,
-                                    }
-                     }
-        try:
-            response = self.ebay_execute('GetSellerList', call_data)
-        except UserError as e:
-            if auto_commit:
-                self.env.cr.rollback()
-                self.env.user.message_post(body=_("eBay error: Impossible to synchronize the products. \n'%s'") % e.args[0])
-                self.env.cr.commit()
-                return
-            else:
-                raise e
-        except RedirectWarning as e:
-            if not auto_commit:
-                raise e
-            # not configured, ignore
-            return
-        if response.dict()['ItemArray'] is None:
-            return
-        items = response.dict()['ItemArray']['Item']
-        if not isinstance(items, list):
-            items = [items]
-        for item in items:
-            domain = [
-                ('ebay_id', '=', item['ItemID']),
-                ('virtual_available', '>=' if sync_big_stocks else '<', MAX_REVISE_CALLS),
-                ('ebay_use', '=', True),
-            ]
-            product = self.search(domain)
-            if product:
-                product._sync_transaction(item, auto_commit=auto_commit)
-        if page_number < int(response.dict()['PaginationResult']['TotalNumberOfPages']):
-            self._sync_product_status_ranged(page_number + 1,
-                sync_big_stocks=sync_big_stocks,
-                auto_commit=auto_commit,
-                delta_days=delta_days)
-
-    @api.model
-    def _sync_old_product_status(self, sync_big_stocks=False, auto_commit=False):
-        # TODO: remove in master
-        date = datetime.today() - timedelta(days=119)
-        domain = [
-            ('ebay_use', '=', True),
-            ('ebay_start_date', '<', date),
-            ('ebay_listing_status', 'in', ['Active', 'Error']),
-            ('virtual_available', '>' if sync_big_stocks else '<', MAX_REVISE_CALLS),
-        ]
-        products = self.search(domain)
-        for product in products:
-            response = self.ebay_execute('GetItem', {'ItemID': product.ebay_id})
-            product._sync_transaction(response.dict()['Item'], auto_commit=auto_commit)
-        return
-
-    @api.model
-    def _sync_product_status(self, sync_big_stocks=False, auto_commit=False):
-        """
-            We partition old products per block of 120 days,
-            and perform a query for each non-empty set of products
-        """
-        domain = [
-            ('ebay_use', '=', True),
-            ('ebay_start_date', '!=', False),
-            ('virtual_available', '>=' if sync_big_stocks else '<', MAX_REVISE_CALLS),
-        ]
-        products = self.search(domain)
-        if not products:
-            return  # there is nothing to synchronize
-        oldest = min(products.mapped('ebay_start_date'))
-        upper_bound = math.ceil((datetime.today() - oldest).days / 120)
-        for i in range(upper_bound):
-            start_date = datetime.today() - timedelta(days=(i+1)*120)
-            end_date = datetime.today() - timedelta(days=i*120)
-            if products.filtered(lambda p: end_date > p.ebay_start_date >= start_date):
-                self._sync_product_status_ranged(1, delta_days=i*120, sync_big_stocks=sync_big_stocks, auto_commit=auto_commit)
-
-    def _sync_transaction(self, item, auto_commit=False):
-        for product in self:
-            product.__sync_transaction(item, auto_commit=auto_commit)
-
-    def __sync_transaction(self, item, auto_commit=False):
-        try:
-            if self.ebay_listing_status != 'Ended'\
-               and self.ebay_listing_status != 'Out Of Stock':
-                self.ebay_listing_status = item['SellingStatus']['ListingStatus']
-                if self.env['ir.config_parameter'].sudo().sudo().get_param('ebay_out_of_stock') and\
-                   self.ebay_listing_status == 'Ended':
-                    self.ebay_listing_status = 'Out Of Stock'
-                if int(item['SellingStatus']['QuantitySold']) > 0:
-                    call_data = {
-                        'ItemID': item['ItemID'],
-                    }
-                    if self.ebay_last_sync:
-                        call_data['ModTimeFrom'] = str(self.ebay_last_sync)
-                        self.ebay_last_sync = datetime.now()
-                    resp = self.ebay_execute('GetItemTransactions', call_data).dict()
-                    if 'TransactionArray' in resp:
-                        transactions = resp['TransactionArray']['Transaction']
-                        if not isinstance(transactions, list):
-                            transactions = [transactions]
-                        for transaction in transactions:
-                            if transaction['Status']['CheckoutStatus'] == 'CheckoutComplete':
-                                self.create_sale_order(transaction)
-            self.sync_available_qty()
-            self.env.cr.commit()
-        except UserError as e:
-            if auto_commit:
-                self.env.cr.rollback()
-                self.ebay_listing_status = 'Error'
-                self.message_post(
-                    body=_("eBay error: Impossible to synchronize the products. \n'%s'") % e.args[0])
-                self.env.cr.commit()
-            else:
-                raise e
-        except RedirectWarning as e:
-            if not auto_commit:
-                raise e
-            # not configured, ignore
-            return
-
-    @api.model
     def process_queue(self):
         queue_str = self.env['ir.config_parameter'].sudo().get_param('ebay_queue')
         queue = [int(s) for s in queue_str.split(',')] if queue_str else []
@@ -661,6 +529,8 @@ class ProductTemplate(models.Model):
         Get all eBay orders since the parameter 'ebay_last_sync'.
         Note that all datetimes are considered in UTC.
         """
+        if not self._ebay_configured():
+            return
         now = datetime.now()
         last_sync_str = self.env['ir.config_parameter'].sudo().get_param('ebay_last_sync')
         if not last_sync_str:
@@ -758,175 +628,6 @@ class ProductTemplate(models.Model):
             return False
         return True
 
-    def create_sale_order(self, transaction):
-        for product in self:
-            product._create_sale_order(transaction)
-
-    def _create_sale_order(self, transaction):
-        if not self.env['sale.order'].search([
-           ('client_order_ref', '=', transaction['OrderLineItemID'])]):
-            # After 15 days eBay doesn't send the email anymore but 'Invalid Request'.
-            # If 2 transactions are synchronized with 2 different buyers with 'Invalid Request',
-            # the second buyer information will override the firs one. So we make the search
-            # on the ebay_id instead.
-            email = transaction['Buyer']['Email']
-            if email == "Invalid Request":
-                email = False
-                partner = self.env['res.partner'].search([
-                    ('ebay_id', '=', transaction['Buyer']['UserID'])])
-            else:
-                partner = self.env['res.partner'].search([
-                    ('email', '=', email)])
-            if not partner:
-                partner = self.env['res.partner'].create({'name': transaction['Buyer']['UserID']})
-            if len(partner) > 1:
-                partner = partner[0]
-            partner_data = {
-                'name': transaction['Buyer']['UserID'],
-                'ebay_id': transaction['Buyer']['UserID'],
-                'email': email,
-                'ref': 'eBay',
-            }
-            # if we reuse an existing partner, addresses might already been set on it
-            # so we hold the address data in a temporary dictionary to see if we need to create it or not
-            shipping_data = {}
-            if 'BuyerInfo' in transaction['Buyer'] and\
-               'ShippingAddress' in transaction['Buyer']['BuyerInfo']:
-                infos = transaction['Buyer']['BuyerInfo']['ShippingAddress']
-                partner_data['name'] = infos.get('Name')
-                shipping_data['name'] = infos.get('Name')
-                shipping_data['street'] = infos.get('Street1')
-                shipping_data['street2'] = infos.get('Street2')
-                shipping_data['city'] = infos.get('CityName')
-                shipping_data['zip'] = infos.get('PostalCode')
-                shipping_data['phone'] = infos.get('Phone')
-                shipping_data['country_id'] = self.env['res.country'].search([
-                    ('code', '=', infos['Country'])
-                ]).id
-                state = self.env['res.country.state'].search([
-                    ('code', '=', infos.get('StateOrProvince')),
-                    ('country_id', '=', shipping_data['country_id'])
-                ])
-                if not state:
-                    state = self.env['res.country.state'].search([
-                        ('name', '=', infos.get('StateOrProvince')),
-                        ('country_id', '=', shipping_data['country_id'])
-                    ])
-                shipping_data['state_id'] = state.id
-            shipping_partner = partner._find_existing_address(shipping_data)
-            if not shipping_partner:
-                # if the partner already has an address we create a new child contact to hold it
-                # otherwise we can directly set the new address on the partner
-                if partner.street:
-                    contact_data = {'parent_id': partner.id, 'type': 'delivery'}
-                    shipping_partner = self.env['res.partner'].create({**shipping_data, **contact_data})
-                else:
-                    partner.write(shipping_data)
-                    shipping_partner = partner
-
-            partner.write(partner_data)
-            fp_id = self.env['account.fiscal.position'].get_fiscal_position(partner.id)
-            if fp_id:
-                partner.property_account_position_id = fp_id
-            if self.product_variant_count > 1:
-                if 'Variation' in transaction:
-                    variant = self.product_variant_ids.filtered(
-                        lambda l:
-                        l.ebay_use and
-                        l.ebay_variant_url.split("vti", 1)[1] ==
-                        transaction['Variation']['VariationViewItemURL'].split("vti", 1)[1])
-                # If multiple variants but only one listed on eBay as Item Specific
-                else:
-                    call_data = {'ItemID': self.ebay_id, 'IncludeItemSpecifics': True}
-                    resp = self.ebay_execute('GetItem', call_data)
-                    name_value_list = resp.dict()['Item']['ItemSpecifics']['NameValueList']
-                    if not isinstance(name_value_list, list):
-                        name_value_list = [name_value_list]
-                    # get only the item specific in the value list
-                    variant = self._get_variant_from_ebay_specs([n for n in name_value_list if n['Source'] == 'ItemSpecific'])
-            else:
-                variant = self.product_variant_ids[0]
-            variant.ebay_quantity_sold = variant.ebay_quantity_sold + int(transaction['QuantityPurchased'])
-            if not self.ebay_sync_stock:
-                variant.ebay_quantity = variant.ebay_quantity - int(transaction['QuantityPurchased'])
-                variant_qty = 0
-                if len(self.product_variant_ids.filtered('ebay_use')) > 1:
-                    for variant in self.product_variant_ids:
-                        variant_qty += variant.ebay_quantity
-                else:
-                    variant_qty = variant.ebay_quantity
-                if variant_qty <= 0:
-                    if self.env['ir.config_parameter'].sudo().get_param('ebay_out_of_stock'):
-                        self.ebay_listing_status = 'Out Of Stock'
-                    else:
-                        self.ebay_listing_status = 'Ended'
-            sale_order = self.env['sale.order'].create({
-                'partner_id': partner.id,
-                'partner_shipping_id': shipping_partner.id,
-                'state': 'draft',
-                'client_order_ref': transaction['OrderLineItemID'],
-                'origin': 'eBay' + transaction['TransactionID'],
-                'fiscal_position_id': fp_id if fp_id else False,
-            })
-            if self.env['ir.config_parameter'].sudo().get_param('ebay_sales_team'):
-                sale_order.team_id = int(self.env['ir.config_parameter'].sudo().get_param('ebay_sales_team'))
-            currency = self.env['res.currency'].search([
-                ('name', '=', transaction['TransactionPrice']['_currencyID'])])
-            company_id = self.env.company
-            IrDefault = self.env['ir.default']
-            if variant.taxes_id:
-                taxes_id = variant.taxes_id.ids
-            else:
-                taxes_id = IrDefault.get('product.template', 'taxes_id', company_id=company_id.id)
-            sol = self.env['sale.order.line'].create({
-                'product_id': variant.id,
-                'order_id': sale_order.id,
-                'name': self.name,
-                'product_uom_qty': float(transaction['QuantityPurchased']),
-                'product_uom': variant.uom_id.id,
-                'price_unit': currency._convert(
-                    float(transaction['TransactionPrice']['value']),
-                    company_id.currency_id, company_id, fields.Date.today()),
-                'tax_id': [(6, 0, taxes_id)] if taxes_id else False,
-            })
-            sol._compute_tax_id()
-
-            # create a sales order line if a shipping service is selected
-            if 'ShippingServiceSelected' in transaction:
-                taxes_id = IrDefault.get('product.template', 'taxes_id', company_id=company_id.id)
-                shipping_name = transaction['ShippingServiceSelected']['ShippingService']
-                shipping_product = self.env['product.template'].search([('name', '=', shipping_name)])
-                if not shipping_product:
-                    shipping_product = self.env['product.template'].create({
-                        'name': shipping_name,
-                        'uom_id': self.env.ref('uom.product_uom_unit').id,
-                        'type': 'service',
-                        'categ_id': self.env.ref('sale_ebay.product_category_ebay').id,
-                    })
-                so_line = self.env['sale.order.line'].create({
-                    'order_id': sale_order.id,
-                    'name': shipping_name,
-                    'product_id': shipping_product.product_variant_ids[0].id,
-                    'product_uom_qty': 1,
-                    'product_uom': self.env.ref('uom.product_uom_unit').id,
-                    'price_unit': currency._convert(
-                            float(transaction['ShippingServiceSelected']['ShippingServiceCost']['value']),
-                            company_id.currency_id, company_id, fields.Date.today()),
-                    'tax_id': [(6, 0, taxes_id)] if taxes_id else False,
-                    'is_delivery': True,
-                })
-                so_line._compute_tax_id()
-            sale_order.action_confirm()
-            if 'BuyerCheckoutMessage' in transaction:
-                sale_order.message_post(body=_('The Buyer Posted :\n') + transaction['BuyerCheckoutMessage'])
-                sale_order.picking_ids.message_post(body=_('The Buyer Posted :\n') + transaction['BuyerCheckoutMessage'])
-            if 'ShippingServiceSelected' in transaction:
-                sale_order.picking_ids.message_post(
-                    body=_('The Buyer Chose The Following Delivery Method :\n') + shipping_name)
-            if 'order' in sale_order.order_line.filtered(
-                    lambda line: not line._is_delivery()).mapped('product_id.invoice_policy'):
-                sale_order._create_invoices(final=True)
-
     def sync_available_qty(self):
         for product in self:
             product._sync_available_qty()
@@ -984,15 +685,6 @@ class ProductTemplate(models.Model):
                 'ebay_listing_status': 'Unlisted',
                 'ebay_url': False,
             })
-
-    @api.model
-    def _cron_sync_ebay_products(self, sync_big_stocks=False, auto_commit=False):
-        self.sync_product_status(sync_big_stocks=sync_big_stocks, auto_commit=auto_commit)
-
-    @api.model
-    def sync_ebay_products(self, page_number=1):
-        # TODO: remove in master
-        self._sync_product_status()
 
     def _get_ebay_variation_specific_set(self):
         self.ensure_one()

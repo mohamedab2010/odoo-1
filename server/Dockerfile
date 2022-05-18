@@ -1,4 +1,4 @@
-FROM odoo:13.0
+FROM odoo:15.0
 LABEL maintainer="Oakland  Tech <m.abdalla@odooerp.ae>"
 
 

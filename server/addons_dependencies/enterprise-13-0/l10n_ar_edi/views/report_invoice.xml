@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_invoice_document" inherit_id="l10n_latam_invoice_document.report_invoice_document">
+
+        <div t-if="o.partner_id.vat" position="after">
+            <span>VAT Cond.: </span><span t-field="o.l10n_ar_afip_responsibility_type_id"/>
+            <t t-if="o.invoice_incoterm_id">
+                <br/><span>Incoterm: </span><span t-field="o.invoice_incoterm_id.name"/>
+            </t>
+        </div>
+
+        <span t-field="o.l10n_latam_document_type_id.report_name" position="before">
+            <span style="border: solid; padding: 10px; display: inline-block; text-align: center; line-height: 8px;">
+                <h3 style="line-height: 15px;">
+                    <strong><span t-field="o.l10n_latam_document_type_id.l10n_ar_letter"/></strong>
+                </h3>
+                <span style="font-size: x-small;">Cod <t t-esc="o.l10n_latam_document_type_id.code"/></span>
+            </span>
+        </span>
+
+        <p name="comment" position="after">
+            <span t-if="o.journal_id.l10n_ar_afip_ws == 'wsbfe'">
+                THE PURCHASER ASSUMES THE COMMITMENT, IN THE NATURE OF AN AFFECTED DECLARATION, OF NOT EXPORTING THE PROPERTY DURING THE TERM OF THREE 3 YEARS FROM THE ACQUISITION
+            </span>
+            <div t-if="o.journal_id.l10n_ar_afip_ws" style="text-align: center; vertical-align: middle;" class="col-8">
+                <span>
+                    CAE: <t t-esc="o.l10n_ar_afip_auth_code"/> - CAE Due Date: <t t-esc="o.l10n_ar_afip_auth_code_due"/>
+                </span>
+                <div t-if="o.l10n_ar_afip_barcode">
+                    <img t-if="o.l10n_ar_afip_barcode" t-att-src="'/report/barcode/?type=%s&amp;value=%s&amp;humanreadable=1' % ('I2of5', o.l10n_ar_afip_barcode)" alt="Barcode" style="width:100%;height:=70px"/>
+                </div>
+            </div>
+        </p>
+
+    </template>
+
+</odoo>

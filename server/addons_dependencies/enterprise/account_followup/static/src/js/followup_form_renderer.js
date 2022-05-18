@@ -18,7 +18,9 @@ var FollowupFormRenderer = FormRenderer.extend({
         'click .o_change_expected_date': '_onChangeExpectedDate',
         'click .o_change_trust': '_onChangeTrust',
         'click .o_account_reports_no_print .o_account_reports_summary': '_onEditSummary',
+        'click .o_account_reports_no_print .o_account_reports_email_subject': '_onEditEmailSubject',
         'click .js_account_report_save_summary': '_onSaveSummary',
+        'click .js_account_report_save_email_subject': '_onSaveEmailSubject',
         'click [action]': '_onTriggerAction',
         'click .o_account_reports_contact_info_call': '_onClickCall',
     }),
@@ -43,13 +45,17 @@ var FollowupFormRenderer = FormRenderer.extend({
      * Remove the mail alert above the report.
      */
     removeMailAlert: function () {
-        if (this.chatter) {
-            this.chatter.trigger_up('reload_mail_fields', {
-                activity: true,
-                thread: true,
-                followers: true
+        owl.Component.env.services.messaging.get().then(messaging => {
+            const thread = messaging.models['mail.thread'].findFromIdentifyingData({
+                id: this.state.res_id,
+                model: this.state.model,
             });
-        }
+            if (thread) {
+                thread.refresh();
+                thread.refreshActivities();
+                thread.refreshFollowers();
+            }
+        });
         this.$('div.alert.alert-info.alert-dismissible').remove();
     },
     /**
@@ -60,6 +66,14 @@ var FollowupFormRenderer = FormRenderer.extend({
         this.$('.o_account_reports_summary_edit').show();
         this.$('.o_account_reports_no_print .o_account_reports_summary').hide();
         this.$('textarea[name="summary"]').focus();
+    },
+    /**
+     * Render the email subject in 'edit' mode.
+     */
+    renderEditEmailSubject: function () {
+        this.$('.o_account_reports_email_subject_edit').show();
+        this.$('.o_account_reports_no_print .o_account_reports_email_subject').hide();
+        this.$('input[name="email_subject"]').focus();
     },
     /**
      * Render an alert to indicate that an email has been sent.
@@ -81,12 +95,42 @@ var FollowupFormRenderer = FormRenderer.extend({
     renderSavedSummary: function (text) {
         this.$('.o_account_reports_summary_edit').hide();
         this.$('.o_account_reports_no_print .o_account_reports_summary').show();
-        if (!text) {
-            text = "<input type='text' class='o_input o_field_widget' name='summary' />";
-        } else {
-            text = text.replace(/\n/g, '<br>');
+        var span_content = this.$('.o_account_report_summary_content');
+        var span_placeholder = this.$('.o_account_report_summary_placeholder');
+        if(text)
+        {
+            span_placeholder.hide();
+            span_content.text(text);
+            span_content.html(span_content.html().replace(/\n/g, '<br>'))
+            span_content.show();
         }
-        this.$('.o_account_reports_no_print .o_account_report_summary').html('<span>'+text+'</span');
+        else
+        {
+            span_placeholder.show();
+            span_content.hide();
+        }
+    },
+    /**
+     * Render the email_subject in 'non-edit' mode.
+     *
+     * @param {string} text Email Subject content
+     */
+    renderSavedEmailSubject: function (text) {
+        this.$('.o_account_reports_email_subject_edit').hide();
+        this.$('.o_account_reports_no_print .o_account_reports_email_subject').show();
+        var span_content = this.$('.o_account_report_email_subject_content');
+        var span_placeholder = this.$('.o_account_report_email_subject_placeholder');
+        if(text)
+        {
+            span_placeholder.hide();
+            span_content.text(text);
+            span_content.show();
+        }
+        else
+        {
+            span_placeholder.show();
+            span_content.hide();
+        }
     },
     /**
      * Render the bullet next to the name of customer according to the trust.
@@ -119,6 +163,7 @@ var FollowupFormRenderer = FormRenderer.extend({
         var $element = $('<div>');
         $element.html(this.state.data.followup_html);
         $element.find('.o_account_reports_summary_edit').hide();
+        $element.find('.o_account_reports_email_subject_edit').hide();
         this.nextActionDatePicker.appendTo($element.find('div.o_account_reports_next_action_date_picker')).then(function() {
             self.nextActionDatePicker.setValue(new moment(self.state.data.next_action_date));
         });
@@ -204,15 +249,8 @@ var FollowupFormRenderer = FormRenderer.extend({
      * @param {MouseEvent} event
      */
     _onClickCall: function (ev) {
-        var hasVoip = _.find(SystrayMenu.Items, function (SystrayMenuItem) {
-            return SystrayMenuItem.prototype.name === 'voip';
-        });
-        if (!hasVoip) {
-            return;
-        }
         ev.preventDefault();
         var $el = $(ev.currentTarget);
-        this.do_notify(_t('Start Calling'), _t('Calling') + ' ' + $el.data('number'));
         this.trigger_up('voip_call', {
             resModel: $el.data('model'),
             resId: $el.data('id'),
@@ -226,6 +264,14 @@ var FollowupFormRenderer = FormRenderer.extend({
      */
     _onEditSummary: function () {
         this.renderEditSummary();
+    },
+    /**
+     * When the user click on the email_subject, he can edit it.
+     *
+     * @private
+     */
+    _onEditEmailSubject: function () {
+        this.renderEditEmailSubject();
     },
     /**
      * When changing the reminder date, change it in db
@@ -245,6 +291,19 @@ var FollowupFormRenderer = FormRenderer.extend({
     _onSaveSummary: function (event) {
         var text = $(event.target).siblings().val().replace(/[ \t]+/g, ' ');
         this.trigger_up('on_save_summary', {
+            text: text
+        });
+    },
+    /**
+     * When the user save the email_subject, trigger an event to the controller to
+     * save the new email_subject.
+     *
+     * @private
+     * @param {MouseEvent} event
+     */
+    _onSaveEmailSubject: function (event) {
+        var text = $(event.target).siblings('input[name="email_subject"]').val().replace(/[ \t]+/g, ' ');
+        this.trigger_up('on_save_email_subject', {
             text: text
         });
     },

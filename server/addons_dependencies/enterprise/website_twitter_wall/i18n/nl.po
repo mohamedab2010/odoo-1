@@ -3,17 +3,16 @@
 # 	* website_twitter_wall
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Erwin van der Ploeg <erwin@odooexperts.nl>, 2019
-# Yenthe Van Ginneken <yenthespam@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Erwin van der Ploeg <erwin@odooexperts.nl>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:39+0000\n"
-"Last-Translator: Yenthe Van Ginneken <yenthespam@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-07-12 07:58+0000\n"
+"PO-Revision-Date: 2021-09-14 12:44+0000\n"
+"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2021\n"
 "Language-Team: Dutch (https://www.transifex.com/odoo/teams/41243/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -65,6 +64,7 @@ msgid "Active"
 msgstr "Actief"
 
 #. module: website_twitter_wall
+#: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_wall_view_form
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_wall_view_search
 msgid "Archived"
 msgstr "Gearchiveerd"
@@ -90,7 +90,10 @@ msgid "Decrease zoom level"
 msgstr "Verlaag zoomniveau"
 
 #. module: website_twitter_wall
+#. openerp-web
+#: code:addons/website_twitter_wall/static/src/xml/website_twitter_wall_tweet.xml:0
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.twitter_wall_view
+#, python-format
 msgid "Delete this tweet"
 msgstr "Verwijder deze tweet"
 
@@ -186,7 +189,6 @@ msgstr "Meest recente tweets, populairste tweets of beide"
 
 #. module: website_twitter_wall
 #: model:ir.model.fields,field_description:website_twitter_wall.field_website_twitter_wall__name
-#: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_wall_view_form
 msgid "Name"
 msgstr "Naam"
 
@@ -255,7 +257,7 @@ msgstr "Enkele weergave"
 #, python-format
 msgid ""
 "The Twitter authentication failed. Please check your API key and secret."
-msgstr "De Twitter-authenticatie is mislukt. Controleer uw API-key en secret."
+msgstr "De Twitter-authenticatie is mislukt. Controleer je API-key en secret."
 
 #. module: website_twitter_wall
 #: model:ir.model.fields,help:website_twitter_wall.field_website_twitter_wall__website_url
@@ -266,18 +268,18 @@ msgstr ""
 #. module: website_twitter_wall
 #: model:ir.model.fields,help:website_twitter_wall.field_website_twitter_wall__search_pattern
 msgid ""
-"The search criteria to get the tweets you want. You can use the Twitter "
-"query operators."
+"The search criteria to get the tweets you want. You can use the Twitter query operators.\n"
+"You can also use the special \"favorites:screen_name\" operator to get the favorited tweets of \"screen_name\"."
 msgstr ""
-"De zoekcriteria om de gewenste tweets te krijgen. U kunt de operators voor "
-"Twitter-zoekopdrachten gebruiken."
+"De zoekcriteria om de gewenste tweets te krijgen. Je kunt de Twitter-zoekterm gebruiken.\n"
+"Je kunt ook de speciale term \"favorieten: schermnaam\" gebruiken om de favoriete tweets van \"schermnaam\" te krijgen."
 
 #. module: website_twitter_wall
 #: code:addons/website_twitter_wall/models/website_twitter_wall.py:0
 #, python-format
 msgid "The tweets search failed. Check your credentials and access token"
 msgstr ""
-"Het zoeken naar tweets is mislukt. Controleer uw inloggegevens en "
+"Het zoeken naar tweets is mislukt. Controleer je inloggegevens en "
 "toegangstoken"
 
 #. module: website_twitter_wall
@@ -292,11 +294,6 @@ msgid "Total Tweets"
 msgstr "Totaal tweets"
 
 #. module: website_twitter_wall
-#: model:ir.model.fields,field_description:website_twitter_wall.field_website_twitter_wall__tweet_ids
-msgid "Tweet"
-msgstr "Tweet"
-
-#. module: website_twitter_wall
 #: model:ir.model.fields,field_description:website_twitter_wall.field_website_twitter_tweet__tweet_html
 msgid "Tweet Html"
 msgstr "Tweet Html"
@@ -304,6 +301,7 @@ msgstr "Tweet Html"
 #. module: website_twitter_wall
 #: code:addons/website_twitter_wall/models/website_twitter_wall.py:0
 #: model:ir.actions.act_window,name:website_twitter_wall.website_twitter_tweet_action
+#: model:ir.model.fields,field_description:website_twitter_wall.field_website_twitter_wall__tweet_ids
 #: model:ir.ui.menu,name:website_twitter_wall.website_twitter_tweet_menu
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_tweet_view_form
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_tweet_view_tree
@@ -328,11 +326,6 @@ msgid "Twitter Wall"
 msgstr "Twitter wall"
 
 #. module: website_twitter_wall
-#: model_terms:ir.ui.view,arch_db:website_twitter_wall.twitter_wall_footer_custom
-msgid "Twitter wall"
-msgstr "Twitter wall"
-
-#. module: website_twitter_wall
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.twitter_wall_view
 msgid "Two columns view"
 msgstr "Twee kolommen weergave"
@@ -352,6 +345,11 @@ msgstr "Zichtbaar op huidige website"
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_tweet_view_form
 msgid "Wall"
 msgstr "Wall"
+
+#. module: website_twitter_wall
+#: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_wall_view_form
+msgid "Wall Name"
+msgstr "Wall naam"
 
 #. module: website_twitter_wall
 #: model:ir.actions.act_window,name:website_twitter_wall.website_twitter_wall_action
@@ -374,5 +372,5 @@ msgstr "Website URL"
 
 #. module: website_twitter_wall
 #: model_terms:ir.ui.view,arch_db:website_twitter_wall.website_twitter_wall_view_form
-msgid "Your wall name"
-msgstr "Uw wall naam"
+msgid "e.g. My Twitter Wall"
+msgstr "bijv. Min Twitter Wall"

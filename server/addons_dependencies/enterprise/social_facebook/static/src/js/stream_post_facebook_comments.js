@@ -4,7 +4,7 @@ var core = require('web.core');
 var _t = core._t;
 var QWeb = core.qweb;
 
-var StreamPostComments = require('social.social_post_kanban_comments');
+var StreamPostComments = require('@social/js/stream_post_comments')[Symbol.for("default")];
 
 var StreamPostFacebookComments = StreamPostComments.extend({
     init: function (parent, options) {
@@ -13,10 +13,12 @@ var StreamPostFacebookComments = StreamPostComments.extend({
             commentName: _t('comment/reply')
         });
 
+        this.commentsCount = options.commentsCount;
         this.accountId = options.accountId;
         this.totalLoadedComments = options.comments.length;
         this.nextRecordsToken = options.nextRecordsToken;
         this.summary = options.summary;
+        this.mediaType = 'facebook';
 
         this._super.apply(this, arguments);
     },
@@ -27,12 +29,8 @@ var StreamPostFacebookComments = StreamPostComments.extend({
         var superDef = this._super.apply(this, arguments);
         var pageInfoDef = this._rpc({
             model: 'social.account',
-            method: 'search_read',
-            fields: [
-                'name',
-                'facebook_account_id'
-            ],
-            domain: [['id', '=', this.accountId]]
+            method: 'read',
+            args: [this.accountId, ['name', 'facebook_account_id']],
         }).then(function (result) {
             self.accountName = result[0].name;
             self.pageFacebookId = result[0].facebook_account_id;
@@ -49,9 +47,14 @@ var StreamPostFacebookComments = StreamPostComments.extend({
 
     getAuthorPictureSrc: function (comment) {
         if (comment) {
-            return comment.from.picture.data.url;
+            if (comment.from && comment.from.picture) {
+                return comment.from.picture.data.url;
+            } else {
+                // unknown author
+                return "/web/static/img/user_placeholder.jpg";
+            }
         } else {
-            return _.str.sprintf("https://graph.facebook.com/v3.3/%s/picture?height=48&width=48", this.pageFacebookId);
+            return _.str.sprintf("https://graph.facebook.com/v10.0/%s/picture?height=48&width=48", this.pageFacebookId);
         }
     },
 
@@ -60,7 +63,16 @@ var StreamPostFacebookComments = StreamPostComments.extend({
     },
 
     getAuthorLink: function (comment) {
-        return _.str.sprintf("/social_facebook/redirect_to_profile/%s/%s?name=%s", this.accountId, comment.from.id, encodeURI(comment.from.name));
+        if (comment.from.id) {
+            return _.str.sprintf("/social_facebook/redirect_to_profile/%s/%s?name=%s", this.accountId, comment.from.id, encodeURI(comment.from.name));
+        } else {
+            // unknown author
+            return "#";
+        }
+    },
+
+    isCommentDeletable: function (comment) {
+        return comment.from.id === this.pageFacebookId;
     },
 
     isCommentEditable: function (comment) {
@@ -72,7 +84,7 @@ var StreamPostFacebookComments = StreamPostComments.extend({
     },
 
     getDeleteCommentEndpoint: function () {
-        return 'delete_facebook_comment';
+        return '/social_facebook/delete_comment';
     },
 
     showMoreComments: function (result) {
@@ -89,9 +101,12 @@ var StreamPostFacebookComments = StreamPostComments.extend({
         var $target = $(ev.currentTarget);
         var userLikes = $target.data('userLikes');
         this._rpc({
-            model: 'social.stream.post',
-            method: 'like_facebook_comment',
-            args: [[this.postId], $target.data('commentId'), !userLikes]
+            route: '/social_facebook/like_comment',
+            params: {
+                stream_post_id: this.postId,
+                comment_id: $target.data('commentId'),
+                like: !userLikes
+            }
         });
 
         $target.toggleClass('o_social_comment_user_likes');
@@ -103,9 +118,12 @@ var StreamPostFacebookComments = StreamPostComments.extend({
         ev.preventDefault();
 
         this._rpc({
-            model: 'social.stream.post',
-            method: 'get_facebook_comments',
-            args: [[this.postId], this.nextRecordsToken]
+            route: '/social_facebook/get_comments',
+            params: {
+                stream_post_id: this.postId,
+                next_records_token: this.nextRecordsToken,
+                comments_count: this.commentsCount
+            },
         }).then(function (result) {
             var $moreComments = $(QWeb.render("social.StreamPostCommentsWrapper", {
                 widget: self,

@@ -4,18 +4,18 @@
     <!-- LT BAS PROFIT AND LOSS REPORT -->
     <record id="account_financial_report_profitandloss_lt" model="account.financial.html.report">
         <field name="name">Profit and Loss</field>
-        <field name="debit_credit" eval="False"/>
         <field name="analytic" eval="True"/>
         <field name="unfold_all_filter" eval="True"/>
         <field name="show_journal_filter" eval="True"/>
         <field name="parent_id" ref="l10n_lt.account_reports_lt_statements_menu"/>
+        <field name="country_id" ref="base.lt"/>
     </record>
 
     <record id="account_financial_html_report_line_pnl_lt_1" model="account.financial.html.report.line">
         <field name="name">Net turnover</field>
         <field name="code">PNL_1_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="10"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_1_net_turnover'))]"/>
@@ -26,7 +26,7 @@
         <field name="name">Cost of sales</field>
         <field name="code">PNL_2_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="20"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_2_cost_of_sales'))]"/>
@@ -37,7 +37,7 @@
         <field name="name">Fair value adjustments of the biological assets</field>
         <field name="code">PNL_3_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="30"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_3_adjustments_of_biological_assets'))]"/>
@@ -48,7 +48,7 @@
         <field name="name">GROSS PROFIT (LOSS)</field>
         <field name="code">PNL_4_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = PNL_1_.balance - PNL_2_.balance + PNL_3_.balance</field>
+        <field name="formulas">PNL_1_ - PNL_2_ + PNL_3_</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="40"/>
         <field name="domain" eval=""/>
@@ -59,7 +59,7 @@
         <field name="name">Selling expenses</field>
         <field name="code">PNL_5_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="50"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_4_selling_expenses'))]"/>
@@ -70,7 +70,7 @@
         <field name="name">General and administrative expenses</field>
         <field name="code">PNL_6_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="60"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_5_general_administrative_expenses'))]"/>
@@ -81,7 +81,7 @@
         <field name="name">Other operating results</field>
         <field name="code">PNL_7_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="70"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_6_other_operating_results'))]"/>
@@ -92,7 +92,7 @@
         <field name="name">Income from investments in the shares of parent, subsidiaries and associated entities</field>
         <field name="code">PNL_8_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="80"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_7_income_investments_parent'))]"/>
@@ -103,7 +103,7 @@
         <field name="name">Income from other long-term investments and loans</field>
         <field name="code">PNL_9_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="90"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_8_income_other_longterm_investments_loans'))]"/>
@@ -114,7 +114,7 @@
         <field name="name">Other interest and similar income</field>
         <field name="code">PNL_10_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="100"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_9_other_interest_similar_income'))]"/>
@@ -125,7 +125,7 @@
         <field name="name">The impairment of the financial assets and short-term investments</field>
         <field name="code">PNL_11_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="110"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_10_impaired_fin_assets_short_investments'))]"/>
@@ -136,7 +136,7 @@
         <field name="name">Interest and other similar expenses</field>
         <field name="code">PNL_12_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="120"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_11_interest_other_similar_expenses'))]"/>
@@ -147,7 +147,7 @@
         <field name="name">PROFIT (LOSS) BEFORE TAXATION</field>
         <field name="code">PNL_13_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = PNL_4_.balance - PNL_5_.balance - PNL_6_.balance + PNL_7_.balance + PNL_8_.balance + PNL_9_.balance + PNL_10_.balance - PNL_11_.balance - PNL_12_.balance</field>
+        <field name="formulas">PNL_4_ - PNL_5_ - PNL_6_ + PNL_7_ + PNL_8_ + PNL_9_ + PNL_10_ - PNL_11_ - PNL_12_</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="130"/>
         <field name="domain" eval=""/>
@@ -158,7 +158,7 @@
         <field name="name">Tax on profit</field>
         <field name="code">PNL_14_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="140"/>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_12_tax_on_profit'))]"/>
@@ -169,7 +169,7 @@
         <field name="name">NET PROFIT (LOSS)</field>
         <field name="code">PNL_15_</field>
         <field name="financial_report_id" ref="account_financial_report_profitandloss_lt"/>
-        <field name="formulas">balance = PNL_13_.balance - PNL_14_.balance</field>
+        <field name="formulas">PNL_13_ - PNL_14_</field>
         <field name="level" eval="2"/>
         <field name="sequence" eval="150"/>
         <field name="domain" eval=""/>
@@ -180,17 +180,17 @@
     <!-- LT BAS BALANCE SHEET REPORT -->
     <record id="account_financial_report_balancesheet_lt" model="account.financial.html.report">
         <field name="name">Balance Sheet</field>
-        <field name="debit_credit" eval="False"/>
         <field name="analytic" eval="True"/>
         <field name="unfold_all_filter" eval="True"/>
         <field name="parent_id" ref="l10n_lt.account_reports_lt_statements_menu"/>
+        <field name="country_id" ref="base.lt"/>
     </record>
 
     <record id="account_financial_html_report_line_bs_lt_credit" model="account.financial.html.report.line">
         <field name="code">BS_CREDIT</field>
         <field name="domain" eval=""/>
         <field name="financial_report_id" ref="account_financial_report_balancesheet_lt"/>
-        <field name="formulas">balance = BS_D_.balance + BS_E_.balance + BS_F_.balance + BS_G_.balance + BS_H_.balance</field>
+        <field name="formulas">BS_D_ + BS_E_ + BS_F_ + BS_G_ + BS_H_</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="0"/>
         <field name="name">TOTAL EQUITY AND LIABILITIES</field>
@@ -200,7 +200,7 @@
         <field name="code">BS_DEBIT</field>
         <field name="domain" eval=""/>
         <field name="financial_report_id" ref="account_financial_report_balancesheet_lt"/>
-        <field name="formulas">balance = BS_A_.balance + BS_B_.balance + BS_C_.balance</field>
+        <field name="formulas">BS_A_ + BS_B_ + BS_C_</field>
         <field name="groupby"></field>
         <field name="level" eval="0"/>
         <field name="name">TOTAL ASSETS</field>
@@ -209,7 +209,7 @@
     <record id="account_financial_html_report_line_bs_lt_a" model="account.financial.html.report.line">
         <field name="code">BS_A_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_1_.balance + BS_A_2_.balance + BS_A_3_.balance + BS_A_4_.balance</field>
+        <field name="formulas">BS_A_1_ + BS_A_2_ + BS_A_3_ + BS_A_4_</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_debit"/>
@@ -219,7 +219,7 @@
     <record id="account_financial_html_report_line_bs_lt_b" model="account.financial.html.report.line">
         <field name="code">BS_B_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_B_1_.balance + BS_B_2_.balance + BS_B_3_.balance  + BS_B_4_.balance</field>
+        <field name="formulas">BS_B_1_ + BS_B_2_ + BS_B_3_  + BS_B_4_</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_debit"/>
@@ -229,7 +229,7 @@
     <record id="account_financial_html_report_line_bs_lt_c" model="account.financial.html.report.line">
         <field name="code">BS_C_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_c_prepayments_accrued_income'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_debit"/>
@@ -239,7 +239,7 @@
     <record id="account_financial_html_report_line_bs_lt_d" model="account.financial.html.report.line">
         <field name="code">BS_D_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_D_1_.balance + BS_D_2_.balance + BS_D_3_.balance + BS_D_4_.balance + BS_D_5_.balance</field>
+        <field name="formulas">BS_D_1_ + BS_D_2_ + BS_D_3_ + BS_D_4_ + BS_D_5_</field>
         <field name="groupby"></field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_credit"/>
@@ -249,7 +249,7 @@
     <record id="account_financial_html_report_line_bs_lt_e" model="account.financial.html.report.line">
         <field name="code">BS_E_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_e_grants_subsidies'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_credit"/>
@@ -259,7 +259,7 @@
     <record id="account_financial_html_report_line_bs_lt_f" model="account.financial.html.report.line">
         <field name="code">BS_F_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_F_1_.balance + BS_F_2_.balance + BS_F_3_.balance</field>
+        <field name="formulas">BS_F_1_ + BS_F_2_ + BS_F_3_</field>
         <field name="groupby"></field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_credit"/>
@@ -269,7 +269,7 @@
     <record id="account_financial_html_report_line_bs_lt_g" model="account.financial.html.report.line">
         <field name="code">BS_G_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_G_1_.balance + BS_G_2_.balance</field>
+        <field name="formulas">BS_G_1_ + BS_G_2_</field>
         <field name="groupby"></field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_credit"/>
@@ -279,7 +279,7 @@
     <record id="account_financial_html_report_line_bs_lt_h" model="account.financial.html.report.line">
         <field name="code">BS_H_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_h_accruals_deferred_income'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="1"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_credit"/>
@@ -289,7 +289,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1" model="account.financial.html.report.line">
         <field name="code">BS_A_1_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_1_1_.balance + BS_A_1_2_.balance + BS_A_1_3_.balance + BS_A_1_4_.balance + BS_A_1_5_.balance + BS_A_1_6_.balance</field>
+        <field name="formulas">BS_A_1_1_ + BS_A_1_2_ + BS_A_1_3_ + BS_A_1_4_ + BS_A_1_5_ + BS_A_1_6_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a"/>
@@ -299,7 +299,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2" model="account.financial.html.report.line">
         <field name="code">BS_A_2_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_2_1_.balance + BS_A_2_2_.balance + BS_A_2_3_.balance + BS_A_2_4_.balance + BS_A_2_5_.balance + BS_A_2_6_.balance + BS_A_2_7_.balance</field>
+        <field name="formulas">BS_A_2_1_ + BS_A_2_2_ + BS_A_2_3_ + BS_A_2_4_ + BS_A_2_5_ + BS_A_2_6_ + BS_A_2_7_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a"/>
@@ -309,7 +309,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3" model="account.financial.html.report.line">
         <field name="code">BS_A_3_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_3_1_.balance + BS_A_3_2_.balance + BS_A_3_3_.balance + BS_A_3_4_.balance + BS_A_3_5_.balance + BS_A_3_6_.balance + BS_A_3_7_.balance + BS_A_3_8_.balance + BS_A_3_9_.balance</field>
+        <field name="formulas">BS_A_3_1_ + BS_A_3_2_ + BS_A_3_3_ + BS_A_3_4_ + BS_A_3_5_ + BS_A_3_6_ + BS_A_3_7_ + BS_A_3_8_ + BS_A_3_9_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a"/>
@@ -319,7 +319,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_4" model="account.financial.html.report.line">
         <field name="code">BS_A_4_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_4_1_.balance + BS_A_4_2_.balance + BS_A_4_3_.balance</field>
+        <field name="formulas">BS_A_4_1_ + BS_A_4_2_ + BS_A_4_3_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a"/>
@@ -329,7 +329,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1" model="account.financial.html.report.line">
         <field name="code">BS_B_1_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_B_1_1_.balance + BS_B_1_2_.balance + BS_B_1_3_.balance  + BS_B_1_4_.balance + BS_B_1_5_.balance  + BS_B_1_6_.balance + BS_B_1_7_.balance</field>
+        <field name="formulas">BS_B_1_1_ + BS_B_1_2_ + BS_B_1_3_  + BS_B_1_4_ + BS_B_1_5_  + BS_B_1_6_ + BS_B_1_7_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b"/>
@@ -339,7 +339,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_2" model="account.financial.html.report.line">
         <field name="code">BS_B_2_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_B_2_1_ .balance + BS_B_2_2_.balance + BS_B_2_3_.balance + BS_B_2_4_.balance</field>
+        <field name="formulas">BS_B_2_1_  + BS_B_2_2_ + BS_B_2_3_ + BS_B_2_4_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b"/>
@@ -349,7 +349,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_3" model="account.financial.html.report.line">
         <field name="code">BS_B_3_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_B_3_1_ .balance + BS_B_3_2_.balance</field>
+        <field name="formulas">BS_B_3_1_  + BS_B_3_2_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b"/>
@@ -361,7 +361,7 @@
         <!-- Explicitly searching for accounts starting with code prefixes
         271 and 272 to automatically include generated bank and cash accounts. -->
         <field name="domain" eval="['|', '|', ('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_4')), ('account_id.code', '=like', '271%'), ('account_id.code', '=like', '272%')]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b"/>
@@ -371,7 +371,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_1" model="account.financial.html.report.line">
         <field name="code">BS_D_1_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_D_1_1_.balance + BS_D_1_2_.balance + BS_D_1_3_.balance</field>
+        <field name="formulas">BS_D_1_1_ + BS_D_1_2_ + BS_D_1_3_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d"/>
@@ -381,7 +381,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_2" model="account.financial.html.report.line">
         <field name="code">BS_D_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_2_share_premium'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d"/>
@@ -391,7 +391,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_3" model="account.financial.html.report.line">
         <field name="code">BS_D_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_3_revaluation_reserve'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d"/>
@@ -401,7 +401,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_4" model="account.financial.html.report.line">
         <field name="code">BS_D_4_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_D_4_1_.balance +BS_D_4_2_.balance + BS_D_4_3_.balance</field>
+        <field name="formulas">BS_D_4_1_ +BS_D_4_2_ + BS_D_4_3_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d"/>
@@ -411,7 +411,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_5" model="account.financial.html.report.line">
         <field name="code">BS_D_5_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_D_5_1_.balance + BS_D_5_2_.balance</field>
+        <field name="formulas">BS_D_5_1_ + BS_D_5_2_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d"/>
@@ -421,7 +421,7 @@
     <record id="account_financial_html_report_line_bs_lt_f_1" model="account.financial.html.report.line">
         <field name="code">BS_F_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_f_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_f"/>
@@ -431,7 +431,7 @@
     <record id="account_financial_html_report_line_bs_lt_f_2" model="account.financial.html.report.line">
         <field name="code">BS_F_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_f_2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_f"/>
@@ -441,7 +441,7 @@
     <record id="account_financial_html_report_line_bs_lt_f_3" model="account.financial.html.report.line">
         <field name="code">BS_F_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_f_3'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_f"/>
@@ -451,7 +451,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1" model="account.financial.html.report.line">
         <field name="code">BS_G_1_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_G_1_1_.balance + BS_G_1_2_.balance + BS_G_1_3_.balance + BS_G_1_4_.balance + BS_G_1_5_.balance + BS_G_1_6_.balance + BS_G_1_7_.balance + BS_G_1_8_.balance</field>
+        <field name="formulas">BS_G_1_1_ + BS_G_1_2_ + BS_G_1_3_ + BS_G_1_4_ + BS_G_1_5_ + BS_G_1_6_ + BS_G_1_7_ + BS_G_1_8_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g"/>
@@ -461,7 +461,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2" model="account.financial.html.report.line">
         <field name="code">BS_G_2_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_G_2_1_.balance + BS_G_2_2_.balance + BS_G_2_3_.balance + BS_G_2_4_.balance + BS_G_2_5_.balance + BS_G_2_6_.balance + BS_G_2_7_.balance + BS_G_2_8_.balance + BS_G_2_9_.balance + BS_G_2_10_.balance</field>
+        <field name="formulas">BS_G_2_1_ + BS_G_2_2_ + BS_G_2_3_ + BS_G_2_4_ + BS_G_2_5_ + BS_G_2_6_ + BS_G_2_7_ + BS_G_2_8_ + BS_G_2_9_ + BS_G_2_10_</field>
         <field name="groupby"></field>
         <field name="level" eval="2"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g"/>
@@ -471,7 +471,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_1" model="account.financial.html.report.line">
         <field name="code">BS_A_1_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -481,7 +481,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_2" model="account.financial.html.report.line">
         <field name="code">BS_A_1_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -491,7 +491,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_3" model="account.financial.html.report.line">
         <field name="code">BS_A_1_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -501,7 +501,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_4" model="account.financial.html.report.line">
         <field name="code">BS_A_1_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_4'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -511,7 +511,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_5" model="account.financial.html.report.line">
         <field name="code">BS_A_1_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_5'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -521,7 +521,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_1_6" model="account.financial.html.report.line">
         <field name="code">BS_A_1_6_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_1_6'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_1"/>
@@ -531,7 +531,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_1" model="account.financial.html.report.line">
         <field name="code">BS_A_2_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -541,7 +541,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_2" model="account.financial.html.report.line">
         <field name="code">BS_A_2_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -551,7 +551,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_3" model="account.financial.html.report.line">
         <field name="code">BS_A_2_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -561,7 +561,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_4" model="account.financial.html.report.line">
         <field name="code">BS_A_2_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_4'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -571,7 +571,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_5" model="account.financial.html.report.line">
         <field name="code">BS_A_2_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_5'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -581,7 +581,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_6" model="account.financial.html.report.line">
         <field name="code">BS_A_2_6_</field>
         <field name="domain" eval=""/>
-        <field name="formulas">balance = BS_A_2_6_1_.balance + BS_A_2_6_2_.balance</field>
+        <field name="formulas">BS_A_2_6_1_ + BS_A_2_6_2_</field>
         <field name="groupby"></field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -591,7 +591,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_7" model="account.financial.html.report.line">
         <field name="code">BS_A_2_7_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_7'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2"/>
@@ -601,7 +601,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_1" model="account.financial.html.report.line">
         <field name="code">BS_A_3_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -611,7 +611,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_2" model="account.financial.html.report.line">
         <field name="code">BS_A_3_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -621,7 +621,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_3" model="account.financial.html.report.line">
         <field name="code">BS_A_3_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -631,7 +631,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_4" model="account.financial.html.report.line">
         <field name="code">BS_A_3_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_4'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -641,7 +641,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_5" model="account.financial.html.report.line">
         <field name="code">BS_A_3_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_5'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -651,7 +651,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_6" model="account.financial.html.report.line">
         <field name="code">BS_A_3_6_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_6'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -661,7 +661,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_7" model="account.financial.html.report.line">
         <field name="code">BS_A_3_7_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_7'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -671,7 +671,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_8" model="account.financial.html.report.line">
         <field name="code">BS_A_3_8_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_8'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -681,7 +681,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_3_9" model="account.financial.html.report.line">
         <field name="code">BS_A_3_9_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_3_9'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_3"/>
@@ -691,7 +691,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_4_1" model="account.financial.html.report.line">
         <field name="code">BS_A_4_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_4_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_4"/>
@@ -701,7 +701,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_4_2" model="account.financial.html.report.line">
         <field name="code">BS_A_4_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_4_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_4"/>
@@ -711,7 +711,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_4_3" model="account.financial.html.report.line">
         <field name="code">BS_A_4_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_4_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_4"/>
@@ -721,7 +721,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_1" model="account.financial.html.report.line">
         <field name="code">BS_B_1_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -731,7 +731,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_2" model="account.financial.html.report.line">
         <field name="code">BS_B_1_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -741,7 +741,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_3" model="account.financial.html.report.line">
         <field name="code">BS_B_1_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -751,7 +751,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_4" model="account.financial.html.report.line">
         <field name="code">BS_B_1_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_4'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -761,7 +761,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_5" model="account.financial.html.report.line">
         <field name="code">BS_B_1_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_5'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -771,7 +771,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_6" model="account.financial.html.report.line">
         <field name="code">BS_B_1_6_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_6'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -781,7 +781,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_1_7" model="account.financial.html.report.line">
         <field name="code">BS_B_1_7_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_1_7'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_1"/>
@@ -791,7 +791,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_2_1" model="account.financial.html.report.line">
         <field name="code">BS_B_2_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_2_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_2"/>
@@ -801,7 +801,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_2_2" model="account.financial.html.report.line">
         <field name="code">BS_B_2_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_2_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_2"/>
@@ -811,7 +811,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_2_3" model="account.financial.html.report.line">
         <field name="code">BS_B_2_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_2_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_2"/>
@@ -821,7 +821,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_2_4" model="account.financial.html.report.line">
         <field name="code">BS_B_2_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_2_4'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_2"/>
@@ -831,7 +831,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_3_1" model="account.financial.html.report.line">
         <field name="code">BS_B_3_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_3_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_3"/>
@@ -841,7 +841,7 @@
     <record id="account_financial_html_report_line_bs_lt_b_3_2" model="account.financial.html.report.line">
         <field name="code">BS_B_3_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_b_3_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_b_3"/>
@@ -851,7 +851,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_1_1" model="account.financial.html.report.line">
         <field name="code">BS_D_1_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_1_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_1"/>
@@ -861,7 +861,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_1_2" model="account.financial.html.report.line">
         <field name="code">BS_D_1_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_1_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_1"/>
@@ -871,7 +871,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_1_3" model="account.financial.html.report.line">
         <field name="code">BS_D_1_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_1_3'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_1"/>
@@ -881,7 +881,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_4_1" model="account.financial.html.report.line">
         <field name="code">BS_D_4_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_4_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_4"/>
@@ -891,7 +891,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_4_2" model="account.financial.html.report.line">
         <field name="code">BS_D_4_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_4_2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_4"/>
@@ -901,7 +901,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_4_3" model="account.financial.html.report.line">
         <field name="code">BS_D_4_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_4_3'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_4"/>
@@ -911,7 +911,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_5_1" model="account.financial.html.report.line">
         <field name="code">BS_D_5_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_5_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_5"/>
@@ -921,7 +921,7 @@
     <record id="account_financial_html_report_line_bs_lt_d_5_2" model="account.financial.html.report.line">
         <field name="code">BS_D_5_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_d_5_2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_d_5"/>
@@ -931,7 +931,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_1" model="account.financial.html.report.line">
         <field name="code">BS_G_1_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -941,7 +941,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_2" model="account.financial.html.report.line">
         <field name="code">BS_G_1_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -951,7 +951,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_3" model="account.financial.html.report.line">
         <field name="code">BS_G_1_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_3'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -961,7 +961,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_4" model="account.financial.html.report.line">
         <field name="code">BS_G_1_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_4'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -971,7 +971,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_5" model="account.financial.html.report.line">
         <field name="code">BS_G_1_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_5'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -981,7 +981,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_6" model="account.financial.html.report.line">
         <field name="code">BS_G_1_6_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_6'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -991,7 +991,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_7" model="account.financial.html.report.line">
         <field name="code">BS_G_1_7_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_7'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -1001,7 +1001,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_1_8" model="account.financial.html.report.line">
         <field name="code">BS_G_1_8_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_1_8'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_1"/>
@@ -1011,7 +1011,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_1" model="account.financial.html.report.line">
         <field name="code">BS_G_2_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_1'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1021,7 +1021,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_10" model="account.financial.html.report.line">
         <field name="code">BS_G_2_10_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_10'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1031,7 +1031,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_2" model="account.financial.html.report.line">
         <field name="code">BS_G_2_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1041,7 +1041,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_3" model="account.financial.html.report.line">
         <field name="code">BS_G_2_3_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_3'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1051,7 +1051,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_4" model="account.financial.html.report.line">
         <field name="code">BS_G_2_4_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_4'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1061,7 +1061,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_5" model="account.financial.html.report.line">
         <field name="code">BS_G_2_5_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_5'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1071,7 +1071,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_6" model="account.financial.html.report.line">
         <field name="code">BS_G_2_6_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_6'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1081,7 +1081,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_7" model="account.financial.html.report.line">
         <field name="code">BS_G_2_7_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_7'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1091,7 +1091,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_8" model="account.financial.html.report.line">
         <field name="code">BS_G_2_8_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_8'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1101,7 +1101,7 @@
     <record id="account_financial_html_report_line_bs_lt_g_2_9" model="account.financial.html.report.line">
         <field name="code">BS_G_2_9_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_g_2_9'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="3"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_g_2"/>
@@ -1111,7 +1111,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_6_1" model="account.financial.html.report.line">
         <field name="code">BS_A_2_6_1_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_6_1'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="4"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2_6"/>
@@ -1121,7 +1121,7 @@
     <record id="account_financial_html_report_line_bs_lt_a_2_6_2" model="account.financial.html.report.line">
         <field name="code">BS_A_2_6_2_</field>
         <field name="domain" eval="[('account_id.tag_ids', '=', ref('l10n_lt.account_account_tag_a_2_6_2'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="level" eval="4"/>
         <field name="parent_id" ref="account_financial_html_report_line_bs_lt_a_2_6"/>

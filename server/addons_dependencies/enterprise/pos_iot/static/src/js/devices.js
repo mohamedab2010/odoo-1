@@ -34,7 +34,7 @@ ProxyDevice.include({
     /**
      * Set the status of the IoT Box that has the specified url and update the
      * status icon
-     * 
+     *
      * @param {String} url
      * @param {Boolean} connected
      */

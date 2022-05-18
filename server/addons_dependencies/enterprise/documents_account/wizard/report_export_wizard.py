@@ -12,12 +12,16 @@ class ReportExportWizard(models.TransientModel):
 
     def _get_default_folder(self):
         company = self.env.company
-        return company.documents_account_settings and company.account_folder or self.env.ref('documents.documents_finance_folder')
+        return company.account_folder if company.documents_account_settings else self.env.ref('documents.documents_finance_folder', raise_if_not_found=False)
 
     folder_id = fields.Many2one(string="Folder", comodel_name='documents.folder',
         help="Folder where to save the generated file", required=True,
         default=_get_default_folder)
-    tag_ids = fields.Many2many('documents.tag', 'export_wiz_document_tag_rel', string="Tags")
+    tag_ids = fields.Many2many('documents.tag', 'export_wiz_document_tag_rel', string="Tags", domain="[('folder_id', '=', folder_id)]")
+
+    @api.onchange('folder_id')
+    def on_folder_id_change(self):
+        self.tag_ids = False
 
     def export_report(self):
         # When making the export with Documents app installed, we want the resulting action to open the folder of Documents where

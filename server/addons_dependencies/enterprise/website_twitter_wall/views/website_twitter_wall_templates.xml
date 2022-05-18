@@ -1,20 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Add twitter wall link under connect with us -->
-    <template id="twitter_wall_footer_custom" inherit_id="website.footer_custom" name="Footer Twitter Wall Link">
-        <xpath expr="//div[@id='connect']/ul/*[1]" position="after">
-            <li><a href="/twitter_walls">Twitter wall</a></li>
-        </xpath>
-    </template>
-
     <!-- Assets frontend for twitter wall -->
-    <template id="assets_frontend" inherit_id="website.assets_frontend" name="Twitter Wall Assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/website_twitter_wall/static/src/js/website_twitter_wall.js" />
-            <link type="text/scss" href="/website_twitter_wall/static/src/scss/website_twitter_wall.scss" rel="stylesheet" t-ignore="true"/>
-        </xpath>
-    </template>
-
     <!-- Display walls -->
     <template id="twitter_walls" name="Twitter Walls">
         <t t-call="website.layout">
@@ -25,7 +11,7 @@
                     <t t-if="not walls" groups="base.group_user">
                         <div class="col-md-12 text-center">
                             <h1><b>Hey! No wall found</b></h1>
-                            <button class="btn btn-primary o-tw-wall-create"><i class="fa fa-plus-circle" /> Create Now</button>
+                            <a href="/web#action=website_twitter_wall.website_twitter_wall_action" class="btn btn-primary o-tw-wall-create"><i class="fa fa-plus-circle" /> Create Now</a>
                         </div>
                     </t>
                     <div class="col-sm-6 col-md-4 mt16" t-foreach="walls" t-as="wall">
@@ -37,7 +23,7 @@
                                 <h4 class="mt4 mb8 o-tw-ellipsis">
                                     <a t-att-title="wall.name" t-attf-href="/twitter_wall/view/#{wall.id}" t-field="wall.name" />
                                 </h4>
-                                <h5 t-if="wall.description" t-att-title="wall.description" t-field="wall.description" class="o-tw-ellipsis" />
+                                <h5 t-if="not is_html_empty(wall.description)" t-att-title="wall.description" t-field="wall.description" class="o-tw-ellipsis" />
                             </div>
                         </div>
                     </div>
@@ -53,6 +39,7 @@
             <script src="//platform.twitter.com/widgets.js" charset="utf-8" />
         </t>
         <t t-call="website.layout">
+            <div class="o-tw-container">
             <div class="o-tw-toggle o-tw-storify-cover o-tw-cover" t-attf-style="background-image: url(#{website.image_url(wall, 'image')});">
                 <div class="o-tw-shadow" >
                     <div class="container">
@@ -81,9 +68,9 @@
                 <div class="container-fluid">
                     <div class="row mt8 mb8 container-fluid">
                         <div class="col-4 o-tw-hashtag">
-                            <div class="mb4" t-if="wall.description">
+                            <div class="mb4" t-if="not is_html_empty(wall.description)">
                                 <h4><i class="fa fa-twitter" /> <strong> Join the wall</strong></h4>
-                                <label class="label" t-esc="'%s' % (wall.description)" />
+                                <label class="label" t-esc="wall.description" />
                             </div>
                         </div>
                         <div class="o-tw-options col-4 mt16">
@@ -129,7 +116,7 @@
                                 <center class="o-tw-tweet" t-att-data-tweet-id="tw.id">
                                     <div>
                                         <button class="btn o-tw-tweet-delete hidden-xs" groups="base.group_user" title="Delete this tweet"><i class="fa fa-trash text-primary" /></button>
-                                        <span t-raw="tw.tweet_html" />
+                                        <span t-out="tw.tweet_html" />
                                     </div>
                                 </center>
                             </t>
@@ -139,6 +126,7 @@
                 <div class="row text-center o-tw-toggle">
                     <t t-call="website.pager" />
                 </div>
+            </div>
             </div>
         </t>
     </template>
@@ -152,7 +140,7 @@
             <a target="_Blank" t-attf-title="Share #{wall.name} on twitter" t-attf-href="https://twitter.com/intent/tweet?text=#{wall.name}&amp;url=#{wall.website_url}">
                 <i class="fa fa-twitter-square fa-2x" />
             </a>
-            <a target="_Blank" t-attf-title="Share #{wall.name} on linkedin" t-attf-href="http://www.linkedin.com/shareArticle?mini=true&amp;url=#{wall.website_url}&amp;title=#{wall.name}&amp;">
+            <a target="_Blank" t-attf-title="Share #{wall.name} on linkedin" t-attf-href="http://www.linkedin.com/sharing/share-offsite/?url=#{wall.website_url}">
                 <i class="fa fa-linkedin-square fa-2x" />
             </a>
             <a target="_Blank" t-attf-title="Share #{wall.name} on google+" t-attf-href="https://plus.google.com/share?url=#{wall.website_url}">

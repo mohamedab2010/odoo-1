@@ -7,13 +7,14 @@
         <field name="unfold_all_filter" eval="True"/>
         <field name="show_journal_filter" eval="False"/>
         <field name="parent_id" ref="spanish_reports_menu"/>
+        <field name="country_id" ref="base.es"/>
     </record>
 
     <record id="es_profit_and_loss_line_sum_a" model="account.financial.html.report.line">
         <field name="name">A) RESULTADO DE EXPLOTACIÓN (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12)</field>
         <field name="code">es_profit_and_loss_sum_a</field>
         <field name="financial_report_id" ref="financial_report_es_profit_and_loss"/>
-        <field name="formulas">balance = es_profit_and_loss_line_1.balance + es_profit_and_loss_line_2.balance + es_profit_and_loss_line_3.balance + es_profit_and_loss_line_4.balance + es_profit_and_loss_line_5.balance + es_profit_and_loss_line_6.balance + es_profit_and_loss_line_7.balance + es_profit_and_loss_line_8.balance + es_profit_and_loss_line_9.balance + es_profit_and_loss_line_10.balance + es_profit_and_loss_line_11.balance + es_profit_and_loss_line_12.balance</field>
+        <field name="formulas">es_profit_and_loss_line_1 + es_profit_and_loss_line_2 + es_profit_and_loss_line_3 + es_profit_and_loss_line_4 + es_profit_and_loss_line_5 + es_profit_and_loss_line_6 + es_profit_and_loss_line_7 + es_profit_and_loss_line_8 + es_profit_and_loss_line_9 + es_profit_and_loss_line_10 + es_profit_and_loss_line_11 + es_profit_and_loss_line_12</field>
         <field name="sequence" eval="1"/>
         <field name="level" eval="1"/>
     </record>
@@ -31,7 +32,7 @@
                                     '|', ('account_id.code', '=like', '706%'),
                                     '|', ('account_id.code', '=like', '708%'),
                                     ('account_id.code', '=like', '709%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="1"/>
@@ -45,7 +46,7 @@
         <field name="domain" eval="['|', ('account_id.code', '=like', '6930%'),
                                     '|', ('account_id.code', '=like', '71%'),
                                     ('account_id.code', '=like', '7930%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="2"/>
@@ -57,7 +58,7 @@
         <field name="code">es_profit_and_loss_line_3</field>
         <field name="parent_id" ref="es_profit_and_loss_line_sum_a"/>
         <field name="domain" eval="[('account_id.code','=like','73%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="3"/>
@@ -82,7 +83,7 @@
                                     '|', ('account_id.code', '=like', '7931%'),
                                     '|', ('account_id.code', '=like', '7932%'),
                                     ('account_id.code', '=like', '7933%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="4"/>
@@ -96,7 +97,7 @@
         <field name="domain" eval="['|', ('account_id.code', '=like', '740%'),
                                     '|', ('account_id.code', '=like', '747%'),
                                     ('account_id.code', '=like', '75%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="5"/>
@@ -108,7 +109,7 @@
         <field name="code">es_profit_and_loss_line_6</field>
         <field name="parent_id" ref="es_profit_and_loss_line_sum_a"/>
         <field name="domain" eval="[('account_id.code','=like','64%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="6"/>
@@ -129,7 +130,7 @@
                                     '|', ('account_id.code','=like','695%'),
                                     '|', ('account_id.code','=like','794%'),
                                     ('account_id.code','=like','7954%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="7"/>
@@ -141,7 +142,7 @@
         <field name="code">es_profit_and_loss_line_8</field>
         <field name="parent_id" ref="es_profit_and_loss_line_sum_a"/>
         <field name="domain" eval="[('account_id.code','=like','68%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="8"/>
@@ -152,8 +153,8 @@
         <field name="name">9. Imputación de subvenciones de inmovilizado no financiero y otras</field>
         <field name="code">es_profit_and_loss_line_9</field>
         <field name="parent_id" ref="es_profit_and_loss_line_sum_a"/>
-        <field name="domain" eval="[('account_id.code','=like','746%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="domain" eval="[('account_id.code','=like','746%'), ('account_id.code','not like','7461%')]"/>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="9"/>
@@ -167,7 +168,7 @@
         <field name="domain" eval="['|', ('account_id.code','=like','7951%'),
                                     '|', ('account_id.code','=like','7952%'),
                                     ('account_id.code','=like','7955%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="10"/>
@@ -189,7 +190,7 @@
                                     '|', ('account_id.code', '=like', '790%'),
                                     '|', ('account_id.code', '=like', '791%'),
                                     ('account_id.code', '=like', '792%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="11"/>
@@ -202,7 +203,7 @@
         <field name="parent_id" ref="es_profit_and_loss_line_sum_a"/>
         <field name="domain" eval="['|',('account_id.code', '=like', '678%'),
                                     ('account_id.code', '=like', '778%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="12"/>
@@ -213,7 +214,7 @@
         <field name="name">B) RESULTADO FINANCIERO (13 + 14 + 15 + 16 + 17)</field>
         <field name="code">es_profit_and_loss_sum_b</field>
         <field name="financial_report_id" ref="financial_report_es_profit_and_loss"/>
-        <field name="formulas">balance = es_profit_and_loss_line_13.balance + es_profit_and_loss_line_14.balance + es_profit_and_loss_line_15.balance + es_profit_and_loss_line_16.balance + es_profit_and_loss_line_17.balance</field>
+        <field name="formulas">es_profit_and_loss_line_13 + es_profit_and_loss_line_14 + es_profit_and_loss_line_15 + es_profit_and_loss_line_16 + es_profit_and_loss_line_17</field>
         <field name="sequence" eval="2"/>
         <field name="level" eval="1"/>
     </record>
@@ -222,7 +223,7 @@
         <field name="name">13. Ingresos financieros</field>
         <field name="code">es_profit_and_loss_line_13</field>
         <field name="parent_id" ref="es_profit_and_loss_line_sum_b"/>
-        <field name="formulas">balance = es_profit_and_loss_line_13a.balance + es_profit_and_loss_line_13b.balance</field>
+        <field name="formulas">es_profit_and_loss_line_13a + es_profit_and_loss_line_13b</field>
         <field name="sequence" eval="1"/>
         <field name="level" eval="2"/>
     </record>
@@ -231,8 +232,8 @@
         <field name="name">a) Imputación de subvenciones, donaciones y legados de carácter financiero</field>
         <field name="code">es_profit_and_loss_line_13a</field>
         <field name="parent_id" ref="es_profit_and_loss_line_13"/>
-        <field name="domain" eval="[('account_id.code', '=like', '746%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="domain" eval="[('account_id.code', '=like', '7461%')]"/>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="1"/>
@@ -247,7 +248,7 @@
                                     '|', ('account_id.code', '=like', '761%'),
                                     '|', ('account_id.code', '=like', '762%'),
                                     ('account_id.code', '=like', '769%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="2"/>
@@ -263,7 +264,7 @@
                                     '|', ('account_id.code','=like','662%'),
                                     '|', ('account_id.code','=like','665%'),
                                     ('account_id.code','=like','669%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="2"/>
@@ -276,7 +277,7 @@
         <field name="parent_id" ref="es_profit_and_loss_line_sum_b"/>
         <field name="domain" eval="['|', ('account_id.code','=like','663%'),
                                     ('account_id.code','=like','763%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="3"/>
@@ -289,7 +290,7 @@
         <field name="parent_id" ref="es_profit_and_loss_line_sum_b"/>
         <field name="domain" eval="['|', ('account_id.code','=like','668%'),
                                     ('account_id.code','=like','768%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="4"/>
@@ -315,7 +316,7 @@
                                     '|', ('account_id.code','=like','797%'),
                                     '|', ('account_id.code','=like','798%'),
                                     ('account_id.code','=like','799%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="5"/>
@@ -326,7 +327,7 @@
         <field name="name">C) RESULTADO ANTES DE IMPUESTOS (A + B)</field>
         <field name="code">es_profit_and_loss_sum_c</field>
         <field name="financial_report_id" ref="financial_report_es_profit_and_loss"/>
-        <field name="formulas">balance = es_profit_and_loss_sum_a.balance + es_profit_and_loss_sum_b.balance</field>
+        <field name="formulas">es_profit_and_loss_sum_a + es_profit_and_loss_sum_b</field>
         <field name="sequence" eval="3"/>
         <field name="level" eval="1"/>
     </record>
@@ -334,7 +335,7 @@
     <record id="es_profit_and_loss_line_sum_d" model="account.financial.html.report.line">
         <field name="name">D) RESULTADO DEL EJERCICIO (C + 18)</field>
         <field name="financial_report_id" ref="financial_report_es_profit_and_loss"/>
-        <field name="formulas">balance = es_profit_and_loss_sum_c.balance + es_profit_and_loss_line_18.balance</field>
+        <field name="formulas">es_profit_and_loss_sum_c + es_profit_and_loss_line_18</field>
         <field name="sequence" eval="4"/>
         <field name="level" eval="1"/>
     </record>
@@ -347,7 +348,7 @@
                                     '|', ('account_id.code','=like','6301%'),
                                     '|', ('account_id.code','=like','633%'),
                                     ('account_id.code','=like','638%')]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
         <field name="sequence" eval="1"/>

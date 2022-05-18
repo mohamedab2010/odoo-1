@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
-from odoo.tests.common import HttpCase, tagged, SavepointCase, TransactionCase, post_install
+from odoo.tests.common import tagged, TransactionCase
 
 GIF = b"R0lGODdhAQABAIAAAP///////ywAAAAAAQABAAACAkQBADs="
 TEXT = base64.b64encode(bytes("workflow bridge account", 'utf-8'))
@@ -55,7 +55,7 @@ class TestCaseDocumentsBridgeAccount(TransactionCase):
         vendor_bill_txt = self.env['account.move'].search([('id', '=', self.document_txt.res_id)])
         self.assertTrue(vendor_bill_txt.exists(), 'failed at workflow_bridge_dms_account vendor_bill')
         self.assertEqual(self.document_txt.res_id, vendor_bill_txt.id, "failed at workflow_bridge_dms_account res_id")
-        self.assertEqual(vendor_bill_txt.type, 'in_invoice', "failed at workflow_bridge_dms_account vendor_bill type")
+        self.assertEqual(vendor_bill_txt.move_type, 'in_invoice', "failed at workflow_bridge_dms_account vendor_bill type")
         vendor_bill_gif = self.env['account.move'].search([('id', '=', self.document_gif.res_id)])
         self.assertEqual(self.document_gif.res_id, vendor_bill_gif.id, "failed at workflow_bridge_dms_account res_id")
 
@@ -75,9 +75,9 @@ class TestCaseDocumentsBridgeAccount(TransactionCase):
         self.env.user.company_id.documents_account_settings = True
 
         for invoice_type in ['in_invoice', 'out_invoice', 'in_refund', 'out_refund']:
-            invoice_test = self.env['account.move'].with_context(default_type=invoice_type).create({
+            invoice_test = self.env['account.move'].with_context(default_move_type=invoice_type).create({
                 'name': 'invoice_test',
-                'type': invoice_type,
+                'move_type': invoice_type,
             })
             setting = self.env['documents.account.folder.setting'].create({
                 'folder_id': folder_test.id,
@@ -123,13 +123,13 @@ class TestCaseDocumentsBridgeAccount(TransactionCase):
             {'name': 'Receivable', 'code': '0000222', 'user_type_id': account_type_test.id, 'reconcile': True})
         journal_test = self.env['account.journal'].create({'name': 'journal test', 'type': 'bank', 'code': 'BNK67'})
         account_move_test = self.env['account.move'].create(
-            {'name': 'account move test', 'state': 'draft', 'journal_id': journal_test.id})
+            {'state': 'draft', 'journal_id': journal_test.id})
         account_move_line_test = self.env['account.move.line'].create({
             'name': 'account move line test',
             'move_id': account_move_test.id,
             'account_id': account_test.id,
         })
-        account_move_test.post()
+        account_move_test.action_post()
 
         document_test = self.env['documents.document'].create({
             'name': 'test reconciliation workflow',
@@ -144,3 +144,36 @@ class TestCaseDocumentsBridgeAccount(TransactionCase):
         invoice = self.env['account.move'].browse(action['res_id'])
         self.assertEqual(invoice.document_request_line_id.id, account_move_line_test.id,
                          'the new invoice should store the ID of the move line on which its document was attached')
+
+    def test_journal_entry(self):
+        """
+        Makes sure the settings apply their values when an ir_attachment is set as message_main_attachment_id
+        on invoices.
+        """
+        folder_test = self.env['documents.folder'].create({'name': 'Bills'})
+        self.env.user.company_id.documents_account_settings = True
+
+        invoice_test = self.env['account.move'].with_context(default_move_type='entry').create({
+            'name': 'Journal Entry',
+            'move_type': 'entry',
+        })
+        setting = self.env['documents.account.folder.setting'].create({
+            'folder_id': folder_test.id,
+            'journal_id': invoice_test.journal_id.id,
+        })
+        attachments = self.env['ir.attachment'].create([{
+            'datas': TEXT,
+            'name': 'fileText_test.txt',
+            'mimetype': 'text/plain',
+            'res_model': 'account.move',
+            'res_id': invoice_test.id
+        }, {
+            'datas': TEXT,
+            'name': 'fileText_test2.txt',
+            'mimetype': 'text/plain',
+            'res_model': 'account.move',
+            'res_id': invoice_test.id
+        }])
+        documents = self.env['documents.document'].search([('attachment_id', 'in', attachments.ids)])
+        self.assertEqual(len(documents), 2)
+        setting.unlink()

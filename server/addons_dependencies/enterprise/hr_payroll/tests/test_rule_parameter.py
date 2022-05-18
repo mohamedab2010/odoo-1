@@ -1,14 +1,15 @@
-# # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from unittest.mock import patch
 from datetime import date
 
+from odoo import tests
 from odoo.fields import Date
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, new_test_user
 
-
+@tests.tagged('post_install', '-at_install')
 class TestRuleParameter(TransactionCase):
 
     def setUp(self):
@@ -68,13 +69,13 @@ class TestRuleParameter(TransactionCase):
 
         with self.assertRaises(UserError):
             # Read a BE parameter from FR company
-            self.env['hr.rule.parameter'].with_user(user).with_context(allowed_company_ids=company_2.ids)._get_parameter_from_code('test_parameter')
+            self.env['hr.rule.parameter'].with_user(user).with_company(company_2)._get_parameter_from_code('test_parameter')
 
         # Read a BE parameter from BE company, value is set in cache
-        be_value = self.env['hr.rule.parameter'].with_user(user).with_context(allowed_company_ids=company_1.ids)._get_parameter_from_code('test_parameter')
+        be_value = self.env['hr.rule.parameter'].with_user(user).with_company(company_1)._get_parameter_from_code('test_parameter')
         self.assertEqual(be_value, 100)
 
         with self.assertRaises(UserError):
             # Read a BE parameter from FR company
             # Value should not come from cache, access rights should be checked
-            self.env['hr.rule.parameter'].with_user(user).with_context(allowed_company_ids=company_2.ids)._get_parameter_from_code('test_parameter')
+            self.env['hr.rule.parameter'].with_user(user).with_company(company_2)._get_parameter_from_code('test_parameter')

@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import io
 import json
 
 from odoo import http, _
-from odoo.http import request
-from odoo.tools.misc import xlwt
+from odoo.http import content_disposition, request
+from odoo.tools import osutil
+from odoo.tools.misc import xlsxwriter
 
 
 class WebCohort(http.Controller):
 
     @http.route('/web/cohort/export', type='http', auth='user')
-    def export_xls(self, data, token):
+    def export_xls(self, data, **kw):
         result = json.loads(data)
 
-        workbook = xlwt.Workbook()
-        worksheet = workbook.add_sheet(result['title'])
-        xlwt.add_palette_colour('gray_lighter', 0x21)
-        workbook.set_colour_RGB(0x21, 224, 224, 224)
-        style_highlight = xlwt.easyxf('font: bold on; pattern: pattern solid, fore_colour gray_lighter; align: horiz centre;')
-        style_normal = xlwt.easyxf('align: horiz centre;')
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        worksheet = workbook.add_worksheet(result['title'])
+        style_highlight = workbook.add_format({'bold': True, 'pattern': 1, 'bg_color': '#E0E0E0', 'align': 'center'})
+        style_normal = workbook.add_format({'align': 'center'})
         row = 0
 
         def write_data(report, row, col):
@@ -32,12 +33,16 @@ class WebCohort(http.Controller):
                 header_sign = '+'
                 col_range = range(columns_length)
 
-            worksheet.write_merge(row, row, col + 2, columns_length + 1,
+            worksheet.merge_range(row, col + 2, row, columns_length + 1,
                 _('%s - By %s') % (result['date_stop_string'], result['interval_string']), style_highlight)
             row += 1
             worksheet.write(row, col, result['date_start_string'], style_highlight)
+            # set minimum width to date_start_string cell to 15 which is around 83px
+            worksheet.set_column(col, col, 15)
             col += 1
-            worksheet.write(row, col, result['measure_string'], style_highlight)
+            worksheet.write(col, col, result['measure_string'], style_highlight)
+            # set minimum width to measure_string cell to 15 which is around 83px
+            worksheet.set_column(col, col, 15)
             col += 1
             for n in col_range:
                 worksheet.write(row, col, '%s%s' % (header_sign, n), style_highlight)
@@ -87,10 +92,12 @@ class WebCohort(http.Controller):
         else:
             row = write_data('report', row, 0)
 
+        workbook.close()
+        xlsx_data = output.getvalue()
+        filename = osutil.clean_filename(_("Cohort %(title)s (%(model_name)s)", title=result['title'], model_name=result['model']))
         response = request.make_response(
-            None,
-            headers=[('Content-Type', 'application/vnd.ms-excel'), ('Content-Disposition', 'attachment; filename=%sCohort.xls' % result['title'])],
-            cookies={'fileToken': token}
+            xlsx_data,
+            headers=[('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                    ('Content-Disposition', content_disposition(filename + '.xlsx'))],
         )
-        workbook.save(response.stream)
         return response

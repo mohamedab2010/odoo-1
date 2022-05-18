@@ -30,12 +30,9 @@ class AccountConsolidationTrialBalanceReport(models.AbstractModel):
     # ACTIONS
     def action_open_view_grid(self, options):
         period_id = self._get_selected_period_id()
-        AnalysisPeriod = self.env['consolidation.period']
-        periods = AnalysisPeriod.search_read([('id', '=', period_id)], ['display_name'])
-        period_name = periods[0]['display_name'] if periods and len(periods) == 1 else False
         return {
             'type': 'ir.actions.act_window',
-            'name': _('Edit') + ' ' + (period_name or ''),
+            'name': _('Edit') + ' ' + self._get_report_name(),
             'res_model': 'consolidation.journal.line',
             'view_mode': 'grid,graph,form',
             'view_type': 'grid',
@@ -61,7 +58,7 @@ class AccountConsolidationTrialBalanceReport(models.AbstractModel):
         ])
         if len(journal_lines) == 0:
             return None
-        action = self.env.ref('account_consolidation.view_account_move_line_filter').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.view_account_move_line_filter")
         action.update({
             'context': {
                 'search_default_consolidation_journal_line_ids': journal_lines.ids,
@@ -110,41 +107,43 @@ class AccountConsolidationTrialBalanceReport(models.AbstractModel):
     def _get_journals_headers(self, options):
         journal_ids = JournalsHandler.get_selected_values(options)
         journals = self.env['consolidation.journal'].browse(journal_ids)
-        journal_columns = [{'name': self._get_journal_title(j, options), 'class': 'number'} for j in journals]
+        journal_columns = [self._get_journal_col(j, options) for j in journals]
         return journal_columns + [{'name': _('Total'), 'class': 'number'}]
 
-    def _get_journal_title(self, journal, options):
+    def _get_journal_col(self, journal, options):
         journal_name = journal.name
         if journal.company_period_id:
             journal_name = journal.company_period_id.company_name
         if self.env.context.get('print_mode') or options.get('xlsx_mode'):
-            return journal_name
+            return {'name': journal_name}
         if journal.currencies_are_different and journal.company_period_id:
             cp = journal.company_period_id
             from_currency = cp.currency_chart_id.symbol
             to_currency = journal.originating_currency_id.symbol
-            vals = (journal_name,
-                    journal.rate_consolidation,
-                    from_currency, cp.currency_rate_avg, to_currency,
-                    from_currency, cp.currency_rate_end, to_currency)
-            return _(
-                "%s<br /><span class=\"subtitle\">Conso Rate: %s%%<br />Avg Rate: 1%s = %s%s / End Rate: 1%s = %s%s</span>") % vals
-        return _("%s<br /><span class=\"subtitle\">Conso Rate: %s%%</span><br/><br/>") % (
-            journal_name, journal.rate_consolidation)
+            return {'name': journal.name, 'consolidation_rate': journal.rate_consolidation,
+                    'from_currency': from_currency,
+                    'currency_rate_avg': cp.currency_rate_avg, 'currency_rate_end': cp.currency_rate_end,
+                    'to_currency': to_currency, 'class': 'number',
+                    'template': 'account_consolidation.header_cell_template'}
+        return {'name': journal.name, 'consolidation_rate': journal.rate_consolidation, 'class': 'number',
+                'template': 'account_consolidation.header_cell_template'}
+
+
 
     @api.model
     def _get_report_name(self):
-        return _("Trial Balance")
+        period_id = self._get_selected_period_id()
+        return self.env['consolidation.period'].browse(period_id)['display_name'] or _("Trial Balance")
 
-    def _get_reports_buttons(self):
+    def _get_reports_buttons(self, options):
         ap_is_closed = False
         ap_id = self._get_selected_period_id()
         if ap_id:
             ap = self.env['consolidation.period'].browse(ap_id)
             ap_is_closed = ap.state == 'closed'
         buttons = [
-            {'name': _('Print Preview'), 'sequence': 1, 'action': 'print_pdf', 'file_export_type': _('PDF')},
-            {'name': _('Export (XLSX)'), 'sequence': 2, 'action': 'print_xlsx', 'file_export_type': _('XLSX')}
+            {'name': _('PDF'), 'sequence': 1, 'action': 'print_pdf', 'file_export_type': _('PDF')},
+            {'name': _('XLSX'), 'sequence': 2, 'action': 'print_xlsx', 'file_export_type': _('XLSX')}
         ]
         if not ap_is_closed:
             buttons.append({'name': _('Edit'), 'sequence': 10, 'action': 'action_open_view_grid'})
@@ -213,21 +212,14 @@ class AccountConsolidationTrialBalanceReport(models.AbstractModel):
         :return: the id of the selected period
         :rtype: int
         """
-        if not hasattr(self, 'selected_period_id'):
-            default_analysis_period = self.env.context.get('default_period_id',
-                                                           self.env.context.get('active_id', None))
-            if default_analysis_period:
-                self.selected_period_id = default_analysis_period
-            else:
-                self.selected_period_id = self._get_default_analysis_period()
-        return self.selected_period_id
+        default_analysis_period = self.env.context.get('default_period_id',
+                                                       self.env.context.get('active_id', None))
+        return default_analysis_period or self._get_default_analysis_period()
 
     def _get_selected_period(self):
         """
         Get the selected period (the base period)
         :return: the recordset containing the selected period
         """
-        if not hasattr(self, 'selected_period'):
-            AnalysisPeriod = self.env['consolidation.period']
-            self.selected_period = AnalysisPeriod.browse(self._get_selected_period_id())
-        return self.selected_period
+        AnalysisPeriod = self.env['consolidation.period']
+        return AnalysisPeriod.browse(self._get_selected_period_id())

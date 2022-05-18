@@ -27,18 +27,22 @@ Would your payment have been carried out after this mail was sent, please ignore
 
 Best Regards,
             """))
+    email_subject = fields.Char(translate=True, default=lambda s: _('%(company_name)s Payment Reminder - %(partner_name)s'))
     send_email = fields.Boolean('Send an Email', help="When processing, it will send an email", default=True)
     print_letter = fields.Boolean('Print a Letter', help="When processing, it will print a PDF", default=True)
     send_sms = fields.Boolean('Send an SMS Message', help="When processing, it will send an sms text message", default=False)
     join_invoices = fields.Boolean('Join open Invoices')
     manual_action = fields.Boolean('Manual Action', help="When processing, it will set the manual action to be taken for that customer. ", default=False)
-    manual_action_note = fields.Text('Action To Do', placeholder="e.g. Give a phone call, check with others , ...")
+    manual_action_note = fields.Text('Action To Do')
     manual_action_type_id = fields.Many2one('mail.activity.type', 'Manual Action Type', default=False)
     manual_action_responsible_id = fields.Many2one('res.users', 'Assign a Responsible', ondelete='set null')
 
     auto_execute = fields.Boolean()
 
-    _sql_constraints = [('days_uniq', 'unique(company_id, delay)', 'Days of the follow-up levels must be different per company')]
+    _sql_constraints = [
+        ('days_uniq', 'unique(company_id, delay)', 'Days of the follow-up levels must be different per company'),
+        ('uniq_name', 'unique(company_id, name)', 'A follow-up action name must be unique. This name is already set to another action.'),
+    ]
 
     def copy_data(self, default=None):
         default = dict(default or {})
@@ -50,14 +54,34 @@ Best Regards,
             default['delay'] = higher_delay + 15
         return super(FollowupLine, self).copy_data(default=default)
 
+    def copy(self, default=None):
+        # OVERRIDE
+        default = default or {}
+        if not default.get('name'):
+            default['name'] = _("%s (copy)", self.name)
+        return super().copy(default=default)
+
     @api.constrains('description')
     def _check_description(self):
         for line in self:
             if line.description:
                 try:
                     line.description % {'partner_name': '', 'date': '', 'user_signature': '', 'company_name': '', 'amount_due': ''}
-                except KeyError:
+                except (TypeError, ValueError, KeyError):
                     raise Warning(_('Your description is invalid, use the right legend or %% if you want to use the percent character.'))
+
+    @api.constrains('email_subject')
+    def _check_email_subject(self):
+        for line in self:
+            if line.email_subject:
+                try:
+                    line.email_subject % {'partner_name': '', 'date': '', 'user_signature': '', 'company_name': '', 'amount_due': ''}
+                except KeyError:
+                    raise Warning(_('Your email subject is invalid, use the right legend or %% if you want to use the percent character.'))
+
+    def _amount_due_in_description(self):
+        self.ensure_one()
+        return self.description and '%(amount_due)s' in self.description
 
     @api.constrains('sms_description')
     def _check_sms_description(self):
@@ -65,7 +89,7 @@ Best Regards,
             if line.sms_description:
                 try:
                     line.sms_description % {'partner_name': '', 'date': '', 'user_signature': '', 'company_name': '', 'amount_due': ''}
-                except KeyError:
+                except (TypeError, ValueError, KeyError):
                     raise Warning(_('Your sms description is invalid, use the right legend or %% if you want to use the percent character.'))
 
     @api.onchange('auto_execute')

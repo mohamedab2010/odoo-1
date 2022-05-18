@@ -1,11 +1,11 @@
 # coding: utf-8
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import ast
 from lxml import etree
 from lxml.objectify import fromstring
 from odoo import models, api, _, fields, tools
 from odoo.exceptions import UserError
-from odoo.tools.safe_eval import safe_eval
 from odoo.tools.xml_utils import _check_with_xsd
 
 MX_NS_REFACTORING = {
@@ -38,32 +38,38 @@ class MxReportAccountTrial(models.AbstractModel):
 
     filter_hierarchy = None
 
-    def _get_reports_buttons(self):
+    def _get_reports_buttons(self, options):
         """Create the buttons to be used to download the required files"""
-        buttons = super(MxReportAccountTrial, self)._get_reports_buttons()
-        buttons += [{'name': _('Export For SAT (XML)'), 'sequence': 3, 'action': 'print_xml', 'file_export_type': _('SAT XML')}]
+        buttons = super(MxReportAccountTrial, self)._get_reports_buttons(options)
+        buttons += [{'name': _('SAT (XML)'), 'sequence': 3, 'action': 'print_xml', 'file_export_type': _('SAT XML')}]
         return buttons
 
-    def _get_templates(self):
-        """Get this template for better fit of columns"""
-        templates = super(MxReportAccountTrial, self)._get_templates()
-        templates['main_table_header_template'] = 'l10n_mx_reports.template_coa_table_header'
-        return templates
-
-    def _get_columns_name(self, options):
-        """Get more specific columns to use in SAT report"""
-        columns = [{'name': ''}, {'name': _('Initial Balance'), 'class': 'number'}]
+    @api.model
+    def _get_columns(self, options):
+        header1 = [
+            {'name': '', 'colspan': 2},
+        ] + [
+            {'name': period['string'], 'class': 'text-center', 'colspan': 2}
+            for period in reversed(options['comparison'].get('periods', []))
+        ] + [
+            {'name': options['date']['string'], 'class': 'text-center', 'colspan': 2},
+            {'name': ''},
+        ]
+        header2 = [
+            {'name': ''},
+            {'name': _('Initial Balance'), 'class': 'number'},
+        ]
         if options.get('comparison') and options['comparison'].get('periods'):
-            for period in options['comparison']['periods']:
-                columns += [
-                    {'name': _('Debit'), 'class': 'number'},
-                    {'name': _('Credit'), 'class': 'number'},
-                    ]
-        return columns + [
+            header2 += [
+                {'name': _('Debit'), 'class': 'number'},
+                {'name': _('Credit'), 'class': 'number'},
+            ] * len(options['comparison']['periods'])
+        header2 += [
             {'name': _('Debit'), 'class': 'number'},
             {'name': _('Credit'), 'class': 'number'},
             {'name': _('Total'), 'class': 'number'},
         ]
+        return [header1, header2]
 
     def _post_process(self, grouped_accounts, initial_balances, options, comparison_table):
         afrl_obj = self.env['account.financial.html.report.line']
@@ -89,7 +95,7 @@ class MxReportAccountTrial(models.AbstractModel):
                 for child in childs:
                     child['columns'] = [{'name': self.format_value(v)} for v in child['columns']]
             lines.append({
-                'id': 'hierarchy_' + line.code,
+                'id': self._get_generic_line_id(None, line.code, markup='hierarchy'),
                 'name': line.name,
                 'columns': [{'name': v} for v in cols],
                 'level': 1,
@@ -99,15 +105,15 @@ class MxReportAccountTrial(models.AbstractModel):
             lines.extend(childs)
             if not options.get('coa_only'):
                 lines.append({
-                    'id': 'total_%s' % line.code,
-                    'name': _('Total %s') % line.name[2:],
+                    'id': self._get_generic_line_id(None, line.code, markup='total'),
+                    'name': _('Total %s', line.name[2:]),
                     'level': 0,
                     'class': 'hierarchy_total',
                     'columns': [{'name': self.format_value(v)} for v in total_line],
                 })
         if not options.get('coa_only'):
             lines.append({
-                'id': 'hierarchy_total',
+                'id': self._get_generic_line_id(None, None, markup='hierarchy_total'),
                 'name': _('Total'),
                 'level': 0,
                 'class': 'hierarchy_total',
@@ -135,7 +141,7 @@ class MxReportAccountTrial(models.AbstractModel):
                 for col in range(n_cols):
                     cols += [sum(a[col] for a in child_cols)]
             lines.append({
-                'id': 'level_one_%s' % child.id,
+                'id': self._get_generic_line_id('account.financial.html.report.line', child.id, markup='level_one'),
                 'name': child.name,
                 'columns': cols,
                 'level': 2,
@@ -151,15 +157,11 @@ class MxReportAccountTrial(models.AbstractModel):
                                options, comparison_table):
         """Return list of accounts found in the third level"""
         lines = []
-        domain = safe_eval(line.domain or '[]')
+        domain = ast.literal_eval(line.domain or '[]')
         domain += [
-            ('deprecated', '=', False),
-            ('company_id', 'in', self.env.context['company_ids']),
+            ('company_id', 'in', self.env.companies.ids),
         ]
-        basis_account_ids = self.env['account.tax'].search_read(
-            [('cash_basis_base_account_id', '!=', False)], ['cash_basis_base_account_id'])
-        basis_account_ids = [account['cash_basis_base_account_id'][0] for account in basis_account_ids]
-        domain.append((('id', 'not in', basis_account_ids)))
+        domain.append((('id', 'not in', self.env.companies.account_cash_basis_base_account_id.ids)))
         account_ids = self.env['account.account'].search(domain, order='code')
         tags = account_ids.mapped('tag_ids').filtered(
             lambda r: r.color == 4).sorted(key=lambda a: a.name)
@@ -181,8 +183,7 @@ class MxReportAccountTrial(models.AbstractModel):
                 for col in range(n_cols):
                     cols += [sum(a[col] for a in child_cols)]
             lines.append({
-                'id': 'level_two_%s' % tag.id,
-                'parent_id': 'level_one_%s' % line.id,
+                'id': self._get_generic_line_id('account.account.tag', tag.id, markup='level_two'),
                 'name': name,
                 'columns': cols,
                 'level': 3,
@@ -211,7 +212,7 @@ class MxReportAccountTrial(models.AbstractModel):
                         break
                 if not non_zero:
                     continue
-            name = account.code + " " + account.name
+            name = account.name_get()[0][1]
             name = name[:63] + "..." if len(name) > 65 else name
             tag = account.tag_ids.filtered(lambda r: r.color == 4)
             if len(tag) > 1:
@@ -223,8 +224,7 @@ class MxReportAccountTrial(models.AbstractModel):
             if not options.get('coa_only'):
                 cols = self._get_cols(initial_balances, account, comparison_table, grouped_accounts)
             lines.append({
-                'id': account.id,
-                'parent_id': 'level_two_%s' % tag.id,
+                'id': self._get_generic_line_id('account.account', account.id, markup='level_four'),
                 'name': name,
                 'level': 4,
                 'columns': cols,
@@ -280,7 +280,7 @@ class MxReportAccountTrial(models.AbstractModel):
                 'credit': "%.2f" % (credit),
                 'end': "%.2f" % (end),
             })
-        date = fields.Date.from_string(self.env.context['date_from'])
+        date = fields.Date.from_string(options['date']['date_from'])
         chart = {
             'vat': company.vat or '',
             'month': str(date.month).zfill(2),
@@ -305,10 +305,11 @@ class MxReportAccountTrial(models.AbstractModel):
         comparison_table += options.get('comparison') and options['comparison'].get('periods') or []
         for account, periods_results in accounts_results:
             grouped_accounts.setdefault(account, [])
+            periods_results.reverse()
             for i, res in enumerate(periods_results):
                 account_init_bal = res.get('initial_balance', {})
                 if i == 0:
-                    initial_balances[account] = res.get('initial_balance', {}).get('balance', 0.0)
+                    initial_balances[account] = res.get('initial_balance', {}).get('balance', 0.0) + res.get('unaffected_earnings', {}).get('balance', 0.0)
                 sums = [
                     res.get('sum', {}).get('debit', 0.0) - account_init_bal.get('debit', 0.0),
                     res.get('sum', {}).get('credit', 0.0) - account_init_bal.get('credit', 0.0),
@@ -330,12 +331,11 @@ class MxReportAccountTrial(models.AbstractModel):
             return False
         ctx['no_format'] = True
         values = self.with_context(ctx).get_bce_dict(options)
-        cfdicoa = qweb.render(CFDIBCE_TEMPLATE, values=values)
+        cfdicoa = qweb._render(CFDIBCE_TEMPLATE, values=values)
         for key, value in MX_NS_REFACTORING.items():
-            cfdicoa = cfdicoa.replace(key.encode('UTF-8'),
-                                      value.encode('UTF-8') + b':')
+            cfdicoa = cfdicoa.replace(key, value + ':')
         cfdicoa = self._l10n_mx_edi_add_digital_stamp(
-            CFDIBCE_XSLT_CADENA % version, cfdicoa)
+            CFDIBCE_XSLT_CADENA % version, cfdicoa.encode())
 
         with tools.file_open(CFDIBCE_XSD % version, "rb") as xsd:
             _check_with_xsd(cfdicoa, xsd)
@@ -371,27 +371,7 @@ class MxReportAccountTrial(models.AbstractModel):
         return super(MxReportAccountTrial, self).open_journal_items(
             options, new_params)
 
-    def view_all_journal_items(self, options, params):
-        if not params.get('id') or 'hierarchy' in params.get('id'):
-            return super(MxReportAccountTrial, self).view_all_journal_items(
-                options, params)
-        ctx = self._set_context(options)
-        lines = self.with_context(**ctx)._get_lines(options)
-        new_params = params.copy()
-        new_params.pop('id', False)
-        accounts = self._get_accounts_journal_items([params.get('id')], lines)
-        ctx = {'search_default_account': 1}
-        res = super(MxReportAccountTrial, self.with_context(
-            **ctx)).view_all_journal_items(options, new_params)
-        res.get('domain', []).append(('account_id', 'in', accounts))
-        return res
-
-    def _get_accounts_journal_items(self, params, lines):
-        levels = [
-            l.get('level') for l in lines if l.get('parent_id') in params]
-        if levels and levels[0] == 4:
-            return [
-                l.get('id') for l in lines if l.get('parent_id') in params]
-        params = [
-            l.get('id') for l in lines if l.get('parent_id') in params]
-        return self._get_accounts_journal_items(params, lines)
+    def _set_context(self, options):
+        ctx = super(MxReportAccountTrial, self)._set_context(options)
+        ctx['model'] = self._name
+        return ctx

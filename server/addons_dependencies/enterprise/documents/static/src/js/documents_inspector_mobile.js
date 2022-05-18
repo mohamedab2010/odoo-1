@@ -12,6 +12,15 @@ var DocumentsInspector = require('documents.DocumentsInspector');
 DocumentsInspector.include({
     template: 'documents.DocumentsInspectorMobile',
 
+    init: function() {
+        this._super.apply(this, arguments);
+        this.isMobile = true;
+    },
+    
+    async start() {
+        await this._super(...arguments);
+        this.trigger_up('open_chatter');
+    },
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------

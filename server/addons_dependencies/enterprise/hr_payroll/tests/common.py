@@ -2,103 +2,147 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 from odoo.fields import Date, Datetime
 from odoo.tests.common import TransactionCase
+from dateutil.relativedelta import relativedelta
 
 
 class TestPayslipBase(TransactionCase):
 
-    def setUp(self):
-        super(TestPayslipBase, self).setUp()
+    @classmethod
+    def setUpClass(cls):
+        super(TestPayslipBase, cls).setUpClass()
+        cls.env.user.tz = 'Europe/Brussels'
+        cls.env.ref('resource.resource_calendar_std').tz = 'Europe/Brussels'
 
-        # Some salary rules references
-        self.hra_rule_id = self.ref('hr_payroll.hr_salary_rule_houserentallowance1')
-        self.conv_rule_id = self.ref('hr_payroll.hr_salary_rule_convanceallowance1')
-        self.prof_tax_rule_id = self.ref('hr_payroll.hr_salary_rule_professionaltax1')
-        self.pf_rule_id = self.ref('hr_payroll.hr_salary_rule_providentfund1')
-        self.mv_rule_id = self.ref('hr_payroll.hr_salary_rule_meal_voucher')
-        self.sum_of_alw_id = self.ref('hr_payroll.hr_salary_rule_sum_alw_category')
+        cls.dep_rd = cls.env['hr.department'].create({
+            'name': 'Research & Development - Test',
+        })
 
         # I create a new employee "Richard"
-        self.richard_emp = self.env['hr.employee'].create({
+        cls.richard_emp = cls.env['hr.employee'].create({
             'name': 'Richard',
             'gender': 'male',
             'birthday': '1984-05-01',
-            'country_id': self.ref('base.be'),
-            'department_id': self.ref('hr.dep_rd')
+            'country_id': cls.env.ref('base.be').id,
+            'department_id': cls.dep_rd.id,
         })
 
         # I create a new employee "Jules"
-        self.jules_emp = self.env['hr.employee'].create({
+        cls.jules_emp = cls.env['hr.employee'].create({
             'name': 'Jules',
             'gender': 'male',
             'birthday': '1984-05-01',
-            'country_id': self.ref('base.be'),
-            'department_id': self.ref('hr.dep_rd')
+            'country_id': cls.env.ref('base.be').id,
+            'department_id': cls.dep_rd.id,
         })
 
-        self.structure_type = self.env['hr.payroll.structure.type'].create({
+        cls.structure_type = cls.env['hr.payroll.structure.type'].create({
             'name': 'Test - Developer',
         })
 
         # I create a contract for "Richard"
-        self.env['hr.contract'].create({
+        cls.env['hr.contract'].create({
             'date_end': Date.today() + relativedelta(years=2),
             'date_start': Date.to_date('2018-01-01'),
             'name': 'Contract for Richard',
             'wage': 5000.0,
-            'employee_id': self.richard_emp.id,
-            'structure_type_id': self.structure_type.id,
+            'employee_id': cls.richard_emp.id,
+            'structure_type_id': cls.structure_type.id,
         })
 
-        self.work_entry_type = self.env['hr.work.entry.type'].create({
+        cls.work_entry_type = cls.env['hr.work.entry.type'].create({
             'name': 'Extra attendance',
             'is_leave': False,
             'code': 'WORKTEST200',
         })
 
-        self.work_entry_type_unpaid = self.env['hr.work.entry.type'].create({
+        cls.work_entry_type_unpaid = cls.env['hr.work.entry.type'].create({
             'name': 'Unpaid Leave',
             'is_leave': True,
             'code': 'LEAVETEST300',
             'round_days': 'HALF',
             'round_days_type': 'DOWN',
         })
-        self.leave_type_unpaid = self.env['hr.leave.type'].create({
-            'name': 'Unpaid Leaves',
-            'time_type': 'leave',
-            'allocation_type': 'no',
-            'validity_start': False,
-            'work_entry_type_id': self.work_entry_type_unpaid.id
-        })
 
-        self.work_entry_type_leave = self.env['hr.work.entry.type'].create({
+        cls.work_entry_type_leave = cls.env['hr.work.entry.type'].create({
             'name': 'Leave',
             'is_leave': True,
             'code': 'LEAVETEST100'
         })
-        self.leave_type = self.env['hr.leave.type'].create({
-            'name': 'Legal Leaves',
-            'time_type': 'leave',
-            'allocation_type': 'no',
-            'validity_start': False,
-            'work_entry_type_id': self.work_entry_type_leave.id
-        })
 
         # I create a salary structure for "Software Developer"
-        self.developer_pay_structure = self.env['hr.payroll.structure'].create({
+        cls.developer_pay_structure = cls.env['hr.payroll.structure'].create({
             'name': 'Salary Structure for Software Developer',
-            'type_id': self.structure_type.id,
-            'regular_pay': True,
-            'rule_ids': [
-                (4, self.hra_rule_id), (4, self.conv_rule_id),
-                (4, self.prof_tax_rule_id), (4, self.pf_rule_id),
-                (4, self.mv_rule_id), (4, self.sum_of_alw_id),
-            ],
-            'unpaid_work_entry_type_ids': [(4, self.work_entry_type_unpaid.id, False)]
+            'type_id': cls.structure_type.id,
+            'unpaid_work_entry_type_ids': [(4, cls.work_entry_type_unpaid.id, False)]
         })
+
+        cls.hra_rule = cls.env['hr.salary.rule'].create({
+            'name': 'House Rent Allowance',
+            'sequence': 5,
+            'amount_select': 'percentage',
+            'amount_percentage': 40.0,
+            'amount_percentage_base': 'contract.wage',
+            'code': 'HRA',
+            'category_id': cls.env.ref('hr_payroll.ALW').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+
+        cls.conv_rule = cls.env['hr.salary.rule'].create({
+            'name': 'Conveyance Allowance',
+            'sequence': 10,
+            'amount_select': 'fix',
+            'amount_fix': 800.0,
+            'code': 'CA',
+            'category_id': cls.env.ref('hr_payroll.ALW').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+
+        cls.mv_rule = cls.env['hr.salary.rule'].create({
+            'name': 'Meal Voucher',
+            'sequence': 16,
+            'amount_select': 'fix',
+            'amount_fix': 10,
+            'quantity': 'worked_days.WORK100 and worked_days.WORK100.number_of_days',
+            'code': 'MA',
+            'category_id': cls.env.ref('hr_payroll.ALW').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+
+        cls.sum_of_alw = cls.env['hr.salary.rule'].create({
+            'name': 'Sum of Allowance category',
+            'sequence': 99,
+            'amount_select': 'code',
+            'amount_python_compute': "result = payslip.sum_category('ALW', payslip.date_from, to_date=payslip.date_to)",
+            'quantity': 'worked_days.WORK100 and worked_days.WORK100.number_of_days',
+            'code': 'SUMALW',
+            'category_id': cls.env.ref('hr_payroll.ALW').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+
+        cls.pf_rule = cls.env['hr.salary.rule'].create({
+            'name': 'Provident Fund',
+            'sequence': 120,
+            'amount_select': 'percentage',
+            'amount_percentage': -12.5,
+            'amount_percentage_base': 'contract.wage',
+            'code': 'PF',
+            'category_id': cls.env.ref('hr_payroll.DED').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+
+        cls.prof_tax_rule = cls.env['hr.salary.rule'].create({
+            'name': 'Professional Tax',
+            'sequence': 150,
+            'amount_select': 'fix',
+            'amount_fix': -200.0,
+            'code': 'PT',
+            'category_id': cls.env.ref('hr_payroll.DED').id,
+            'struct_id': cls.developer_pay_structure.id,
+        })
+        cls.structure_type.default_struct_id = cls.developer_pay_structure
 
     def create_work_entry(self, start, stop, work_entry_type=None):
         work_entry_type = work_entry_type or self.work_entry_type
@@ -111,26 +155,15 @@ class TestPayslipBase(TransactionCase):
             'work_entry_type_id': work_entry_type.id,
         })
 
-    def create_leave(self, date_from=None, date_to=None):
-        date_from = date_from or Datetime.today()
-        date_to = date_to or Datetime.today() + relativedelta(days=1)
-        return self.env['hr.leave'].create({
-            'name': 'Holiday !!!',
-            'employee_id': self.richard_emp.id,
-            'holiday_status_id': self.leave_type.id,
-            'date_to': date_to,
-            'date_from': date_from,
-            'number_of_days': 1,
-        })
-
 
 class TestPayslipContractBase(TestPayslipBase):
 
-    def setUp(self):
-        super(TestPayslipContractBase, self).setUp()
-        self.calendar_richard = self.env['resource.calendar'].create({'name': 'Calendar of Richard'})
-        self.calendar_40h = self.env['resource.calendar'].create({'name': 'Default calendar'})
-        self.calendar_35h = self.env['resource.calendar'].create({
+    @classmethod
+    def setUpClass(cls):
+        super(TestPayslipContractBase, cls).setUpClass()
+        cls.calendar_richard = cls.env['resource.calendar'].create({'name': 'Calendar of Richard'})
+        cls.calendar_40h = cls.env['resource.calendar'].create({'name': 'Default calendar'})
+        cls.calendar_35h = cls.env['resource.calendar'].create({
             'name': '35h calendar',
             'attendance_ids': [
                 (0, 0, {'name': 'Monday Morning', 'dayofweek': '0', 'hour_from': 8, 'hour_to': 12, 'day_period': 'morning'}),
@@ -145,9 +178,9 @@ class TestPayslipContractBase(TestPayslipBase):
                 (0, 0, {'name': 'Friday Evening', 'dayofweek': '4', 'hour_from': 13, 'hour_to': 16, 'day_period': 'afternoon'})
             ]
         })
-        self.calendar_35h._onchange_hours_per_day() # update hours/day
+        cls.calendar_35h._onchange_hours_per_day() # update hours/day
 
-        self.calendar_2_weeks = self.env['resource.calendar'].create({
+        cls.calendar_2_weeks = cls.env['resource.calendar'].create({
             'name': 'Week 1: 30 Hours - Week 2: 16 Hours',
             'two_weeks_calendar': True,
             'attendance_ids': [
@@ -161,12 +194,12 @@ class TestPayslipContractBase(TestPayslipBase):
                 (0, 0, {'name': 'Odd week', 'dayofweek': '0', 'sequence': '25', 'hour_from': 0, 'day_period': 'morning', 'week_type': '1', 'hour_to': 0, 'display_type': 'line_section'}),
             ]
         })
-        self.calendar_2_weeks._onchange_hours_per_day() # update hours/day
+        cls.calendar_2_weeks._onchange_hours_per_day() # update hours/day
 
-        self.richard_emp.resource_calendar_id = self.calendar_richard
-        self.jules_emp.resource_calendar_id = self.calendar_2_weeks
+        cls.richard_emp.resource_calendar_id = cls.calendar_richard
+        cls.jules_emp.resource_calendar_id = cls.calendar_2_weeks
 
-        self.calendar_16h = self.env['resource.calendar'].create({
+        cls.calendar_16h = cls.env['resource.calendar'].create({
             'name': '16h calendar',
             'attendance_ids': [
                 (0, 0, {'name': 'Monday Morning', 'dayofweek': '0', 'hour_from': 8, 'hour_to': 11.5, 'day_period': 'morning'}),
@@ -176,9 +209,9 @@ class TestPayslipContractBase(TestPayslipBase):
                 (0, 0, {'name': 'Thursday Evening', 'dayofweek': '3', 'hour_from': 13.5, 'hour_to': 15.5, 'day_period': 'afternoon'}),
             ]
         })
-        self.calendar_16h._onchange_hours_per_day() # update hours/day
+        cls.calendar_16h._onchange_hours_per_day() # update hours/day
 
-        self.calendar_38h_friday_light = self.env['resource.calendar'].create({
+        cls.calendar_38h_friday_light = cls.env['resource.calendar'].create({
             'name': '38 calendar Friday light',
             'attendance_ids': [
                 (0, 0, {'name': 'Monday Morning', 'dayofweek': '0', 'hour_from': 8, 'hour_to': 12, 'day_period': 'morning'}),
@@ -192,17 +225,17 @@ class TestPayslipContractBase(TestPayslipBase):
                 (0, 0, {'name': 'Friday Morning', 'dayofweek': '4', 'hour_from': 8, 'hour_to': 12, 'day_period': 'morning'}),
             ]
         })
-        self.calendar_38h_friday_light._onchange_hours_per_day() # update hours/day
+        cls.calendar_38h_friday_light._onchange_hours_per_day() # update hours/day
 
         # This contract ends at the 15th of the month
-        self.contract_cdd = self.env['hr.contract'].create({ # Fixed term contract
+        cls.contract_cdd = cls.env['hr.contract'].create({ # Fixed term contract
             'date_end': datetime.strptime('2015-11-15', '%Y-%m-%d'),
             'date_start': datetime.strptime('2015-01-01', '%Y-%m-%d'),
             'name': 'First CDD Contract for Richard',
-            'resource_calendar_id': self.calendar_40h.id,
+            'resource_calendar_id': cls.calendar_40h.id,
             'wage': 5000.0,
-            'employee_id': self.richard_emp.id,
-            'structure_type_id': self.structure_type.id,
+            'employee_id': cls.richard_emp.id,
+            'structure_type_id': cls.structure_type.id,
             'state': 'open',
             'kanban_state': 'blocked',
             'date_generated_from': datetime.strptime('2015-11-16', '%Y-%m-%d'),
@@ -210,13 +243,13 @@ class TestPayslipContractBase(TestPayslipBase):
         })
 
         # This contract starts the next day
-        self.contract_cdi = self.env['hr.contract'].create({
+        cls.contract_cdi = cls.env['hr.contract'].create({
             'date_start': datetime.strptime('2015-11-16', '%Y-%m-%d'),
             'name': 'Contract for Richard',
-            'resource_calendar_id': self.calendar_35h.id,
+            'resource_calendar_id': cls.calendar_35h.id,
             'wage': 5000.0,
-            'employee_id': self.richard_emp.id,
-            'structure_type_id': self.structure_type.id,
+            'employee_id': cls.richard_emp.id,
+            'structure_type_id': cls.structure_type.id,
             'state': 'open',
             'kanban_state': 'normal',
             'date_generated_from': datetime.strptime('2015-11-15', '%Y-%m-%d'),
@@ -224,12 +257,12 @@ class TestPayslipContractBase(TestPayslipBase):
         })
 
         # Contract for Jules
-        self.contract_jules = self.env['hr.contract'].create({
+        cls.contract_jules = cls.env['hr.contract'].create({
             'date_start': datetime.strptime('2015-01-01', '%Y-%m-%d'),
             'name': 'Contract for Jules',
-            'resource_calendar_id': self.calendar_2_weeks.id,
+            'resource_calendar_id': cls.calendar_2_weeks.id,
             'wage': 5000.0,
-            'employee_id': self.jules_emp.id,
-            'structure_type_id': self.developer_pay_structure.type_id.id,
+            'employee_id': cls.jules_emp.id,
+            'structure_type_id': cls.developer_pay_structure.type_id.id,
             'state': 'open',
         })

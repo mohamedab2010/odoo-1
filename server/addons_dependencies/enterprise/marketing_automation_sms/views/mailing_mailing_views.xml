@@ -20,15 +20,13 @@
             <xpath expr="//group[@name='group_mailing']" position="after">
                 <group string="SMS Options" name="group_sms" attrs="{'invisible': [('mailing_type', '=', 'mail')]}">
                     <field name="keep_archives" groups="base.group_no_one"/>
+                    <field name="sms_allow_unsubscribe"/>
                 </group>
             </xpath>
             <xpath expr="//page[@name='mail_body']" position="after">
                 <page string="SMS Content" name="sms_body" attrs="{'invisible': [('mailing_type', '!=', 'sms')]}">
+                    <field name="sms_template_id" domain="[('model', '=', mailing_model_real)]" invisible="1"/>
                     <field name="body_plaintext" widget="sms_widget" attrs="{'required': [('mailing_type', '=', 'sms')]}"/>
-                    <group>
-                        <field name="sms_template_id" domain="[('model', '=', mailing_model_real)]" invisible="1"/>
-                        <field name="sms_allow_unsubscribe"/>
-                    </group>
                 </page>
             </xpath>
          </field>
@@ -42,6 +40,15 @@
             <xpath expr="//page[@name='mail_body']" position="attributes">
                 <attribute name="attrs">{'invisible': [('mailing_type', '!=', 'mail')]}</attribute>
             </xpath>
+            <xpath expr="//field[@name='subject']" position="attributes">
+                <attribute name="attrs">{'invisible': [('mailing_type', '=', 'sms')], 'required': [('mailing_type', '=', 'mail')]}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='sms_subject']" position="attributes">
+                <attribute name="attrs">{'invisible': [('mailing_type', '=', 'mail')], 'required': [('mailing_type', '=', 'sms')]}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='body_plaintext']" position="attributes">
+                <attribute name="attrs">{'readonly': [('mailing_type', '=', 'mail')], 'required': [('mailing_type', '=', 'sms')]}</attribute>
+            </xpath>
         </field>
     </record>
 
@@ -52,14 +59,14 @@
         <field name="mode">primary</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='opened']" position="replace"/>
-            <xpath expr="//field[@name='replied']" position="replace"/>
+            <xpath expr="//field[@name='opened_ratio']" position="replace"/>
+            <xpath expr="//field[@name='replied_ratio']" position="replace"/>
         </field>
     </record>
 
     <record id="mass_mailing_sms.mailing_mailing_action_sms" model="ir.actions.act_window">
         <field name="domain">['&amp;', ('mailing_type', '=', 'sms'), ('use_in_marketing_automation', '=', False)]</field>
-    </record>    
+    </record>
 
     <record id="mail_mass_mailing_action_marketing_automation_sms" model="ir.actions.act_window">
         <field name="name">Marketing Automation SMS</field>

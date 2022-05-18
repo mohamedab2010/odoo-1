@@ -12,16 +12,28 @@
             </field>
         </record>
 
+        <record id="mrp_workcenter_tree_view_inherited" model="ir.ui.view">
+            <field name="name">mrp.workcenter.tree.inherited</field>
+            <field name="model">mrp.workcenter</field>
+            <field name="inherit_id" ref="mrp.mrp_workcenter_tree_view" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='costs_hour']" position="after">
+                    <field name="costs_hour_account_id" groups="analytic.group_analytic_accounting" optional="hide"/>
+                </xpath>
+            </field>
+        </record>
+
         <!-- cost structure report -->
-        <report 
-            id="action_cost_struct_mrp_production"
-            model="mrp.production"
-            string="Cost Analysis"
-            report_type="qweb-html"
-            name="mrp_account_enterprise.mrp_cost_structure"
-            file="mrp_account_enterprise.mrp_cost_structure"
-            print_report_name="'Cost Analysis - %s ' % object.name"
-        />
+        <record id="action_cost_struct_mrp_production" model="ir.actions.report">
+            <field name="name">Cost Analysis</field>
+            <field name="model">mrp.production</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">mrp_account_enterprise.mrp_cost_structure</field>
+            <field name="report_file">mrp_account_enterprise.mrp_cost_structure</field>
+            <field name="print_report_name">'Cost Analysis - %s ' % object.name</field>
+            <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+            <field name="binding_type">report</field>
+        </record>
 
         <record model="ir.ui.view" id="mrp_production_form_inherit_view6">
             <field name="name">mrp.production.form.inherit</field>
@@ -36,15 +48,16 @@
             </field>
         </record>
 
-        <report 
-            id="action_cost_struct_product_template"
-            model="product.product"
-            string="Cost Structure Analysis"
-            report_type="qweb-html"
-            name="mrp_account_enterprise.product_template_cost_structure"
-            file="mrp_account_enterprise.product_template_cost_structure"
-            print_report_name="'Cost Structure Analysis - %s' % object.name"
-        />
+        <record id="action_cost_struct_product_template" model="ir.actions.report">
+            <field name="name">Cost Structure Analysis</field>
+            <field name="model">product.product</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">mrp_account_enterprise.product_template_cost_structure</field>
+            <field name="report_file">mrp_account_enterprise.product_template_cost_structure</field>
+            <field name="print_report_name">'Cost Structure Analysis - %s' % object.name</field>
+            <field name="binding_model_id" ref="product.model_product_product"/>
+            <field name="binding_type">report</field>
+        </record>
 
         <record id="product_product_inherit_form_view_cost_structure" model="ir.ui.view">
             <field name="name">cost_structure_product_product_inherit</field>

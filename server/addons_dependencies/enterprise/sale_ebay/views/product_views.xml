@@ -14,22 +14,17 @@
               <button name="end_listing_product_ebay" type="object" string="End Item's Listing" attrs="{'invisible': ['|', ('ebay_use', '=', False), '|',('ebay_url','=', False),'|',('ebay_listing_status','not in',['Active', 'Error']),('ebay_listing_status','=','Out Of Stock')]}"/>
               <button name="%(action_ebay_link_listing)d" type='action' string='Link With Existing eBay Listing' attrs="{'invisible': ['|',('ebay_use', '=', False),('ebay_listing_status','!=', 'Unlisted')]}"/>
         </xpath>
-        <div name="options" position="inside">
-          <div>
-            <field name="ebay_use"/>
-            <label for="ebay_use" string="Sell on eBay"/>
-          </div>
-        </div>
         <xpath expr="//notebook[last()]" position="inside">
-          <page string="eBay" name="ebay_sale" attrs="{'invisible':[('ebay_use','=',False)]}">
+          <page string="eBay" name="ebay_sale">
             <group>
+              <field name="ebay_use" string="Sell on eBay"/>
               <field name="ebay_url" readonly="True" attrs="{'invisible': [('ebay_url','=', False)]}" widget="url"/>
-              <field name="ebay_listing_status"/>
+              <field name="ebay_listing_status" attrs="{'invisible':[('ebay_use','=',False)]}"/>
               <field name="ebay_quantity_sold" attrs="{'invisible': ['|',('product_variant_count', '>', 1),('ebay_listing_status','=', 'Unlisted')]}"/>
               <field name="ebay_start_date" attrs="{'invisible': [('ebay_listing_status','=', 'Unlisted')]}"/>
             </group>
 
-            <group colspan="2">
+            <group colspan="2" attrs="{'invisible':[('ebay_use','=',False)]}">
               <group>
                 <field name="ebay_title"/>
                 <field name="ebay_subtitle"/>
@@ -57,7 +52,7 @@
                 <field name="ebay_seller_shipping_policy_id" options="{'no_create': True, 'no_open': True}"/>
               </group>
             </group>
-            <div groups="product.group_product_variant">
+            <div groups="product.group_product_variant" attrs="{'invisible':[('ebay_use','=',False)]}">
               <label for="product_variant_ids"
                 attrs="{'invisible': ['|',('ebay_listing_type','=', 'Chinese'),('product_variant_count', '=', 1)]}"
                 />
@@ -69,25 +64,26 @@
                   <field name="ebay_use"/>
                   <field name="ebay_fixed_price" string="Fixed Price" widget="monetary"/>
                   <field name="ebay_quantity"/>
+                  <field name="uom_id" invisible="1"/>
                   <field name="virtual_available"/>
                   <field name="ebay_quantity_sold"/>
                 </tree>
               </field>
             </div>
-            <div>
-              <label for="ebay_template_id"/>
-              <field name="ebay_template_id"
-                domain="[('model','=','product.template')]"
-                context="{
-                    'form_view_ref':'product_email_template.email_template_form_simplified',
-                    'default_model': 'product.template',
-                    'default_subject': name,
-                    'default_name': name,
-                }"
-              />
-            </div>
-            <label for="ebay_description"/>
-            <field name="ebay_description" placeholder="Describe the product characteristics..."/>
+            <group attrs="{'invisible':[('ebay_use','=',False)]}" string="eBay Description">
+                <group>
+                <field name="ebay_template_id"
+                  domain="[('model','=','product.template')]"
+                  context="{
+                      'form_view_ref':'product_email_template.email_template_form_simplified',
+                      'default_model': 'product.template',
+                      'default_subject': name,
+                      'default_name': name,
+                  }"
+                />
+            </group>
+              <field name="ebay_description" nolabel="1" placeholder="Describe the product characteristics..."/>
+            </group>
           </page>
         </xpath>
         </data>
@@ -100,7 +96,7 @@
       <field name="inherit_id" ref="product.product_template_tree_view"/>
       <field name="arch" type="xml">
         <xpath expr="//field[@name='activity_exception_decoration']" position="before">
-          <field name="ebay_listing_status" optional="show"/>
+          <field name="ebay_listing_status" optional="hide"/>
         </xpath>
       </field>
     </record>

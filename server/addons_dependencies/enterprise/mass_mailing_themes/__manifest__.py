@@ -7,18 +7,16 @@
     'description': """
 Design gorgeous mails
     """,
-    'version': '1.0',
+    'version': '1.1',
     'sequence': 110,
-    'website': 'https://www.odoo.com/page/mailing',
+    'website': 'https://www.odoo.com/app/mailing',
     'category': 'Marketing/Email Marketing',
     'depends': [
         'mass_mailing',
     ],
     'data': [
-        'assets.xml',
         'views/mass_mailing_themes_templates.xml'
     ],
-    'qweb': [],
     'installable': True,
     'auto_install': True,
     'license': 'OEEL-1',

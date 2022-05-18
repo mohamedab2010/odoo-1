@@ -1,8 +1,8 @@
-odoo.define('mail_enterprise.AttachmentViewer', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var core = require('web.core');
-var Widget = require('web.Widget');
+import core from 'web.core';
+import Widget from 'web.Widget';
+import { hidePDFJSButtons } from '@web/legacy/js/libs/pdfjs';
 
 var QWeb = core.qweb;
 
@@ -64,6 +64,9 @@ var AttachmentViewer = Widget.extend({
     _renderAttachment: function () {
         this.$el.empty();
         this.$el.append(QWeb.render('mail_enterprise.AttachmentPreview', {widget: this}));
+        if (this.activeAttachment && this.activeAttachment.type === 'pdf') {
+            hidePDFJSButtons(this.el);
+        }
     },
 
     /**
@@ -130,5 +133,4 @@ var AttachmentViewer = Widget.extend({
     },
 });
 
-return AttachmentViewer;
-});
+export default AttachmentViewer;

@@ -4,10 +4,17 @@
 from dateutil.relativedelta import relativedelta
 
 from odoo import fields, models, api
+from odoo.tools.sql import column_exists, create_column
 
 
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
+
+    def _auto_init(self):
+        # create column manually to skip initial computation
+        if not column_exists(self.env.cr, "account_move_line", "subscription_mrr"):
+            create_column(self.env.cr, "account_move_line", "subscription_mrr", "numeric")
+        return super()._auto_init()
 
     subscription_id = fields.Many2one("sale.subscription")
     subscription_start_date = fields.Date(

@@ -9,4 +9,14 @@ from . import hr_payslip
 from . import hr_dmfa
 from . import res_company
 from . import hr_work_entry
-from . import l10n_be_attachment_salary
+from . import hr_payslip_worked_days
+from . import hr_leave_allocation
+from . import hr_leave
+from . import hr_departure_reason
+from . import hr_job
+from . import l10n_be_274_XX
+from . import l10n_be_273S
+from . import l10n_be_281_10
+from . import l10n_be_281_45
+from . import l10n_be_double_pay_recovery_line
+from . import l10n_be_schedule_change_allocation

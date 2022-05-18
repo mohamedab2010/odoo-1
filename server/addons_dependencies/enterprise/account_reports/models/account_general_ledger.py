@@ -21,20 +21,23 @@ class AccountGeneralLedgerReport(models.AbstractModel):
     def _get_templates(self):
         templates = super(AccountGeneralLedgerReport, self)._get_templates()
         templates['line_template'] = 'account_reports.line_template_general_ledger_report'
+        templates['main_template'] = 'account_reports.main_template_with_filter_input_accounts'
         return templates
 
     @api.model
     def _get_columns_name(self, options):
-        return [
+        columns_names = [
             {'name': ''},
             {'name': _('Date'), 'class': 'date'},
             {'name': _('Communication')},
             {'name': _('Partner')},
-            {'name': _('Currency'), 'class': 'number'},
             {'name': _('Debit'), 'class': 'number'},
             {'name': _('Credit'), 'class': 'number'},
             {'name': _('Balance'), 'class': 'number'}
         ]
+        if self.user_has_groups('base.group_multi_currency'):
+            columns_names.insert(4, {'name': _('Currency'), 'class': 'number'})
+        return columns_names
 
     @api.model
     def _get_report_name(self):
@@ -145,14 +148,15 @@ class AccountGeneralLedgerReport(models.AbstractModel):
                         cumulated_balance,
                     ))
 
-                # Account total line.
-                lines.append(self._get_account_total_line(
-                    options, account,
-                    account_sum.get('amount_currency', 0.0),
-                    account_sum.get('debit', 0.0),
-                    account_sum.get('credit', 0.0),
-                    account_sum.get('balance', 0.0),
-                ))
+                if self.env.company.totals_below_sections:
+                    # Account total line.
+                    lines.append(self._get_account_total_line(
+                        options, account,
+                        account_sum.get('amount_currency', 0.0),
+                        account_sum.get('debit', 0.0),
+                        account_sum.get('credit', 0.0),
+                        account_sum.get('balance', 0.0),
+                    ))
 
         if not line_id:
             # Report total line.
@@ -189,7 +193,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
 
         # Fetch the next batch of lines.
         amls_query, amls_params = self._get_query_amls(options, expanded_account, offset=offset, limit=load_more_counter)
-        self._cr.execute(amls_query, amls_params)
+        self.env.cr.execute(amls_query, amls_params)
         for aml in self._cr.dictfetchall():
             # Don't show more line than load_more_counter.
             if load_more_counter == 0:
@@ -234,12 +238,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         # OVERRIDE
         domain = super(AccountGeneralLedgerReport, self)._get_options_domain(options)
         # Filter accounts based on the search bar.
-        if options.get('filter_accounts'):
-            domain += [
-                '|',
-                ('account_id.name', 'ilike', options['filter_accounts']),
-                ('account_id.code', 'ilike', options['filter_accounts'])
-            ]
+        domain += [('account_id', 'ilike', options.get('filter_accounts'))]
         return domain
 
     @api.model
@@ -278,6 +277,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         :return:        A copy of the options.
         '''
         new_options = options.copy()
+        new_options.pop('filter_accounts', None)
         fiscalyear_dates = self.env.company.compute_fiscalyear_dates(fields.Date.from_string(options['date']['date_from']))
         new_date_to = fiscalyear_dates['date_from'] - timedelta(days=1)
         new_options['date'] = {
@@ -336,7 +336,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
 
         # Create the currency table.
         # As the currency table is the same whatever the comparisons, create it only once.
-        ct_query = self._get_query_currency_table(options)
+        ct_query = self.env['res.currency']._get_query_currency_table(options)
 
         # ============================================
         # 1) Get sums for all accounts.
@@ -415,43 +415,40 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         # 3) Get sums for the initial balance.
         # ============================================
 
-        domain = None
+        domain = []
         if expanded_account:
             domain = [('account_id', '=', expanded_account.id)]
-        elif unfold_all:
-            domain = []
-        elif options['unfolded_lines']:
+        elif not unfold_all and options['unfolded_lines']:
             domain = [('account_id', 'in', [int(line[8:]) for line in options['unfolded_lines']])]
 
-        if domain is not None:
-            for i, options_period in enumerate(options_list):
+        for i, options_period in enumerate(options_list):
 
-                # The period domain is expressed as:
-                # [
-                #   ('date' <= options['date_from'] - 1),
-                #   '|',
-                #   ('date' >= fiscalyear['date_from']),
-                #   ('account_id.user_type_id.include_initial_balance', '=', True)
-                # ]
+            # The period domain is expressed as:
+            # [
+            #   ('date' <= options['date_from'] - 1),
+            #   '|',
+            #   ('date' >= fiscalyear['date_from']),
+            #   ('account_id.user_type_id.include_initial_balance', '=', True)
+            # ]
 
-                new_options = self._get_options_initial_balance(options_period)
-                tables, where_clause, where_params = self._query_get(new_options, domain=domain)
-                params += where_params
-                queries.append('''
-                    SELECT
-                        account_move_line.account_id                            AS groupby,
-                        'initial_balance'                                       AS key,
-                        NULL                                                    AS max_date,
-                        %s                                                      AS period_number,
-                        COALESCE(SUM(account_move_line.amount_currency), 0.0)   AS amount_currency,
-                        SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
-                        SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
-                        SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
-                    FROM %s
-                    LEFT JOIN %s ON currency_table.company_id = account_move_line.company_id
-                    WHERE %s
-                    GROUP BY account_move_line.account_id
-                ''' % (i, tables, ct_query, where_clause))
+            new_options = self._get_options_initial_balance(options_period)
+            tables, where_clause, where_params = self._query_get(new_options, domain=domain)
+            params += where_params
+            queries.append('''
+                SELECT
+                    account_move_line.account_id                            AS groupby,
+                    'initial_balance'                                       AS key,
+                    NULL                                                    AS max_date,
+                    %s                                                      AS period_number,
+                    COALESCE(SUM(account_move_line.amount_currency), 0.0)   AS amount_currency,
+                    SUM(ROUND(account_move_line.debit * currency_table.rate, currency_table.precision))   AS debit,
+                    SUM(ROUND(account_move_line.credit * currency_table.rate, currency_table.precision))  AS credit,
+                    SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)) AS balance
+                FROM %s
+                LEFT JOIN %s ON currency_table.company_id = account_move_line.company_id
+                WHERE %s
+                GROUP BY account_move_line.account_id
+            ''' % (i, tables, ct_query, where_clause))
 
         # ============================================
         # 4) Get sums for the tax declaration.
@@ -518,8 +515,8 @@ class AccountGeneralLedgerReport(models.AbstractModel):
 
         new_options = self._force_strict_range(options)
         tables, where_clause, where_params = self._query_get(new_options, domain=domain)
-        ct_query = self._get_query_currency_table(options)
-        query = '''
+        ct_query = self.env['res.currency']._get_query_currency_table(options)
+        query = f'''
             SELECT
                 account_move_line.id,
                 account_move_line.date,
@@ -538,23 +535,22 @@ class AccountGeneralLedgerReport(models.AbstractModel):
                 account_move_line__move_id.name         AS move_name,
                 company.currency_id                     AS company_currency_id,
                 partner.name                            AS partner_name,
-                account_move_line__move_id.type         AS move_type,
+                account_move_line__move_id.move_type    AS move_type,
                 account.code                            AS account_code,
                 account.name                            AS account_name,
                 journal.code                            AS journal_code,
                 journal.name                            AS journal_name,
                 full_rec.name                           AS full_rec_name
-            FROM account_move_line
-            LEFT JOIN account_move account_move_line__move_id ON account_move_line__move_id.id = account_move_line.move_id
-            LEFT JOIN %s ON currency_table.company_id = account_move_line.company_id
+            FROM {tables}
+            LEFT JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
             LEFT JOIN res_company company               ON company.id = account_move_line.company_id
             LEFT JOIN res_partner partner               ON partner.id = account_move_line.partner_id
             LEFT JOIN account_account account           ON account.id = account_move_line.account_id
             LEFT JOIN account_journal journal           ON journal.id = account_move_line.journal_id
             LEFT JOIN account_full_reconcile full_rec   ON full_rec.id = account_move_line.full_reconcile_id
-            WHERE %s
+            WHERE {where_clause}
             ORDER BY account_move_line.date, account_move_line.id
-        ''' % (ct_query, where_clause)
+        '''
 
         if offset:
             query += ' OFFSET %s '
@@ -595,7 +591,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         groupby_companies = {}
         groupby_taxes = {}
 
-        self._cr.execute(query, params)
+        self.env.cr.execute(query, params)
         for res in self._cr.dictfetchall():
             # No result to aggregate.
             if res['groupby'] is None:
@@ -626,7 +622,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
             unfold_all = options.get('unfold_all') or (self._context.get('print_mode') and not options['unfolded_lines'])
             if expanded_account or unfold_all or options['unfolded_lines']:
                 query, params = self._get_query_amls(options, expanded_account)
-                self._cr.execute(query, params)
+                self.env.cr.execute(query, params)
                 for res in self._cr.dictfetchall():
                     groupby_accounts[res['account_id']][0].setdefault('lines', [])
                     groupby_accounts[res['account_id']][0]['lines'].append(res)
@@ -635,11 +631,14 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         # There is an unaffected earnings for each company but it's less costly to fetch all candidate accounts in
         # a single search and then iterate it.
         if groupby_companies:
+            options = options_list[0]
             unaffected_earnings_type = self.env.ref('account.data_unaffected_earnings')
-            candidates_accounts = self.env['account.account'].search([
-                ('user_type_id', '=', unaffected_earnings_type.id), ('company_id', 'in', list(groupby_companies.keys()))
+
+            candidates_account_ids = self.env['account.account']._name_search(options.get('filter_accounts'), [
+                ('user_type_id', '=', unaffected_earnings_type.id),
+                ('company_id', 'in', list(groupby_companies)),
             ])
-            for account in candidates_accounts:
+            for account in self.env['account.account'].browse(candidates_account_ids):
                 company_unaffected_earnings = groupby_companies.get(account.company_id.id)
                 if not company_unaffected_earnings:
                     continue
@@ -677,43 +676,46 @@ class AccountGeneralLedgerReport(models.AbstractModel):
 
     @api.model
     def _get_account_title_line(self, options, account, amount_currency, debit, credit, balance, has_lines):
-        has_foreign_currency = account.currency_id and account.currency_id != account.company_id.currency_id or False
-
         unfold_all = self._context.get('print_mode') and not options.get('unfolded_lines')
 
         name = '%s %s' % (account.code, account.name)
-        if len(name) > 40 and not self._context.get('print_mode'):
-            name = name[:40] + '...'
+        columns = [
+            {'name': self.format_value(debit), 'class': 'number'},
+            {'name': self.format_value(credit), 'class': 'number'},
+            {'name': self.format_value(balance), 'class': 'number'},
+        ]
+        if self.user_has_groups('base.group_multi_currency'):
+            has_foreign_currency = account.currency_id and account.currency_id != account.company_id.currency_id or False
+            columns.insert(0, {'name': has_foreign_currency and self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True) or '', 'class': 'number'})
         return {
             'id': 'account_%d' % account.id,
             'name': name,
-            'title_hover': name,
-            'columns': [
-                {'name': has_foreign_currency and self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True) or '', 'class': 'number'},
-                {'name': self.format_value(debit), 'class': 'number'},
-                {'name': self.format_value(credit), 'class': 'number'},
-                {'name': self.format_value(balance), 'class': 'number'},
-            ],
-            'level': 2,
+            'code': account.code,
+            'columns': columns,
+            'level': 1,
             'unfoldable': has_lines,
             'unfolded': has_lines and 'account_%d' % account.id in options.get('unfolded_lines') or unfold_all,
             'colspan': 4,
+            'class': 'o_account_reports_totals_below_sections' if self.env.company.totals_below_sections else '',
         }
 
     @api.model
     def _get_initial_balance_line(self, options, account, amount_currency, debit, credit, balance):
-        has_foreign_currency = account.currency_id and account.currency_id != account.company_id.currency_id or False
+        columns = [
+            {'name': self.format_value(debit), 'class': 'number'},
+            {'name': self.format_value(credit), 'class': 'number'},
+            {'name': self.format_value(balance), 'class': 'number'},
+        ]
+
+        if self.user_has_groups('base.group_multi_currency'):
+            has_foreign_currency = account.currency_id and account.currency_id != account.company_id.currency_id or False
+            columns.insert(0, {'name': has_foreign_currency and self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True) or '', 'class': 'number'})
         return {
             'id': 'initial_%d' % account.id,
             'class': 'o_account_reports_initial_balance',
             'name': _('Initial Balance'),
             'parent_id': 'account_%d' % account.id,
-            'columns': [
-                {'name': has_foreign_currency and self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True) or '', 'class': 'number'},
-                {'name': self.format_value(debit), 'class': 'number'},
-                {'name': self.format_value(credit), 'class': 'number'},
-                {'name': self.format_value(balance), 'class': 'number'},
-            ],
+            'columns': columns,
             'colspan': 4,
         }
 
@@ -721,43 +723,30 @@ class AccountGeneralLedgerReport(models.AbstractModel):
     def _get_aml_line(self, options, account, aml, cumulated_balance):
         if aml['payment_id']:
             caret_type = 'account.payment'
-        elif aml['move_type'] in ('in_refund', 'in_invoice', 'in_receipt'):
-            caret_type = 'account.invoice.in'
-        elif aml['move_type'] in ('out_refund', 'out_invoice', 'out_receipt'):
-            caret_type = 'account.invoice.out'
         else:
             caret_type = 'account.move'
 
-        if aml['ref'] and aml['name']:
-            title = '%s - %s' % (aml['name'], aml['ref'])
-        elif aml['ref']:
-            title = aml['ref']
-        elif aml['name']:
-            title = aml['name']
-        else:
-            title = ''
-
-        if aml['currency_id']:
-            currency = self.env['res.currency'].browse(aml['currency_id'])
-        else:
-            currency = False
-
+        columns = [
+            {'name': format_date(self.env, aml['date']), 'class': 'date'},
+            {'name': self._format_aml_name(aml['name'], aml['ref']), 'class': 'o_account_report_line_ellipsis'},
+            {'name': aml['partner_name'], 'class': 'o_account_report_line_ellipsis'},
+            {'name': self.format_value(aml['debit'], blank_if_zero=True), 'class': 'number'},
+            {'name': self.format_value(aml['credit'], blank_if_zero=True), 'class': 'number'},
+            {'name': self.format_value(cumulated_balance), 'class': 'number'},
+        ]
+        if self.user_has_groups('base.group_multi_currency'):
+            if (aml['currency_id'] and aml['currency_id'] != account.company_id.currency_id.id) or account.currency_id:
+                currency = self.env['res.currency'].browse(aml['currency_id'])
+            else:
+                currency = False
+            columns.insert(3, {'name': currency and aml['amount_currency'] and self.format_value(aml['amount_currency'], currency=currency, blank_if_zero=True) or '', 'class': 'number'})
         return {
             'id': aml['id'],
             'caret_options': caret_type,
-            'class': 'top-vertical-align',
             'parent_id': 'account_%d' % aml['account_id'],
             'name': aml['move_name'],
-            'columns': [
-                {'name': format_date(self.env, aml['date']), 'class': 'date'},
-                {'name': self._format_aml_name(aml['name'], aml['ref'], aml['move_name']), 'title': title, 'class': 'whitespace_print'},
-                {'name': aml['partner_name'], 'title': aml['partner_name'], 'class': 'whitespace_print'},
-                {'name': currency and self.format_value(aml['amount_currency'], currency=currency, blank_if_zero=True) or '', 'class': 'number'},
-                {'name': self.format_value(aml['debit'], blank_if_zero=True), 'class': 'number'},
-                {'name': self.format_value(aml['credit'], blank_if_zero=True), 'class': 'number'},
-                {'name': self.format_value(cumulated_balance), 'class': 'number'},
-            ],
-            'level': 4,
+            'columns': columns,
+            'level': 2,
         }
 
     @api.model
@@ -769,24 +758,31 @@ class AccountGeneralLedgerReport(models.AbstractModel):
             'remaining': remaining,
             'class': 'o_account_reports_load_more text-center',
             'parent_id': 'account_%s' % account.id,
-            'name': _('Load more... (%s remaining)') % remaining,
-            'colspan': 7,
+            'name': _('Load more... (%s remaining)', remaining),
+            'colspan': self.user_has_groups('base.group_multi_currency') and 7 or 6,
             'columns': [{}],
         }
 
     @api.model
     def _get_account_total_line(self, options, account, amount_currency, debit, credit, balance):
+
+        columns = []
+        if self.user_has_groups('base.group_multi_currency'):
+            has_foreign_currency = account.currency_id and account.currency_id != account.company_id.currency_id or False
+            columns.append({'name': has_foreign_currency and self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True) or '', 'class': 'number'})
+
+        columns += [
+            {'name': self.format_value(debit), 'class': 'number'},
+            {'name': self.format_value(credit), 'class': 'number'},
+            {'name': self.format_value(balance), 'class': 'number'},
+        ]
+
         return {
             'id': 'total_%s' % account.id,
             'class': 'o_account_reports_domain_total',
             'parent_id': 'account_%s' % account.id,
-            'name': _('Total'),
-            'columns': [
-                {'name': self.format_value(amount_currency, currency=account.currency_id, blank_if_zero=True), 'class': 'number'},
-                {'name': self.format_value(debit), 'class': 'number'},
-                {'name': self.format_value(credit), 'class': 'number'},
-                {'name': self.format_value(balance), 'class': 'number'},
-            ],
+            'name': _('Total %s', account["display_name"]),
+            'columns': columns,
             'colspan': 4,
         }
 
@@ -802,7 +798,7 @@ class AccountGeneralLedgerReport(models.AbstractModel):
                 {'name': self.format_value(credit), 'class': 'number'},
                 {'name': self.format_value(balance), 'class': 'number'},
             ],
-            'colspan': 5,
+            'colspan': self.user_has_groups('base.group_multi_currency') and 5 or 4,
         }
 
     @api.model
@@ -810,14 +806,16 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         lines = [{
             'id': 0,
             'name': _('Tax Declaration'),
-            'columns': [{'name': v} for v in ['', '', '', '', '', '', '']],
+            'columns': [{'name': ''}],
+            'colspan': self.user_has_groups('base.group_multi_currency') and 7 or 6,
             'level': 1,
             'unfoldable': False,
             'unfolded': False,
         }, {
             'id': 0,
             'name': _('Name'),
-            'columns': [{'name': v} for v in ['', '', '', '', _('Base Amount'), _('Tax Amount'), '']],
+            'columns': [{'name': v} for v in ['', _('Base Amount'), _('Tax Amount'), '']],
+            'colspan': self.user_has_groups('base.group_multi_currency') and 4 or 3,
             'level': 2,
             'unfoldable': False,
             'unfolded': False,
@@ -827,18 +825,22 @@ class AccountGeneralLedgerReport(models.AbstractModel):
         tax_report_date['strict_range'] = True
         tax_report_options = self.env['account.generic.tax.report']._get_options()
         tax_report_options.update({
-                'tax_grids': False,
-                'date': tax_report_date,
-                'journals': options['journals'],
-                'all_entries': options['all_entries'],
+            'tax_grids': False,
+            'date': tax_report_date,
+            'journals': options['journals'],
+            'all_entries': options['all_entries'],
+            'tax_report': 'generic',
         })
         journal = self.env['account.journal'].browse(self._get_options_journals(options)[0]['id'])
-        tax_report_lines = self.env['account.generic.tax.report'].with_context(force_company=journal.company_id.id)._get_lines(tax_report_options)
+        tax_report_lines = self.env['account.generic.tax.report'].with_company(journal.company_id)._get_lines(tax_report_options)
 
         for tax_line in tax_report_lines:
             if tax_line['id'] not in ('sale', 'purchase'): # We want to exclude title lines here
                 tax_line['columns'].append({'name': ''})
-                tax_line['colspan'] = 5
+                tax_line['colspan'] = self.user_has_groups('base.group_multi_currency') and 5 or 4
                 lines.append(tax_line)
 
         return lines
+
+    def action_dropdown_audit_default_tax_report(self, options, data):
+        return self.env['account.generic.tax.report'].action_dropdown_audit_default_tax_report(options, data)

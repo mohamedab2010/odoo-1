@@ -4,6 +4,9 @@ import base64
 
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import AccessError
+from odoo.tools import mute_logger
+
+from psycopg2 import IntegrityError
 
 
 class TestCaseSecurity(TransactionCase):
@@ -135,6 +138,9 @@ class TestCaseSecurity(TransactionCase):
         with self.assertRaises(AccessError):
             document_b.with_user(self.test_group_user).write({'name': 'nameChangedB'})
 
+        document_b.with_user(self.test_group_user).toggle_favorited()
+        self.assertFalse(document_b.is_favorited)
+
         test_group_user_document_b_name = document_b.with_user(self.test_group_user).read(['name'])
         self.assertEqual(test_group_user_document_b_name, [{'id': document_b.id, 'name': 'document B'}],
                          'test_group_user should be able to read document_b')
@@ -254,6 +260,20 @@ class TestCaseSecurity(TransactionCase):
         self.assertEqual(document_not_owner.name, 'nameChangedA',
                          'test_group_user should be able to write document_not_owner as he is in the write group')
 
+        # We now set the document to user_specific for write permissions.
+        folder_owner.user_specific_write = True
+        # since the user is not in the folder's write group, they will not be able to write the documents
+        with self.assertRaises(AccessError):
+            document_read_owner.with_user(test_group2_user).write({'name': 'nameChange'})
+        # the first user is in the write groups but is not the owner of the document
+        with self.assertRaises(AccessError):
+            document_read_owner.with_user(self.test_group_user).write({'name': 'nameChange'})
+
+        # Now give the right group to test_group2_user.
+        test_group2_user.groups_id += self.arbitrary_group
+        # they should now be able to write on the document
+        document_read_owner.with_user(test_group2_user).write({'name': 'nameChangedC'})
+
     def test_share_link_access(self):
         """
         Tests access rights for share links when the access rights of the folder is changed after the creation of the link.
@@ -324,3 +344,21 @@ class TestCaseSecurity(TransactionCase):
         available_documents = test_share._get_documents_and_check_access(test_share.access_token, operation='read')
         self.assertEqual(len(available_documents), 1, "there should be 1 available document")
         self.assertEqual(available_documents.name, 'filec.gif', "the document C should be available")
+
+    def test_folder_user_specific_write(self):
+        """
+        Tests that `user_specific_write` is disabled when `user_specific` is disabled
+        """
+        folder = self.env['documents.folder'].create({
+            'name': 'Test Folder',
+            'user_specific': True,
+            'user_specific_write': True,
+        })
+
+        folder.user_specific = False
+        self.assertFalse(folder.user_specific_write)
+
+        with mute_logger('odoo.sql_db'):
+            with self.assertRaises(IntegrityError):
+                with self.cr.savepoint():
+                    folder.write({'user_specific_write': True})

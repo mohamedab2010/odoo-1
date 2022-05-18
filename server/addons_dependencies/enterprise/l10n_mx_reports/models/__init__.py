@@ -6,3 +6,4 @@ from . import coa
 from . import account_diot
 from . import res_partner
 from . import res_country
+from . import account_financial_report

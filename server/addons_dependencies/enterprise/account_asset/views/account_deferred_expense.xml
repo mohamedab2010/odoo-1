@@ -4,7 +4,7 @@
         <field name="name">account.asset.expense.tree</field>
         <field name="model">account.asset</field>
         <field name="arch" type="xml">
-            <tree string="Deferred Expenses" decoration-info="(state == 'draft')" decoration-muted="(state == 'close')">
+            <tree string="Deferred Expenses" decoration-info="(state == 'draft')" decoration-muted="(state == 'close')" sample="1">
                 <field name="name" string="Expense"/>
                 <field name="first_depreciation_date"/>
                 <field name="book_value"/>
@@ -22,8 +22,8 @@
         <field name="arch" type="xml">
             <tree string="Deferred Expenses Models">
                 <field name="name" string="Expense Name"/>
-                <field name="account_depreciation_id" string="Expense Account"/>
-                <field name="account_depreciation_expense_id" string="Deferred Expense Account"/>
+                <field name="account_depreciation_id" string="Deferred Expense Account"/>
+                <field name="account_depreciation_expense_id" string="Expense Account"/>
                 <field name="method_number" string="Number of Recognitions"/>
                 <field name="method_period" string="Period length"/>
                 <field name="state" invisible="1"/>
@@ -57,7 +57,7 @@
                 <attribute name="string">Expense Recognition</attribute>
             </xpath>
             <xpath expr="//button[@name='compute_depreciation_board']" position="attributes">
-                <attribute name="string">Compute Deferal</attribute>
+                <attribute name="string">Compute Expense</attribute>
             </xpath>
             <xpath expr="//button[@name='action_asset_modify']" position="attributes">
                 <attribute name="string">Modify Expense</attribute>
@@ -80,7 +80,7 @@
             </field>
             <field name="account_depreciation_id" position="attributes">
                 <attribute name="string">Deferred Expense Account</attribute>
-                <attribute name="help">Account used to record the deferred income</attribute>
+                <attribute name="help">Account used to record the deferred expense</attribute>
             </field>
             <field name="book_value" position="attributes">
                 <attribute name="string">Deferred Expense Amount</attribute>
@@ -124,6 +124,11 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_account_asset_expense_tree')}),
             (0, 0, {'view_mode': 'kanban'}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_account_asset_expense_form')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create new deferred expense
+            </p>
+        </field>
     </record>
 
     <record model="ir.actions.act_window" id="action_account_expense_model_form">
@@ -136,8 +141,13 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_account_asset_model_expense_tree')}),
             (0, 0, {'view_mode': 'kanban'}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_account_asset_expense_form')})]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create new deferred expense model
+            </p>
+        </field>
     </record>
 
-    <menuitem parent="account.menu_finance_entries_management" id="menu_action_account_expense_recognition" action="action_account_expense_form" sequence="104" groups="account.group_account_manager"/>
-    <menuitem parent="account.account_account_menu" id="menu_action_account_expense_model_recognition" action="action_account_expense_model_form" groups="account.group_account_manager"/>
+    <menuitem parent="account.menu_finance_entries_management" id="menu_action_account_expense_recognition" action="action_account_expense_form" sequence="104" groups="account.group_account_readonly"/>
+    <menuitem parent="account.account_management_menu" sequence="3" id="menu_action_account_expense_model_recognition" action="action_account_expense_model_form" groups="account.group_account_manager"/>
 </odoo>

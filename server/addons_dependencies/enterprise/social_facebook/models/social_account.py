@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 import requests
 
-from odoo import models, fields, api
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from werkzeug.urls import url_join
+
+from odoo import api, fields, models
 
 
 class SocialAccountFacebook(models.Model):
@@ -20,7 +21,7 @@ class SocialAccountFacebook(models.Model):
 
     def _compute_stats_link(self):
         """ External link to this Facebook Page's 'insights' (fancy name for the page statistics). """
-        facebook_accounts = self.filtered(lambda account: account.media_type == 'facebook')
+        facebook_accounts = self._filter_by_media_types(['facebook'])
         super(SocialAccountFacebook, (self - facebook_accounts))._compute_stats_link()
 
         for account in facebook_accounts:
@@ -37,18 +38,21 @@ class SocialAccountFacebook(models.Model):
           - We have 60 stories in total (last year of data).
           - The trend is 200% -> (40 / (60 - 40)) * 100 """
 
-        facebook_accounts = self.filtered(lambda account: account.media_type == 'facebook')
+        facebook_accounts = self._filter_by_media_types(['facebook'])
         super(SocialAccountFacebook, (self - facebook_accounts))._compute_statistics()
 
         for account in facebook_accounts:
-            insights_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v3.3/%s/insights" % account.facebook_account_id)
+            insights_endpoint_url = url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v10.0/%s/insights" % account.facebook_account_id)
             statistics_30d = account._compute_statistics_facebook(insights_endpoint_url)
             statistics_360d = account._compute_statistics_facebook_360d(insights_endpoint_url)
 
-            page_global_stats = requests.get(url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v3.3/%s" % account.facebook_account_id), params={
-                'fields': 'fan_count',
-                'access_token': account.facebook_access_token
-            })
+            page_global_stats = requests.get(url_join(self.env['social.media']._FACEBOOK_ENDPOINT, "/v10.0/%s" % account.facebook_account_id),
+                params={
+                    'fields': 'fan_count',
+                    'access_token': account.facebook_access_token
+                },
+                timeout=5
+            )
 
             account.write({
                 'audience': page_global_stats.json().get('fan_count'),
@@ -58,9 +62,6 @@ class SocialAccountFacebook(models.Model):
                 'stories': statistics_360d['page_content_activity'],
                 'stories_trend': self._compute_trend(account.stories, statistics_30d['page_content_activity'])
             })
-
-    def _compute_trend(self, value, delta_30d):
-        return 0.0 if value - delta_30d <= 0 else (delta_30d / (value - delta_30d)) * 100
 
     def _compute_statistics_facebook_360d(self, insights_endpoint_url):
         """ Facebook only accepts requests for a range of maximum 90 days.
@@ -82,8 +83,25 @@ class SocialAccountFacebook(models.Model):
         return total_statistics
 
     def _compute_statistics_facebook(self, endpoint_url, date_preset='last_30d', since=None, until=None):
-        """ Check https://developers.facebook.com/docs/graph-api/reference/v3.3/insights for more information
-        about the endpoint used. """
+        """ Check https://developers.facebook.com/docs/graph-api/reference/v10.0/insights for more information
+        about the endpoint used.
+        e.g of data structure returned by the endpoint:
+        [{
+            'name':  'follower_count',
+            'values': [{
+                'value': 10,
+            }, {
+                'value': 20,
+            }]
+        }{
+            'name':  'reach',
+            'values': [{
+                'value': 15,
+            }, {
+                'value': 25,
+            }]
+        }] """
+
         params = {
             'metric': 'page_post_engagements,page_fan_adds,page_fan_removes,page_content_activity',
             'period': 'day',
@@ -96,7 +114,7 @@ class SocialAccountFacebook(models.Model):
         else:
             params['date_preset'] = date_preset
 
-        response = requests.get(endpoint_url, params=params)
+        response = requests.get(endpoint_url, params=params, timeout=5)
 
         statistics = {'page_fans': 0}
         if not response.json().get('data'):

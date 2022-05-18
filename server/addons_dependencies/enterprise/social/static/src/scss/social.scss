@@ -23,6 +23,7 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 
         .o_group.o_inner_group.o_social_post_preview_group {
             > tbody > tr > td {
+                width: 100%;
                 padding-right: 0;
             }
         }
@@ -57,33 +58,36 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
         }
     }
 
-    .o_social_preview {
-        font-family: $o-social-font-family-reset;
-        font-size: 1.2rem;
-
-        .o_social_preview_icon_wrapper {
-            @include size(2em);
+    .o_social_preview_wrapper {
+        > .o_readonly {
+            width: 100%;
         }
 
-        .o_social_stream_post_image img {
-            max-height: 120px;
+        .o_social_preview {
+            font-family: $o-social-font-family-reset;
+            font-size: 1.2rem;
 
-            @media (min-height: 800px) {
-                max-height: 200px;
+            .o_social_preview_icon_wrapper {
+                @include size(2em);
+            }
+
+            .o_social_stream_post_image img {
+                max-height: 120px;
+
+                @media (min-height: 800px) {
+                    max-height: 200px;
+                }
             }
         }
-    }
 
-    .o_social_add_emoji {
-        float: right;
-        margin-bottom: 1rem;
     }
 }
 
 // Kanban Views (Both Feed & Posts)
 // ===================================================
 .o_social_stream_post_message_body {
-    .o_social_stream_post_message_text {
+    .o_social_stream_post_message_text,
+    .o_social_stream_post_message_text span {
         display: -webkit-box;
         max-height: 9.8rem;
         // Doesn't work in all browser but we have no real solutions here
@@ -156,13 +160,17 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
             padding: 1rem 8px 0;
         }
 
-        &:last-child() {
+        &:last-child {
             padding: 1rem 16px 0 8px;
         }
     }
 }
 
-.o_stream_post_kanban_refresh_now .fa-spinner {
+.o_social_stream_post_author_name {
+    max-width: 190px;
+}
+
+.o_stream_post_kanban_refresh_now .fa-circle-o-notch {
     margin-left: 5px;
 }
 
@@ -205,6 +213,10 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
         outline: none;
         color: darken($o-main-text-color, 20%);
     }
+}
+
+.o_social_subtle_btn_disabled {
+    color: lighten($o-main-text-color, 10%);
 }
 
 .o_social_author_image {
@@ -282,6 +294,8 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 // Add a new stream
 .o_social_add_stream_form {
     margin: $modal-inner-padding * -1;
+    padding: ($spacer * 1.5);
+    padding-bottom: ($spacer * 5);
 
     .o_social_media {
         background-color: $list-group-bg;
@@ -290,6 +304,15 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
         @include hover-focus {
             background-color: $list-group-hover-bg;
         }
+    }
+
+    select.custom-select.o_social_add_stream_form_select {
+        background: str-replace(url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='175' height='100' fill='#000'><polygon points='0,0 100,0 50,50'/></svg>"), "#", "%23") ;
+        background-color: #fff;
+        background-size: 20px;
+        background-position: 100% 75%;
+        background-repeat: no-repeat;
+        min-width: 180px;
     }
 }
 
@@ -377,6 +400,15 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 
     .o_social_comment_controls {
         @include o-position-absolute(0, 0);
+        height: 75%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+
+        .o_mail_add_emoji {
+            bottom: auto;
+            margin-top: 0;
+        }
     }
 
     .o_social_comment_published_date, .o_social_post_published_date {
@@ -388,6 +420,10 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 
     .o_social_author_image img {
         @include size(32px);
+    }
+
+    .o_social_comment_user_likes{
+        font-weight: bold;
     }
 
     // Original Post
@@ -441,21 +477,8 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
     .o_social_load_more_comments {
         display: block;
     }
-
-    .o_social_add_emoji {
-        .dropdown-menu {
-            border-radius: $o-social-border-radius-base;
-
-            .o_mail_emoji {
-                cursor: pointer;
-                padding: 2px;
-
-                @include hover-focus() {
-                    background-color: grey('100');
-                    border-radius: $o-social-border-radius-base;
-                }
-            }
-        }
+    a {
+        text-decoration: none!important;
     }
 }
 
@@ -468,3 +491,6 @@ $o-social-font-family-reset: -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
     }
 }
 
+.o_social_media_cards {
+    width: min-content;
+}

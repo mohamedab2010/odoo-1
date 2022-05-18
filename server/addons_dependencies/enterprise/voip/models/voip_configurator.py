@@ -22,5 +22,6 @@ class VoipConfigurator(models.Model):
                 'external_phone': self.env.user[0].sip_external_phone,
                 'always_transfer': self.env.user[0].sip_always_transfer,
                 'ignore_incoming': self.env.user[0].sip_ignore_incoming,
+                'mobile_call_method': self.env.user[0].mobile_call_method,
                 'mode': get_param('voip.mode', default="demo"),
                 }

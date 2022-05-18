@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.osv.expression import AND
 
 # ---------------------------------------------------------
 # Budgets
@@ -24,7 +25,7 @@ class AccountBudgetPost(models.Model):
         # Raise an error to prevent the account.budget.post to have not specified account_ids.
         # This check is done on create because require=True doesn't work on Many2many fields.
         if 'account_ids' in vals:
-            account_ids = self.resolve_2many_commands('account_ids', vals['account_ids'])
+            account_ids = self.new({'account_ids': vals['account_ids']}, origin=self).account_ids
         else:
             account_ids = self.account_ids
         if not account_ids:
@@ -47,8 +48,8 @@ class CrossoveredBudget(models.Model):
 
     name = fields.Char('Budget Name', required=True, states={'done': [('readonly', True)]})
     user_id = fields.Many2one('res.users', 'Responsible', default=lambda self: self.env.user)
-    date_from = fields.Date('Start Date', required=True, states={'done': [('readonly', True)]})
-    date_to = fields.Date('End Date', required=True, states={'done': [('readonly', True)]})
+    date_from = fields.Date('Start Date', states={'done': [('readonly', True)]})
+    date_to = fields.Date('End Date', states={'done': [('readonly', True)]})
     state = fields.Selection([
         ('draft', 'Draft'),
         ('cancel', 'Cancelled'),
@@ -210,6 +211,7 @@ class CrossoveredBudgetLines(models.Model):
             self.env.cr.execute(select, where_clause_params)
             line.practical_amount = self.env.cr.fetchone()[0] or 0.0
 
+    @api.depends('date_from', 'date_to')
     def _compute_theoritical_amount(self):
         # beware: 'today' variable is mocked in the python tests and thus, its implementation matter
         today = fields.Date.today()
@@ -220,6 +222,9 @@ class CrossoveredBudgetLines(models.Model):
                 else:
                     theo_amt = line.planned_amount
             else:
+                if not line.date_from or not line.date_to:
+                    line.theoritical_amount = 0
+                    continue
                 # One day is added since we need to include the start and end date in the computation.
                 # For example, between April 1st and April 30th, the timedelta must be 30 days.
                 line_timedelta = line.date_to - line.date_from + timedelta(days=1)
@@ -242,6 +247,24 @@ class CrossoveredBudgetLines(models.Model):
             else:
                 line.percentage = 0.00
 
+    @api.onchange('date_from', 'date_to')
+    def _onchange_dates(self):
+        # suggesting a budget based on given dates
+        domain_list = []
+        if self.date_from:
+            domain_list.append(['|', ('date_from', '<=', self.date_from), ('date_from', '=', False)])
+        if self.date_to:
+            domain_list.append(['|', ('date_to', '>=', self.date_to), ('date_to', '=', False)])
+        # don't suggest if a budget is already set and verifies condition on its dates
+        if domain_list and not self.crossovered_budget_id.filtered_domain(AND(domain_list)):
+            self.crossovered_budget_id = self.env['crossovered.budget'].search(AND(domain_list), limit=1)
+
+    @api.onchange('crossovered_budget_id')
+    def _onchange_crossovered_budget_id(self):
+        if self.crossovered_budget_id:
+            self.date_from = self.date_from or self.crossovered_budget_id.date_from
+            self.date_to = self.date_to or self.crossovered_budget_id.date_to
+
     @api.constrains('general_budget_id', 'analytic_account_id')
     def _must_have_analytical_or_budgetary_or_both(self):
         for record in self:
@@ -252,7 +275,7 @@ class CrossoveredBudgetLines(models.Model):
     def action_open_budget_entries(self):
         if self.analytic_account_id:
             # if there is an analytic account, then the analytic items are loaded
-            action = self.env['ir.actions.act_window'].for_xml_id('analytic', 'account_analytic_line_action_entries')
+            action = self.env['ir.actions.act_window']._for_xml_id('analytic.account_analytic_line_action_entries')
             action['domain'] = [('account_id', '=', self.analytic_account_id.id),
                                 ('date', '>=', self.date_from),
                                 ('date', '<=', self.date_to)
@@ -261,7 +284,7 @@ class CrossoveredBudgetLines(models.Model):
                 action['domain'] += [('general_account_id', 'in', self.general_budget_id.account_ids.ids)]
         else:
             # otherwise the journal entries booked on the accounts of the budgetary postition are opened
-            action = self.env['ir.actions.act_window'].for_xml_id('account', 'action_account_moves_all_a')
+            action = self.env['ir.actions.act_window']._for_xml_id('account.action_account_moves_all_a')
             action['domain'] = [('account_id', 'in',
                                  self.general_budget_id.account_ids.ids),
                                 ('date', '>=', self.date_from),
@@ -276,9 +299,9 @@ class CrossoveredBudgetLines(models.Model):
             budget_date_to = line.crossovered_budget_id.date_to
             if line.date_from:
                 date_from = line.date_from
-                if date_from < budget_date_from or date_from > budget_date_to:
+                if (budget_date_from and date_from < budget_date_from) or (budget_date_to and date_from > budget_date_to):
                     raise ValidationError(_('"Start Date" of the budget line should be included in the Period of the budget'))
             if line.date_to:
                 date_to = line.date_to
-                if date_to < budget_date_from or date_to > budget_date_to:
+                if (budget_date_from and date_to < budget_date_from) or (budget_date_to and date_to > budget_date_to):
                     raise ValidationError(_('"End Date" of the budget line should be included in the Period of the budget'))

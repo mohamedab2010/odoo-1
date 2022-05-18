@@ -4,7 +4,7 @@
 {
     'name': "Stock enterprise",
     'version': "1.0",
-    'category': 'Operations/Inventory',
+    'category': 'Inventory/Inventory',
     'summary': "Advanced features for Stock",
     'description': """
 Contains the enterprise views for Stock management
@@ -12,9 +12,9 @@ Contains the enterprise views for Stock management
     'depends': ['stock', 'web_dashboard', 'web_cohort', 'web_map', 'web_grid'],
     'data': [
         'security/ir.model.access.csv',
+        'security/stock_enterprise_security.xml',
         'views/stock_move_views.xml',
         'views/stock_picking_map_views.xml',
-        'views/stock_enterprise_templates.xml',
         'report/stock_report_views.xml',
         'report/report_stock_quantity.xml',
     ],
@@ -24,4 +24,9 @@ Contains the enterprise views for Stock management
     'application': False,
     'auto_install': ['stock'],
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'stock_enterprise/static/**/*',
+        ],
+    }
 }

@@ -6,12 +6,16 @@
     'description': """
         Convert helpdesk tickets to field service tasks.
     """,
-    'category': 'Operations/Helpdesk',
+    'category': 'Services/Helpdesk',
     'depends': ['helpdesk', 'industry_fsm'],
     'data': [
+        'security/ir.model.access.csv',
+        'data/mail_data.xml',
         'views/helpdesk_views.xml',
-        'views/project_task_views.xml',
+        'views/project_sharing_views.xml',
         'wizard/create_task_views.xml',
     ],
+    'demo': ['data/helpdesk_fsm_demo.xml'],
     'auto_install': True,
+    'license': 'OEEL-1',
 }

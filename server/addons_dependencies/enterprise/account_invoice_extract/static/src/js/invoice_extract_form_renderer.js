@@ -1,10 +1,9 @@
-odoo.define('account_invoice_extract.FormRenderer', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var InvoiceExtractBoxLayer = require('account_invoice_extract.BoxLayer');
-var InvoiceExtractFields = require('account_invoice_extract.Fields');
+import InvoiceExtractBoxLayer from '@account_invoice_extract/js/invoice_extract_box_layer';
+import InvoiceExtractFields from '@account_invoice_extract/js/invoice_extract_fields';
 
-var FormRenderer = require('web.FormRenderer');
+import FormRenderer from 'web.FormRenderer';
 
 /**
  * This is the renderer of the subview that adds OCR features on the attachment
@@ -33,7 +32,7 @@ var InvoiceExtractFormRenderer = FormRenderer.extend({
         this._invoiceExtractBoxData = [];
         this._invoiceExtractBoxLayers = [];
         var is_customer_invoice = false;
-        if (this.state.context.default_type == 'out_invoice' || this.state.context.default_type == 'out_refund')
+        if (this.state.context.default_move_type == 'out_invoice' || this.state.context.default_move_type == 'out_refund')
             is_customer_invoice = true;
         this._invoiceExtractFields = new InvoiceExtractFields(this, is_customer_invoice);
         this._$invoiceExtractButtons = [];
@@ -161,6 +160,12 @@ var InvoiceExtractFormRenderer = FormRenderer.extend({
         var proms = [];
         //in case of img
         if ($page.hasClass('img-fluid')) {
+            // Delete previous box layer(s)
+            if (this._invoiceExtractBoxLayers.length > 0) {
+                for (const oldBoxLayer of this._invoiceExtractBoxLayers) {
+                    oldBoxLayer.destroy();
+                }
+            }
             boxLayer = new InvoiceExtractBoxLayer(this, {
                 boxesData: this._invoiceExtractBoxData,
                 mode: 'img',
@@ -272,6 +277,8 @@ var InvoiceExtractFormRenderer = FormRenderer.extend({
         this.$attachmentPreview.find('iframe').on("load", function () { // wait for iframe to load
             var $iframe = self.$attachmentPreview.find('iframe');
             var $iframeDoc = self.$attachmentPreview.find('iframe').contents();
+            // To get pagerendered trigger_up from pdf.js, we needed to change pdf.js default option and set
+            // eventBusDispatchToDOM to True
             $iframeDoc[0].addEventListener('pagerendered', function () {
                 self._startInvoiceExtract($iframe);
             });
@@ -413,6 +420,4 @@ var InvoiceExtractFormRenderer = FormRenderer.extend({
     },
 });
 
-return InvoiceExtractFormRenderer;
-
-});
+export default InvoiceExtractFormRenderer;

@@ -32,4 +32,3 @@ class F29ReportWizard(models.TransientModel):
                 }
             }
         }
-

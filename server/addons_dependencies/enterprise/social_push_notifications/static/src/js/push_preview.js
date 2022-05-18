@@ -61,16 +61,17 @@ var PushPreviewButton = Widget.extend({
         ev.stopPropagation();
 
         if (Notification.permission === "denied") {
-            this.do_warn(
-                _t("Notifications blocked"),
-                _t("Your browser notifications are blocked or you're not in an HTTPS environment.")
-            );
+            this.displayNotification({
+                title: _t("Notifications blocked"),
+                message: _t("Your browser notifications are blocked or you're not in an HTTPS environment."),
+                type: 'danger',
+            });
             return;
         }
 
         var recordState = this.getParent().state.data;
         var message = recordState.message;
-        var title = recordState.push_notification_title || _('New Message');
+        var title = recordState.push_notification_title || _t('New Message');
         var image = recordState.push_notification_image;
         var targetUrl = recordState.push_notification_target_url;
 

@@ -3,17 +3,18 @@
 
 {
     'name': 'Helpdesk',
-    'version': '1.2',
-    'category': 'Operations/Helpdesk',
-    'sequence': 57,
-    'summary': 'Track help tickets',
-    'website': 'https://www.odoo.com/page/helpdesk',
+    'version': '1.4',
+    'category': 'Services/Helpdesk',
+    'sequence': 110,
+    'summary': 'Track, prioritize, and solve customer tickets',
+    'website': 'https://www.odoo.com/app/helpdesk',
     'depends': [
         'base_setup',
         'mail',
         'utm',
         'rating',
         'web_tour',
+        'web_cohort',
         'resource',
         'portal',
         'digest',
@@ -29,7 +30,7 @@ Features:
     - Use the chatter to communicate additional information and ping co-workers on tickets.
     - Enjoy the use of an adapted dashboard, and an easy-to-use kanban view to handle your tickets.
     - Make an in-depth analysis of your tickets through the pivot view in the reports menu.
-    - Create a team and define its members, use an automatic assignation method if you wish.
+    - Create a team and define its members, use an automatic assignment method if you wish.
     - Use a mail alias to automatically create tickets and communicate with your customers.
     - Add Service Level Agreement deadlines automatically to your tickets.
     - Get customer feedback by using ratings.
@@ -41,20 +42,35 @@ Features:
         'security/ir.model.access.csv',
         'data/digest_data.xml',
         'data/mail_data.xml',
+        'data/mail_template_data.xml',
         'data/helpdesk_data.xml',
+        'data/ir_cron_data.xml',
+        'report/helpdesk_ticket_analysis_views.xml',
         'views/helpdesk_views.xml',
         'views/helpdesk_team_views.xml',
-        'views/assets.xml',
         'views/digest_views.xml',
         'views/helpdesk_portal_templates.xml',
+        'views/rating_views.xml',
         'views/res_partner_views.xml',
         'views/mail_activity_views.xml',
+        'views/helpdesk_templates.xml',
         'report/helpdesk_sla_report_analysis_views.xml',
-    ],
-    'qweb': [
-        "static/src/xml/helpdesk_team_templates.xml",
     ],
     'demo': ['data/helpdesk_demo.xml'],
     'application': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'helpdesk/static/src/scss/helpdesk.scss',
+            'helpdesk/static/src/css/portal_helpdesk.css',
+            'helpdesk/static/src/js/helpdesk_dashboard.js',
+            'helpdesk/static/src/js/tours/helpdesk.js',
+        ],
+        'web.qunit_suite_tests': [
+            'helpdesk/static/tests/**/*',
+        ],
+        'web.assets_qweb': [
+            'helpdesk/static/src/xml/**/*',
+        ],
+    }
 }

@@ -1,56 +1,16 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from odoo.tests import common
+
+from .test_common import TestPlmCommon
 
 
-class TestMrpPlm(common.TransactionCase):
-
-    def _create_eco(self, name, bom, type_id):
-        return self.env['mrp.eco'].create({
-            'name': name,
-            'bom_id': bom.id,
-            'product_tmpl_id': bom.product_tmpl_id.id,
-            'type_id': type_id,
-            'type': 'bom'})
-
-    def setUp(self):
-        super(TestMrpPlm, self).setUp()
-        self.Bom = self.env['mrp.bom']
-        self.table = self.env.ref("mrp.product_product_computer_desk")
-        self.table_sheet = self.env.ref('mrp.product_product_computer_desk_head')
-        self.table_leg = self.env.ref('mrp.product_product_computer_desk_leg')
-        self.table_bolt = self.env.ref('mrp.product_product_computer_desk_bolt')
-
-        # ------------------------------------------------------
-        # Create bill of material for table
-        # Computer Table
-        #       Table Sheet 1 Unit
-        #       Table Lag 3 Unit
-        # -------------------------------------------------------
-
-        self.bom_table = self.Bom.create({
-            'product_id': self.table.id,
-            'product_tmpl_id': self.table.product_tmpl_id.id,
-            'product_uom_id': self.table.uom_id.id,
-            'product_qty': 1.0,
-            'type': 'normal',
-            'bom_line_ids': [
-                (0, 0, {'product_id': self.table_sheet.id, 'product_qty': 1}),
-                (0, 0, {'product_id': self.table_leg.id, 'product_qty': 3})
-            ]})
-        type_id = self.env['mrp.eco.type'].search([], limit=1).id
-
-        # --------------------------------
-        # Create ecos for bill of material.
-        # ---------------------------------
-
-        self.eco1 = self._create_eco('ECO1', self.bom_table, type_id)
-        self.eco2 = self._create_eco('ECO2', self.bom_table, type_id)
-        self.eco3 = self._create_eco('ECO3', self.bom_table, type_id)
+class TestMrpPlm(TestPlmCommon):
 
     def test_rebase_with_old_bom_change(self):
         "Test eco rebase with old bom changes."
 
+        # Create eco for bill of material.
+        self.eco1 = self._create_eco('ECO1', self.bom_table, self.eco_type.id, self.eco_stage.id)
         # Start new revision of eco1.
         self.eco1.action_new_revision()
 
@@ -122,85 +82,223 @@ class TestMrpPlm(common.TransactionCase):
     def test_rebase_with_previous_eco_change(self):
         "Test eco rebase with previous eco changes."
 
+        # --------------------------------
+        # Create ecos for bill of material.
+        # ---------------------------------
+
+        eco1 = self._create_eco('ECO1', self.bom_table, self.eco_type.id, self.eco_stage.id)
+        eco2 = self._create_eco('ECO2', self.bom_table, self.eco_type.id, self.eco_stage.id)
+        eco3 = self._create_eco('ECO3', self.bom_table, self.eco_type.id, self.eco_stage.id)
+
         # Start new revision of eco1, eco2, eco3
-        self.eco1.action_new_revision()
-        self.eco2.action_new_revision()
-        self.eco3.action_new_revision()
+        eco1.action_new_revision()
+        eco2.action_new_revision()
+        eco3.action_new_revision()
 
         # -----------------------------------------
         # Check eco status after start new revision.
         # ------------------------------------------
 
-        self.assertEqual(self.eco1.state, 'progress', "Wrong state on eco1.")
-        self.assertEqual(self.eco2.state, 'progress', "Wrong state on eco2.")
-        self.assertEqual(self.eco3.state, 'progress', "Wrong state on eco2.")
+        self.assertEqual(eco1.state, 'progress', "Wrong state on eco1.")
+        self.assertEqual(eco2.state, 'progress', "Wrong state on eco2.")
+        self.assertEqual(eco3.state, 'progress', "Wrong state on eco2.")
 
         # ---------------------------------------------------------------
         # ECO 1 : Update Table Leg quantity in new BoM revision.
         # ---------------------------------------------------------------
 
-        eco1_new_table_leg = self.eco1.new_bom_id.bom_line_ids.filtered(lambda x: x.product_id == self.table_leg)
+        eco1_new_table_leg = eco1.new_bom_id.bom_line_ids.filtered(lambda x: x.product_id == self.table_leg)
         eco1_new_table_leg.product_qty = 6
 
         # -------------------------------------------------------------------------------
         # ECO 1 : Check status of ecos after apply changes and activate new bom revision.
         # -------------------------------------------------------------------------------
 
-        self.eco1.action_apply()
-        self.assertFalse(self.eco1.bom_id.active, "Old BoM of eco1 should be deactivated.")
-        self.assertTrue(self.eco1.new_bom_id.active, "New BoM revision of ECO 1 should be activated.")
+        eco1.action_apply()
+        self.assertFalse(eco1.bom_id.active, "Old BoM of eco1 should be deactivated.")
+        self.assertTrue(eco1.new_bom_id.active, "New BoM revision of ECO 1 should be activated.")
         # Check eco status after activate new bom revision of eco.
-        self.assertEqual(self.eco1.state, 'done', "Wrong state on eco1.")
-        self.assertEqual(self.eco2.state, 'rebase', "Wrong state on eco2.")
-        self.assertEqual(self.eco3.state, 'rebase', "Wrong state on eco3.")
+        self.assertEqual(eco1.state, 'done', "Wrong state on eco1.")
+        self.assertEqual(eco2.state, 'rebase', "Wrong state on eco2.")
+        self.assertEqual(eco3.state, 'rebase', "Wrong state on eco3.")
 
         # ------------------------------
         # ECO 2 : Rebase with ECO 1 changes.
         # ------------------------------
 
-        self.eco2.apply_rebase()
-        self.assertEqual(self.eco2.state, 'progress', "Wrong state on eco2.")
-        self.assertEqual(self.eco1.new_bom_id.id, self.eco2.bom_id.id, "Eco2 BoM should replace with new activated BoM revision of Eco1.")
+        eco2.apply_rebase()
+        self.assertEqual(eco2.state, 'progress', "Wrong state on eco2.")
+        self.assertEqual(eco1.new_bom_id.id, eco2.bom_id.id, "Eco2 BoM should replace with new activated BoM revision of Eco1.")
 
         # ----------------------------------------------------------------------
         # ECO 2 : Add new product 'Table Bolt'
         # ----------------------------------------------------------------------
 
-        self.eco2.new_bom_id.bom_line_ids.create({'product_id': self.table_bolt.id, 'bom_id': self.eco2.new_bom_id.id, 'product_qty': 3})
-        self.assertTrue(self.eco2.bom_change_ids, "Eco 2 should have BoM change lines.")
+        eco2.new_bom_id.bom_line_ids.create({'product_id': self.table_bolt.id, 'bom_id': eco2.new_bom_id.id, 'product_qty': 3})
+        self.assertTrue(eco2.bom_change_ids, "Eco 2 should have BoM change lines.")
 
         # -------------------------------------------------------------------------------
         # ECO 2 : Check status of after apply changes and activate new bom revision.
         # -------------------------------------------------------------------------------
 
-        self.eco2.action_apply()
+        eco2.action_apply()
 
-        self.assertFalse(self.eco1.bom_id.active, "BoM of ECO 1 should be deactivated")
-        self.assertFalse(self.eco1.new_bom_id.active, "BoM revision of ECO 1 should be deactivated")
-        self.assertTrue(self.eco2.new_bom_id.active, "BoM revision of ECO 2 should be activated")
+        self.assertFalse(eco1.bom_id.active, "BoM of ECO 1 should be deactivated")
+        self.assertFalse(eco1.new_bom_id.active, "BoM revision of ECO 1 should be deactivated")
+        self.assertTrue(eco2.new_bom_id.active, "BoM revision of ECO 2 should be activated")
 
         # -----------------------------------------------------
         # ECO3 : Change same line in eco3 as changes in eco1.
         # ----------------------------------------------------
 
-        eco3_new_table_leg = self.eco3.new_bom_id.bom_line_ids.filtered(lambda x: x.product_id == self.table_leg)
+        eco3_new_table_leg = eco3.new_bom_id.bom_line_ids.filtered(lambda x: x.product_id == self.table_leg)
         eco3_new_table_leg.product_qty = 4
 
         # -----------------------------------
         # Rebase eco3 with eco1 BoM changes.
         # -----------------------------------
 
-        self.eco3.apply_rebase()
+        eco3.apply_rebase()
 
         # Check status of eco3 after rebase.
-        self.assertEqual(self.eco3.state, 'conflict', "Wrong state on eco.")
+        self.assertEqual(eco3.state, 'conflict', "Wrong state on eco.")
 
         # Resolve conflict manually.
-        self.assertTrue(self.eco3.previous_change_ids.ids, "Wrong previous bom change on bom lines.")
-        self.eco3.conflict_resolve()
-        self.assertEqual(self.eco3.state, 'progress', "Wrong state on eco.")
-        self.eco3.action_apply()
-        self.assertFalse(self.eco2.new_bom_id.active, "BoM revision of ECO 2 should be deactivated")
-        self.assertTrue(self.eco3.new_bom_id.active, "BoM revision of ECO 3 should be activated")
-        self.assertFalse(self.eco3.previous_change_ids.ids)
-        self.assertFalse(self.eco3.bom_rebase_ids.ids)
+        self.assertTrue(eco3.previous_change_ids.ids, "Wrong previous bom change on bom lines.")
+        eco3.conflict_resolve()
+        self.assertEqual(eco3.state, 'progress', "Wrong state on eco.")
+        eco3.action_apply()
+        self.assertFalse(eco2.new_bom_id.active, "BoM revision of ECO 2 should be deactivated")
+        self.assertTrue(eco3.new_bom_id.active, "BoM revision of ECO 3 should be activated")
+        self.assertFalse(eco3.previous_change_ids.ids)
+        self.assertFalse(eco3.bom_rebase_ids.ids)
+
+    def test_operation_change(self):
+        "Test eco with bom operation changes."
+        # --------------------------------
+        # Create ecos for bill of material.
+        # ---------------------------------
+
+        eco1 = self._create_eco('ECO1', self.bom_table, self.eco_type.id, self.eco_stage.id)
+
+        # Start new revision of eco1
+        eco1.action_new_revision()
+
+        # -----------------------------------------
+        # Check eco status after start new revision.
+        # ------------------------------------------
+
+        self.assertEqual(eco1.state, 'progress', "Wrong state on eco1.")
+
+        # ---------------------------------------------------------------
+        # ECO 1 : Update duration on operation1
+        # ---------------------------------------------------------------
+
+        op1 = eco1.new_bom_id.operation_ids.filtered(lambda x: x.workcenter_id == self.workcenter_1)
+        op1.time_cycle_manual = 20
+
+        # ---------------------------------------------------------------
+        # ECO 1 : Remove operation2
+        # ---------------------------------------------------------------
+
+        op2 = eco1.new_bom_id.operation_ids.filtered(lambda x: x.workcenter_id == self.workcenter_2)
+        op2.unlink()
+
+        # ---------------------------------------------------------------
+        # ECO 1 : Add operation3
+        # ---------------------------------------------------------------
+
+        eco1.new_bom_id.operation_ids.create({
+            'name': 'op3',
+            'bom_id': eco1.new_bom_id.id,
+            'workcenter_id': self.workcenter_3.id,
+            'time_cycle_manual': 10,
+            'sequence': 2,
+        })
+
+        # Check correctness
+        op1_change = eco1.routing_change_ids.filtered(lambda x: x.workcenter_id == self.workcenter_1)
+        self.assertEqual(op1_change.change_type, 'update', "Wrong type on opration change line.")
+        self.assertEqual(op1_change.upd_time_cycle_manual, 10.0, "Wrong duration change.")
+
+        op2_change = eco1.routing_change_ids.filtered(lambda x: x.workcenter_id == self.workcenter_2)
+        self.assertEqual(op2_change.change_type, 'remove', "Wrong type on opration change line.")
+
+        op3_change = eco1.routing_change_ids.filtered(lambda x: x.workcenter_id == self.workcenter_3)
+        self.assertEqual(op3_change.change_type, 'add', "Wrong type on opration change line.")
+        self.assertEqual(op1_change.upd_time_cycle_manual, 10.0, "Wrong duration change.")
+
+    def test_operation_eco_counting(self):
+        """ Test when count ECOs for a bom, all ECOs, including the ones for previous
+        version boms, are counted.
+        """
+        eco1 = self._create_eco('ECO1', self.bom_table, self.eco_type.id, self.eco_stage.id)
+        eco1.action_new_revision()
+        eco1.action_apply()
+        self.assertEqual(eco1.stage_id, self.eco_stage_folded, "Wrong stage.")
+
+        eco2 = self._create_eco('ECO2', eco1.new_bom_id, self.eco_type.id, self.eco_stage.id)
+        eco2.action_new_revision()
+        self.assertEqual(eco2.stage_id, self.eco_stage, "Wrong stage.")
+
+        # only ECOs in unfolded stages are counted
+        self.assertEqual(eco1.new_bom_id.eco_count, 1)
+
+        # unfold the stage to check if all ECOs are counted
+        self.eco_stage_folded.folded = False
+        eco1.new_bom_id.invalidate_cache()
+        self.assertEqual(eco1.new_bom_id.eco_count, 2)
+
+    def test_do_not_merge_bom_lines(self):
+        """
+        Test that when applying a mrp.eco on a BoM for which the same product is present twice in the bom lines
+        (same product, multiple operations), the BoM changes are correctly computed
+        """
+        workcenter = self.env['mrp.workcenter'].create({'name': 'A center'})
+        product_a = self.env['product.product'].create({'name': 'a_product'})
+        product_b = self.env['product.product'].create({'name': 'b_product'})
+        bom = self.env['mrp.bom'].create({
+            'product_id': product_a.id,
+            'product_tmpl_id': product_a.product_tmpl_id.id,
+            'product_qty': 1,
+            'type': 'normal',
+            'bom_line_ids': [
+                (0, 0, {'product_id': product_b.id, 'product_qty': 2}),
+                (0, 0, {'product_id': product_b.id, 'product_qty': 3}),
+            ]
+        })
+        operation_a = self.env['mrp.routing.workcenter'].create({
+            'name': 'Some operation',
+            'workcenter_id': workcenter.id,
+            'bom_id': bom.id
+        })
+        operation_b = self.env['mrp.routing.workcenter'].create({
+            'name': 'Other operation',
+            'workcenter_id': workcenter.id,
+            'bom_id': bom.id
+        })
+        bom.bom_line_ids[0].operation_id = operation_a.id
+        bom.bom_line_ids[1].operation_id = operation_b.id
+        type_id = self.env['mrp.eco.type'].search([], limit=1).id
+        mrp_eco = self.env['mrp.eco'].create({
+            'name': 'a plm',
+            'bom_id': bom.id,
+            'product_tmpl_id': bom.product_tmpl_id.id,
+            'type_id': type_id,
+            'type': 'bom'
+        })
+        mrp_eco.action_new_revision()
+        # Default BoM Changes behavior in 14.0
+        self.assertRecordValues(mrp_eco.bom_change_ids, [
+            {'change_type': 'add', 'upd_product_qty': 2},
+            {'change_type': 'add', 'upd_product_qty': 3},
+            {'change_type': 'remove', 'upd_product_qty': -2},
+            {'change_type': 'remove', 'upd_product_qty': -3},
+        ])
+        mrp_eco.new_bom_id.bom_line_ids[0].product_qty = 13  # Change from 2 to 13
+        self.assertRecordValues(mrp_eco.bom_change_ids, [
+            {'change_type': 'add', 'upd_product_qty': 13},
+            {'change_type': 'add', 'upd_product_qty': 3},
+            {'change_type': 'remove', 'upd_product_qty': -2},
+            {'change_type': 'remove', 'upd_product_qty': -3},
+        ])

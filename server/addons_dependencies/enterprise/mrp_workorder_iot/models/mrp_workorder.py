@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models, _
-from odoo.exceptions import UserError
 import json
+
+from odoo import fields, models
 
 
 class MrpProductionWorkcenterLine(models.Model):
@@ -46,7 +46,7 @@ class IotTrigger(models.Model):
     _order = 'sequence'
 
     sequence = fields.Integer(default=1)
-    device_id = fields.Many2one('iot.device', 'Device', required=True)
+    device_id = fields.Many2one('iot.device', 'Device', required=True, domain="[('type', '=', 'keyboard')]")
     key = fields.Char('Key')
     workcenter_id = fields.Many2one('mrp.workcenter')
     action = fields.Selection([('picture', 'Take Picture'),

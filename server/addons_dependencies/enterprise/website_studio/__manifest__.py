@@ -15,16 +15,24 @@ model. Furthermore, you can create a new website form or edit an existing one.
     'version': '1.0',
     'depends': [
         'web_studio',
-        'website_form',
+        'website',
     ],
     'data': [
-        'views/assets.xml',
         'views/templates.xml',
         'views/actions.xml',
     ],
-    'qweb': [
-        'static/src/xml/*.xml',
-    ],
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web_studio.studio_assets': [
+            'website_studio/static/src/js/**/*.js',
+            'website_studio/static/src/scss/**/*.scss',
+        ],
+        'web.assets_qweb': [
+            'website_studio/static/src/xml/*.xml',
+        ],
+        'web.qunit_suite_tests': [
+            'website_studio/static/tests/**/*',
+        ],
+    }
 }

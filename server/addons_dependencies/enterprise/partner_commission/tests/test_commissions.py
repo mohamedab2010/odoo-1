@@ -51,6 +51,8 @@ class TestCommissions(TestCommissionsSetup):
             comm = inv.commission_po_line_id.price_subtotal
             self.assertEqual(po.partner_id, self.referrer, '%s - %s: referrer != vendor' % (spec.grade.name, spec.pricelist.name))
             self.assertEqual(comm, spec.commission, '%s - %s: commission != expected' % (spec.grade.name, spec.pricelist.name))
+            self.assertEqual(po.user_id, self.salesman)
+            self.assertEqual(po.purchase_type, 'commission')
 
         # global checks
         purchase_orders = self.env['purchase.order'].search([('partner_id', '=', self.referrer.id)])
@@ -86,18 +88,22 @@ class TestCommissions(TestCommissionsSetup):
         so.action_confirm()
 
         inv = so._create_invoices()
-        inv.post()
+        inv.action_post()
 
         # pay 10 out of 20
-        payment_register = Form(self.env['account.payment'].with_context(active_model='account.move', active_ids=inv.ids))
-        payment_register.payment_date = fields.Date.today()
-        payment_register.journal_id = self.bank_journal
-        payment_register.payment_method_id = self.env.ref('account.account_payment_method_manual_in')
-        payment_register.amount = 10
-        payment = payment_register.save()
-        payment.post()
+        manual_in = self.bank_journal.inbound_payment_method_line_ids.filtered(lambda l: l.code == 'manual')[0]
 
-        self.assertEqual(inv.invoice_payment_state, 'not_paid')
+        payment_register = self.env['account.payment.register'].with_context(active_model='account.move', active_ids=inv.ids).create({
+            'payment_date': fields.Date.today(),
+            'journal_id': self.bank_journal.id,
+            'payment_method_line_id': manual_in.id,
+            'amount': 10,
+        })
+        payment = payment_register._create_payments()
+        if payment.state != 'posted':
+            payment.action_post()
+
+        self.assertEqual(inv.payment_state, 'partial')
         self.assertEqual(inv.amount_residual - inv.amount_tax, 10, 'Remaining untaxed amount to be paid: 10')
         self.assertFalse(inv.commission_po_line_id, 'Partially paid invoice should not create any PO')
 
@@ -111,10 +117,11 @@ class TestCommissions(TestCommissionsSetup):
             'date': fields.Date.today(),
             'reason': '...',
             'refund_method': 'refund',
+            'journal_id': inv.journal_id.id,
         })
         reversal = move_reversal.reverse_moves()
         reverse_move = self.env['account.move'].browse(reversal['res_id'])
-        reverse_move.post()
+        reverse_move.action_post()
         self._pay_invoice(reverse_move)
         self.assertEqual(reverse_move.referrer_id, inv.referrer_id, 'Referrer should have been forwarded to credit note')
         self.assertEqual(reverse_move.commission_po_line_id, inv.commission_po_line_id)

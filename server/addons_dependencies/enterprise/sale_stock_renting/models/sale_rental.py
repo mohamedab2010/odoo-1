@@ -4,6 +4,7 @@
 from datetime import timedelta
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
+from odoo.tools.misc import groupby as tools_groupby
 
 
 class RentalOrderLine(models.Model):
@@ -17,7 +18,53 @@ class RentalOrderLine(models.Model):
 
     unavailable_lot_ids = fields.Many2many('stock.production.lot', 'unreturned_reserved_serial', compute='_compute_unavailable_lots', store=False)
 
-    @api.model
+    def _partition_so_lines_by_rental_period(self):
+        """ Return a partition of sale.order.line based on (from_date, to_date, warehouse_id)
+        """
+        now = fields.Datetime.now()
+        lines_grouping_key = {
+            line.id: line.product_id._unavailability_period(line.pickup_date, line.return_date) + (line.order_id.warehouse_id.id,)
+            for line in self
+        }
+        keyfunc = lambda line_id: (max(lines_grouping_key[line_id][0], now), lines_grouping_key[line_id][1], lines_grouping_key[line_id][2])
+        return tools_groupby(self._ids, key=keyfunc)
+
+    @api.depends('pickup_date', 'return_date', 'product_id', 'order_id.warehouse_id')
+    def _compute_qty_at_date(self):
+        non_rental = self.filtered(lambda sol: not sol.is_rental)
+        super(RentalOrderLine, non_rental)._compute_qty_at_date()
+        rented_product_lines = (self - non_rental).filtered(lambda l: l.product_id and l.product_id.type == "product" and l.pickup_date and l.return_date)
+        line_default_values = {
+            'virtual_available_at_date': 0.0,
+            'scheduled_date': False,
+            'forecast_expected_date': False,
+            'free_qty_today': 0.0,
+            'qty_available_today': False,
+            'warehouse_id': False
+        }
+        for (from_date, to_date, warehouse_id), line_ids in rented_product_lines._partition_so_lines_by_rental_period():
+            lines = self.env['sale.order.line'].browse(line_ids)
+            for line in lines:
+                reservation_begin, reservation_end = line.product_id._unavailability_period(line.pickup_date, line.return_date)
+                rentable_qty = line.product_id.with_context(
+                    from_date=from_date,
+                    to_date=to_date,
+                    warehouse=warehouse_id).qty_available
+                if reservation_begin > fields.Datetime.now():
+                    rentable_qty += line.product_id.with_context(warehouse_id=line.order_id.warehouse_id.id).qty_in_rent
+                rented_qty_during_period = line.product_id._get_unavailable_qty(
+                    reservation_begin, reservation_end,
+                    ignored_soline_id=line and line.id,
+                    warehouse_id=line.order_id.warehouse_id.id,
+                )
+                virtual_available_at_date = max(rentable_qty - rented_qty_during_period, 0)
+                line.update(dict(line_default_values,
+                    virtual_available_at_date=virtual_available_at_date,
+                    scheduled_date=reservation_begin,
+                    free_qty_today=virtual_available_at_date)
+                )
+        ((self - non_rental) - rented_product_lines).update(line_default_values)
+
     def write(self, vals):
         """Move product quantities on pickup/return in case of rental orders.
 
@@ -202,31 +249,12 @@ class RentalOrderLine(models.Model):
             if line.is_rental:
                 line.qty_delivered_method = 'manual'
 
-    def _compute_qty_to_deliver(self):
-        """Don't show inventory widget for rental order lines."""
-        super(RentalOrderLine, self.filtered(lambda sol: not sol.is_rental))._compute_qty_to_deliver()
-        self.filtered('is_rental').write({
-            'qty_to_deliver': 0.0,
-            'display_qty_widget': False,
-        })
-
     @api.constrains('product_id')
     def _stock_consistency(self):
         for line in self.filtered('is_rental'):
             moves = line.move_ids.filtered(lambda m: m.state != 'cancel')
             if moves and moves.mapped('product_id') != line.product_id:
                 raise ValidationError("You cannot change the product of lines linked to stock moves.")
-
-    def _check_availability(self, product_id):
-        """No current stock warning for rental lines."""
-        if not self.order_id.is_rental_order or not product_id.rent_ok:
-            return super(RentalOrderLine, self)._check_availability(product_id)
-        else:
-            return {}  # Rental availability computation?
-
-    def _onchange_product_uom_qty(self):
-        if not self.is_rental:
-            return super(RentalOrderLine, self)._onchange_product_uom_qty()
 
     def _action_launch_stock_rule(self, previous_product_uom_qty=False):
         """Disable stock moves for rental order lines.

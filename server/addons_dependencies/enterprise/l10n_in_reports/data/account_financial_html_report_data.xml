@@ -7,6 +7,7 @@
         <field name='parent_id' ref='l10n_in.account_reports_in_statements_menu'/>
         <field name="tax_report" eval="1"/>
         <field name="show_journal_filter" eval="1"/>
+        <field name="country_id" ref="base.in"/>
     </record>
 
     <record id="total_output_liability_l10n_in_line_0" model="account.financial.html.report.line">
@@ -16,7 +17,7 @@
         <field name="sequence" eval="1"/>
         <field name="code">TOTALOUTLIA</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = OUTLIASGST.balance+OUTLIACGST.balance+OUTLIAIGST.balance</field>
+        <field name="formulas">OUTLIASGST + OUTLIACGST + OUTLIAIGST</field>
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="output_liability_l10n_in_line_0" model="account.financial.html.report.line">
@@ -36,10 +37,10 @@
         <field name="sequence" eval="1"/>
         <field name="code">OUTLIASGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = sum.credit</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.sgst_tag_account')])]" />
+        <field name="domain" eval="[('credit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.sgst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="output_liability_l10n_in_line_0_cgst" model="account.financial.html.report.line">
@@ -49,10 +50,10 @@
         <field name="sequence" eval="2"/>
         <field name="code">OUTLIACGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = sum.credit</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.cgst_tag_account')])]" />
+        <field name="domain" eval="[('credit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.cgst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="output_liability_l10n_in_line_0_igst" model="account.financial.html.report.line">
@@ -62,10 +63,10 @@
         <field name="sequence" eval="3"/>
         <field name="code">OUTLIAIGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = sum.credit</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.igst_tag_account')])]" />
+        <field name="domain" eval="[('credit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.igst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
 
@@ -76,7 +77,7 @@
         <field name="sequence" eval="2"/>
         <field name="code">TOTALINTAXCREDIT</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = INTAXCREDITSGST.balance+INTAXCREDITCGST.balance+INTAXCREDITIGST.balance</field>
+        <field name="formulas">INTAXCREDITSGST + INTAXCREDITCGST + INTAXCREDITIGST</field>
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="input_tax_credit_l10n_in_line_0" model="account.financial.html.report.line">
@@ -96,10 +97,10 @@
         <field name="sequence" eval="1"/>
         <field name="code">INTAXCREDITSGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.debit</field>
+        <field name="formulas">- sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.sgst_tag_account')])]" />
+        <field name="domain" eval="[('debit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.sgst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="input_tax_credit_l10n_in_line_0_cgst" model="account.financial.html.report.line">
@@ -109,10 +110,10 @@
         <field name="sequence" eval="2"/>
         <field name="code">INTAXCREDITCGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.debit</field>
+        <field name="formulas">- sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.cgst_tag_account')])]" />
+        <field name="domain" eval="[('debit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.cgst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="input_tax_credit_l10n_in_line_0_igst" model="account.financial.html.report.line">
@@ -122,10 +123,10 @@
         <field name="sequence" eval="3"/>
         <field name="code">INTAXCREDITIGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.debit</field>
+        <field name="formulas">- sum</field>
         <field name="groupby">account_id</field>
         <field name="show_domain">foldable</field>
-        <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.igst_tag_account')])]" />
+        <field name="domain" eval="[('debit', '>', 0.0), ('account_id.tag_ids', 'in', [ref('l10n_in.igst_tag_account')])]" />
         <field name="special_date_changer">strict_range</field>
     </record>
 
@@ -136,7 +137,7 @@
         <field name="sequence" eval="3"/>
         <field name="code">TOTALTAXOLITC</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = TAXOLITCSGST.balance+TAXOLITCCGST.balance+TAXOLITCIGST.balance</field>
+        <field name="formulas">TAXOLITCSGST + TAXOLITCCGST + TAXOLITCIGST</field>
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="tax_olitc_l10n_in_line_0" model="account.financial.html.report.line">
@@ -156,7 +157,7 @@
         <field name="sequence" eval="1"/>
         <field name="code">TAXOLITCSGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.balance</field>
+        <field name="formulas">- sum</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.sgst_tag_account')])]" />
@@ -168,7 +169,7 @@
         <field name="sequence" eval="2"/>
         <field name="code">TAXOLITCCGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.balance</field>
+        <field name="formulas">- sum</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.cgst_tag_account')])]" />
@@ -180,7 +181,7 @@
         <field name="sequence" eval="3"/>
         <field name="code">TAXOLITCIGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = - sum.balance</field>
+        <field name="formulas">- sum</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
         <field name="domain" eval="[('account_id.tag_ids', 'in', [ref('l10n_in.igst_tag_account')])]" />
@@ -193,7 +194,7 @@
         <field name="sequence" eval="3"/>
         <field name="code">TOTALTAXPAY</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = TAXPAYSGST.balance+TAXPAYCGST.balance+TAXPAYIGST.balance</field>
+        <field name="formulas">TAXPAYSGST + TAXPAYCGST + TAXPAYIGST</field>
         <field name="special_date_changer">strict_range</field>
     </record>
     <record id="amount_payable_l10n_in_line_0" model="account.financial.html.report.line">
@@ -213,12 +214,12 @@
         <field name="sequence" eval="1"/>
         <field name="code">TAXPAYSGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = (
-            (TAXOLITCSGST.balance &lt; 0 and TAXOLITCCGST.balance &lt; 0 and TAXOLITCIGST.balance &gt; 0 and (TAXOLITCSGST.balance+(TAXOLITCCGST.balance+TAXOLITCIGST.balance &lt; 0) and TAXOLITCSGST.balance or TAXOLITCSGST.balance+TAXOLITCIGST.balance)) or 
-            (TAXOLITCSGST.balance &gt; 0 and TAXOLITCSGST.balance+(TAXOLITCCGST.balance+(TAXOLITCIGST.balance &lt; 0 and TAXOLITCIGST.balance) &lt; 0 and TAXOLITCCGST.balance+TAXOLITCIGST.balance) &lt; 0 and 0) or 
-            (TAXOLITCSGST.balance &gt; 0 and TAXOLITCCGST.balance+(TAXOLITCIGST.balance &lt; 0 and TAXOLITCIGST.balance) &gt; 0 and TAXOLITCSGST.balance) or 
-            (TAXOLITCSGST.balance &gt; 0 and TAXOLITCIGST.balance &lt; 0 and (TAXOLITCSGST.balance+TAXOLITCCGST.balance &gt; - TAXOLITCIGST.balance) and TAXOLITCSGST.balance+TAXOLITCCGST.balance+TAXOLITCIGST.balance) or 
-            (TAXOLITCSGST.balance &gt; 0 and TAXOLITCIGST.balance in [0,] and TAXOLITCSGST.balance)
+        <field name="formulas">(
+            (TAXOLITCSGST &lt; 0 and TAXOLITCCGST &lt; 0 and TAXOLITCIGST &gt; 0 and (TAXOLITCSGST+(TAXOLITCCGST+TAXOLITCIGST &lt; 0) and TAXOLITCSGST or TAXOLITCSGST+TAXOLITCIGST)) or
+            (TAXOLITCSGST &gt; 0 and TAXOLITCSGST+(TAXOLITCCGST+(TAXOLITCIGST &lt; 0 and TAXOLITCIGST) &lt; 0 and TAXOLITCCGST+TAXOLITCIGST) &lt; 0 and 0) or
+            (TAXOLITCSGST &gt; 0 and TAXOLITCCGST+(TAXOLITCIGST &lt; 0 and TAXOLITCIGST) &gt; 0 and TAXOLITCSGST) or
+            (TAXOLITCSGST &gt; 0 and TAXOLITCIGST &lt; 0 and (TAXOLITCSGST+TAXOLITCCGST &gt; - TAXOLITCIGST) and TAXOLITCSGST+TAXOLITCCGST+TAXOLITCIGST) or
+            (TAXOLITCSGST &gt; 0 and TAXOLITCIGST in [0,] and TAXOLITCSGST)
             )</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
@@ -230,11 +231,11 @@
         <field name="sequence" eval="2"/>
         <field name="code">TAXPAYCGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = (
-            (TAXOLITCCGST.balance &lt; 0 and TAXOLITCIGST.balance &gt; 0 and (TAXOLITCCGST.balance+TAXOLITCIGST.balance &lt; 0 and 0 or TAXOLITCCGST.balance+TAXOLITCIGST.balance)) or 
-            (TAXOLITCCGST.balance &gt; 0 and TAXOLITCIGST.balance &lt; 0 and (TAXOLITCCGST.balance+TAXOLITCIGST.balance &gt; 0 and 0)) or 
-            (TAXOLITCCGST.balance &gt; 0 and TAXOLITCIGST.balance &lt; 0 and (TAXOLITCCGST.balance &gt; - TAXOLITCIGST.balance) and TAXOLITCCGST.balance+TAXOLITCIGST.balance) or 
-            (TAXOLITCCGST.balance &gt; 0 and (TAXOLITCIGST.balance in [0,] or TAXOLITCIGST.balance &gt; 0) and TAXOLITCCGST.balance))</field>
+        <field name="formulas">(
+            (TAXOLITCCGST &lt; 0 and TAXOLITCIGST &gt; 0 and (TAXOLITCCGST+TAXOLITCIGST &lt; 0 and 0 or TAXOLITCCGST+TAXOLITCIGST)) or
+            (TAXOLITCCGST &gt; 0 and TAXOLITCIGST &lt; 0 and (TAXOLITCCGST+TAXOLITCIGST &gt; 0 and 0)) or
+            (TAXOLITCCGST &gt; 0 and TAXOLITCIGST &lt; 0 and (TAXOLITCCGST &gt; - TAXOLITCIGST) and TAXOLITCCGST+TAXOLITCIGST) or
+            (TAXOLITCCGST &gt; 0 and (TAXOLITCIGST in [0,] or TAXOLITCIGST &gt; 0) and TAXOLITCCGST))</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -245,13 +246,13 @@
         <field name="sequence" eval="3"/>
         <field name="code">TAXPAYIGST</field>
         <field name="show_domain">never</field>
-        <field name="formulas">balance = (
-            (TAXOLITCIGST.balance &lt; 0 and (TAXOLITCCGST.balance in [0,] and TAXOLITCSGST.balance in [0,] and TAXOLITCIGST.balance)) or 
-            (TAXOLITCIGST.balance &lt; 0 and TAXOLITCSGST.balance &gt; 0 and (TAXOLITCCGST.balance &lt; 0 or TAXOLITCCGST.balance in [0,]) and (((- TAXOLITCIGST.balance) &gt; TAXOLITCSGST.balance) and TAXOLITCIGST.balance+TAXOLITCSGST.balance)) or 
-            (TAXOLITCIGST.balance &lt; 0 and TAXOLITCCGST.balance &gt; 0 and (TAXOLITCSGST.balance &lt; 0 or TAXOLITCSGST.balance in [0,]) and (((- TAXOLITCIGST.balance) &gt; TAXOLITCCGST.balance) and TAXOLITCIGST.balance+TAXOLITCCGST.balance)) or 
-            (TAXOLITCIGST.balance &lt; 0 and TAXOLITCCGST.balance &gt; 0 and TAXOLITCSGST.balance &gt; 0 and (((- TAXOLITCIGST.balance) &gt; TAXOLITCSGST.balance+TAXOLITCCGST.balance) and TAXOLITCIGST.balance+TAXOLITCCGST.balance+TAXOLITCSGST.balance)) or 
-            (TAXOLITCIGST.balance &gt; 0 and TAXOLITCCGST.balance &lt; 0 and TAXOLITCSGST.balance &lt; 0 and (((TAXOLITCIGST.balance) &lt; TAXOLITCSGST.balance+TAXOLITCCGST.balance) and TAXOLITCIGST.balance+TAXOLITCCGST.balance+TAXOLITCSGST.balance)) or 
-            (TAXOLITCIGST.balance &gt; 0 and (TAXOLITCCGST.balance &gt;0 or TAXOLITCCGST.balance in [0,]) and (TAXOLITCSGST.balance &gt; 0 or TAXOLITCSGST.balance in [0,]) and TAXOLITCIGST.balance)
+        <field name="formulas">(
+            (TAXOLITCIGST &lt; 0 and (TAXOLITCCGST in [0,] and TAXOLITCSGST in [0,] and TAXOLITCIGST)) or
+            (TAXOLITCIGST &lt; 0 and TAXOLITCSGST &gt; 0 and (TAXOLITCCGST &lt; 0 or TAXOLITCCGST in [0,]) and (((- TAXOLITCIGST) &gt; TAXOLITCSGST) and TAXOLITCIGST+TAXOLITCSGST)) or
+            (TAXOLITCIGST &lt; 0 and TAXOLITCCGST &gt; 0 and (TAXOLITCSGST &lt; 0 or TAXOLITCSGST in [0,]) and (((- TAXOLITCIGST) &gt; TAXOLITCCGST) and TAXOLITCIGST+TAXOLITCCGST)) or
+            (TAXOLITCIGST &lt; 0 and TAXOLITCCGST &gt; 0 and TAXOLITCSGST &gt; 0 and (((- TAXOLITCIGST) &gt; TAXOLITCSGST+TAXOLITCCGST) and TAXOLITCIGST+TAXOLITCCGST+TAXOLITCSGST)) or
+            (TAXOLITCIGST &gt; 0 and TAXOLITCCGST &lt; 0 and TAXOLITCSGST &lt; 0 and (((TAXOLITCIGST) &lt; TAXOLITCSGST+TAXOLITCCGST) and TAXOLITCIGST+TAXOLITCCGST+TAXOLITCSGST)) or
+            (TAXOLITCIGST &gt; 0 and (TAXOLITCCGST &gt;0 or TAXOLITCCGST in [0,]) and (TAXOLITCSGST &gt; 0 or TAXOLITCSGST in [0,]) and TAXOLITCIGST)
             )</field>
         <field name="show_domain">foldable</field>
         <field name="special_date_changer">strict_range</field>
@@ -270,5 +271,5 @@
     </record>
 
     <menuitem id="menu_l10n_in_report_account" name="GSTR-1 Sales Return" action="action_l10n_in_report_account" parent="l10n_in.account_reports_in_statements_menu" sequence="1"/>
-    
+
 </odoo>

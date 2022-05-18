@@ -3,21 +3,24 @@
 # 	* account_followup
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Yihya Hugirat <hugirat@gmail.com>, 2019
-# שהאב חוסיין <shhab89@gmail.com>, 2019
-# hed shefetr <hed@laylinetech.com>, 2019
-# דודי מלכה <Dudimalka6@gmail.com>, 2019
-# Amit Spilman <amit@laylinetech.com>, 2019
-# ZVI BLONDER <ZVIBLONDER@gmail.com>, 2020
+# Martin Trigaux, 2021
+# Yihya Hugirat <hugirat@gmail.com>, 2021
+# שהאב חוסיין <shhab89@gmail.com>, 2021
+# דודי מלכה <Dudimalka6@gmail.com>, 2021
+# ZVI BLONDER <ZVIBLONDER@gmail.com>, 2021
+# Amit Spilman <amit@laylinetech.com>, 2021
+# Adi Sharashov <Adi@laylinetech.com>, 2021
+# Lilach Gilliam <lilach.gilliam@gmail.com>, 2021
+# david danilov, 2021
+# hed shefer <hed@laylinetech.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-07 07:20+0000\n"
-"PO-Revision-Date: 2019-09-13 11:47+0000\n"
-"Last-Translator: ZVI BLONDER <ZVIBLONDER@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: hed shefer <hed@laylinetech.com>, 2022\n"
 "Language-Team: Hebrew (https://www.transifex.com/odoo/teams/41243/he/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -46,7 +49,9 @@ msgid ""
 msgstr ""
 
 #. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
 #: model:account_followup.followup.line,description:account_followup.demo_followup_line1
+#, python-format
 msgid ""
 "\n"
 "Dear %(partner_name)s,\n"
@@ -58,6 +63,15 @@ msgid ""
 "Best Regards,\n"
 "            "
 msgstr ""
+"\n"
+"שלום %(partner_name)s,\n"
+"\n"
+"להלן רשימת החשבוניות אשר טרם הוסדר התשלום בגינן.\n"
+"נודה מאוד על הסדרת התשלום לפי התנאים בחשבונית.\n"
+"במידה והתשלום כבר התבצע לאחר שליחת הודעה זאת, התעלם מההודעה. אל תהססו לפנות אלינו לשאלות נוספות\n"
+"\n"
+"בברכה,\n"
+"            "
 
 #. module: account_followup
 #: model:account_followup.followup.line,description:account_followup.demo_followup_line2
@@ -79,18 +93,16 @@ msgid ""
 msgstr ""
 
 #. module: account_followup
-#: code:addons/account_followup/models/account_followup_report.py:0
+#: code:addons/account_followup/models/account_followup.py:0
 #, python-format
-msgid "%s Payment Reminder"
-msgstr "%s תזכורת תשלום"
+msgid "%(company_name)s Payment Reminder - %(partner_name)s"
+msgstr ""
 
 #. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
-#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#: code:addons/account_followup/models/account_followup.py:0
 #, python-format
-msgid "&times;"
-msgstr "ופעמים"
+msgid "%s (copy)"
+msgstr "%s (העתק)"
 
 #. module: account_followup
 #: model:ir.actions.report,print_report_name:account_followup.action_report_followup
@@ -124,6 +136,11 @@ msgstr ": שם חברת המשתמש"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid "<b>Email Subject:</b><br/>"
+msgstr ""
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
 msgid "<b>Next Reminder Date:</b>"
 msgstr "<b>תאריך התזכורת הבאה:</b>"
 
@@ -146,6 +163,14 @@ msgstr "<i class=\"fa fa-circle\" style=\"color: red;\"/> חייב רע"
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
 msgid "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\"/>"
 msgstr "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\"/>"
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid ""
+"<i class=\"fa fa-fw fa-pencil o_account_reports_edit_email_subject_pencil\" "
+"role=\"img\" aria-label=\"Edit Email Subject\" title=\"Edit Email "
+"Subject\"/>"
+msgstr ""
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
@@ -183,9 +208,21 @@ msgid ""
 msgstr "<strong>אזהרה!</strong> אין צורך לבצע שום פעולה עבור לקוח/ספק זה."
 
 #. module: account_followup
+#: model:ir.model.constraint,message:account_followup.constraint_account_followup_followup_line_uniq_name
+msgid ""
+"A follow-up action name must be unique. This name is already set to another "
+"action."
+msgstr ""
+
+#. module: account_followup
 #: model:ir.model,name:account_followup.model_account_chart_template
 msgid "Account Chart Template"
 msgstr "תבנית לוח חשבונות"
+
+#. module: account_followup
+#: model:ir.model,name:account_followup.model_report_account_followup_report_followup_print_all
+msgid "Account Follow-up Report"
+msgstr ""
 
 #. module: account_followup
 #: model:ir.actions.server,name:account_followup.ir_cron_auto_post_draft_entry_ir_actions_server
@@ -210,9 +247,14 @@ msgid "Add a note"
 msgstr "הוסף הערה"
 
 #. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.template_followup_report
+msgid "Add an email subject"
+msgstr "הוסף נושא לאימייל"
+
+#. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid "After"
-msgstr "לאחר"
+msgstr "אחרי"
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -242,22 +284,23 @@ msgid "Bad debtor"
 msgstr "חייב רע"
 
 #. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/js/followup_form_renderer.js:0
-#, python-format
-msgid "Calling"
-msgstr "מתקשר"
-
-#. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.line_template_followup_report
 msgid "Change expected payment date"
 msgstr "שנה את מועד התשלום הצפוי"
 
 #. module: account_followup
+#. openerp-web
+#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#: code:addons/account_followup/static/src/xml/account_followup_template.xml:0
+#, python-format
+msgid "Close"
+msgstr "סגור"
+
+#. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Communication"
-msgstr "תקשורת"
+msgstr "אסמכתה"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__company_id
@@ -267,7 +310,7 @@ msgstr "חברה"
 #. module: account_followup
 #: model:ir.model,name:account_followup.model_res_partner
 msgid "Contact"
-msgstr "איש קשר"
+msgstr "צור קשר"
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -322,11 +365,13 @@ msgid "Days of the follow-up levels must be different per company"
 msgstr "ימי רמות המעקב חייבים להיות שונים לכל חברה"
 
 #. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line1
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line2
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line3
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line4
 #: model:account_followup.followup.line,sms_description:account_followup.demo_followup_line5
+#, python-format
 msgid "Dear %(partner_name)s, it seems that some of your payments stay unpaid"
 msgstr " %(partner_name)s יקר, נראה שחלק מהתשלומים שלך לא שולמו"
 
@@ -336,10 +381,14 @@ msgid "Define follow-up levels and their related actions"
 msgstr "הגדירו את רמות המעקב ואת פעולותיהן הקשורות"
 
 #. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "Description"
+msgstr "תיאור"
+
+#. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__display_name
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report__display_name
 msgid "Display Name"
-msgstr "הצג שם"
+msgstr "שם לתצוגה"
 
 #. module: account_followup
 #. openerp-web
@@ -352,12 +401,19 @@ msgstr "בוצע"
 #: code:addons/account_followup/models/account_followup_report.py:0
 #, python-format
 msgid "Due Date"
-msgstr "תאריך פרעון"
+msgstr "תאריך יעד"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__delay
 msgid "Due Days"
 msgstr "ימי איחור"
+
+#. module: account_followup
+#: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__email_subject
+#: model:ir.model.fields,field_description:account_followup.field_account_report_manager__email_subject
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "Email Subject"
+msgstr "נושא האימייל"
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -457,12 +513,6 @@ msgid "Follow-ups Done / Total Follow-ups"
 msgstr "מעקבים שבוצעו / סה\"כ מעקבים"
 
 #. module: account_followup
-#: code:addons/account_followup/models/account_followup_report.py:0
-#, python-format
-msgid "Followup Report"
-msgstr "דוח מעקב"
-
-#. module: account_followup
 #: model_terms:ir.actions.act_window,help:account_followup.action_account_followup_line_definition_form
 msgid ""
 "For each step, specify the actions to be taken and delay in days. It is\n"
@@ -479,15 +529,9 @@ msgid "Good debtor"
 msgstr "חייב טוב"
 
 #. module: account_followup
-#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
-msgid "How to customize your messages?"
-msgstr "כיצד להתאים אישית את ההודעות שלך?"
-
-#. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__id
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report__id
 msgid "ID"
-msgstr "מזהה"
+msgstr "תעודה מזהה"
 
 #. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.followup_search_template
@@ -517,7 +561,6 @@ msgstr "פקודת יומן"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line____last_update
-#: model:ir.model.fields,field_description:account_followup.field_account_followup_report____last_update
 msgid "Last Modified on"
 msgstr "שינוי אחרון ב"
 
@@ -640,12 +683,6 @@ msgid "Partner"
 msgstr "לקוח/ספק"
 
 #. module: account_followup
-#: code:addons/account_followup/models/res_partner.py:0
-#, python-format
-msgid "Partner Ledger"
-msgstr ""
-
-#. module: account_followup
 #: model_terms:ir.ui.view,arch_db:account_followup.account_move_line_partner_tree
 msgid "Partner entries"
 msgstr ""
@@ -654,6 +691,12 @@ msgstr ""
 #: model:ir.actions.act_window,name:account_followup.action_account_followup_line_definition_form
 msgid "Payment Follow-ups"
 msgstr "מעקב תשלום"
+
+#. module: account_followup
+#: code:addons/account_followup/models/account_followup_report.py:0
+#, python-format
+msgid "Payment Reminder"
+msgstr ""
 
 #. module: account_followup
 #: model:ir.actions.report,name:account_followup.action_report_followup
@@ -695,11 +738,6 @@ msgstr "התאם"
 #, python-format
 msgid "Remind me later"
 msgstr "הזכר לי מאוחר יותר"
-
-#. module: account_followup
-#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
-msgid "SMS Message"
-msgstr "הודעת SMS"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_account_followup_followup_line__sms_description
@@ -763,13 +801,6 @@ msgid "Source Document"
 msgstr "מסמך מקור"
 
 #. module: account_followup
-#. openerp-web
-#: code:addons/account_followup/static/src/js/followup_form_renderer.js:0
-#, python-format
-msgid "Start Calling"
-msgstr "התחל להתקשר"
-
-#. module: account_followup
 #: model:ir.model.fields,help:account_followup.field_res_partner__payment_next_action_date
 #: model:ir.model.fields,help:account_followup.field_res_users__payment_next_action_date
 msgid "The date before which no action should be taken."
@@ -816,7 +847,7 @@ msgstr "סה\"כ"
 #: model:ir.model.fields,field_description:account_followup.field_res_users__total_due
 #, python-format
 msgid "Total Due"
-msgstr "סך הכל לתשלום"
+msgstr "יתרה לתשלום"
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0
@@ -840,7 +871,7 @@ msgstr "סה\"כ חובה"
 #: model:ir.model.fields,field_description:account_followup.field_res_partner__unpaid_invoices
 #: model:ir.model.fields,field_description:account_followup.field_res_users__unpaid_invoices
 msgid "Unpaid Invoices"
-msgstr "חשבוניות שלא שולמו"
+msgstr "חשבוניות מכירה לגבייה"
 
 #. module: account_followup
 #: model:ir.model.fields,field_description:account_followup.field_res_partner__unreconciled_aml_ids
@@ -899,16 +930,11 @@ msgstr "עם חשבוניות באיחור"
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid ""
 "Write here the introduction in the letter and mail or sms,\n"
-"                                        according to the level of the follow-up. You can\n"
-"                                        use the following keywords in the text. Don't\n"
-"                                        forget to translate in all languages you installed\n"
-"                                        using to top right icon."
+"                                            according to the level of the follow-up. You can\n"
+"                                            use the following keywords in the text. Don't\n"
+"                                            forget to translate in all languages you installed\n"
+"                                            using to top right icon."
 msgstr ""
-"כתוב כאן את ההקדמה במכתב ובדואר או ב- sms,\n"
-"                                        בהתאם לרמת המעקב. אתה יכול\n"
-"                                        להשתמש במילות המפתח שלהלן בטקסט.\n"
-"                                        אל תשכח לתרגם בכל השפות שהתקנת\n"
-"                                        באמצעות הסמל השמאלי למעלה."
 
 #. module: account_followup
 #. openerp-web
@@ -946,6 +972,14 @@ msgstr ""
 #: code:addons/account_followup/models/account_followup.py:0
 #, python-format
 msgid ""
+"Your email subject is invalid, use the right legend or %% if you want to use"
+" the percent character."
+msgstr ""
+
+#. module: account_followup
+#: code:addons/account_followup/models/account_followup.py:0
+#, python-format
+msgid ""
 "Your sms description is invalid, use the right legend or %% if you want to "
 "use the percent character."
 msgstr ""
@@ -961,6 +995,11 @@ msgstr "ימי איחור, בצע את הפעולות הבאות:"
 #: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
 msgid "e.g. Call the customer, check if it's paid, ..."
 msgstr "למשל התקשר ללקוח, בדוק אם זה שולם, ..."
+
+#. module: account_followup
+#: model_terms:ir.ui.view,arch_db:account_followup.view_account_followup_followup_line_form
+msgid "e.g. First Reminder Email"
+msgstr ""
 
 #. module: account_followup
 #: code:addons/account_followup/models/account_followup_report.py:0

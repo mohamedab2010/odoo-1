@@ -2,14 +2,14 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 {
     'name': 'UNSPSC product codes',
-    'version': '0.1',
+    'version': '0.2',
     'category': 'Hidden',
     'summary': 'UNSPSC product codes',
     'description': """
-        Countries like Colombia, Peru and Mexico need to be able to use the 
-        UNSPSC code for their products and uoms.  
+        Countries like Colombia, Peru and Mexico need to be able to use the
+        UNSPSC code for their products and uoms.
     """,
-    'depends': ['product'],
+    'depends': ['account'],
     'data': ['views/product_views.xml',
              'security/ir.model.access.csv'],
     "post_init_hook": "post_init_hook",

@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="Equipment">
+                <page string="Equipment" name="equipment">
                     <field name="equipment_ids" widget="many2many">
                         <tree string="Equipments">
                             <field name="name"/>
@@ -62,8 +62,10 @@
         <field name="model">mrp.workorder</field>
         <field name="inherit_id" ref="mrp_workorder.mrp_workorder_view_form_tablet_menu"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@id='workorder_maintenance_button']" position="inside">
-                <button name="button_maintenance_req" type="object" class="btn btn-warning btn-block" string="Maintenance request"/>
+            <xpath expr="//div[hasclass('workorder_menu')]" position="inside">
+                <div class="col-6">
+                    <button name="button_maintenance_req" type="object" class="btn btn-warning btn-block" string="Maintenance request"/>
+                </div>
             </xpath>
         </field>
     </record>

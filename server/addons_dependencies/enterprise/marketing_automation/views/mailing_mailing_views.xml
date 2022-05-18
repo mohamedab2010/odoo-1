@@ -11,6 +11,9 @@
             <xpath expr="//field[@name='subject']" position="after">
                 <field name="marketing_activity_ids" string="Activities" widget="many2many_tags"/>
             </xpath>
+            <xpath expr="//field[@name='state']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
         </field>
     </record>
 
@@ -23,6 +26,9 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='subject']" position="attributes">
                 <attribute name="attrs">{}</attribute>
+            </xpath>
+            <xpath expr="//field[@name='preview']" position="attributes">
+                <attribute name="attrs">{'readonly': [('mailing_type', '!=', 'mail')], 'invisible': [('mailing_type', '!=', 'mail')]}</attribute>
             </xpath>
             <xpath expr="//page[@name='mail_body']" position="replace">
                 <page string="Mail Body" name="mail_body">
@@ -39,7 +45,7 @@
             <xpath expr="//field[@name='state']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <xpath expr="//button[@name='action_put_in_queue']" position="replace"/>
+            <xpath expr="//button[@name='action_launch']" position="replace"/>
             <xpath expr="//button[@name='action_schedule']" position="replace"/>
             <field name="mailing_domain" position="replace"/>
             <xpath expr="//label[@for='mailing_model_id']" position="attributes">
@@ -48,9 +54,13 @@
             <xpath expr="//div[@name='mailing_model_id_container']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <xpath expr="//label[@for='contact_list_ids']" position="replace"/>
             <xpath expr="//field[@name='contact_list_ids']" position="replace"/>
-            <xpath expr="//field[@name='medium_id']" position="after">
+            <xpath expr="//field[@name='source_id']" position="after">
                 <field name="marketing_activity_ids" string="Activities" widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="//page[@name='ab_testing']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
         </field>
     </record>
@@ -84,7 +94,7 @@
                             'inline-field': 'body_html'
                         }"/>
                     </page>
-                    <page string="Options">
+                    <page string="Options" name="options">
                         <group>
                             <group string="Mailing" name="group_mailing">
                                 <field name="attachment_ids" widget="many2many_binary" string="Attach a file" class="oe_inline"/>
@@ -92,7 +102,7 @@
                                 <label for="reply_to"/>
                                 <div>
                                     <field name="reply_to_mode" widget="radio" attrs="{'invisible': [('mailing_model_real', '=', 'mailing.contact')]}"/>
-                                    <field name="reply_to" attrs="{'required': [('reply_to_mode', '=', 'email')], 'invisible': [('reply_to_mode', '!=', 'email')]}"/>
+                                    <field name="reply_to" attrs="{'required': [('reply_to_mode', '=', 'new')], 'invisible': [('reply_to_mode', '!=', 'new')]}"/>
                                 </div>
                             </group>
                         </group>
@@ -100,9 +110,9 @@
                 </notebook>
             </sheet>
             <div class="oe_chatter">
-                <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
-                <field name="message_ids" widget="mail_thread"/>
-                <field name="activity_ids" widget="mail_activity"/>
+                <field name="message_follower_ids" groups="base.group_user"/>
+                <field name="message_ids"/>
+                <field name="activity_ids"/>
             </div>
         </form>
         </field>

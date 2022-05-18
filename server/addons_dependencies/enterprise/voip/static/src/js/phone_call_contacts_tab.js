@@ -3,6 +3,13 @@ odoo.define('voip.PhoneCallContactsTab', function (require) {
 
 const PhoneCallTab = require('voip.PhoneCallTab');
 
+function cleanNumber(number) {
+    if (!number) {
+        return
+    }
+    return number.replace(/[^0-9+]/g, '');
+}
+
 const PhoneCallContactsTab = PhoneCallTab.extend({
 
     /**
@@ -63,10 +70,11 @@ const PhoneCallContactsTab = PhoneCallTab.extend({
                 'display_name',
                 'email',
                 'id',
-                'image_128',
+                'avatar_128',
                 'mobile',
                 'phone'
             ],
+            domain: ['|', ['phone', '!=', false], ['mobile', '!=', false]],
             limit: this._limit,
         });
         return this._parseContactsData(contactsData);
@@ -78,20 +86,31 @@ const PhoneCallContactsTab = PhoneCallTab.extend({
      */
     async searchPhoneCall(search) {
         if (search) {
-            this._searchDomain = [
-                '|',
-                ['display_name', 'ilike', search],
-                ['email', 'ilike', search]
-            ];
+            var number = cleanNumber(search);
+            if (number.length > 2) {
+                this._searchDomain = [
+                    '|', '|', '|',
+                    ['display_name', 'ilike', search],
+                    ['email', 'ilike', search],
+                    ['sanitized_phone', 'ilike', number],
+                    ['sanitized_mobile', 'ilike', number]
+                ];
+            } else {
+                this._searchDomain = [
+                    '|',
+                    ['display_name', 'ilike', search],
+                    ['email', 'ilike', search]
+                ];
+            }
             this._offset = 0;
             this._isLazyLoadFinished = false;
             const contactsData = await this._rpc({
-                domain: this._searchDomain,
+                domain: ['|', ['phone', '!=', false], ['mobile', '!=', false]].concat(this._searchDomain),
                 fields: [
                     'email',
                     'display_name',
                     'id',
-                    'image_128',
+                    'avatar_128',
                     'mobile',
                     'phone',
                 ],
@@ -119,22 +138,27 @@ const PhoneCallContactsTab = PhoneCallTab.extend({
      */
     async _lazyLoadPhonecalls() {
         this._isLazyLoading = true;
+        const dom = [
+            '|',
+            ['phone', '!=', false],
+            ['mobile', '!=', false]
+        ].concat(this._searchDomain ? this._searchDomain : []);
         const contactsData = await this._rpc({
             model: 'res.partner',
             method: 'search_read',
-            domain: this._searchDomain ? this._searchDomain : false,
+            domain: dom,
             fields: [
                 'display_name',
                 'email',
                 'id',
-                'image_128',
+                'avatar_128',
                 'mobile',
                 'phone',
             ],
             limit: this._limit,
             offset: this._offset
         });
-        if (!contactsData.length) {
+        if (contactsData.length < this._limit) {
             this._isLazyLoadFinished = true;
         }
         const phoneCallsData = this._makePhoneCallsDataFromContactsData(contactsData);
@@ -160,7 +184,7 @@ const PhoneCallContactsTab = PhoneCallTab.extend({
                 mobile: contactData.mobile,
                 partner_email: contactData.email,
                 partner_id: contactData.id,
-                partner_image_128: contactData.image_128,
+                partner_avatar_128: contactData.avatar_128,
                 partner_name: contactData.display_name,
                 phone: contactData.phone,
             };

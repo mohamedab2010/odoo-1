@@ -69,14 +69,14 @@
                 <div class="o_hr_referral container d-flex flex-column">
                     <div class="space_restart" t-if="widget.debug and widget.dashboardData.message.length"/>
                     <t t-foreach="widget.dashboardData.message" t-as="message">
-                        <a t-if="message.url" style="display:block" t-att-href="message.url" target="_blank">
-                            <div class="message" t-att-title="message.url">
-                                <img src="/hr_referral/static/src/img/new.png" class="img align-self-start mx-2"/>
-                                <span><t t-esc="message.text"/></span>
-                            </div>
+                        <a t-if="message.url" class="message" style="display:block" t-att-href="message.url" t-att-title="message.url" target="_blank">
+                            <img src="/hr_referral/static/src/img/new.png" class="img align-self-start mx-2"/>
+                            <button class="btn float-right fa fa-times o_hr_referral_btn_dismiss" t-att-message-id="message.id"/>
+                            <span><t t-esc="message.text"/></span>
                         </a>
                         <div t-else="" t-att-class="message.action and 'message o_referral_action' or 'message'" t-att-name="message.action" t-att-title="message.action and 'View Jobs' or ''">
                             <img src="/hr_referral/static/src/img/new.png" class="img align-self-start mx-2"/>
+                            <button class="btn float-right fa fa-times o_hr_referral_btn_dismiss" t-att-message-id="message.id"/>
                             <span><t t-esc="message.text"/></span>
                         </div>
                     </t>
@@ -93,15 +93,20 @@
                                     <span class="progress-bar"/>
                                 </span>
                             </div>
-                            <img class="img img-fluid rounded-circle o_employee_image" t-attf-src="/web/image?model=res.users&amp;field=image_128&amp;id=#{widget.dashboardData.id}" t-att-title="widget.dashboardData.name" t-att-alt="widget.dashboardData.name"/>
+                            <img class="img img-fluid rounded-circle o_employee_image" t-attf-src="/web/image?model=res.users&amp;field=avatar_128&amp;id=#{widget.dashboardData.id}" t-att-title="widget.dashboardData.name" t-att-alt="widget.dashboardData.name"/>
                         </div>
                         <div class="user_info">
-                            <p class="m-0 user_level">
-                                <t t-if="widget.dashboardData.level" t-esc="widget.dashboardData.level.name"/>
+                            <p class="m-0 user_total">
+                                <b>Total</b><br/>
+                                <span t-esc="widget.dashboardData.point_received"/>
                             </p>
                             <p class="m-0 user_points">
-                                <t t-esc="widget.dashboardData.point_received"/> Points
+                                <b>To Spend</b>
+                                <span t-esc="widget.dashboardData.point_to_spend"/>
                             </p>
+                        </div>
+                        <div class="m-0 user_level">
+                            <t t-if="widget.dashboardData.level" t-esc="widget.dashboardData.level.name"/>
                         </div>
                     </div>
                     <div t-if="widget.dashboardData.reach_new_level" style="position: relative;">

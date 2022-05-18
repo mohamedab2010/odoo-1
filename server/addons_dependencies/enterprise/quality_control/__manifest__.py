@@ -5,9 +5,9 @@
     'name': 'Quality',
     'version': '1.0',
     'category': 'Manufacturing/Quality',
-    'sequence': 50,
+    'sequence': 120,
     'summary': 'Control the quality of your products',
-    'website': 'https://www.odoo.com/page/quality-management-software',
+    'website': 'https://www.odoo.com/app/quality',
     'depends': ['quality'],
     'description': """
 Quality Control
@@ -20,13 +20,23 @@ Quality Control
 """,
     'data': [
         'data/quality_control_data.xml',
-        'views/quality_templates.xml',
+        'report/worksheet_custom_reports.xml',
+        'report/worksheet_custom_report_templates.xml',
         'views/quality_views.xml',
+        'views/product_views.xml',
+        'views/stock_move_views.xml',
         'views/stock_picking_views.xml',
+        'wizard/quality_check_wizard_views.xml',
+        'security/ir.model.access.csv',
     ],
     'demo': [
         'data/quality_control_demo.xml',
     ],
     'application': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'quality_control/static/src/**/*',
+        ],
+    }
 }

@@ -8,19 +8,16 @@ const UserAgent = require('voip.UserAgent');
 
 const core = require('web.core');
 const config = require('web.config');
+const Dialog = require('web.Dialog');
+const dom = require('web.dom');
+const mobile = require('web_mobile.core');
 const realSession = require('web.session');
 const Widget = require('web.Widget');
 
-const _t = core._t;
+const { _t, _lt } = core;
 const HEIGHT_OPEN = '480px';
 const HEIGHT_FOLDED = '0px';
-const YOUR_ARE_ALREADY_IN_A_CALL = _t("You are already in a call");
-
-// As voip is not supported on mobile devices,
-// we want to keep the standard phone widget
-if (config.device.isMobile) {
-    return;
-}
+const YOUR_ARE_ALREADY_IN_A_CALL = _lt("You are already in a call");
 
 const DialingPanel = Widget.extend({
     template: 'voip.DialingPanel',
@@ -37,11 +34,14 @@ const DialingPanel = Widget.extend({
         'click .o_dial_number': '_onClickDialNumber',
         'click .o_dial_window_close': '_onClickWindowClose',
         'input .o_dial_search_input': '_onInputSearch',
+        'keyup .o_dial_keypad_input': '_onKeyupKeypadInput',
     },
     custom_events: {
         'changeStatus': '_onChangeStatus',
+        'fold_panel': '_onFoldPanel',
         'incomingCall': '_onIncomingCall',
         'muteCall': '_onMuteCall',
+        'resetMissedCalls': '_resetMissedCalls',
         'showHangupButton': '_onShowHangupButton',
         'sip_accepted': '_onSipAccepted',
         'sip_bye': '_onSipBye',
@@ -64,17 +64,21 @@ const DialingPanel = Widget.extend({
         this.title = _t("VOIP");
 
         this._isFolded = false;
+        this._isFoldedBeforeCall = false;
         this._isInCall = false;
+        this._isMobileDevice = config.device.isMobileDevice;
         this._isPostpone = false;
         this._isShow = false;
         this._isWebRTCSupport = window.RTCPeerConnection && window.MediaStream && navigator.mediaDevices;
         this._onInputSearch = _.debounce(this._onInputSearch.bind(this), 500);
+        this._onBackButton = this._onBackButton.bind(this);
         this._tabs = {
             contacts: new PhoneCallContactsTab(this),
             nextActivities: new PhoneCallActivitiesTab(this),
             recent: new PhoneCallRecentTab(this),
         };
         this._userAgent = new UserAgent(this);
+        this._missedCounter = 0; // amount of missed call
     },
     /**
      * @override
@@ -92,6 +96,8 @@ const DialingPanel = Widget.extend({
         this._$tabsPanel = this.$('.o_dial_panel');
         this._$tabs = this.$('.o_dial_tabs');
 
+        this._fetchMissedCallFromServer();
+
         this._activeTab = this._tabs.nextActivities;
         await this._tabs.contacts.appendTo(this.$('.o_dial_contacts'));
         await this._tabs.nextActivities.appendTo(this.$('.o_dial_next_activities'));
@@ -103,7 +109,10 @@ const DialingPanel = Widget.extend({
         this._$keypad.hide();
 
         core.bus.on('transfer_call', this, this._onTransferCall);
-        core.bus.on('voip_onToggleDisplay', this, this._onToggleDisplay);
+        core.bus.on('voip_onToggleDisplay', this,  function () {
+            this._resetMissedCalls();
+            this._onToggleDisplay();
+        });
 
         this.call('bus_service', 'onNotification', this, this._onLongpollingNotifications);
 
@@ -140,7 +149,7 @@ const DialingPanel = Widget.extend({
             await this._activeTab.callFromActivityWidget(params);
             return this._makeCall(params.number);
         } else {
-            this.do_notify(YOUR_ARE_ALREADY_IN_A_CALL);
+            this.displayNotification({ title: YOUR_ARE_ALREADY_IN_A_CALL });
         }
     },
     /**
@@ -166,7 +175,7 @@ const DialingPanel = Widget.extend({
             const phoneCall = await this._activeTab.callFromPhoneWidget(params);
             return this._makeCall(params.number, phoneCall);
         } else {
-            this.do_notify(YOUR_ARE_ALREADY_IN_A_CALL);
+            this.displayNotification({ title: YOUR_ARE_ALREADY_IN_A_CALL });
         }
     },
     /**
@@ -176,6 +185,10 @@ const DialingPanel = Widget.extend({
      */
     getPbxConfiguration() {
         return this._userAgent.getPbxConfiguration();
+    },
+
+    async getMobileCallConfig() {
+        return this._userAgent.getMobileCallConfig();
     },
 
     //--------------------------------------------------------------------------
@@ -197,6 +210,8 @@ const DialingPanel = Widget.extend({
      * @private
      */
     _cancelCall() {
+        $('.o_dial_transfer_button').popover('hide');
+        this.$el.css('zIndex', '');
         this._isInCall = false;
         this._isPostpone = false;
         this._hidePostponeButton();
@@ -206,21 +221,22 @@ const DialingPanel = Widget.extend({
     /**
      * @private
      */
-    _fold() {
-        this.$el.animate({
-            height: this._isFolded ? HEIGHT_FOLDED : HEIGHT_OPEN,
-        });
+    _fold(animate = true) {
+        $('.o_dial_transfer_button').popover('hide');
+        if (animate) {
+            this.$el.animate({
+                height: this._isFolded ? HEIGHT_FOLDED : HEIGHT_OPEN,
+            });
+        } else {
+            this.$el.height(this._isFolded ? HEIGHT_FOLDED : HEIGHT_OPEN);
+        }
         if (this._isFolded) {
-            this.$('.o_dial_fold').css("bottom", "25px");
-            this.$('.o_dial_window_close').hide();
+            this.$('.o_dial_fold').css("bottom", "23px");
             this.$('.o_dial_main_buttons').hide();
             this.$('.o_dial_incoming_buttons').hide();
-            this.$('.o_dial_unfold').show();
         } else {
             this.$('.o_dial_fold').css("bottom", 0);
-            this.$('.o_dial_window_close').show();
             this.$('.o_dial_main_buttons').show();
-            this.$('.o_dial_unfold').hide();
         }
     },
     /**
@@ -230,7 +246,7 @@ const DialingPanel = Widget.extend({
      */
     _hideHeader() {
         this._$searchBar.hide();
-        this._$tabs.hide();
+        this._$tabs.parent().hide();
     },
     /**
      * @private
@@ -248,14 +264,22 @@ const DialingPanel = Widget.extend({
      */
     async _makeCall(number, phoneCall) {
         if (!this._isInCall) {
+            if (!await this._useVoip()) {
+                // restore the default browser behavior
+                const $a = $('<a/>', {
+                    href: `tel:${number}`,
+                    style: "display:none"
+                }).appendTo(document.body);
+                $a[0].click();
+                $a.remove();
+                return;
+            }
             if (!this._isWebRTCSupport) {
-                this.do_notify(_t("Your browser could not support WebRTC. Please check your configuration."));
+                this.displayNotification({ title: _t("Your browser could not support WebRTC. Please check your configuration.") });
                 return;
             }
             if (!number) {
-                this.do_notify(
-                    _t("The phonecall has no number"),
-                    _t("Please check if a phone number is given for the current phonecall"));
+                this.displayNotification({ message: _t("The phonecall has no number") });
                 return;
             }
             if (!this._isShow || this._isFolded) {
@@ -265,8 +289,49 @@ const DialingPanel = Widget.extend({
             this._userAgent.makeCall(number);
             this._isInCall = true;
         } else {
-            this.do_notify(YOUR_ARE_ALREADY_IN_A_CALL);
+            this.displayNotification({ title: YOUR_ARE_ALREADY_IN_A_CALL });
         }
+    },
+    /**
+     * start a call on ENTER keyup
+     *
+     * @private
+     * @param {KeyEvent} ev
+     */
+    _onKeyupKeypadInput(ev) {
+        if (ev.keyCode === $.ui.keyCode.ENTER) {
+            this._onClickCallButton();
+        }
+    },
+    /**
+     * @private
+     */
+    async _fetchMissedCallFromServer() {
+        const missedCalls = await this._rpc({
+            model: 'voip.phonecall',
+            method: 'get_missed_call_info'
+        });
+        this._missedCounter = missedCalls[0];
+        this._refreshMissedCalls();
+        if (this._missedCounter > 0) {
+            this._showWidgetFolded();
+            this.$('.o_dial_tab.active, .tab-pane.active').removeClass('active');
+            this.$('.o_dial_recent_tab .o_dial_tab, .tab-pane.o_dial_recent').addClass('active');
+            this._activeTab = this._tabs.recent;
+        }
+    },
+    /**
+     * Refresh the header with amount of missed calls
+     *
+     * @private
+     */
+    _refreshMissedCalls() {
+        if (this._missedCounter === 0) {
+            this.title = _t("VOIP");
+        } else {
+            this.title = this._missedCounter + " " + _t("missed call(s)");
+        }
+        $('.o_dial_text').text(this.title);
     },
     /**
      * Refreshes the phonecall list of the active tab.
@@ -288,12 +353,29 @@ const DialingPanel = Widget.extend({
         this._$incomingCallButtons.hide();
     },
     /**
+     * Reset to 0 amount of missed calls
+     *
+     * @private
+     */
+    _resetMissedCalls(data={'data': {'forceReset': false}}) {
+        if (this._missedCounter > 0 && (data['data']['forceReset'] || (this._isFolded && this._isShow))) {
+            this._missedCounter = 0;
+            this._rpc({
+                model: 'res.users',
+                method: 'reset_last_seen_phone_call',
+            });
+            this._refreshMissedCalls();
+        }
+    },
+    /**
      * @private
      */
     _showCallButton() {
         this._resetMainButton();
         this._$callButton.addClass('o_dial_call_button');
         this._$callButton.removeClass('o_dial_hangup_button');
+        this._$callButton[0].setAttribute('aria-label', _t('Call'));
+        this._$callButton[0].title = _t('Call');
     },
     /**
      * @private
@@ -302,6 +384,8 @@ const DialingPanel = Widget.extend({
         this._resetMainButton();
         this._$callButton.removeClass('o_dial_call_button');
         this._$callButton.addClass('o_dial_hangup_button');
+        this._$callButton[0].setAttribute('aria-label', _t('End Call'));
+        this._$callButton[0].title = _t('End Call');
     },
     /**
      * Shows the search input and the tabs.
@@ -310,7 +394,7 @@ const DialingPanel = Widget.extend({
      */
     _showHeader() {
         this._$searchBar.show();
-        this._$tabs.show();
+        this._$tabs.parent().show();
     },
     /**
      * @private
@@ -326,6 +410,7 @@ const DialingPanel = Widget.extend({
         if (!this._isShow) {
             this.$el.show();
             this._isShow = true;
+            mobile.backButtonManager.addListener(this, this._onBackButton);
             this._isFolded = false;
             if (this._isWebRTCSupport) {
                 this._$searchInput.focus();
@@ -339,17 +424,35 @@ const DialingPanel = Widget.extend({
      * @private
      * @return {Promise}
      */
+    async _showWidgetFolded() {
+        if (!this._isShow) {
+            this.$el.show();
+            this._isShow = true;
+            this._isFolded = true;
+            this._fold(false);
+        }
+    },
+    /**
+     * @private
+     * @return {Promise}
+     */
     async _toggleDisplay() {
+        $('.o_dial_transfer_button').popover('hide');
         if (this._isShow) {
             if (!this._isFolded) {
                 this.$el.hide();
                 this._isShow = false;
+                mobile.backButtonManager.removeListener(this, this._onBackButton);
             } else {
                 return this._toggleFold({ isFolded: false });
             }
         } else {
             this.$el.show();
             this._isShow = true;
+            mobile.backButtonManager.addListener(this, this._onBackButton);
+            if (this._isFolded) {
+                await this._toggleFold();
+            }
             this._isFolded = false;
             if (this._isWebRTCSupport) {
                 this._$searchInput.focus();
@@ -369,21 +472,16 @@ const DialingPanel = Widget.extend({
             }
             this._isFolded = _.isBoolean(isFolded) ? isFolded : !this._isFolded;
             this._fold();
-        } else {
-            this._onToggleDisplay();
         }
+        mobile.backButtonManager[this._isFolded ? 'removeListener' : 'addListener'](this, this._onBackButton);
     },
     /**
      * @private
      */
     _toggleKeypadInputDiv() {
-        if (this._isInCall) {
-            this._$keypadInputDiv.hide();
-        } else {
-            this._$keypadInputDiv.show();
-            if (this._isWebRTCSupport) {
-                this._$keypadInput.focus();
-            }
+        this._$keypadInputDiv.show();
+        if (this._isWebRTCSupport) {
+            this._$keypadInput.focus();
         }
     },
     /**
@@ -395,11 +493,84 @@ const DialingPanel = Widget.extend({
         this._$tabsPanel.unblock();
         this._$mainButtons.unblock();
     },
+    /**
+     * Check if the user wants to use voip to make the call.
+     * It's check the value res_user field `mobile_call_method` and
+     * ask to the end user is choice and update the value as needed
+     * @return {Promise<boolean>}
+     * @private
+     */
+    async _useVoip() {
+        // Only for mobile device
+        if (!config.device.isMobileDevice) {
+            return true;
+        }
+
+        const mobileCallMethod = await this.getMobileCallConfig();
+        // avoid ask choice if value is set
+        if (mobileCallMethod !== 'ask') {
+            return mobileCallMethod === 'voip';
+        }
+
+        const useVOIP = await new Promise(resolve => {
+            const $content = $('<main/>', {
+                role: 'alert',
+                text: _t("Make a call using:")
+            });
+
+            const $checkbox = dom.renderCheckbox({
+                text: _t("Remember ?"),
+            }).addClass('mb-0');
+
+            $content.append($checkbox);
+
+            const processChoice = useVoip => {
+                if ($checkbox.find('input[type="checkbox"]').is(':checked')) {
+                    this._userAgent.updateCallPreference(realSession.uid, useVoip ? 'voip' : 'phone');
+                }
+                resolve(useVoip);
+            };
+
+            new Dialog(this, {
+                size: 'medium',
+                fullscreen: false,
+                buttons: [{
+                    text: _t("Voip"),
+                    close: true,
+                    click: () => processChoice(true),
+                }, {
+                    text: _t("Phone"),
+                    close: true,
+                    click: () => processChoice(false),
+                }],
+                $content: $content,
+                renderHeader: false,
+            }).open({shouldFocusButtons: true});
+        });
+        if (useVOIP && mobile.methods.setupVoip) {
+            const hasMicroPhonePermission = await mobile.methods.setupVoip();
+            if (!hasMicroPhonePermission) {
+                await new Promise(resolve => Dialog.alert(this, _t("You must allow the access to the microphone on your device. Otherwise, the VoIP call receiver will not hear you."), {
+                    confirm_callback: resolve,
+                }));
+            }
+        }
+        return useVOIP;
+    },
 
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
-
+    /**
+     * Bind directly the DialingPanel#_onClickWindowClose method to the
+     * 'backbutton' event.
+     *
+     * @private
+     * @override
+     */
+    _onBackButton(ev) {
+        this._onClickWindowClose(ev);
+    },
     /**
      * @private
      */
@@ -469,6 +640,7 @@ const DialingPanel = Widget.extend({
      */
     _onClickDialNumber(ev) {
         ev.preventDefault();
+        this._$keypadInput.focus();
         this._onKeypadButtonClick(ev.currentTarget.textContent);
     },
     /**
@@ -476,6 +648,9 @@ const DialingPanel = Widget.extend({
      * @return {Promise}
      */
     async _onClickFold() {
+        if (this._isFolded) {
+            this._resetMissedCalls();
+        }
         return this._toggleFold();
     },
     /**
@@ -490,9 +665,6 @@ const DialingPanel = Widget.extend({
      * @private
      */
     _onClickKeypadBackspace() {
-        if (this._isInCall) {
-            return;
-        }
         this._$keypadInput.val(this._$keypadInput.val().slice(0, -1));
     },
     /**
@@ -510,6 +682,7 @@ const DialingPanel = Widget.extend({
      * @private
      */
     _onClickRejectButton() {
+        this.$el.css('zIndex', '');
         this._userAgent.rejectIncomingCall();
     },
     /**
@@ -529,7 +702,10 @@ const DialingPanel = Widget.extend({
     _onClickWindowClose(ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        this._onToggleDisplay();
+        $('.o_dial_transfer_button').popover('hide');
+        this.$el.hide();
+        this._isShow = false;
+        mobile.backButtonManager.removeListener(this, this._onBackButton);
     },
     /**
      * @private
@@ -540,7 +716,10 @@ const DialingPanel = Widget.extend({
      * @return {Promise}
      */
     async _onIncomingCall(ev) {
+        this._isFoldedBeforeCall = this._isShow ? this._isFolded : true;
         await this._showWidget();
+        this._$keypad.hide();
+        this._$tabsPanel.show();
         this.$(`
             .o_dial_tab.active,
             .tab-pane.active`
@@ -549,10 +728,19 @@ const DialingPanel = Widget.extend({
             .o_dial_recent_tab .o_dial_tab,
             .tab-pane.o_dial_recent`
         ).addClass('active');
+        this.$el.css('zIndex', 1051);
         this._activeTab = this._tabs.recent;
         await this._activeTab.onIncomingCall(ev.data);
         this._$mainButtons.hide();
         this._$incomingCallButtons.show();
+    },
+    /**
+     * @private
+     * @param {OdooEvent} ev
+     * @return {Promise}
+     */
+    _onFoldPanel(ev) {
+        return this._toggleFold();
     },
     /**
      * @private
@@ -569,9 +757,8 @@ const DialingPanel = Widget.extend({
     _onKeypadButtonClick(number) {
         if (this._isInCall) {
             this._userAgent.sendDtmf(number);
-        } else {
-            this._$keypadInput.val(this._$keypadInput.val() + number);
         }
+        this._$keypadInput.val(this._$keypadInput.val() + number);
     },
     /**
      * @private
@@ -579,8 +766,8 @@ const DialingPanel = Widget.extend({
      * @param {string} [notifications[i].type]
      */
     async _onLongpollingNotifications(notifications) {
-        for (const notification of notifications) {
-            if (notification[1].type === 'refresh_voip') {
+        for (const { type } of notifications) {
+            if (type === 'refresh_voip') {
                 if (this._isInCall) {
                     return;
                 }
@@ -629,6 +816,7 @@ const DialingPanel = Widget.extend({
         this._hidePostponeButton();
         const isDone = !this._isPostpone;
         this._isPostpone = false;
+        this.$el.css('zIndex', '');
         return this._activeTab.hangupPhonecall(isDone);
     },
     /**
@@ -642,10 +830,23 @@ const DialingPanel = Widget.extend({
     _onSipCancelIncoming(ev) {
         this._isInCall = false;
         this._isPostpone = false;
-        this._hidePostponeButton();
-        this._showCallButton();
-        this._resetMainButton();
-        return this._activeTab.onMissedCall(ev.data);
+        this._missedCounter = this._missedCounter + 1;
+        this._refreshMissedCalls();
+        this.$el.css('zIndex', '');
+
+        if (this._isFoldedBeforeCall) {
+            this._activeTab.onMissedCall(ev.data);
+            this.$('.o_dial_tab.active, .tab-pane.active').removeClass('active');
+            this.$('.o_dial_recent_tab .o_dial_tab, .tab-pane.o_dial_recent').addClass('active');
+            this._activeTab = this._tabs.recent;
+            this._isFolded = true;
+            this._fold();
+        } else {
+            this._hidePostponeButton();
+            this._showCallButton();
+            this._resetMainButton();
+            return this._activeTab.onMissedCall(ev.data, true);
+        }
     },
     /**
      * @private
@@ -658,9 +859,7 @@ const DialingPanel = Widget.extend({
      * @private
      */
     _onSipCustomerUnavailable() {
-        this.do_notify(
-            _t("Customer unavailable"),
-            _t("The customer is temporary unavailable. Please try later."));
+        this.displayNotification({ message: _t("Customer unavailable. Please try later.") });
     },
     /**
      * @private
@@ -715,6 +914,7 @@ const DialingPanel = Widget.extend({
             .o_dial_recent_tab .o_dial_tab,
             .tab-pane.o_dial_recent`
         ).addClass('active');
+        this.$el.css('zIndex', 1051);
         this._activeTab = this._tabs.recent;
         await this._activeTab.onIncomingCallAccepted(ev.data);
         this._showHangupButton();
@@ -749,6 +949,7 @@ const DialingPanel = Widget.extend({
      * @private
      */
     _onToggleKeypad() {
+        $('.o_dial_transfer_button').popover('hide');
         if (this._$tabsPanel.is(":visible")) {
             this._$tabsPanel.hide();
             this._$keypad.show();

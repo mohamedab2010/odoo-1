@@ -2,11 +2,11 @@
 <templates xml:space="preserve">
     <t t-extend="mail.KanbanActivityDropdown">
         <t t-jquery=".o_activity_log_container .o_activity_log t[t-foreach*='_.keys(records)'][t-as*='key'] t[t-foreach*='logs'][t-as*='log'] .activities_list_group_item" t-operation="replace">
-            <t t-if="log.activity_type_id[1] == 'Approval'">
+            <t t-if="log.approver_id">
                 <t t-set="approver_id" t-value="log.approver_id"/>
                 <li t-att-data-approver-id="approver_id" t-attf-class="list-group-item o_log_activity d-flex #{log_last ? 'border-bottom' : ''}" role="menuitem">
                     <div class="o_activity_title">
-                        <div t-attf-class="o_activity_title_entry {{! log.force_next ? 'align-items-center' : 'mb-1'}}">
+                        <div t-attf-class="o_activity_title_entry {{ log.chaining_type === 'suggest' ? 'align-items-center' : 'mb-1'}}">
                             <span t-attf-class="fa #{log.icon ? log.icon : 'fa-bell' } fa-fw mr-2 text-center text-muted" role="img" aria-label="Log" title="Log"/>
                             <strong class="text-dark"><t t-esc="log.title_action or log.activity_type_id[1]"/></strong>
                         </div>

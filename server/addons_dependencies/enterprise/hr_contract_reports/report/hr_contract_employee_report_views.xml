@@ -6,13 +6,13 @@
             <field name="model">hr.contract.employee.report</field>
             <field name="mode">primary</field>
             <field name="arch" type="xml">
-                <dashboard>
+                <dashboard sample="1">
                     <view type="graph" ref="hr_contract_reports.contract_employee_report_view_graph"/>
                     <group>
                         <group col="4">
                             <aggregate name="employee_id" string="Total Employees" field="employee_id"/>
                             <aggregate name="contract_id" string="Total Contracts" field="contract_id"/>
-                            <aggregate name="date_end_contract" string="Last Contract Ended" field="date_end_contract" clickable="False"/>
+                            <aggregate name="date_end_contract" string="Last Contract Ended" group_operator="max" field="date_end_contract" clickable="False"/>
                             <aggregate name="count_new_employee" string="New Employees" field="count_new_employee"/>
                             <aggregate name="count_employee_exit" string="Departure Employees" field="count_employee_exit"/>
                             <aggregate name="min_date" string="Min Date in Months" group_operator="min" field="start_date_months" invisible="1"/>
@@ -23,7 +23,7 @@
                         </group>
 
                         <group col="1">
-                            <widget name="pie_chart" title="Departure Reason" attrs="{'groupby': 'departure_reason', 'domain':'[(\'count_employee_exit\', \'=\', 1)]'}"/>
+                            <widget name="pie_chart" title="Departure Reason" attrs="{'groupby': 'departure_reason_id', 'domain':'[(\'count_employee_exit\', \'=\', 1)]'}"/>
                         </group>
 
                     </group>
@@ -36,7 +36,7 @@
             <field name="name">contract.employee.report.view.pivot</field>
             <field name="model">hr.contract.employee.report</field>
             <field name="arch" type="xml">
-                <pivot string="Employees Analysis" disable_linking="True">
+                <pivot string="Employees Analysis" sample="1">
                     <field name="department_id" type="row"/>
                     <field name="employee_id" type="measure"/>
                     <field name="wage" type="measure"/>
@@ -50,10 +50,24 @@
             <field name="name">contract.employee.report.view.graph</field>
             <field name="model">hr.contract.employee.report</field>
             <field name="arch" type="xml">
-                <graph string="Employees Analysis" type="line">
-                    <field name="date" type="row"/>
+                <graph string="Employees Analysis" type="line" sample="1">
+                    <field name="date"/>
                     <field name="count_new_employee" type="measure"/>
                 </graph>
+            </field>
+        </record>
+
+        <record id="hr_contract_employee_report_view_tree" model="ir.ui.view">
+            <field name="name">hr.contract.employee.report.view.tree</field>
+            <field name="model">hr.contract.employee.report</field>
+            <field name="arch" type="xml">
+                <tree string="Employees Analysis">
+                    <field name="employee_id" widget="many2one_avatar_employee"/>
+                    <field name="department_id" optional="show"/>
+                    <field name="date" optional="show"/>
+                    <field name="company_id" optional="show" groups="base.group_multi_company"/>
+                    <field name="wage" optional="show"/>
+                </tree>
             </field>
         </record>
 
@@ -67,8 +81,10 @@
                     <field name="department_id" filter_domain="[('department_id', 'ilike', self)]"/>
                     <field name="date"/>
                     <filter string="Last 365 Days" name="year" domain="[
-                        ('date', '>=', (context_today() + relativedelta(days=-365)).strftime('%Y-%m-%d')),
-                        ('date', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                        ('date', '>', (context_today() + relativedelta(days=-365)).strftime('%Y-%m-%d')),
+                        ('date', '&lt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <separator/>
+                    <filter name="filter_date" date="date"/>
                     <group expand="1" string="Group By">
                         <filter string="Employee" name="employee_id" context="{'group_by':'employee_id'}"/>
                         <filter string="Department" name="department_id" context="{'group_by':'department_id'}"/>

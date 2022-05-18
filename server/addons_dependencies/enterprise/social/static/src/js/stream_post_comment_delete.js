@@ -61,9 +61,11 @@ var StreamPostCommentDelete = Dialog.extend({
         var self = this;
 
         this._rpc({
-            model: 'social.stream.post',
-            method: this.deleteCommentEndpoint,
-            args: [[this.postId], this.commentId]
+            route: this.deleteCommentEndpoint,
+            params: {
+                stream_post_id: this.postId,
+                comment_id: this.commentId
+            },
         }).then(function () {
             self.trigger('comment_deleted');
             self.close();

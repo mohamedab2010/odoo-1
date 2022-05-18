@@ -53,6 +53,7 @@ MockServer.include({
         // compute columns
         var columns = [];
         var current = start.clone().subtract(1, 'days');
+        var unavailable = end.clone().subtract(2, 'days');
 
         while (!current.isSame(end, 'days')) {
             current.add(1, 'days');
@@ -60,6 +61,7 @@ MockServer.include({
             var nextDayStr = current.clone().add(1, 'days').format('YYYY-MM-DD');
             columns.push({
                 is_current: current.isSame(today),
+                is_unavailable: unavailable.isSame(current, 'day'),
                 domain: ["&", ["date", ">=", dayStr], ["date", "<", nextDayStr]],
                 values: {date: [dayStr + '/' + nextDayStr, current.format('ddd,\nMMM\u00a0DD')]}
             });
@@ -127,6 +129,7 @@ MockServer.include({
                     size: records.length,
                     value: value,
                     is_current: col.is_current,
+                    is_unavailable: col.is_unavailable,
                     readonly: _.isMatch(records.records[0], readonly_dict),
                     domain: cellDomain,
                 });

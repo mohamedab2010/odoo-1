@@ -3,13 +3,13 @@
 <template id="report_termination_holidays_n">
     <t t-call="web.html_container">
         <t t-foreach="docs" t-as="o">
-            <t t-call="web.internal_layout">
+            <t t-call="web.external_layout">
                 <div class="page">
-                    <h3 t-field="o.name"/>
+                    <h3>Certificate Relating To Annual Holidays For The Civil Year Ending The Contract Of Employment</h3>
 
                     <h4 class="text-center">
-                        Holiday exercise <span t-esc="o.date_to.year"/>
-                        /Holiday year <span t-esc="o.date_to.year + 1"/>
+                        <span>Holiday exercise </span><span t-esc="o.date_to.year"/>
+                        <span>/Holiday year </span><span t-esc="o.date_to.year + 1"/>
                     </h4>
 
                     <table class="table table-sm table-bordered">
@@ -40,22 +40,18 @@
                             <td><strong>Address</strong></td>
                             <td colspan="3">
                                 <div t-field="o.employee_id.address_home_id"
-                                    t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True, "phone_icons": True}'/>
+                                    t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True, "phone_icons": True}'/>
                             </td>
                         </tr>
                         <tr>
                             <td><strong>Email</strong></td>
-                            <td><span t-field="o.employee_id.work_email"/></td>
+                            <td><span t-field="o.employee_id.address_home_id.email"/></td>
                             <td><strong>Identification No</strong></td>
                             <td><span t-field="o.employee_id.identification_id"/></td>
                         </tr>
                         <tr>
                             <td><strong>Reference</strong></td>
                             <td><span t-field="o.number"/></td>
-                            <td><strong>Bank Account</strong></td>
-                            <td><span t-field="o.employee_id.bank_account_id"/></td>
-                        </tr>
-                        <tr>
                             <td><strong>Registration Number</strong></td>
                             <td><span t-field="o.employee_id.registration_number"/></td>
                         </tr>
@@ -64,8 +60,10 @@
                     <t t-set="total_annual" t-value="0" />
                     <t t-set="total" t-value="0" />
                     <h6>
-                        Actual and similar remuneration for the period from <span t-field="o.date_from"/>
-                        to <span t-field="o.date_to"/> included:
+                        <t t-set="period_from" t-value="o.employee_id.first_contract_in_company if not o.employee_id.end_notice_period else max(o.employee_id.first_contract_in_company, o.employee_id.end_notice_period.replace(month=1, day=1))"/>
+                        <t t-set="period_to" t-value="o.employee_id.end_notice_period"/>
+                        <span>Actual and similar remuneration for the period from </span><span t-esc="period_from"/>
+                        <span>to </span><span t-esc="period_to"/> <span>included:</span>
                     </h6>
 
                     <table class="table table-sm table-bordered">
@@ -75,10 +73,19 @@
                                 <td><span t-esc="o.input_line_ids.filtered(lambda line: line.code == 'GROSS_REF').amount"
                                           t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/></td>
                             </tr>
+                            <tr>
+                                <td>Time off already taken</td>
+                                <td>0</td>
+                            </tr>
+                            <tr>
+                                <td>Working Schedule</td>
+                                <td><span><t t-esc="round(o.contract_id.resource_calendar_id.hours_per_week, 2)"/> / <t t-esc="round(o.contract_id.resource_calendar_id.full_time_required_hours, 2)"/> Hours/Week</span></td>
+                            </tr>
+
                         </tbody>
                     </table>
 
-                    <h6>Holiday pay to receive:</h6>
+                    <h6>Holiday pay details:</h6>
 
                     <table class="table table-sm table-bordered">
                         <tbody>
@@ -123,12 +130,18 @@
                     <span>
                         To the attention of the worker
                         <ul>
-                            <li>You must return this certificate to your next employer, or failing that, to your allowance payment agency.
-                            Social security contributions on holiday pay have already been retained.</li>
-                            <li>The amount covered by this certificate pre-emptively compensates the vacation days you will take in the
-                            near future in <span t-esc="o.date_to.year + 1"/>.
-                            Your next employer or payment agency will not pay for these days off. So you are advised to keep this amount
-                            until you take these days off.</li>
+                            <li><span>You must return this certificate to your next employer, or failing that, to your allowance payment agency.
+                            Social security contributions on holiday pay have already been retained.</span></li>
+                            <li><span>The amount covered by this certificate pre-emptively compensates the vacation days you will take in the
+                            near future in </span><span t-esc="o.date_to.year + 1"/>.
+                            <span>Your next employer or payment agency will not pay for these days off. So you are advised to keep this amount
+                            until you take these days off.</span></li>
+                        </ul>
+                    </span>
+                    <span>
+                        To the attention of the next employer
+                        <ul>
+                            <li><span>Social contributions on the various vacation pay have already been paid.</span></li>
                         </ul>
                     </span>
                 </div>
@@ -141,13 +154,13 @@
 <template id="report_termination_holidays_n1">
     <t t-call="web.html_container">
         <t t-foreach="docs" t-as="o">
-            <t t-call="web.internal_layout">
+            <t t-call="web.external_layout">
                 <div class="page">
-                    <h3 t-field="o.name"/>
+                    <h3>Certificate Relating To Annual Vacations For The Calendar Year Preceding The End Of The Contract Of Employment</h3>
 
                     <h4 class="text-center">
-                        Holiday exercise <span t-esc="o.date_to.year"/>
-                        /Holiday year <span t-esc="o.date_to.year + 1"/>
+                        <span>Holiday exercise </span><span t-esc="o.date_to.year -1"/>
+                        <span>/Holiday year </span><span t-esc="o.date_to.year"/>
                     </h4>
 
                     <table class="table table-sm table-bordered">
@@ -178,22 +191,18 @@
                             <td><strong>Address</strong></td>
                             <td colspan="3">
                                 <div t-field="o.employee_id.address_home_id"
-                                    t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True, "phone_icons": True}'/>
+                                    t-options='{"widget": "contact", "fields": ["address", "name"], "no_marker": True, "phone_icons": True}'/>
                             </td>
                         </tr>
                         <tr>
                             <td><strong>Email</strong></td>
-                            <td><span t-field="o.employee_id.work_email"/></td>
+                            <td><span t-field="o.employee_id.address_home_id.email"/></td>
                             <td><strong>Identification No</strong></td>
                             <td><span t-field="o.employee_id.identification_id"/></td>
                         </tr>
                         <tr>
                             <td><strong>Reference</strong></td>
                             <td><span t-field="o.number"/></td>
-                            <td><strong>Bank Account</strong></td>
-                            <td><span t-field="o.employee_id.bank_account_id"/></td>
-                        </tr>
-                        <tr>
                             <td><strong>Registration Number</strong></td>
                             <td><span t-field="o.employee_id.registration_number"/></td>
                         </tr>
@@ -202,8 +211,10 @@
                     <t t-set="total_annual" t-value="0" />
                     <t t-set="total" t-value="0" />
                     <h6>
-                        Actual and similar remuneration for the period from <span t-field="o.date_from"/>
-                        to <span t-field="o.date_to"/> included:
+                        <t t-set="period_from" t-value="o.employee_id.first_contract_in_company if not o.employee_id.end_notice_period else max(o.employee_id.first_contract_in_company, (o.employee_id.end_notice_period + relativedelta(years=-1)).replace(month=1, day=1))"/>
+                        <t t-set="period_to" t-value="o.employee_id.first_contract_in_company if not o.employee_id.end_notice_period else max(o.employee_id.first_contract_in_company, (o.employee_id.end_notice_period + relativedelta(years=-1)).replace(month=12, day=31))"/>
+                        <span>Actual and similar remuneration for the period from </span><span t-esc="period_from"/>
+                        <span>to </span><span t-esc="period_to"/><span> included:</span>
                     </h6>
 
                     <table class="table table-sm table-bordered">
@@ -221,10 +232,22 @@
                                 <td>Right to time off</td>
                                 <td><span t-esc="o.input_line_ids.filtered(lambda line: line.code == 'ALLOCATION').amount"/></td>
                             </tr>
+                            <tr>
+                                <td>Working Schedule</td>
+                                <td><span><t t-esc="round(o.contract_id.resource_calendar_id.hours_per_week, 2)"/> / <t t-esc="round(o.contract_id.resource_calendar_id.full_time_required_hours, 2)"/> Hours/Week</span></td>
+                            </tr>
+                            <tr>
+                                <td>Additional time off (european, ...)</td>
+                                <td><span><t t-esc="o.input_line_ids.filtered(lambda line: line.code == 'EUROPEAN_DAYS').amount"/></span></td>
+                            </tr>
+                            <tr>
+                                <td>Additional amount to deduct</td>
+                                <td><span><t t-esc="o.input_line_ids.filtered(lambda line: line.code == 'EUROPEAN').amount"/></span></td>
+                            </tr>
                         </tbody>
                     </table>
 
-                    <h6>Holiday pay to receive:</h6>
+                    <h6>Holiday pay details:</h6>
 
                     <table class="table table-sm table-bordered">
                         <tbody>
@@ -241,7 +264,7 @@
                                 have not yet been taken</td>
                             </tr>
                             <tr>
-                                <td>6,8% of gross reference remuneration</td>
+                                <td>6,8% of gross reference remuneration - additional time off amount</td>
                                 <td><span t-esc="o.line_ids.filtered(lambda line: line.code == 'PAY DOUBLE').total"
                                           t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/></td>
                             </tr>
@@ -266,12 +289,18 @@
                     <span>
                         To the attention of the worker
                         <ul>
-                            <li>You must return this certificate to your next employer, or failing that, to your allowance payment agency.
-                            Social security contributions on holiday pay have already been retained.</li>
-                            <li>The amount covered by this certificate pre-emptively compensates the vacation days you will take in the near
-                            future in <span t-esc="o.date_to.year + 1"/>.
-                            Your next employer or payment agency will not pay for these days off. So you are advised to keep this amount
-                            until you take these days off.</li>
+                            <li><span>You must return this certificate to your next employer, or failing that, to your allowance payment agency.
+                            Social security contributions on holiday pay have already been retained.</span></li>
+                            <li><span>The amount covered by this certificate pre-emptively compensates the vacation days you will take in the near
+                            future in </span><span t-esc="o.date_to.year + 1"/>.
+                            <span>Your next employer or payment agency will not pay for these days off. So you are advised to keep this amount
+                            until you take these days off.</span></li>
+                        </ul>
+                    </span>
+                    <span>
+                        To the attention of the next employer
+                        <ul>
+                            <li><span>Social contributions on the various vacation pay have already been paid.</span></li>
                         </ul>
                     </span>
                 </div>

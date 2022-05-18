@@ -14,6 +14,7 @@
     "data": [
         'views/quality_views.xml',
         'views/mrp_workorder_views.xml',
+        'report/worksheet_custom_report_templates.xml',
     ],
     "demo": [
         'data/mrp_workorder_demo.xml'

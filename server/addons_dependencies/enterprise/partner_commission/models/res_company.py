@@ -14,15 +14,19 @@ class ResCompany(models.Model):
         ('quarterly', 'Quarterly')],
         required=True,
         default='monthly')
+    commission_po_minimum = fields.Monetary("Minimum Total Amount for PO commission",
+        currency_field='currency_id')
 
 
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
-    commission_automatic_po_frequency = fields.Selection([
-        ('manually', 'Manually'),
-        ('weekly', 'Weekly'),
-        ('monthly', 'Monthly'),
-        ('quarterly', 'Quarterly')],
+    commission_automatic_po_frequency = fields.Selection(
+        related='company_id.commission_automatic_po_frequency',
         required=True,
-        default='monthly')
+        readonly=False,
+    )
+    commission_po_minimum = fields.Monetary("Minimum Total Amount for PO commission",
+        related='company_id.commission_po_minimum',
+        readonly=False,
+        currency_field='currency_id')

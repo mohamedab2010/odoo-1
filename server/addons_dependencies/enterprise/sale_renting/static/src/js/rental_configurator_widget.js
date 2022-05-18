@@ -79,7 +79,8 @@ ProductConfiguratorWidget.include({
             }).then(function (r) {
                 if (r && r[0].rent_ok) {
                     self._openRentalConfigurator({
-                            default_product_id: productId
+                            default_product_id: productId,
+                            default_tax_ids: self.record.data.tax_id.res_ids,
                         },
                         dataPointID
                     );

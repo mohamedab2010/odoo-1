@@ -23,7 +23,7 @@ class Digest(models.Model):
             ])
             record.kpi_helpdesk_tickets_closed_value = closed_ticket
 
-    def compute_kpis_actions(self, company, user):
-        res = super(Digest, self).compute_kpis_actions(company, user)
+    def _compute_kpis_actions(self, company, user):
+        res = super(Digest, self)._compute_kpis_actions(company, user)
         res['kpi_helpdesk_tickets_closed'] = 'helpdesk.helpdesk_team_dashboard_action_main&menu_id=%s' % self.env.ref('helpdesk.menu_helpdesk_root').id
         return res

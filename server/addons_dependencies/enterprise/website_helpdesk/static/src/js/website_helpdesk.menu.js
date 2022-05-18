@@ -12,7 +12,7 @@ publicWidget.registry.HelpdeskMenu = publicWidget.Widget.extend({
     start: function () {
         var pathname = $(window.location).attr("pathname");
         var $links = this.$('li a');
-        if (pathname !== "/helpdesk/") {
+        if (pathname !== "/helpdesk") {
             $links = $links.filter("[href$='" + pathname + "']");
         }
         $links.first().closest("li").addClass("active");

@@ -7,7 +7,7 @@
             <form string="Activity">
                 <sheet>
                     <div class="oe_title">
-                        <label for="name" class="oe_edit_only" string="Name" />
+                        <label for="name" string="Activity Name" />
                         <h1><field name="name" required="1" placeholder="e.g. eCommerce Offers" /></h1>
                     </div>
                     <group>
@@ -31,7 +31,9 @@
                                         'invisible': [('activity_type', '!=', 'email')]}"
                                     options="{'no_quick_create': True}"/>
                             </div>
-                            <field name="server_action_id" domain="[('model_id', '=', model_id)]" attrs="{'required': [('activity_type', '=', 'action')], 'invisible': [('activity_type', '!=', 'action')]}" context="{'default_model_id': model_id}" />
+                            <field name="server_action_id" domain="[('model_id', '=', model_id)]" attrs="{'required': [('activity_type', '=', 'action')], 'invisible': [('activity_type', '!=', 'action')]}"
+                                    context="{'default_model_id': model_id,
+                                            'form_view_ref': 'marketing_automation.ir_actions_server_view_form_marketing_automation'}" />
                             <field name="statistics_graph_data" invisible="1" />
                             <field name="mass_mailing_id_mailing_type" invisible="1" />
                         </group>
@@ -49,14 +51,11 @@
                             </div>
                             <label for="parent_id" attrs="{'invisible': [('trigger_type', '=', 'begin')]}"/>
                             <div>
+                                <field name="allowed_parent_ids" invisible="1"/>
                                 <field name="parent_id"
-                                    domain="[('id', 'in', parent.marketing_activity_ids), ('id', '!=', id)]"
+                                    domain="[('id', 'in', allowed_parent_ids)]"
                                     attrs="{'required': [('trigger_type', '!=', 'begin')], 'invisible': [('trigger_type', '=', 'begin')]}"
                                     options="{'no_create_edit': True, 'no_create': True}"/>
-                            </div>
-                            <span class="o_form_label" invisible="1">Warning</span>
-                            <div>
-                                <small class="oe_edit_only text-muted" attrs="{'invisible': [('trigger_type', '=', 'begin')]}">(save the campaign to make its activities selectable)</small>
                             </div>
                             <label for="validity_duration" string="Expiry Duration"/>
                             <div>
@@ -75,7 +74,7 @@
                         </group>
                     </group>
                     <group string="Domain">
-                        <field name="activity_domain" widget="domain" options="{'in_dialog': True, 'model': 'model_name'}" />
+                        <field name="activity_domain" widget="domain" options="{'model': 'model_name'}" />
                         <field name="domain" widget="domain" options="{'in_dialog': True, 'model': 'model_name'}" />
                     </group>
                 </sheet>

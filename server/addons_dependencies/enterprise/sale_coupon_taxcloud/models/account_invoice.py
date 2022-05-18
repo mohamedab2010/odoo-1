@@ -16,7 +16,7 @@ class AccountMove(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
-    coupon_program_id = fields.Many2one('sale.coupon.program',
+    coupon_program_id = fields.Many2one('coupon.program',
         string='Discount Program', readonly=True,
         help='The coupon program that created this line.',
     )

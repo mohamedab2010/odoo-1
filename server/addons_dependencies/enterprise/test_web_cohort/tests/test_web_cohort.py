@@ -45,7 +45,7 @@ class TestCohortForward(TestCohortCommon):
     def test_forward(self):
         #Test interval
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'year', [], 'retention', 'forward')['rows']
+            '__count', 'year', [], 'retention', 'forward')['rows']
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]['columns'][0]['percentage'], 81)
         self.assertEqual(result[0]['columns'][1]['percentage'], 0)
@@ -57,17 +57,17 @@ class TestCohortForward(TestCohortCommon):
         self.assertEqual(result[0]['value'] + result[1]['value'], NB_START_DAY * NB_END_DAY)
 
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'month', [], 'retention', 'forward')['rows']
+            '__count', 'month', [], 'retention', 'forward')['rows']
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0]['columns'][0]['percentage'], 81)
         self.assertEqual(result[0]['columns'][1]['percentage'], 46.7)
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'week', [], 'retention', 'forward')['rows']
+            '__count', 'week', [], 'retention', 'forward')['rows']
         self.assertEqual(len(result), 11)
         self.assertEqual(result[0]['columns'][0]['percentage'], 96.7)
         self.assertEqual(result[0]['columns'][1]['percentage'], 90.0)
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'day', [], 'retention', 'forward')['rows']
+            '__count', 'day', [], 'retention', 'forward')['rows']
         self.assertEqual(len(result), NB_START_DAY)
         self.assertEqual(result[0]['columns'][0]['percentage'], 96.7)
         self.assertEqual(result[0]['columns'][1]['percentage'], 96.7)
@@ -86,7 +86,7 @@ class TestCohortForward(TestCohortCommon):
         self.assertEqual(result[0]['value'], TYPE_SIZE)
         #Test Churn mode
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'year', [], 'churn', 'forward')['rows']
+            '__count', 'year', [], 'churn', 'forward')['rows']
         #Percentage is 100 - rentention %
         self.assertEqual(result[0]['columns'][0]['percentage'], round(100 - 81, 2))
         self.assertEqual(result[0]['columns'][1]['percentage'], 100 - 0)
@@ -127,25 +127,25 @@ class TestCohortBackward(TestCohortCommon):
     def test_backward(self):
         #Test interval
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'year', [], 'retention', 'backward')['rows']
+            '__count', 'year', [], 'retention', 'backward')['rows']
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0]['columns'][0]['percentage'], 100.0)
         self.assertEqual(result[0]['columns'][-1]['percentage'], 51)
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'month', [], 'retention', 'backward')['rows']
+            '__count', 'month', [], 'retention', 'backward')['rows']
         self.assertEqual(len(result), 3)
         self.assertEqual(result[0]['columns'][0]['percentage'], 100)
         self.assertEqual(result[0]['columns'][-2]['percentage'], 63.3)
         self.assertEqual(result[0]['columns'][-1]['percentage'], 51)
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'week', [], 'retention', 'backward')['rows']
+            '__count', 'week', [], 'retention', 'backward')['rows']
         self.assertEqual(len(result), 11)
         self.assertEqual(result[0]['columns'][0]['percentage'], 100)
         self.assertEqual(result[0]['columns'][5]['percentage'], 93.3)
         self.assertEqual(result[0]['columns'][-2]['percentage'], 58.3)
         self.assertEqual(result[0]['columns'][-1]['percentage'], 53.3)
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'day', [], 'retention', 'backward')['rows']
+            '__count', 'day', [], 'retention', 'backward')['rows']
         self.assertEqual(len(result), NB_START_DAY)
         self.assertEqual(result[0]['columns'][0]['percentage'], 63.3)
         self.assertEqual(result[0]['columns'][-2]['percentage'], 55)
@@ -160,7 +160,7 @@ class TestCohortBackward(TestCohortCommon):
         self.assertEqual(result[0]['value'], TYPE_SIZE)
         #Test Churn mode
         result = self.WebCohortSimpleModel.get_cohort_data("date_start", "date_stop",
-            '__count__', 'month', [], 'churn', 'backward')['rows']
+            '__count', 'month', [], 'churn', 'backward')['rows']
         self.assertEqual(result[0]['columns'][0]['percentage'], 100 - 100)
         self.assertEqual(result[0]['columns'][-2]['percentage'], 100 - 63.3)
         self.assertEqual(result[0]['columns'][-1]['percentage'], 100 - 51)

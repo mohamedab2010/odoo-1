@@ -20,15 +20,6 @@ class TestAccess(common.SocialCase):
             'account_id': cls.social_account.id
         })
 
-        cls.social_stream_post = cls.env['social.stream.post'].create({
-            'message': 'A stream post'
-        })
-
-        cls.social_stream_post_image = cls.env['social.stream.post.image'].create({
-            'stream_post_id': cls.social_stream_post.id,
-            'image_url': 'dummy.png'
-        })
-
         cls.social_stream_type = cls.env['social.stream.type'].create({
             'name': 'My Stream Type',
             'stream_type': 'my_stream_type',
@@ -39,6 +30,16 @@ class TestAccess(common.SocialCase):
             'account_id': cls.social_account.id,
             'stream_type_id': cls.social_stream_type.id,
             'media_id': cls.social_media.id
+        })
+
+        cls.social_stream_post = cls.env['social.stream.post'].create({
+            'message': 'A stream post',
+            'stream_id': cls.social_stream.id,
+        })
+
+        cls.social_stream_post_image = cls.env['social.stream.post.image'].create({
+            'stream_post_id': cls.social_stream_post.id,
+            'image_url': 'dummy.png'
         })
 
     @mute_logger('odoo.addons.base.models.ir_model')

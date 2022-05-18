@@ -7,6 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import fields, models, api, _
 from odoo.exceptions import ValidationError
+from odoo.osv import expression
 from odoo.tools.float_utils import float_compare, float_is_zero
 
 
@@ -26,7 +27,7 @@ class TransferModel(models.Model):
     date_stop = fields.Date(string="Stop Date", required=False)
     frequency = fields.Selection([('month', 'Monthly'), ('quarter', 'Quarterly'), ('year', 'Yearly')],
                                  required=True, default='month')
-    account_ids = fields.Many2many('account.account', 'account_model_rel', string="Origin Accounts")
+    account_ids = fields.Many2many('account.account', 'account_model_rel', string="Origin Accounts", domain="[('is_off_balance', '=', False)]")
     line_ids = fields.One2many('account.transfer.model.line', 'transfer_model_id', string="Destination Accounts")
     move_ids = fields.One2many('account.move', 'transfer_model_id', string="Generated Moves")
     move_ids_count = fields.Integer(compute="_compute_move_ids_count")
@@ -54,16 +55,47 @@ class TransferModel(models.Model):
         """ Check that the total percent is not bigger than 100.0 """
         for record in self:
             if not (0 < record.total_percent <= 100.0):
-                raise ValidationError(_('The total percentage (%s) should be less or equal to 100 !') % record.total_percent)
+                raise ValidationError(_('The total percentage (%s) should be less or equal to 100 !', record.total_percent))
+
+    @api.constrains('line_ids')
+    def _check_line_ids_filters(self):
+        """ Check that the filters on the lines make sense """
+        for record in self:
+            combinations = []
+            for line in record.line_ids:
+                if line.partner_ids and line.analytic_account_ids:
+                    for p in line.partner_ids:
+                        for a in line.analytic_account_ids:
+                            combination = (p.id, a.id)
+                            if combination in combinations:
+                                raise ValidationError(_("The partner filter %s in combination with the analytic filter %s is duplicated", p.display_name, a.display_name))
+                            combinations.append(combination)
+                elif line.partner_ids:
+                    for p in line.partner_ids:
+                        combination = (p.id, None)
+                        if combination in combinations:
+                            raise ValidationError(_("The partner filter %s is duplicated", p.display_name))
+                        combinations.append(combination)
+                elif line.analytic_account_ids:
+                    for a in line.analytic_account_ids:
+                        combination = (None, a.id)
+                        if combination in combinations:
+                            raise ValidationError(_("The analytic filter %s is duplicated", a.display_name))
+                        combinations.append(combination)
 
     @api.depends('line_ids')
     def _compute_total_percent(self):
-        """ Compute the total percentage of all the lines linked to this model. """
+        """ Compute the total percentage of all lines linked to this model. """
         for record in self:
-            total_percent = sum(record.mapped('line_ids.percent'))
-            if float_compare(total_percent, 100.0, precision_digits=6) == 0:
-                total_percent = 100.0
-            record.total_percent = total_percent
+            non_filtered_lines = record.line_ids.filtered(lambda l: not l.partner_ids and not l.analytic_account_ids)
+            if record.line_ids and not non_filtered_lines:
+                # Lines are only composed of filtered ones thus percentage does not matter, make it 100
+                record.total_percent = 100.0
+            else:
+                total_percent = sum(non_filtered_lines.mapped('percent'))
+                if float_compare(total_percent, 100.0, precision_digits=6) == 0:
+                    total_percent = 100.0
+                record.total_percent = total_percent
 
     # ACTIONS
     def action_activate(self):
@@ -193,21 +225,21 @@ class TransferModel(models.Model):
         self.ensure_one()
         values = []
         # Get the balance of all moves from all selected accounts, grouped by accounts
-        analytic_lines = self.line_ids.filtered(lambda x: x.analytic_account_ids)
-        if analytic_lines:
-            values += analytic_lines._get_transfer_move_lines_values(start_date, end_date)
+        filtered_lines = self.line_ids.filtered(lambda x: x.analytic_account_ids or x.partner_ids)
+        if filtered_lines:
+            values += filtered_lines._get_transfer_move_lines_values(start_date, end_date)
 
-        non_analytic_lines = self.line_ids - analytic_lines
-        if non_analytic_lines:
-            values += self._get_non_analytics_auto_transfer_move_line_values(non_analytic_lines, start_date, end_date)
+        non_filtered_lines = self.line_ids - filtered_lines
+        if non_filtered_lines:
+            values += self._get_non_filtered_auto_transfer_move_line_values(non_filtered_lines, start_date, end_date)
 
         return values
 
-    def _get_non_analytics_auto_transfer_move_line_values(self, lines, start_date, end_date):
+    def _get_non_filtered_auto_transfer_move_line_values(self, lines, start_date, end_date):
         """
         Get all values to create move lines corresponding to the transfers needed by all lines without analytic
-        account for a given period. It contains the move lines concerning destination accounts and the ones concerning
-        the origin accounts. This process all the origin accounts one after one.
+        account or partner for a given period. It contains the move lines concerning destination accounts and
+        the ones concerning the origin accounts. This process all the origin accounts one after one.
         :param lines: the move model lines to handle
         :param start_date: the start date of the period
         :param end_date: the end date of the period
@@ -216,7 +248,10 @@ class TransferModel(models.Model):
         """
         self.ensure_one()
         domain = self._get_move_lines_base_domain(start_date, end_date)
-        domain.append(('analytic_account_id', 'not in', self.line_ids.mapped('analytic_account_ids.id')))
+        domain = expression.AND([domain, [
+            ('analytic_account_id', 'not in', self.line_ids.analytic_account_ids.ids),
+            ('partner_id', 'not in', self.line_ids.partner_ids.ids),
+        ]])
         total_balance_by_accounts = self.env['account.move.line'].read_group(domain, ['balance', 'account_id'],
                                                                              ['account_id'])
 
@@ -237,7 +272,7 @@ class TransferModel(models.Model):
                 # the line which credit/debit the source account
                 substracted_amount = initial_amount - amount_left
                 source_move_line = {
-                    'name': _('Automatic Transfer (-%s%%)') % self.total_percent,
+                    'name': _('Automatic Transfer (-%s%%)', self.total_percent),
                     'account_id': account_id,
                     'date_maturity': end_date,
                     'credit' if source_account_is_debit else 'debit': substracted_amount
@@ -289,12 +324,16 @@ class TransferModel(models.Model):
 class TransferModelLine(models.Model):
     _name = "account.transfer.model.line"
     _description = "Account Transfer Model Line"
+    _order = "sequence, id"
 
     transfer_model_id = fields.Many2one('account.transfer.model', string="Transfer Model", required=True)
-    account_id = fields.Many2one('account.account', string="Destination Account", required=True)
+    account_id = fields.Many2one('account.account', string="Destination Account", required=True,
+                                 domain="[('is_off_balance', '=', False)]")
     percent = fields.Float(string="Percent", required=True, default=100, help="Percentage of the sum of lines from the origin accounts will be transferred to the destination account")
-    analytic_account_ids = fields.Many2many('account.analytic.account', string='Analytic Filter', help="The sum of all lines from the origin accounts having this analytic account will be automatically transferred to the destination account")
+    analytic_account_ids = fields.Many2many('account.analytic.account', string='Analytic Filter', help="Adds a condition to only transfer the sum of the lines from the origin accounts that match these analytic accounts to the destination account")
+    partner_ids = fields.Many2many('res.partner', string='Partner Filter', help="Adds a condition to only transfer the sum of the lines from the origin accounts that match these partners to the destination account")
     percent_is_readonly = fields.Boolean(compute="_compute_percent_is_readonly")
+    sequence = fields.Integer("Sequence")
 
     _sql_constraints = [
         (
@@ -302,19 +341,14 @@ class TransferModelLine(models.Model):
             'Only one account occurrence by transfer model')
     ]
 
-    @api.onchange('analytic_account_ids')
+    @api.onchange('analytic_account_ids', 'partner_ids')
     def set_percent_if_analytic_account_ids(self):
         """
-        Set percent to 0 if at least analytic account id is set.
+        Set percent to 100 if at least analytic account id is set.
         """
         for record in self:
-            if record.analytic_account_ids:
+            if record.analytic_account_ids or record.partner_ids:
                 record.percent = 100
-
-    def write(self, vals):
-        if 'analytic_account_ids' in vals and self.percent_is_readonly:
-            vals.update({'percent': 100.0})
-        super().write(vals)
 
     def _get_transfer_move_lines_values(self, start_date, end_date):
         """
@@ -326,14 +360,13 @@ class TransferModelLine(models.Model):
         :rtype: list
         """
         transfer_values = []
-        # This var is needed to avoid to transfer two times the same entries if the move model has two move model lines
-        # containing the same analytic accounts
-        already_handled_analytic_account_ids = self.env['account.analytic.account']
+        # Avoid to transfer two times the same entry
+        already_handled_move_line_ids = []
         for transfer_model_line in self:
-            domain = transfer_model_line._get_move_lines_domain(start_date, end_date, already_handled_analytic_account_ids)
-            total_balances_by_account = self.env['account.move.line'].read_group(domain, ['balance', 'account_id'],
-                                                                                 ['account_id'])
+            domain = transfer_model_line._get_move_lines_domain(start_date, end_date, already_handled_move_line_ids)
+            total_balances_by_account = self.env['account.move.line'].read_group(domain, ['ids:array_agg(id)', 'balance', 'account_id'], ['account_id'])
             for total_balance_account in total_balances_by_account:
+                already_handled_move_line_ids += total_balance_account['ids']
                 balance = total_balance_account['balance']
                 if not float_is_zero(balance, precision_digits=9):
                     amount = abs(balance)
@@ -342,24 +375,26 @@ class TransferModelLine(models.Model):
                     account = self.env['account.account'].browse(account_id)
                     transfer_values += transfer_model_line._get_transfer_values(account, amount, source_account_is_debit,
                                                                             end_date)
-            already_handled_analytic_account_ids += transfer_model_line.analytic_account_ids
         return transfer_values
 
-    def _get_move_lines_domain(self, start_date, end_date, avoid_account_ids=None):
+    def _get_move_lines_domain(self, start_date, end_date, avoid_move_line_ids=None):
         """
         Determine the domain to get all account move lines posted in a given period corresponding to self move model
         line.
         :param start_date: the start date of the targeted period
         :param end_date: the end date of the targeted period
+        :param avoid_move_line_ids: the account.move.line ids that should be excluded from the domain
         :return: the computed domain
         :rtype: list
         """
         self.ensure_one()
         move_lines_domain = self.transfer_model_id._get_move_lines_base_domain(start_date, end_date)
-        if avoid_account_ids:
-            move_lines_domain.append(('analytic_account_id', 'not in', avoid_account_ids.ids))
+        if avoid_move_line_ids:
+            move_lines_domain.append(('id', 'not in', avoid_move_line_ids))
         if self.analytic_account_ids:
             move_lines_domain.append(('analytic_account_id', 'in', self.analytic_account_ids.ids))
+        if self.partner_ids:
+            move_lines_domain.append(('partner_id', 'in', self.partner_ids.ids))
         return move_lines_domain
 
     def _get_transfer_values(self, account, amount, is_debit, write_date):
@@ -394,11 +429,16 @@ class TransferModelLine(models.Model):
         :return: a dict containing the values to create the move line
         :rtype: dict
         """
-        if self.analytic_account_ids:
-            anal_accounts = ', '.join(self.analytic_account_ids.mapped('name'))
-            name = _('Automatic Transfer (entries with analytic account(s): %s)') % (anal_accounts,)
+        anal_accounts = self.analytic_account_ids and ', '.join(self.analytic_account_ids.mapped('name'))
+        partners = self.partner_ids and ', '.join(self.partner_ids.mapped('name'))
+        if anal_accounts and partners:
+            name = _("Automatic Transfer (entries with analytic account(s): %s and partner(s): %s)") % (anal_accounts, partners)
+        elif anal_accounts:
+            name = _("Automatic Transfer (entries with analytic account(s): %s)") % (anal_accounts,)
+        elif partners:
+            name = _("Automatic Transfer (entries with partner(s): %s)") % (partners,)
         else:
-            name = _('Automatic Transfer (to account %s)') % self.account_id.code
+            name = _("Automatic Transfer (to account %s)", self.account_id.code)
         return {
             'name': name,
             'account_id': origin_account.id,
@@ -420,12 +460,16 @@ class TransferModelLine(models.Model):
         :return: a dict containing the values to create the move line
         :rtype dict:
         """
-        if self.analytic_account_ids:
-            anal_accounts = ', '.join(self.analytic_account_ids.mapped('name'))
-            name = _('Automatic Transfer (from account %s with analytic account(s): %s)') % (
-                origin_account.code, anal_accounts)
+        anal_accounts = self.analytic_account_ids and ', '.join(self.analytic_account_ids.mapped('name'))
+        partners = self.partner_ids and ', '.join(self.partner_ids.mapped('name'))
+        if anal_accounts and partners:
+            name = _("Automatic Transfer (from account %s with analytic account(s): %s and partner(s): %s)") % (origin_account.code, anal_accounts, partners)
+        elif anal_accounts:
+            name = _("Automatic Transfer (from account %s with analytic account(s): %s)") % (origin_account.code, anal_accounts)
+        elif partners:
+            name = _("Automatic Transfer (from account %s with partner(s): %s)") % (origin_account.code, partners,)
         else:
-            name = _('Automatic Transfer (%s%% from account %s)') % (self.percent, origin_account.code)
+            name = _("Automatic Transfer (%s%% from account %s)") % (self.percent, origin_account.code)
         return {
             'name': name,
             'account_id': self.account_id.id,
@@ -433,7 +477,7 @@ class TransferModelLine(models.Model):
             'debit' if is_debit else 'credit': amount
         }
 
-    @api.depends('analytic_account_ids')
+    @api.depends('analytic_account_ids', 'partner_ids')
     def _compute_percent_is_readonly(self):
         for record in self:
-            record.percent_is_readonly = record.analytic_account_ids
+            record.percent_is_readonly = record.analytic_account_ids or record.partner_ids

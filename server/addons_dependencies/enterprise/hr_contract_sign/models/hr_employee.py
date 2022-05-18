@@ -18,9 +18,11 @@ class HrEmployee(models.Model):
             contracts = self.env['hr.contract'].sudo().search([('employee_id', '=', employee.id)])
             sign_from_contract = contracts.mapped('sign_request_ids')
 
-            sign_from_role = self.env['sign.request.item'].search([
-                ('partner_id', '=', employee.user_id.partner_id.id),
-                ('role_id', '=', self.env.ref('sign.sign_item_role_employee').id)]).mapped('sign_request_id')
+            sign_from_role = self.env['sign.request'].browse([])
+            if employee.user_id.partner_id.id:
+                sign_from_role = self.env['sign.request.item'].search([
+                    ('partner_id', '=', employee.user_id.partner_id.id),
+                    ('role_id', '=', self.env.ref('sign.sign_item_role_employee').id)]).mapped('sign_request_id')
 
             employee.sign_request_count = len(set(sign_from_contract + sign_from_role))
 

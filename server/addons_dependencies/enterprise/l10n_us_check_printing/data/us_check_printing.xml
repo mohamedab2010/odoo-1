@@ -18,44 +18,41 @@
             <field name="dpi">90</field>
         </record>
 
-        <report id="action_print_check_top"
-            string="Print Check (Top)"
-            model="account.payment"
-            name="l10n_us_check_printing.print_check_top"
-            file="l10n_us_check_printing.print_check_top"
-            report_type="qweb-pdf"
-            attachment_use="True"
-            attachment="'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_top.pdf'"
-            paperformat="l10n_us_check_printing.paperformat_check_us"
-            print_report_name="'Check Top - %s' % (object.partner_id.name or '',)"
-            menu="False"
-        />
+        <record id="action_print_check_top" model="ir.actions.report">
+            <field name="name">Print Check (Top)</field>
+            <field name="model">account.payment</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_us_check_printing.print_check_top</field>
+            <field name="report_file">l10n_us_check_printing.print_check_top</field>
+            <field name="print_report_name">'Check Top - %s' % (object.partner_id.name or '',)</field>
+            <field name="paperformat_id" ref="l10n_us_check_printing.paperformat_check_us"/>
+            <field name="attachment">'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_top.pdf'</field>
+            <field name="attachment_use">True</field>
+        </record>
 
-        <report id="action_print_check_middle"
-            string="Print Check (Middle)"
-            model="account.payment"
-            name="l10n_us_check_printing.print_check_middle"
-            file="l10n_us_check_printing.print_check_middle"
-            report_type="qweb-pdf"
-            attachment_use="True"
-            attachment="'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_middle.pdf'"
-            paperformat="l10n_us_check_printing.paperformat_check_us"
-            print_report_name="'Check Middle - %s' % (object.partner_id.name or '',)"
-            menu="False"
-        />
+        <record id="action_print_check_middle" model="ir.actions.report">
+            <field name="name">Print Check (Middle)</field>
+            <field name="model">account.payment</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_us_check_printing.print_check_middle</field>
+            <field name="report_file">l10n_us_check_printing.print_check_middle</field>
+            <field name="print_report_name">'Check Middle - %s' % (object.partner_id.name or '',)</field>
+            <field name="paperformat_id" ref="l10n_us_check_printing.paperformat_check_us"/>
+            <field name="attachment">'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_middle.pdf'</field>
+            <field name="attachment_use">True</field>
+        </record>
 
-        <report id="action_print_check_bottom"
-            string="Print Check (Bottom)"
-            model="account.payment"
-            name="l10n_us_check_printing.print_check_bottom"
-            file="l10n_us_check_printing.print_check_bottom"
-            report_type="qweb-pdf"
-            attachment_use="True"
-            attachment="'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_bottom.pdf'"
-            paperformat="l10n_us_check_printing.paperformat_check_us"
-            print_report_name="'Check Bottom - %s' % (object.partner_id.name or '',)"
-            menu="False"
-        />
+        <record id="action_print_check_bottom" model="ir.actions.report">
+            <field name="name">Print Check (Bottom)</field>
+            <field name="model">account.payment</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">l10n_us_check_printing.print_check_bottom</field>
+            <field name="report_file">l10n_us_check_printing.print_check_bottom</field>
+            <field name="print_report_name">'Check Bottom - %s' % (object.partner_id.name or '',)</field>
+            <field name="paperformat_id" ref="l10n_us_check_printing.paperformat_check_us"/>
+            <field name="attachment">'check_'+(object.partner_id and object.partner_id.name or 'Internal')+'_'+(object.name)+'_bottom.pdf'</field>
+            <field name="attachment_use">True</field>
+        </record>
 
     </data>
 </odoo>

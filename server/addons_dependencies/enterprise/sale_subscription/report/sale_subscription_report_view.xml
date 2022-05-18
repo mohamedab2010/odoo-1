@@ -4,7 +4,7 @@
          <field name="name">subscription.report.pivot</field>
          <field name="model">sale.subscription.report</field>
          <field name="arch" type="xml">
-             <pivot disable_linking="True">
+             <pivot string="Subscription Analysis" sample="1">
                  <field name="template_id" type="row"/>
                  <field name="user_id" type="col"/>
                  <field name="recurring_monthly" type="measure"/>
@@ -16,8 +16,8 @@
          <field name="name">subscription.report.graph</field>
          <field name="model">sale.subscription.report</field>
          <field name="arch" type="xml">
-             <graph>
-                 <field name="template_id" type="row"/>
+             <graph string="Subscription Analysis" sample="1">
+                 <field name="template_id"/>
                  <field name="recurring_monthly" type="measure"/>
              </graph>
          </field>
@@ -27,7 +27,30 @@
         <field name="name">sale.subscription.report.cohort</field>
         <field name="model">sale.subscription.report</field>
         <field name="arch" type="xml">
-            <cohort string="Subscription" date_start="date_start" date_stop="date_end" interval="month" />
+            <cohort string="Subscription" date_start="date_start" date_stop="date_end" interval="month" sample="1"/>
+        </field>
+    </record>
+
+    <record id="sale_subscription_report_view_tree" model="ir.ui.view">
+        <field name="name">sale.subscription.report.view.tree</field>
+        <field name="model">sale.subscription.report</field>
+        <field name="arch" type="xml">
+            <tree string="Subscription Analysis">
+                <field name="name"/>
+                <field name="partner_id" optional="show"/>
+                <field name="date_start" optional="hide"/>
+                <field name="date_end" optional="hide"/>
+                <field name="product_id" optional="hide"/>
+                <field name="categ_id" optional="show"/>
+                <field name="template_id" optional="show"/>
+                <field name="user_id" optional="show" widget="many2one_avatar_user"/>
+                <field name="team_id" optional="show"/>
+                <field name="company_id" optional="show" groups="base.group_multi_company"/>
+                <field name="recurring_monthly" optional="show" sum="Sum of Monthly Recurring Revenue"/>
+                <field name="recurring_total" optional="hide"/>
+                <field name="recurring_yearly" optional="hide" sum="Sum of Yearly Recurring Revenue"/>
+                <field name="stage_id" optional="show"/>
+            </tree>
         </field>
     </record>
 
@@ -56,12 +79,15 @@
                 <field name="partner_id" operator="child_of"/>
                 <filter name="my_subscriptions" string="My Subscriptions" domain="[('user_id','=',uid)]"/>
                 <separator/>
-                <filter name="open" string="Running" domain="[('in_progress', '=', True)]" help="Running Subscriptions"/>
+                <filter name="open" string="Running" domain="[('stage_category', '=', 'progress')]" help="Running Subscriptions"/>
                 <filter name="pending" string="To Renew" domain="[('to_renew', '=', True)]" help="Pending subscriptions"/>
-                <filter name="Expired" string="Expired" domain="[('in_progress', '=', False)]" help="Closed subscriptions"/>
+                <filter name="Expired" string="Expired" domain="[('stage_category', '=', 'closed')]" help="Closed subscriptions"/>
                 <separator/>
                 <filter name="good" string="Good Health" domain="[('health', '=', 'done')]"/>
                 <filter name="bad" string="Bad Health" domain="[('health', '=', 'bad')]"/>
+                <separator/>
+                <filter name="filter_date_start" date="date_start"/>
+                <filter name="filter_date_end" date="date_end"/>
                 <group expand="1" string="Group By">
                     <filter string="Stage" name="stage" domain="[]" context="{'group_by': 'stage_id'}"/>
                     <filter string="Salesperson" name="sales_person" domain="[]" context="{'group_by': 'user_id'}"/>

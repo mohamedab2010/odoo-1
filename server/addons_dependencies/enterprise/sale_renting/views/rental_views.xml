@@ -5,6 +5,7 @@
         name="Rental"
         web_icon="sale_renting,static/description/icon.png"
         groups="sales_team.group_sale_salesman"
+        sequence="45"
     />
 
     <menuitem id="menu_rental_config" name="Configuration" parent="rental_menu_root" sequence="10"/>
@@ -17,7 +18,7 @@
       <field name="context">{
         'default_sale_ok': False,
         'default_rent_ok': True,
-        'default_type': 'consu',
+        'default_detailed_type': 'consu',
         'default_purchase_ok': False,
         'search_default_filter_to_rent': True,
         }
@@ -42,12 +43,12 @@
             <field name="activity_state" position="after">
                 <field name="rental_pricing_ids"/>
             </field>
-            <field name="lst_price" position="replace">
+            <field name="list_price" position="replace">
                 <t t-if="record.rental_pricing_ids.value">
                   <field name="display_price"/>
                 </t>
                 <t t-else="">
-                    <field name="lst_price" widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
+                    <field name="list_price" widget="monetary" options="{'currency_field': 'currency_id', 'field_digits': True}"/>
                 </t>
             </field>
         </field>
@@ -141,17 +142,18 @@
       <field name="name">rental.order.tree</field>
       <field name="model">sale.order</field>
       <field name="arch" type="xml">
-        <tree decoration-danger="rental_status in ['pickup', 'return'] and has_late_lines" multi_edit="1">
+        <tree sample="1" decoration-info="rental_status in ['draft', 'sent']" decoration-muted="rental_status == 'cancel'">
           <field name="has_late_lines" invisible="1"/>
-          <field name="name" readonly="1"/>
-          <field name="date_order"/>
-          <field name="next_action_date"/>
+          <field name="name" readonly="1" decoration-bf="1"/>
+          <field name="date_order" widget='date'/>
+          <field name="next_action_date" widget='remaining_days' attrs="{'invisible': ['|', ('rental_status','=','pickup'), ('rental_status','=','returned')]}"/>
           <field name="partner_id" readonly="1"/>
-          <field name="user_id" optional="show"/>
+          <field name="user_id" optional="show" widget='many2one_avatar_user'/>
           <field name="team_id" optional="hide"/>
-          <field name="amount_total" sum="Total Tax Included" widget="monetary"/>
-          <field name="rental_status"/>
+          <field name="amount_total" sum="Total Tax Included" widget="monetary" decoration-bf="1"/>
+          <field name="rental_status" widget='badge' decoration-info="rental_status == 'draft' or rental_status == 'sent'" decoration-warning="rental_status == 'pickup'" decoration-success="rental_status == 'return'"/>
           <field name="state" invisible="1"/>
+          <field name="currency_id" invisible="1"/>
         </tree>
       </field>
     </record>
@@ -236,8 +238,8 @@
               <filter string="Customer" name="customer" domain="[]" context="{'group_by': 'partner_id'}"/>
           </group>
           <searchpanel>
-              <field name="rental_status" icon="fa-retweet"/>
-              <field name="invoice_status" icon="fa-retweet"/>
+              <field name="rental_status" icon="fa-retweet" enable_counters="1"/>
+              <field name="invoice_status" icon="fa-retweet" enable_counters="1"/>
           </searchpanel>
         </search>
       </field>

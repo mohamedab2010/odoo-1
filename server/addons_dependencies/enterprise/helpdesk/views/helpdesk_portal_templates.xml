@@ -3,22 +3,26 @@
 <data noupdate="0">
     <template id="portal_my_home_menu_helpdesk" name="Portal layout : helpdesk tickets menu entries" inherit_id="portal.portal_breadcrumbs" priority="50">
         <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
-            <li t-if="page_name == 'ticket' or ticket" t-attf-class="breadcrumb-item #{'active ' if not ticket else ''}">
-                <a t-if="ticket" t-attf-href="/my/tickets?{{ keep_query() }}">Tickets</a>
+            <t t-set="rating_page" t-value="page_name == 'rating'"/>
+            <li t-if="page_name == 'ticket' or ticket or rating_page" t-attf-class="breadcrumb-item #{'active ' if not ticket else ''}">
+                <a t-if="ticket or rating_page" t-attf-href="/my/tickets?{{ keep_query() }}">Tickets</a>
                 <t t-else="">Tickets</t>
             </li>
             <li t-if="ticket" class="breadcrumb-item active">
-                #<span t-field="ticket.id"/>
+                <span t-field="ticket.name"/> (#<span t-field="ticket.id"/>)
+            </li>
+            <li t-if="rating_page" t-attf-class="breadcrumb-item active">
+                Our Ratings
             </li>
         </xpath>
     </template>
 
-    <template id="portal_my_home_helpdesk_ticket" name="Portal My Home : Helpdesk Ticket" inherit_id="portal.portal_my_home" priority="50">
+    <template id="portal_my_home_helpdesk_ticket" name="Show Tickets" customize_show="True" inherit_id="portal.portal_my_home" priority="50">
         <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-            <t t-if="ticket_count" t-call="portal.portal_docs_entry">
+            <t  t-call="portal.portal_docs_entry">
                 <t t-set="title">Tickets</t>
                 <t t-set="url" t-value="'/my/tickets'"/>
-                <t t-set="count" t-value="ticket_count"/>
+                <t t-set="placeholder_count" t-value="'ticket_count'"/>
             </t>
         </xpath>
     </template>
@@ -30,23 +34,31 @@
             <t t-call="portal.portal_searchbar">
                 <t t-set="title">Tickets</t>
             </t>
-            <div t-if="not tickets" class="alert alert-info">
+            <div t-if="not grouped_tickets" class="alert alert-info">
                 There are currently no Ticket for your account.
             </div>
-            <t t-if="tickets" t-call="portal.portal_table">
-                <thead>
-                    <tr>
-                        <th class="text-right">Ref</th>
-                        <th class="w-100">Description</th><th/>
-                        <th class="text-center">Status</th>
-                    </tr>
-                </thead>
-                <t t-foreach="tickets" t-as="ticket">
-                    <tr>
-                        <td class="text-right"><a t-attf-href="/helpdesk/ticket/#{ticket.id}"><small>#</small><t t-esc="ticket.id"/></a></td>
-                        <td><a t-attf-href="/helpdesk/ticket/#{ticket.id}"><span t-field="ticket.name"/></a></td><td/>
-                        <td class="text-center"><span class="badge badge-pill badge-info" t-field="ticket.stage_id.name"/></td>
-                    </tr>
+            <t t-else="">
+                <t t-call="portal.portal_table">
+                    <t t-foreach="grouped_tickets" t-as="tickets">
+                        <thead>
+                            <tr t-attf-class="{{'thead-light' if not groupby == 'none' else ''}}">
+                                <th class="text-left">Ref</th>
+                                <th t-if="groupby == 'none'" class="w-100">Description</th>
+                                <th t-else="">
+                                    <em class="font-weight-normal text-muted">Tickets in stage:</em>
+                                    <span t-field="tickets[0].stage_id.name"/></th>
+                                <th/>
+                                <th t-if="groupby != 'stage'" class="text-center">Stage</th>
+                            </tr>
+                        </thead>
+                        <t t-foreach="tickets" t-as="ticket">
+                            <tr>
+                                <td class="text-left"><a t-attf-href="/helpdesk/ticket/#{ticket.id}"><small>#</small><t t-esc="ticket.id"/></a></td>
+                                <td><a t-attf-href="/helpdesk/ticket/#{ticket.id}"><span t-field="ticket.name"/></a></td><td/>
+                                <td t-if="groupby != 'stage'" class="text-center"><span class="badge badge-pill badge-info" t-field="ticket.stage_id.name"/></td>
+                            </tr>
+                        </t>
+                    </t>
                 </t>
             </t>
         </t>
@@ -66,14 +78,16 @@
                 <t t-set="card_header">
                     <div class="row no-gutters">
                         <div class="col-md">
-                            <h5 class="mb-1 mb-md-0">
-                                <span t-field="ticket.name"/>
-                                <small class="text-muted"> (#<span t-field="ticket.id"/>)</small>
+                            <h5 class="d-flex mb-1 mb-md-0">
+                                <div class="col-9 text-truncate">
+                                    <span t-field="ticket.name"/>
+                                    <small class="text-muted "> (#<span t-field="ticket.id"/>)</small>
+                                </div>
+                                <div class="col-3 text-right">
+                                    <small class="text-right">Status:</small>
+                                    <span t-field="ticket.stage_id.name" class=" badge badge-pill badge-info" title="Current stage of this ticket"/>
+                                </div>
                             </h5>
-                        </div>
-                        <div class="col-md text-md-right">
-                            <small class="text-right">Status:</small>
-                            <span t-field="ticket.stage_id.name" class=" badge badge-pill badge-info" title="Current stage of this ticket"/>
                         </div>
                     </div>
                 </t>
@@ -82,10 +96,10 @@
                         <strong class="col-lg-2">Reported on</strong>
                         <span class="col-lg-10" t-field="ticket.create_date" t-options='{"widget": "date"}'/>
                     </div>
-                    <div class="row mb-4" t-if="ticket.team_id.portal_rating_url">
+                    <div class="row mb-4" t-if="ticket.team_id.portal_show_rating">
                         <strong class="col-lg-2">Managed by</strong>
                         <span class="col-lg-10">
-                            <a t-att-href="'%s' % ticket.team_id.portal_rating_url">
+                            <a t-attf-href="/helpdesk/rating/#{ticket.team_id.id}">
                                 <span t-field="ticket.team_id.name"/>
                             </a>
                         </span>
@@ -95,8 +109,7 @@
                         <div class="col-lg-10">
                             <div class="row">
                                 <div class="col flex-grow-0 pr-3">
-                                    <img t-if="ticket.partner_id.image_1024" class="rounded-circle o_portal_contact_img" t-attf-src="data:image/png;base64,#{ticket.partner_id.image_1024}" alt="Contact"/>
-                                    <img t-else="" class="rounded-circle o_portal_contact_img" src="/web/static/src/img/user_menu_avatar.png" alt="Contact"/>
+                                    <img class="rounded-circle o_portal_contact_img" t-attf-src="#{image_data_uri(ticket.partner_id.avatar_1024)}" alt="Contact"/>
                                 </div>
                                 <div class="col pl-sm-0">
                                     <div t-field="ticket.partner_id" t-options='{"widget": "contact", "fields": ["name", "email"], "no_marker": true}'/>
@@ -109,8 +122,7 @@
                         <div class="col-lg-10">
                             <div class="row">
                                 <div class="col flex-grow-0 pr-3">
-                                    <img t-if="ticket.user_id.image_1024" class="rounded-circle o_portal_contact_img" t-attf-src="data:image/png;base64,#{ticket.user_id.image_1024}" alt="Contact"/>
-                                    <img t-else="" class="rounded-circle o_portal_contact_img" src="/web/static/src/img/user_menu_avatar.png" alt="Contact"/>
+                                    <img class="rounded-circle o_portal_contact_img" t-attf-src="#{image_data_uri(ticket.user_id.avatar_1024)}" alt="Contact"/>
                                 </div>
                                 <div class="col pl-sm-0">
                                     <div t-field="ticket.user_id" t-options='{"widget": "contact", "fields": ["name", "email"], "no_marker": true}'/>
@@ -118,9 +130,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row mb-4">
+                    <div class="row mb-4" name="description">
                         <strong class="col-lg-2">Description</strong>
-                        <div t-if="ticket.description" class="col-lg-10" t-field="ticket.description"/>
+                        <div t-if="not is_html_empty(ticket.description)" class="col-lg-10" t-field="ticket.description"/>
                         <div t-else="" class="col-lg-10">
                             <em class="text-muted"><small>No description</small></em>
                         </div>
@@ -134,7 +146,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Close ticket</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">&amp;times;</button>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">×</button>
                         </div>
                         <div class="modal-body">
                             <p>Are you sure you wish to proceed?</p>
@@ -167,58 +179,14 @@
         </t>
     </template>
 
-    <!-- Page : List of project -->
-    <template id="index" name="Helpdesk Ticket Rating List">
-        <t t-call="portal.portal_layout">
-            <t t-set="additional_title">Helpdesk Team Satisfaction</t>
-            <div id="wrap">
-                <div class="oe_structure" id="oe_structure_helpdesk_index_1"/>
-                <div class="container oe_website_rating_team">
-                    <h2 class="mt-2">Teams</h2>
-                    <div class="oe_structure" id="oe_structure_helpdesk_index_2"/>
-                    <div class="row">
-                        <t t-foreach="teams" t-as="team">
-                            <div t-if="team.rating_percentage_satisfaction != -1" class="col-md-6 col-4 col-lg-4 col-xl-4">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="caption">
-                                            <h4><t t-esc="team.name"/></h4>
-                                            <div t-if="team.rating_percentage_satisfaction"  class="text-muted">
-                                                <t t-esc="team.rating_percentage_satisfaction"/> % Customer Satisfaction
-                                            </div>
-                                            <div t-if="team.alias_name and team.alias_domain"  class="text-muted">
-                                                <i class="fa fa-envelope"/> Email : <t t-esc="team.alias_name"/>@<t t-esc="team.alias_domain"/>
-                                            </div>
-                                            <div class="text-muted">
-                                                <t t-esc="len(team.ticket_ids)"/> tickets
-                                            </div>
-                                        </div>
-                                        <div class="caption mt-3">
-                                            <p>
-                                                <a t-att-href="'/helpdesk/rating/%s' % team.id" role="button" class="btn btn-primary btn-lg btn-block">
-                                                    <i class="fa fa-arrow-circle-right "/> See the feedbacks
-                                                </a>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-                <div class="oe_structure" id="oe_structure_helpdesk_index_3"/>
-          </div>
-        </t>
-    </template>
-
     <!-- Page : Rating of a particular team -->
     <template id="team_rating_progress_data" name="Ticket Rating Page">
         <div class="progress">
-            <div class="progress-bar bg-success" t-attf-style="width: #{stats[duration][10]}%;" title="Happy" role="img" aria-label="Happy">
-                <t t-esc="int(stats[duration][10])"/>%
-            </div>
-            <div class="progress-bar bg-warning" t-attf-style="width: #{stats[duration][5]}%;" title="Average" role="img" aria-label="Average">
+            <div class="progress-bar bg-success" t-attf-style="width: #{stats[duration][5]}%;" title="Happy" role="img" aria-label="Happy">
                 <t t-esc="int(stats[duration][5])"/>%
+            </div>
+            <div class="progress-bar bg-warning" t-attf-style="width: #{stats[duration][3]}%;" title="Average" role="img" aria-label="Average">
+                <t t-esc="int(stats[duration][3])"/>%
             </div>
             <div class="progress-bar bg-danger" t-attf-style="width: #{stats[duration][1]}%;" title="Bad" role="img" aria-label="Bad">
                 <t t-esc="int(stats[duration][1])"/>%
@@ -227,7 +195,6 @@
     </template>
 
     <template id="team_rating_data" name="Helpdesk Ticket Rating Page">
-        <h3 class="o_page_header">Customer Satisfaction</h3>
         <div class="row">
             <div class="col-md-4">
                 <h5>Last 7 days</h5>
@@ -256,20 +223,32 @@
     </template>
 
     <template id="team_rating_page" name="Helpdesk Ticket Rating Page">
+        <t t-set="no_breadcrumbs" t-value="True"/>
         <t t-call="portal.portal_layout">
-             <div id="wrap">
-                <div class="oe_structure" id="oe_structure_helpdesk_team_rating_1"/>
-                <div class="container oe_website_rating_team">
-                    <h1 t-esc="team.name" class="text-center"/>
-                    <div class="row mb32">
-                        <div class="col-lg-8">
-                            <t t-call="helpdesk.team_rating_data"/>
+            <h1 class="o_page_header p-4">Our Customer Satisfaction</h1>
+            <t t-if="teams">
+                <div id="wrap" class="pl-4">
+                    <t t-foreach="teams" t-as="t">
+                        <t t-set="team" t-value="t['team']"/>
+                        <t t-set="ratings" t-value="t['ratings']"/>
+                        <t t-set="stats" t-value="t['stats']"/>
+                        <div class="oe_structure" id="oe_structure_helpdesk_team_rating_1"/>
+                        <div class="container oe_website_rating_team">
+                            <h2 t-esc="team.name" class="text-muted" />
+                            <div class="row mb32">
+                                <div class="col-lg-8">
+                                    <t t-if="ratings" t-call="helpdesk.team_rating_data"/>
+                                    <t t-else="">
+                                        There are no ratings yet.
+                                    </t>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <div class="oe_structure" id="oe_structure_helpdesk_team_rating_2"/>
+                    </t>
                 </div>
-                <div class="oe_structure" id="oe_structure_helpdesk_team_rating_2"/>
-            </div>
-        </t>
+            </t>
+    </t>
     </template>
 </data>
 </odoo>

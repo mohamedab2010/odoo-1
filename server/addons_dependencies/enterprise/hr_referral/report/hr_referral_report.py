@@ -51,7 +51,9 @@ class HrReferralReport(models.Model):
                     (SELECT applicant_id, SUM(points) as points_not_hired
                     FROM hr_referral_points
                     GROUP BY applicant_id) points_not_hired ON (a.id = points_not_hired.applicant_id AND a.referral_state = 'closed')
-                JOIN utm_medium m ON medium_id = m.id
+                LEFT JOIN utm_medium m ON medium_id = m.id
+            WHERE
+                a.ref_user_id IS NOT NULL
             )
         '''
 

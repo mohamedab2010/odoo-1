@@ -6,6 +6,7 @@
         name="IoT"
         web_icon="iot,static/description/icon.png"
         groups="base.group_system"
+        sequence="265"
     />
 
     <!-- IoT Boxes -->
@@ -28,10 +29,11 @@
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                             <field name="version"/>
                             <field name="drivers_auto_update"/>
+                            <widget name="iot_download_logs" groups="base.group_no_one"/>
                         </group>
                     </group>
                     <notebook>
-                        <page string="Devices">
+                        <page string="Devices" name="devices">
                             <field name="device_ids">
                                 <tree>
                                     <field name="name"/>
@@ -50,7 +52,7 @@
         <field name="name">Devices</field>
         <field name="res_model">iot.device</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="context">{'search_default_iot_id': [active_id]}</field>
+        <field name="context">{'search_default_iot_id': [active_id], 'search_default_group_by_type': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_empty_folder">
                 There is no device connected to this IoT Box
@@ -127,11 +129,12 @@
                             <field name="iot_ip" invisible="True"/>
                             <field name="identifier" readonly="True"/>
                             <field name="type"/>
-                            <field name="manufacturer" attrs="{'invisible': [('manufacturer', '=', False)]}"/>
+                            <field name="is_scanner" attrs="{'invisible': [('type', 'not in', ['keyboard', 'scanner'])]}" widget="boolean_toggle"/>
+                            <field name="manufacturer" attrs="{'invisible': [('manufacturer', '=', '')]}"/>
                             <field name="connection"/>
                             <field name="connected"/>
                             <field name="keyboard_layout" attrs="{'invisible': [('type', 'not in', ['keyboard', 'scanner'])]}"/>
-                            <field name="screen_url" attrs="{'invisible': [('type', '!=', 'display')]}"/>
+                            <field name="display_url" attrs="{'invisible': [('type', '!=', 'display')]}"/>
                             <div class='font-weight-bold' groups="base.group_no_one">Last Sent Value</div>
                             <widget name="iot_device_value_display" groups="base.group_no_one"/>
                         </group>
@@ -149,7 +152,7 @@
         <field name="name">iot.device.view.kanban</field>
         <field name="model">iot.device</field>
         <field name="arch" type="xml">
-            <kanban create="false" group_create="false">
+            <kanban create="false" group_create="false" sample="1">
                 <field name="name"/>
                 <field name="type"/>
                 <field name="connection"/>
@@ -160,7 +163,7 @@
                             <div class="row no-gutters">
                                 <div class="col-3 p-2 text-center align-self-center">
                                     <t t-set="types" t-value="{'camera': 'video-camera', 'printer': 'print', 'device': 'wrench', 'payment': 'credit-card', 'scale': 'balance-scale', 'keyboard': 'keyboard-o', 'scanner': 'barcode', 'display': 'desktop', 'fiscal_data_module': 'archive'}"/>
-                                    <i t-attf-class="fa fa-#{types[record.type.raw_value]} fa-3x"></i>
+                                    <i t-attf-class="fa fa-#{types[record.type.raw_value]} fa-3x" t-attf-title="Device type is #{record.type.raw_value}"></i>
                                 </div>
                                 <div class="col-9 p-2 border-left">
                                     <div class="text-truncate font-weight-bold" t-att-title="record.name.raw_value"><field name="name"/></div>
@@ -201,6 +204,7 @@
             <search string="IoT Device">
                 <field name="name"/>
                 <field name="type"/>
+                <field name="iot_id"/>
                 <group expand="0" string="Group By">
                     <filter name="group_by_type" string="Device type" context="{'group_by': 'type'}"/>
                     <filter name="group_by_iot_id" string="IoT Box" context="{'group_by':'iot_id'}"/>
@@ -255,18 +259,4 @@
             </tree>
         </field>
     </record>
-
-    <!-- JS assets -->
-    <template id="assets_backend" inherit_id="web.assets_backend" name="IoT assets">
-        <xpath expr="script[last()]" position="after">
-            <link rel="stylesheet" href="/iot/static/src/css/iot.css"/>
-            <script type="text/javascript" src="/iot/static/src/js/tours/iot.js"></script>
-            <script type="text/javascript" src="/iot/static/src/js/iot_scan.js"></script>
-            <script type="text/javascript" src="/iot/static/src/js/iot.js"></script>
-            <script type="text/javascript" src="/iot/static/src/js/iot_device_controller.js"></script>
-            <script type="text/javascript" src="/iot/static/src/js/iot_device_view.js"></script>
-            <script type="text/javascript" src="/iot/static/src/js/iot_wizard.js"></script>
-        </xpath>
-    </template>
-
 </odoo>

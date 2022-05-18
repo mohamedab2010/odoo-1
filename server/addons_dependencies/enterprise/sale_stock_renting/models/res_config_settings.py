@@ -14,6 +14,4 @@ class ResConfigSettings(models.TransientModel):
 
     @api.onchange('padding_time')
     def _onchange_padding_time(self):
-        properties = self.env['ir.property'].search([('name', '=', 'property_padding_time')])
-        if properties:
-            properties.write({'value_float': self.padding_time})
+        self.env['ir.property']._set_default("preparation_time", "product.template", self.padding_time)

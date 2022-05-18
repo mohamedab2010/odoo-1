@@ -30,32 +30,55 @@ class RentalReport(models.Model):
     price = fields.Float('Daily Amount', readonly=True)
     currency_id = fields.Many2one('res.currency', 'Currency', readonly=True)
 
-    def _query(self):
+
+    def _quantity(self):
         return """
-        select
+            sol.product_uom_qty / (u.factor * u2.factor) AS quantity,
+            sol.qty_delivered / (u.factor * u2.factor) AS qty_delivered,
+            sol.qty_returned / (u.factor * u2.factor) AS qty_returned
+        """
+
+    def _price(self):
+        return """
+            sol.price_subtotal / (date_part('day',sol.return_date - sol.pickup_date) + 1)
+        """
+
+    def _select(self):
+        return """
             sol.id,
-            order_id,
-            product_id,
-            product_uom_qty  / (u.factor * u2.factor) as quantity,
-            qty_delivered  / (u.factor * u2.factor) as qty_delivered,
-            qty_returned  / (u.factor * u2.factor) as qty_returned,
-            product_uom,
-            order_partner_id as partner_id,
-            salesman_id as user_id,
-            categ_id,
-            product_tmpl_id,
-            generate_series(pickup_date::date, return_date::date, '1 day'::interval)::date date,
-            price_subtotal / (date_part('day',return_date - pickup_date) + 1) as price,
+            sol.order_id,
+            sol.product_id,
+            %s,
+            sol.product_uom,
+            sol.order_partner_id AS partner_id,
+            sol.salesman_id AS user_id,
+            pt.categ_id,
+            p.product_tmpl_id,
+            generate_series(sol.pickup_date::date, sol.return_date::date, '1 day'::interval)::date date,
+            %s AS price,
             sol.company_id,
             sol.state,
             sol.currency_id
-        from sale_order_line sol
-            join product_product p on p.id=sol.product_id
-            join product_template pt on p.product_tmpl_id=pt.id
-            join uom_uom u on u.id=sol.product_uom
-            join uom_uom u2 on u2.id=pt.uom_id
-        where is_rental
+        """% (self._quantity(), self._price())
+
+    def _from(self):
+        return """
+            sale_order_line AS sol
+            join product_product AS p on p.id=sol.product_id
+            join product_template AS pt on p.product_tmpl_id=pt.id
+            join uom_uom AS u on u.id=sol.product_uom
+            join uom_uom AS u2 on u2.id=pt.uom_id
         """
+
+    def _query(self):
+        return """
+            (SELECT %s
+            FROM %s
+            WHERE sol.is_rental)
+        """ % (
+            self._select(),
+            self._from()
+        )
 
     def init(self):
         # self._table = sale_rental_report

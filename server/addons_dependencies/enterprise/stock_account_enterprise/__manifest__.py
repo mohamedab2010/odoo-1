@@ -4,7 +4,7 @@
 {
     'name': "Stock account enterprise",
     'version': "1.0",
-    'category': 'Operations/Inventory',
+    'category': 'Inventory/Inventory',
     'summary': "Advanced features for stock_account",
     'description': """
 Contains the enterprise views for Stock account

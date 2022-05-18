@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-<template id="assets_common" name="account_batch_payment pdf assets" inherit_id="web.report_assets_common">
-    <xpath expr="." position="inside">
-        <link rel="stylesheet" type="text/scss" href="/account_batch_payment/static/src/scss/report_batch_payment.scss"/>
-    </xpath>
-</template>
-
 <template id="print_batch_payment">
     <t t-call="web.basic_layout">
         <t t-foreach="docs" t-as="o">
@@ -24,8 +18,8 @@
                     </tr></thead>
                     <tr t-foreach="page['payments']" t-as="payment">
                         <td class="text-left"><t t-esc="payment.partner_id.name"/></td>
-                        <td class="text-left"><t t-esc="payment.payment_date" t-options='{"widget": "date"}'/></td>
-                        <td class="text-left"><t t-esc="payment.communication"/></td>
+                        <td class="text-left"><t t-esc="payment.date" t-options='{"widget": "date"}'/></td>
+                        <td class="text-left"><t t-esc="payment.ref"/></td>
                         <td class="text-right"><t t-esc="payment.amount" t-options="{'widget': 'monetary', 'display_currency': payment.currency_id}"/></td>
                     </tr>
                     <tfoot t-if="page['total_amount']">

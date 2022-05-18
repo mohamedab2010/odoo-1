@@ -33,7 +33,7 @@
             </t>
         </t>
         <t t-else="">
-            <div class="text-black-50 text-center">
+            <div class="o_social_no_comment_message text-black-50 text-center">
                 No comments yet.
             </div>
         </t>
@@ -49,17 +49,18 @@
 
         <div class="o_social_comment_wrapper d-flex align-items-start">
             <div class="o_social_author_image position-relative rounded-circle flex-shrink-0 mr-2 overflow-hidden">
-                <img t-att-src="widget.getAuthorPictureSrc(comment)" t-att-title="comment.from.name" />
+                <t t-set="authorPicture" t-value="widget.getAuthorPictureSrc(comment)"/>
+                <img t-if="authorPicture" t-att-src="authorPicture" t-att-title="comment.from.name" />
             </div>
 
             <div class="flex-grow-1">
                 <div class="o_social_comment_content">
-                    <div t-attf-class="o_social_comment_message #{widget.isCommentEditable(comment) ? 'o_social_comment_editable' : ''}">
+                    <div t-attf-class="o_social_comment_message #{widget.isCommentEditable(comment) || widget.isCommentDeletable(comment) ? 'o_social_comment_editable' : ''}">
                         <a t-att-href="widget.getAuthorLink(comment)"
                             class="o_social_comment_author_name font-weight-bold"
                             t-esc="comment.from.name"
                             target="_blank"/>
-                        <span class="mx-1">&#183;</span>
+                        <span class="mx-1 o_social_comment_published_date">&#183;</span>
                         <a t-att-href="widget.getCommentLink(comment)"
                             target="_blank"
                             class="o_social_comment_published_date">
@@ -75,7 +76,7 @@
                             <t t-set="originalMessage" t-value="widget._htmlEscape(comment.message)"/>
                             <div t-attf-class="o_social_comment_text flex-grow-1 #{bubble_design? 'bg-200 py-2 px-3 mr-2 o_social_bubble_radius' : ''}"
                                 t-att-data-original-message="originalMessage"
-                                t-raw="widget._formatCommentStreamPost(comment.message)"/>
+                                t-out="widget._formatCommentStreamPost(comment.message)"/>
 
                             <div class="o_social_icon_dropdown o_social_manage_comment dropdown">
                                 <button t-attf-class="btn btn-light dropdown-toggle #{bubble_design? 'bg-200 px-3 rounded-pill' : ''}"
@@ -86,8 +87,8 @@
                                     <i class="fa fa-ellipsis-v"/>
                                 </button>
                                 <div class="dropdown-menu dropdown-menu-right" t-attf-aria-labelledby="post_actions_#{comment.id}">
-                                    <a t-if="widget.isCommentDeletable()" class="o_social_edit_comment dropdown-item" href="#">Edit Comment</a>
-                                    <a class="o_social_delete_comment dropdown-item" href="#">Delete Comment</a>
+                                    <a t-if="widget.isCommentEditable(comment)" class="o_social_edit_comment dropdown-item" href="#">Edit Comment</a>
+                                    <a t-if="widget.isCommentDeletable(comment)" class="o_social_delete_comment dropdown-item" href="#">Delete Comment</a>
                                 </div>
                             </div>
                         </div>
@@ -110,13 +111,15 @@
                         </div>
 
                         <div class="o_social_comment_commands">
-                            <a t-attf-class="o_social_comment_like btn btn-sm btn-link px-0 #{comment.user_likes ? 'o_social_comment_user_likes' : ''}"
-                                href="#"
-                                t-att-data-user-likes="comment.user_likes"
-                                t-att-data-comment-id="comment.id">
-                                Like
-                            </a>
-                            <span>&#183;</span>
+                            <t t-if="widget.isCommentLikable()">
+                                <a t-attf-class="o_social_comment_like btn btn-sm btn-link px-0 #{comment.user_likes ? 'o_social_comment_user_likes' : ''}"
+                                    href="#"
+                                    t-att-data-user-likes="comment.user_likes"
+                                    t-att-data-comment-id="comment.id">
+                                    Like
+                                </a>
+                                <span>&#183;</span>
+                            </t>
                             <a class="o_social_comment_reply btn btn-sm btn-link px-0" href="#"> Reply </a>
                             <span t-if="comment.comments" class="o_social_comment_load_replies" t-att-data-inner-comments="JSON.stringify(comment.comments.data)">
                                 <span t-if="comment.comments">&#183;</span>
@@ -144,7 +147,8 @@
     <div class="o_social_write_reply" t-name="social.StreamPostReply">
         <form t-attf-class="d-flex flex-nowrap align-items-start #{classes ? classes : ''}">
             <div class="o_social_author_image position-relative rounded-circle flex-shrink-0 overflow-hidden mr-2">
-                <img t-att-src="widget.getAuthorPictureSrc()" t-att-title="isCommentReply ? ('Write a reply as ' + widget.accountName) : ('Write comment as ' + widget.accountName)" />
+                <t t-set="authorPicture" t-value="widget.getAuthorPictureSrc()"/>
+                <img t-if="authorPicture" t-att-src="authorPicture" t-att-title="isCommentReply ? ('Write a reply as ' + widget.accountName) : ('Write comment as ' + widget.accountName)" />
             </div>
             <div class="position-relative flex-grow-1">
                 <div class="f-flex align-items-stretch">
@@ -159,13 +163,10 @@
                         t-attf-class="o_social_add_comment o_social_comment_message form-control pr-5 #{bubble_design? 'bg-200 o_social_bubble_radius' : ''}"
                         t-att-placeholder="isCommentReply ? write_reply_text : write_comment_text"><t t-esc="initialValue || ''"></t></textarea>
                     <div class="o_social_comment_controls mt-2">
-                        <div class="o_social_comment_add_image o_social_subtle_btn px-3 py-1">
+                        <div t-attf-class="o_social_comment_add_image o_social_subtle_btn px-3 py-1 #{widget.canAddImage() ? '' : 'invisible'}">
                             <i class="fa fa-image" title="Add an image"/>
                         </div>
-                        <t t-call="social.EmojisDropdown">
-                            <t t-set="emojisDropdownId"
-                                t-attf-value="emoji_comment_#{isCommentEdit ? 'edit_' : ''}#{isCommentReply || isCommentEdit ? comment.id : 0}"></t>
-                        </t>
+                        <t t-call="mail.EmojisDropdown"/>
                     </div>
                 </div>
                 <div t-attf-class="o_social_comment_image_preview py-4 #{existingAttachmentId &amp;&amp; existingAttachmentSrc ? '' : 'd-none'}">
@@ -177,7 +178,7 @@
                     </div>
                 </div>
                 <div t-attf-class="d-flex align-items-center #{isCommentEdit? 'mt-3 mb-5' : 'mt-2'}">
-                    <small class="text-600">Press Enter to post.</small>
+                    <small class="text-600">Press Enter to post. Press Shift+Enter to insert a Line Break.</small>
                     <div t-if="isCommentEdit" class="o_social_comment_commands ml-3">
                         <a t-attf-class="o_social_edit_comment_cancel btn btn-sm btn-outline-secondary"
                             href="#"
@@ -216,8 +217,10 @@
                     t-att-title="originalPost.publishedDate"/>
                 </a>
             </div>
-            <div t-attf-class="o_social_original_post_message_body">
-                <div t-raw="widget._formatCommentStreamPost(originalPost.postMessage)" class="o_social_original_post_message_text overflow-auto mb-2" />
+            <div name="o_social_original_post_message_body" t-attf-class="o_social_original_post_message_body">
+                <div t-if="originalPost.postMessage"
+                    t-out="widget._formatCommentStreamPost(originalPost.postMessage)"
+                    class="o_social_original_post_message_text overflow-auto mb-2"/>
                 <div t-if="originalPost.postImages.length > 0"
                     class="o_social_stream_post_image mt-3 d-flex overflow-hidde">
                     <t t-foreach="originalPost.postImages.length > 2 ? originalPost.postImages.slice(0, 2) : originalPost.postImages" t-as="image_url">
@@ -253,22 +256,6 @@
     </div>
     </t>
 
-    <div t-name="social.EmojisDropdown" t-attf-class="o_social_icon_dropdown o_social_add_emoji dropdown">
-        <button class="btn btn-block o_social_subtle_btn dropdown-toggle px-3 py-1"
-            type="button" t-att-id="emojisDropdownId"
-            data-toggle="dropdown"
-            aria-haspopup="true"
-            aria-expanded="false"
-            title="Add an emoji">
-            <i class="fa fa-smile-o"></i>
-        </button>
-        <div class="dropdown-menu dropdown-menu-right border-0 p-2" t-att-aria-labelledby="emojisDropdownId" style="width: 406px">
-            <t t-call="mail.Composer.emojis">
-                <t t-set="emojis" t-value="widget.emojis"></t>
-            </t>
-        </div>
-    </div>
-
     <t t-name="social.KanbanView.Group" t-extend="KanbanView.Group">
         <t t-jquery="span.o_column_title" t-operation="before">
            <img t-if="widget.groupedBy === 'stream_id'" width="16" t-attf-src="/web/image/social.stream/#{widget.id}/media_image/16x16" class="mr8" />
@@ -278,32 +265,41 @@
     <div t-name="social.AddStreamMedia" class="o_social_media_cards d-flex">
         <t t-foreach="widget.socialMedia" t-as="media">
             <div class="o_social_media card text-center justify-content-center align-items-center mr-3 p-3" t-att-data-media-id="media.id" style="min-width: 90px;">
-                <img width="48" t-attf-src="/web/image/social.media/#{media.id}/image/48x48" />
+                <img width="48" height="48" t-attf-src="/web/image/social.media/#{media.id}/image/48x48" />
                 <h5 t-esc="media.name" class="o_social_media_name mb-0 mt-2" />
             </div>
         </t>
     </div>
 
+    <t t-name="social.AddStreamCompany" t-if="widget.companies &amp;&amp; widget.companies.length &gt; 1">
+        for
+        <select class="o_social_add_stream_form_select custom-select w-25 ml-1" name="company_id">
+            <option t-att-value="widget.companies[0].id" t-esc="widget.companies[0].name" selected="1"/>
+            <option t-foreach="widget.companies.slice(1)" t-as="company" t-att-value="company.id" t-esc="company.name"/>
+            <option value="0">All Companies</option>
+        </select>
+    </t>
+
     <div t-name="social.AddStreamModal">
-        <div class="o_social_add_stream_form bg-200 p-4">
+        <div class="o_social_add_stream_form bg-200">
             <t t-if="widget.socialAccounts.length !== 0">
                 <h4>Add a Stream from an existing account</h4>
-                <div class="list-group">
+                <div class="o_social_add_stream_accounts list-group">
                     <button t-foreach="widget.socialAccounts" t-as="socialAccount" class="list-group-item list-group-item-action">
                         <div class="o_social_account_card d-flex align-items-center" t-att-data-media-id="socialAccount.media_id[0]" t-att-data-account-id="socialAccount.id">
                             <img width="24" t-attf-src="/web/image/social.media/#{socialAccount.media_id[0]}/image/24x24" class="mr-4"/>
-                            <img t-attf-src="/web/image/social.account/#{socialAccount.id}/image/32x32" class="o_social_account_image rounded-circle border mr-2" />
+                            <img t-if="socialAccount.image" t-attf-src="/web/image/social.account/#{socialAccount.id}/image/32x32" class="o_social_account_image rounded-circle border mr-2" />
                             <h4 t-esc="socialAccount.name" class="o_social_account_name font-weight-bold flex-grow-1 m-0"/>
                         </div>
                     </button>
                 </div>
                 <t t-if="widget.isSocialManager">
-                    <h4 class="mt-5">Or link a new account</h4>
+                    <h4 class="mt-5">Or link a new account <t t-call="social.AddStreamCompany"/></h4>
                     <t t-call="social.AddStreamMedia" />
                 </t>
             </t>
             <t t-else="">
-                <h5 class="mb-4">To add a stream, you must first link a social media.</h5>
+                <h5 class="mb-4">To add a stream<t t-call="social.AddStreamCompany"/>, you must first link a social media.</h5>
                 <t t-call="social.AddStreamMedia" />
             </t>
         </div>
@@ -347,7 +343,7 @@
             New Post
         </button>
         <button type="button" class="btn btn-secondary o_stream_post_kanban_refresh_now">
-            <span>Synchronize</span><i class="fa fa-spinner fa-spin d-none" />
+            <span>Synchronize</span><i class="fa fa-circle-o-notch fa-spin d-none" />
         </button>
     </div>
 
@@ -357,7 +353,7 @@
             <div class="pt-3 pb-2 px-4 d-flex justify-content-between">
                 <div class="d-flex align-items-center">
                     <img class="mr-2" width="16" t-attf-src="/web/image/social.media/#{socialAccount.media_id[0]}/image/16x16" alt="Social Media"/>
-                    <h5 class="d-inline m-0" t-esc="socialAccount.name"/>
+                    <h5 class="o_social_stream_post_author_name d-block text-truncate m-0" t-esc="socialAccount.name" t-att-title="socialAccount.name"/>
                 </div>
                 <div class="d-flex align-items-center ml-4">
                     <a t-if="socialAccount.stats_link" t-att-href="socialAccount.stats_link" class="small" target="_blank">
@@ -387,7 +383,7 @@
                     </t>
                 </div>
                 <t t-set="engagement_content">Number of times people have engaged with your posts (likes, comments, shares,...)</t>
-                <div class="d-flex align-items-center justify-content-center flex-grow-1 px-3"
+                <div t-attf-class="d-flex align-items-center justify-content-center flex-grow-1 #{widget._hasStories(socialAccount) ? 'px-3' : 'pl-3'}"
                     data-toggle="popover" title="Engagement"
                     t-att-data-content="engagement_content">
                     <t t-call="social.AccountsStatsValue">
@@ -396,16 +392,18 @@
                         <t t-set="trend" t-value="socialAccount.engagement_trend"/>
                     </t>
                 </div>
-                <t t-set="stories_content">Number of times people who have engaged with your channel have created stories on their friends' or followers' feed (Shares, Retweets...)</t>
-                <div class="d-flex align-items-center justify-content-end flex-grow-1 pl-3"
-                    data-toggle="popover" title="Stories"
-                    t-att-data-content="stories_content">
-                    <t t-call="social.AccountsStatsValue">
-                        <t t-set="icon" t-value="'fa-book'"/>
-                        <t t-set="value" t-value="socialAccount.stories"/>
-                        <t t-set="trend" t-value="socialAccount.stories_trend"/>
-                    </t>
-                </div>
+                <t t-if="widget._hasStories(socialAccount)">
+                    <t t-set="stories_content">Number of times people who have engaged with your channel have created stories on their friends' or followers' feed (Shares, Retweets...)</t>
+                    <div class="d-flex align-items-center justify-content-end flex-grow-1 pl-3"
+                        data-toggle="popover" title="Stories"
+                        t-att-data-content="stories_content">
+                        <t t-call="social.AccountsStatsValue">
+                            <t t-set="icon" t-value="'fa-book'"/>
+                            <t t-set="value" t-value="socialAccount.stories"/>
+                            <t t-set="trend" t-value="socialAccount.stories_trend"/>
+                        </t>
+                    </div>
+                </t>
             </div>
         </div>
     </t>
@@ -413,7 +411,7 @@
     <t t-name="social.AccountsStatsValue">
         <div class="d-flex align-items-center">
             <i t-attf-class="text-600 mr-1 fa {{icon}}" style="line-height: 1"/>
-            <b t-esc="value" style="line-height: 1"/>
+            <b class="social_account_stat_value" t-esc="value" style="line-height: 1"/>
             <t t-if="socialAccount.has_trends">
                 <t t-set="isUp" t-value="trend >= 0"/>
                 <small t-attf-class="ml-2 font-weight-bold text-#{isUp ? 'success' : 'danger'}" style="line-height: 1">

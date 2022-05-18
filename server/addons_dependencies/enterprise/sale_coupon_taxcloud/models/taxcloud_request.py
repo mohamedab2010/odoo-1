@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.addons.sale_account_taxcloud.models.taxcloud_request import TaxCloudRequest
+from odoo.addons.sale_account_taxcloud.models import taxcloud_request
 
 
 def subn(price, discount):
@@ -13,7 +13,7 @@ def subn(price, discount):
     return max(price + discount, 0), min(price + discount, 0)
 
 
-class TaxCloudRequest(TaxCloudRequest):
+class TaxCloudRequest(taxcloud_request.TaxCloudRequest):
     """We apply the discount directly on the target lines.
        We send the corrected lines to Taxcloud, as intended.
        This gives us the taxes per line, as before, so we don't need to change anything else.

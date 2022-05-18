@@ -3,7 +3,8 @@
 {
     'name': "Fedex Shipping",
     'description': "Send your shippings through Fedex and track them online",
-    'category': 'Operations/Inventory/Delivery',
+    'category': 'Inventory/Delivery',
+    'sequence': 295,
     'version': '1.0',
     'application': True,
     'depends': ['delivery', 'mail'],
@@ -13,5 +14,4 @@
         'views/res_config_settings_views.xml',
     ],
     'license': 'OEEL-1',
-    'uninstall_hook': 'uninstall_hook',
 }

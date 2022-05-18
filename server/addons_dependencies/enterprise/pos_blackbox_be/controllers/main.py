@@ -2,52 +2,51 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import hashlib
-import os
+import pathlib
+
+from markupsafe import Markup
 
 from odoo import http
 from odoo.http import request
+from odoo.osv.expression import AND
 
 from odoo.addons.point_of_sale.controllers.main import PosController
 
+from odoo.modules import get_module_path
+
+BLACKBOX_MODULES = ['pos_blackbox_be', 'pos_hr_l10n_be']
 class GovCertificationController(http.Controller):
     @http.route('/fdm_source', auth='public')
     def handler(self):
-        data = {'files': []}
-        main_hash = ""
-        relative_file_paths_to_show = [
-            "pos_blackbox_be/data/pos_blackbox_be_data.xml",
-            "pos_blackbox_be/models/pos_blackbox_be.py",
-            "pos_blackbox_be/security/ir.model.access.csv",
-            "pos_blackbox_be/security/pos_blackbox_be_security.xml",
-            "pos_blackbox_be/static/lib/sha1.js",
-            "pos_blackbox_be/static/src/css/pos_blackbox_be.css",
-            "pos_blackbox_be/static/src/js/pos_blackbox_be.js",
-            "pos_blackbox_be/static/src/xml/pos_blackbox_be.xml",
-            "pos_blackbox_be/views/pos_blackbox_be_assets.xml",
-            "pos_blackbox_be/views/pos_blackbox_be_views.xml",
-            "pos_blackbox_be/controllers/main.py",
-            "pos_hr_l10n_be/data/pos_hr_l10n_be_data.xml",
-            "pos_hr_l10n_be/models/hr_employee.py",
-            "pos_hr_l10n_be/static/src/js/pos_hr_l10n_be.js",
-            "pos_hr_l10n_be/views/hr_employee_view.xml",
-            "pos_hr_l10n_be/views/pos_hr_l10n_be_assets.xml"
+        root = pathlib.Path(__file__).parent.parent.parent
+
+        modfiles = [
+            p
+            for modpath in map(pathlib.Path, map(get_module_path, BLACKBOX_MODULES))
+            for p in modpath.glob('**/*')
+            if p.is_file()
+            if p.suffix not in ('.pot', '.po', '.md', '.sh')
+            if '/tests/' not in str(p)
         ]
+        modfiles.sort()
 
-        for relative_file_path in relative_file_paths_to_show:
-            absolute_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, relative_file_path))
-            size_in_bytes = os.path.getsize(absolute_file_path)
+        files_data = []
+        main_hash = hashlib.sha1()
+        for p in modfiles:
+            content = p.read_bytes()
+            content_hash = hashlib.sha1(content).hexdigest()
+            files_data.append({
+                'name': p.relative_to(root),
+                'size_in_bytes': p.stat().st_size,
+                'contents': Markup(content.decode()),
+                'hash': content_hash
+            })
+            main_hash.update(content_hash.encode())
 
-            with open(absolute_file_path, 'rb') as f:
-                content = f.read()
-                data['files'].append({
-                    'name': relative_file_path,
-                    'size_in_bytes': size_in_bytes,
-                    'contents': content,
-                    'hash': hashlib.sha1(content).hexdigest()
-                })
-                main_hash += hashlib.sha1(content).hexdigest()
-
-        data['main_hash'] = hashlib.sha1(main_hash.encode('utf-8')).hexdigest()
+        data = {
+            'files': files_data,
+            'main_hash': main_hash.hexdigest(),
+        }
 
         return request.render('pos_blackbox_be.fdm_source', data, mimetype='text/plain')
 
@@ -72,12 +71,19 @@ class GovCertificationController(http.Controller):
 
 class BlackboxPOSController(PosController):
     @http.route()
-    def pos_web(self, **k):
+    def pos_web(self, config_id=False, **k):
         response = super(BlackboxPOSController, self).pos_web(**k)
 
         if response.status_code == 200:
             pos_session = request.env['pos.session']
-            active_pos_session = pos_session.search([('state', '=', 'opened'), ('user_id', '=', request.session.uid)], limit=1)
+            domain = [
+                    ('state', '=', 'opened'),
+                    ('user_id', '=', request.session.uid),
+                    ('rescue', '=', False)
+                    ]
+            if config_id:
+                domain = AND([domain, [('config_id', '=', int(config_id))]])
+            active_pos_session = pos_session.search(domain, limit=1)
             response.qcontext.update({
                 'blackbox': active_pos_session.config_id.blackbox_pos_production_id
             })

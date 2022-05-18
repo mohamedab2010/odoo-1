@@ -70,7 +70,9 @@ var StreamPostKanbanModel = KanbanModel.extend({
                 'stories_trend',
                 'has_trends',
                 'media_id',
-                'stats_link'
+                'media_type',
+                'stats_link',
+                'image',
             ],
         });
     },

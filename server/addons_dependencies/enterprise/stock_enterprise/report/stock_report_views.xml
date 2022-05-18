@@ -11,6 +11,8 @@
                     <filter string="Done Transfers" name="done" domain="[('state', '=', 'done')]"/>
                     <filter string="Done Deliveries" name="done_deliveries" domain="[('state', '=', 'done'), ('picking_type_code', '=', 'outgoing')]"/>
                     <filter string="Done Receipts" name="done_receipts" domain="[('state', '=', 'done'), ('picking_type_code', '=', 'incoming')]"/>
+                    <separator/>
+                    <filter name="filter_date_done" date="date_done" default_period="this_month"/>
                 </search>
             </field>
         </record>
@@ -19,8 +21,8 @@
             <field name="name">stock.report.view.graph</field>
             <field name="model">stock.report</field>
             <field name="arch" type="xml">
-                <graph type="line">
-                    <field name="date_done" interval="week" type="row"/>
+                <graph type="line" sample="1">
+                    <field name="date_done" interval="week"/>
                 </graph>
             </field>
         </record>
@@ -29,11 +31,11 @@
             <field name="name">stock.report.view.pivot</field>
             <field name="model">stock.report</field>
             <field name="arch" type="xml">
-                <pivot string="Stock Overview">
+                <pivot string="Stock Overview" sample="1">
                     <field name="operation_type" type="col"/>
                     <field name="categ_id" type="row"/>
-                    <field name="cycle_time" type="measure"/>
-                    <field name="delay" type="measure"/>
+                    <field name="cycle_time" type="measure" string="Average Cycle Time (Days)"/>
+                    <field name="delay" type="measure" string="Average Delay (Days)"/>
                 </pivot>
             </field>
         </record>
@@ -47,9 +49,12 @@
                     <field name="operation_type"/>
                     <field name="product_id"/>
                     <field name="creation_date"/>
+                    <field name="scheduled_date"/>
                     <field name="date_done"/>
-                    <field name="state"/>
+                    <field name="cycle_time" optional="hide"/>
+                    <field name="delay" optional="hide"/>
                     <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="state"/>
                 </tree>
             </field>
         </record>
@@ -63,7 +68,6 @@
                         <group>
                             <group>
                                 <field name="picking_id" attrs="{'invisible': [('picking_id', '=', False)]}"/>
-                                <field name="inventory_id" attrs="{'invisible': [('inventory_id', '=', False)]}"/>
                                 <field name="product_id"/>
                                 <field name="product_qty"/>
                                 <field name="operation_type"/>
@@ -94,7 +98,7 @@
             <field name="model">stock.report</field>
             <field name="mode">primary</field>
             <field name="arch" type="xml">
-                <dashboard>
+                <dashboard sample="1">
                     <view type="graph" ref="stock_enterprise.stock_report_graph_view"/>
                     <group col="1">
                         <group col="4">
@@ -126,7 +130,7 @@
             <field name="name">stock.report.cohort.view</field>
             <field name="model">stock.report</field>
             <field name="arch" type="xml">
-                <cohort string="Report" date_start="creation_date" date_stop="date_done" interval="day" mode="churn"/>
+                <cohort string="Report" date_start="creation_date" date_stop="date_done" interval="day" mode="churn" sample="1"/>
             </field>
         </record>
 
@@ -137,7 +141,14 @@
             <field name="view_id" ref="stock_report_dashboard_view"/>
             <field name="search_view_id" ref="stock_enterprise.stock_report_search_view"/>
             <field name="domain" eval="[('picking_type_code', '!=', False)]"/>
-            <field name="context">{'search_default_done': 1, 'time_ranges': {'field':'date_done', 'range':'last_30_days'}}</field> <!-- Use context keys for cohort view -->
+            <field name="context">{
+                'search_default_done_deliveries': 1,
+                'search_default_filter_date_done': 1}</field> <!-- Use context keys for cohort view -->
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No data yet!
+                </p>
+            </field>
         </record>
 
         <menuitem

@@ -3,7 +3,7 @@ odoo.define('social_facebook.test_comments', function (require) {
 
 var StreamPostFacebookComments = require('social.social_facebook_post_kanban_comments')
 var StreamPostKanbanView = require('social.social_stream_post_kanban_view');
-var StreamPostComments = require('social.social_post_kanban_comments');
+var StreamPostComments = require('@social/js/stream_post_comments')[Symbol.for("default")];
 var testUtils = require('web.test_utils');
 var createView = testUtils.createView;
 
@@ -63,7 +63,7 @@ return '<kanban class="o_social_stream_post_kanban"' +
     '                    <div class="pt8">' +
     '                        <t t-set="has_attachments" t-value="record.stream_post_image_ids.raw_value.length !== 0 || record.link_url.value"></t>' +
     '                        <div t-attf-class="o_social_stream_post_message_text p-2 pb0 mb-3 #{has_attachments ? \'o_social_stream_post_with_attachments\' : \'\'}">' +
-    '                            <field name="message"  widget="social_kanban_field_emoji" />' +
+    '                            <field name="message"  widget="text_emojis" />' +
     '                        </div>' +
     '                        <div t-if="record.stream_post_image_ids.raw_value.length !== 0"' +
     '                            class="o_social_stream_post_image pt8 p-2"' +
@@ -169,11 +169,13 @@ QUnit.module('Facebook Comments', {
                     has_account_stats: {type: 'boolean'},
                     has_trends: {type: 'boolean'},
                     stats_link: {type: 'char'},
+                    image: {type: 'image'},
                     media_id: {
                         string: 'Media',
                         type: 'many2one',
                         relation: 'social.media'
-                    }
+                    },
+                    media_type: {type: 'char'},
                 },
                 records: [{
                     id: 1,
@@ -188,7 +190,8 @@ QUnit.module('Facebook Comments', {
                     stories: 70000,
                     stories_trend: -20,
                     stats_link: 'facebook.com/jack',
-                    media_id: 1
+                    media_id: 1,
+                    media_type: 'facebook',
                 }, {
                     id: 2,
                     name: 'Jhon\'s Page',
@@ -201,7 +204,8 @@ QUnit.module('Facebook Comments', {
                     stories: 4000,
                     stories_trend: 0,
                     stats_link: 'facebook.com/jhon',
-                    media_id: 1
+                    media_id: 1,
+                    media_type: 'facebook',
                 }]
             },
             social_stream: {
@@ -303,7 +307,6 @@ QUnit.module('Facebook Comments', {
                     formatted_published_date: "2019-08-20 14:17:00",
                     message: 'Message 2 Images',
                     media_type: 'facebook',
-                    social_stream_post_image: '["photos.com/image1.png","photos.com/image2.png"]',
                     facebook_author_id: 2,
                     facebook_likes_count: 10,
                     facebook_user_likes: false,
@@ -441,7 +444,7 @@ QUnit.module('Facebook Comments', {
             mockRPC: function (route, params) {
                 if (params.method === 'refresh_all' || params.method === 'refresh_statistics') {
                     return Promise.resolve({});
-                } else if(params.method === 'get_facebook_comments') {
+                } else if(route === '/social_facebook/get_comments') {
                     return Promise.resolve({
                         summary: {
                             total_count: 1
@@ -499,7 +502,7 @@ QUnit.module('Facebook Comments', {
                             }
                         }]
                     });
-                } else if (params.method === 'like_facebook_comment') {
+                } else if (route === '/social_facebook/like_comment') {
                     // test that 2 calls are made
                     assert.ok(true);
                     return Promise.resolve({});

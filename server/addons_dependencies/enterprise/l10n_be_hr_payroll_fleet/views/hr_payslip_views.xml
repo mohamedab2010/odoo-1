@@ -5,8 +5,8 @@
         <field name="model">hr.payslip</field>
         <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='number']" position="after">
-                <field name="vehicle_id" groups="hr_payroll.group_hr_payroll_user"/>
+            <xpath expr="//field[@name='company_id']" position="after">
+                <field name="vehicle_id" groups="hr_payroll.group_hr_payroll_user" attrs="{'invisible': [('country_code', '!=', 'BE')]}"/>
             </xpath>
         </field>
     </record>

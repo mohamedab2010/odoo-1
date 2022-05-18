@@ -24,10 +24,16 @@ Quality Base
         'data/quality_data.xml',
         'views/quality_views.xml',
     ],
-    'qweb': [
-        'static/src/xml/widget_template.xml',
-    ],
     'demo': [],
     'application': False,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'quality/static/src/js/tablet_image_widget.js',
+            'quality/static/src/scss/tablet_view.scss',
+        ],
+        'web.assets_qweb': [
+            'quality/static/src/xml/**/*',
+        ],
+    }
 }

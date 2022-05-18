@@ -2,6 +2,7 @@ odoo.define('website_twitter_wall.views', function (require) {
 'use strict';
 
 var core = require('web.core');
+const {Markup} = require('web.utils');
 var Widget = require('web.Widget');
 var publicWidget = require('web.public.widget');
 
@@ -31,7 +32,7 @@ var TweetWall = Widget.extend({
             self._getData();
         }, this.timeout);
         var zoomLevel = 1 / (window.devicePixelRatio * 0.80);
-        this.zoom(zoomLevel);
+        this._zoom(zoomLevel);
     },
 
     //--------------------------------------------------------------------------
@@ -98,7 +99,7 @@ var TweetWall = Widget.extend({
                     return t.round === 0;
                 });
                 if (atLeastOneNotSeen || self.repeat) {
-                    self.process_tweet();
+                    self._processTweet();
                 }
             }).guardedCatch(function () {
                 self.fetchPromise = undefined;
@@ -128,9 +129,9 @@ var TweetWall = Widget.extend({
         if (tweets.length) {
             var tweet = tweets[0];
             self.pool_cache[tweet.id].round = leastRound + 1;
-            var tweetDesc = $(tweet.tweet_html);
             $(qweb.render('website_twitter_wall_tweets', {
-                tweet: tweetDesc.prop('outerHTML'),
+                tweet_id: tweet.id,
+                tweet: Markup(tweet.tweet_html),
             })).prependTo(self.prependTweetsTo);
             var nextPrepend = self.prependTweetsTo.next('.o-tw-walls-col');
             self.prependTweetsTo = nextPrepend.length ? nextPrepend.first() : $('.o-tw-walls-col').first();
@@ -141,12 +142,12 @@ var TweetWall = Widget.extend({
      */
     _destroy: function () {
         clearInterval(this.interval);
-        this.zoom(1);
+        this._zoom(1);
     },
 });
 
 publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
-    selector: '.o-tw-walls',
+    selector: '.o-tw-container',
     xmlDependencies: ['/website_twitter_wall/static/src/xml/website_twitter_wall_tweet.xml'],
     events: {
         'click .o-tw-tweet-delete': '_onDeleteTweet',
@@ -160,8 +161,6 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
      * @param {Object} parent
      */
     start: function () {
-        var self = this;
-        this.twitterWall;
         this.mouseTimer;
 
         // create an observer instance
@@ -183,13 +182,13 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
             subtree: true,
         });
 
+        // Initialize widgets
+        this.twitterWall = new TweetWall(this, parseInt($('.o-tw-walls').data('wall-id')));
+
         // Do some stuff on Fullscreen and exit Fullscreen
         $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange', function () {
             $('#oe_main_menu_navbar, header, .o-tw-toggle, footer').slideToggle('slow');
             if (document.fullScreen || document.mozFullScreen || document.webkitIsFullScreen) {
-
-                // Initialize widgets
-                this.twitterWall = new TweetWall(self, parseInt($('.o-tw-walls').data('wall-id')));
 
                 // Hide scroll
                 window.scrollTo(0, 0);
@@ -226,9 +225,15 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
                 if (this.mouseTimer) {
                     clearTimeout(this.mouseTimer);
                 }
-                this.twitterWall.destroy();
             }
         });
+    },
+    /**
+     * @override
+     */
+    destroy: function () {
+        this._super.apply(this, arguments);
+        this.twitterWall._destroy();
     },
 
     //--------------------------------------------------------------------------
@@ -314,19 +319,20 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
      */
     _onOption: function (ev) {
         this.twitterWall.timeout = 7000;
-        var active = $(ev.target).hasClass('active');
-        $(ev.target).toggleClass('active');
-        switch ($(ev.target).data('operation')) {
+        var $target = $(ev.currentTarget);
+        var active = $target.hasClass('active');
+        $target.toggleClass('active');
+        switch ($target.data('operation')) {
             case 'list':
-                $(ev.target).siblings().removeClass('active');
+                $target.siblings().removeClass('active');
                 this._setColumns(1);
                 break;
             case 'double':
-                $(ev.target).siblings().removeClass('active');
+                $target.siblings().removeClass('active');
                 this._setColumns(2);
                 break;
             case 'triple':
-                $(ev.target).siblings().removeClass('active');
+                $target.siblings().removeClass('active');
                 this._setColumns(3);
                 break;
             case 'single':
@@ -334,10 +340,10 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
                 this.twitterWall.timeout = 15000;
                 break;
             case 'repeat':
-                this.twitterWall.toggle_repeat();
+                this.twitterWall._toggleRepeat();
                 break;
             case 'shuffle':
-                this.twitterWall.toggle_shuffle();
+                this.twitterWall._toggleShuffle();
                 break;
         }
         $(document).trigger('clear_tweet_queue');
@@ -349,8 +355,8 @@ publicWidget.registry.websiteTwitterWall = publicWidget.Widget.extend({
      * @param {Event} ev
      */
     _onZoom: function (ev) {
-        var step = $(ev.target).data('operation') === 'plus' ? 0.05 : -0.05;
-        this.twitterWall.zoom(this.twitterWall.zoomLevel + step);
+        var step = $(ev.currentTarget).data('operation') === 'plus' ? 0.05 : -0.05;
+        this.twitterWall._zoom(this.twitterWall.zoomLevel + step);
     },
 });
 });

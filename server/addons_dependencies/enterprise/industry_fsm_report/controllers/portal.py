@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import http, _
+from odoo import http, _, SUPERUSER_ID
 from odoo.exceptions import AccessError, MissingError
 from odoo.http import request
-from odoo.addons.portal.controllers.portal import CustomerPortal
-from odoo.addons.portal.controllers.mail import _message_post_helper
+from odoo.addons.portal.controllers import portal
 
 import binascii
 
 
-class CustomerPortal(CustomerPortal):
-    @http.route(['/my/task/<int:task_id>/worksheet/',
+class CustomerPortal(portal.CustomerPortal):
+    @http.route(['/my/task/<int:task_id>/worksheet',
                  '/my/task/<int:task_id>/worksheet/<string:source>'], type='http', auth="public", website=True)
     def portal_my_worksheet(self, task_id, access_token=None, source=False, report_type=None, download=False, message=False, **kw):
 
@@ -26,7 +25,7 @@ class CustomerPortal(CustomerPortal):
         worksheet_map = {}
         if task_sudo.worksheet_template_id:
             x_model = task_sudo.worksheet_template_id.model_id.model
-            worksheet = request.env[x_model].sudo().search([('x_task_id', '=', task_sudo.id)], limit=1, order="create_date DESC")  # take the last one
+            worksheet = request.env[x_model].sudo().search([('x_project_task_id', '=', task_sudo.id)], limit=1, order="create_date DESC")  # take the last one
             worksheet_map[task_sudo.id] = worksheet
 
         return request.render("industry_fsm_report.portal_my_worksheet", {'worksheet_map': worksheet_map, 'task': task_sudo, 'message': message, 'source': source})
@@ -55,9 +54,8 @@ class CustomerPortal(CustomerPortal):
         except (TypeError, binascii.Error):
             return {'error': _('Invalid signature data.')}
 
-        _message_post_helper(
-            'project.task', task_sudo.id, _('Task signed by %s') % (name,),
-            **({'token': access_token} if access_token else {}))
+        pdf = request.env.ref('industry_fsm_report.task_custom_report').with_user(SUPERUSER_ID)._render_qweb_pdf([task_sudo.id])[0]
+        task_sudo.message_post(body=_('The worksheet has been signed'), attachments=[('%s.pdf' % task_sudo.name, pdf)])
 
         query_string = '&message=sign_ok'
         return {

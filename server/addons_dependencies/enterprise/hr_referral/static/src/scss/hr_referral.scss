@@ -246,28 +246,34 @@ $font-family-sans-serif;
             border-radius: 2px;
             padding: 0 2rem;
         }
-    .user_level,
-    .user_points {
+    .user_total, .user_points {
         width: 25%;
         text-align: center;
-        line-height: 2rem;
+        line-height: 2.5rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        &:after {
+            content: 'Points';
+            font-size: 0;
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin: 0 auto;
+        }
+    }
+    .user_points:after{
+        background: url('/hr_referral/static/src/img/points.svg') center/cover no-repeat;
+    }
+    .user_total:after {
+        background: url('/hr_referral/static/src/img/total.svg') center/cover no-repeat;
     }
 
     .user_level:before {
-        content: 'Level';
-        display: block;
+        content: 'Level:';
+        display: inline-block;
         font-weight: bold;
     }
 
-    .user_points:before {
-        content: 'Points';
-        font-size: 0;
-        display: block;
-        width: 20px;
-        height: 20px;
-        margin: 0 auto;
-        background: url('/hr_referral/static/src/img/points.svg') center/cover no-repeat;
-    }
     @keyframes bounceIn {
         0% {
             transform: scale(0.1);
@@ -419,6 +425,12 @@ $font-family-sans-serif;
         	max-width: 40px;
         	float: left;
         }
+        span {
+            display: inline-block;
+            max-width: 90%;
+            margin: auto;
+            vertical-align: middle;
+        }
     }
 }
 
@@ -511,4 +523,9 @@ $font-family-sans-serif;
     img {
         max-height: 70px;
     }
+}
+
+.o_hr_referral_btn_dismiss {
+    padding-top: 0px;
+    padding-bottom: 0px;
 }

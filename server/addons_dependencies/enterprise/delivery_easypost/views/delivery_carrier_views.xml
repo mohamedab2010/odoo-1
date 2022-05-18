@@ -6,7 +6,7 @@
     <field name="inherit_id" ref="delivery.view_delivery_carrier_form"/>
     <field name="arch" type="xml">
       <page name="destination" position="before">
-        <page string="Easypost Configuration" attrs="{'invisible': [('delivery_type', '!=', 'easypost')]}">
+        <page string="Easypost Configuration" name="easypost_configuration" attrs="{'invisible': [('delivery_type', '!=', 'easypost')]}">
           <group>
             <group>
               <field name="easypost_test_api_key" attrs="{'required': [('easypost_production_api_key', '=', False), ('delivery_type', '=', 'easypost')]}"/>
@@ -19,13 +19,18 @@
               </div>
               <field name="easypost_delivery_type" string="Carrier Type" readonly="1" attrs="{'invisible': [('easypost_delivery_type', '=', False)]}"/>
               <field
-                name="easypost_default_packaging_id" string="Default Package Type"
+                name="easypost_default_package_type_id" string="Default Package Type"
                 context="{'default_easypost_carrier': easypost_delivery_type, 'default_package_carrier_type': delivery_type}"
                 attrs="{'invisible': [('easypost_delivery_type', '=', False)], 'required': [('easypost_delivery_type', '!=', False)]}"/>
               <field name="easypost_default_service_id" context="{'default_easypost_carrier': easypost_delivery_type}" attrs="{'invisible': [('easypost_delivery_type', '=', False)]}"/>
             </group>
             <group>
-              <field name="easypost_label_file_type" string="Label File Type" attrs="{'required': [('delivery_type', '=', 'easypost')]}"/>
+              <field name="easypost_label_file_type" string="Label Format" attrs="{'required': [('delivery_type', '=', 'easypost')]}"/>
+            </group>
+            <group string="Options">
+              <field name="can_generate_return" invisible="1"/>
+              <field name="return_label_on_delivery" attrs="{'invisible': [('can_generate_return', '=', False)]}"/>
+              <field name="get_return_label_from_portal" attrs="{'invisible': [('return_label_on_delivery', '=', False)]}"/>
             </group>
           </group>
           <group string="Easypost Tutorial" attrs="{'invisible': [('delivery_type', '!=', 'easypost')]}">
@@ -54,34 +59,17 @@
       </page>
     </field>
   </record>
-  <record id="view_product_packaging_delivery_form_inherit_easypost" model="ir.ui.view">
-    <field name="name">product.packaging.form.delivery.inherit.easypost</field>
-    <field name="model">product.packaging</field>
-    <field name="inherit_id" ref="delivery.product_packaging_delivery_form"/>
+  <record id="view_stock_package_type_form_inherit_easypost" model="ir.ui.view">
+    <field name="name">stock.package.type.forms.inherit.easypost</field>
+    <field name="model">stock.package.type</field>
+    <field name="inherit_id" ref="stock.stock_package_type_form"/>
     <field name="arch" type="xml">
       <xpath expr="//field[@name='package_carrier_type']" position='after'>
         <field name="easypost_carrier" attrs="{'invisible': [('package_carrier_type', '!=', 'easypost')]}"/>
       </xpath>
-      <xpath expr="//field[@name='height']" position='replace'>
-        <label for="height"/>
-        <div class="o_row">
-          <field name="height" nolabel="1"/>
-          <span attrs="{'invisible': [('package_carrier_type', '!=', 'easypost')]}">Inches</span>
-        </div>
-      </xpath>
-      <xpath expr="//field[@name='width']" position='replace'>
-        <label for="width"/>
-        <div class="o_row">
-          <field name="width" nolabel="1"/>
-          <span attrs="{'invisible': [('package_carrier_type', '!=', 'easypost')]}">Inches</span>
-        </div>
-      </xpath>
-      <xpath expr="//field[@name='length']" position='replace'>
-        <label for="length"/>
-        <div class="o_row">
-          <field name="length" nolabel="1"/>
-          <span attrs="{'invisible': [('package_carrier_type', '!=', 'easypost')]}">Inches</span>
-        </div>
+      <xpath expr="//field[@name='length_uom_name']" position='replace'>
+        <field name="length_uom_name" attrs="{'invisible': [('package_carrier_type', '=', 'easypost')]}"/>
+        <span attrs="{'invisible': [('package_carrier_type', '!=', 'easypost')]}">Inches</span>
       </xpath>
     </field>
   </record>

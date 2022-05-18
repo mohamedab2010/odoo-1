@@ -39,47 +39,137 @@ class SDDMandate(models.Model):
     partner_id = fields.Many2one(comodel_name='res.partner', string='Customer', required=True, readonly=True, states={'draft':[('readonly',False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Customer whose payments are to be managed by this mandate.")
     company_id = fields.Many2one(comodel_name='res.company', default=lambda self: self.env.company, help="Company for whose invoices the mandate can be used.")
     partner_bank_id = fields.Many2one(string='IBAN', readonly=True, states={'draft':[('readonly',False)]}, comodel_name='res.partner.bank', domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Account of the customer to collect payments from.")
-    paid_invoice_ids = fields.One2many(string='Invoices Paid', comodel_name='account.move', readonly=True, inverse_name='sdd_paying_mandate_id', help="Invoices paid using this mandate.")
     start_date = fields.Date(string="Start Date", required=True, readonly=True, states={'draft':[('readonly',False)]}, help="Date from which the mandate can be used (inclusive).")
     end_date = fields.Date(string="End Date", states={'closed':[('readonly',True)]}, help="Date until which the mandate can be used. It will automatically be closed after this date.")
-    original_doc = fields.Binary(string="Original Document", readonly=True, states={'draft':[('readonly',False)]}, help="Original document into which the customer authorises the use of Direct Debit for his invoices.", attachment=False) # TODO: check — should probably remain in DB for confidence purposes?
-    original_doc_filename = fields.Char(string='Original Document File Name', help="File name of original_doc.")
-    payment_journal_id = fields.Many2one(string='Journal', comodel_name='account.journal', required=True, domain="[('company_id', '=', company_id)]", help='Journal to use to receive SEPA Direct Debit payments from this mandate.')
-    payment_ids = fields.One2many(string='Payments', comodel_name='account.payment', inverse_name='sdd_mandate_id', help="Payments generated thanks to this mandate.")
-    payments_to_collect_nber = fields.Integer(string='Direct Debit Payments to Collect', compute='_compute_payments_to_collect_nber', help="Number of Direct Debit payments to be collected for this mandate, that is, the number of payments that have been generated and posted thanks to this mandate and still needs their XML file to be generated and sent to the bank to debit the customer's account.")
-    paid_invoices_nber = fields.Integer(string='Paid Invoices Number', compute='_compute_paid_invoices_nber', help="Number of invoices paid with thid mandate.")
+    payment_journal_id = fields.Many2one(string='Journal', comodel_name='account.journal', required=True, domain="[('id', '=', suitable_journal_ids)]", help='Journal to use to receive SEPA Direct Debit payments from this mandate.')
+    sdd_scheme = fields.Selection(string="SDD Scheme", selection=[('CORE', 'CORE'), ('B2B', 'B2B')],
+        required=True, default='CORE', help='The B2B scheme is an optional scheme,\noffered exclusively to business payers.\n'
+        'Some banks/businesses might not accept B2B SDD.',)
+
+    paid_invoice_ids = fields.One2many(string='Invoices Paid', comodel_name='account.move',
+        compute='_compute_from_moves',
+        help="Invoices paid using this mandate.")
+    paid_invoices_nber = fields.Integer(string='Paid Invoices Number',
+        compute='_compute_from_moves',
+        help="Number of invoices paid with thid mandate.")
+    payment_ids = fields.One2many(string='Payments', comodel_name='account.payment',
+        compute='_compute_from_moves',
+        help="Payments generated thanks to this mandate.")
+    payments_to_collect_nber = fields.Integer(string='Direct Debit Payments to Collect',
+        compute='_compute_from_moves',
+        help="Number of Direct Debit payments to be collected for this mandate, that is, the number of payments that "
+             "have been generated and posted thanks to this mandate and still needs their XML file to be generated and "
+             "sent to the bank to debit the customer's account.")
+    suitable_journal_ids = fields.Many2many('account.journal', compute='_compute_suitable_journal_ids')
+
+    @api.depends('company_id')
+    def _compute_suitable_journal_ids(self):
+        for m in self:
+            company_id = m.company_id.id or self.env.company.id
+            domain = [('company_id', '=', company_id), ('type', '=', 'bank')]
+            payment_method = self.env.ref('account_sepa_direct_debit.payment_method_sdd')
+
+            # Get all journals which have the payment method sdd
+            m.suitable_journal_ids = self.env['account.journal'].search(domain).filtered(
+                lambda j: payment_method in j.inbound_payment_method_line_ids.mapped('payment_method_id')
+            )
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_if_draft(self):
+        if self.filtered(lambda x: x.state != 'draft'):
+            raise UserError(_("Only mandates in draft state can be deleted from database when cancelled."))
 
     @api.model
     def _sdd_get_usable_mandate(self, company_id, partner_id, date):
         """ returns the first mandate found that can be used, accordingly to given parameters
         or none if there is no such mandate.
         """
-        return self.search([('state', 'not in', ['draft', 'revoked']),
-                            ('start_date', '<=', date),
-                            '|', ('end_date', '>=', date), ('end_date', '=', None),
-                            ('company_id', '=', company_id),
-                            ('partner_id', '=', partner_id),
-                            '|', ('one_off', '=', False), ('payment_ids', '=', False)],
-                          limit=1)
+        self.flush(['state', 'start_date', 'end_date', 'company_id', 'partner_id', 'one_off'])
 
-    @api.depends('paid_invoice_ids')
-    def _compute_paid_invoices_nber(self):
-        for record in self:
-            record.paid_invoices_nber = len(record.paid_invoice_ids)
+        query_obj = self._where_calc([
+            ('state', 'not in', ['draft', 'revoked']),
+            ('start_date', '<=', date),
+            '|', ('end_date', '>=', date), ('end_date', '=', None),
+            ('company_id', '=', company_id),
+            ('partner_id', '=', partner_id),
+        ])
+        tables, where_clause, where_clause_params = query_obj.get_sql()
 
-    @api.depends('payment_ids')
-    def _compute_payments_to_collect_nber(self):
-        for record in self:
-            record.payments_to_collect_nber = self.env['account.payment'].search_count([('id','in',record.payment_ids.ids), ('state','=','posted'), ('payment_method_code','=','sdd')])
+        self._cr.execute('''
+            SELECT sdd_mandate.id
+            FROM ''' + tables + '''
+            WHERE ''' + where_clause + '''
+            AND
+            (
+                (
+                    SELECT COUNT(payment.id)
+                    FROM account_payment payment
+                    JOIN account_move move ON move.id = payment.move_id
+                    WHERE move.sdd_mandate_id = sdd_mandate.id
+                )  = 0
+                OR
+                sdd_mandate.one_off IS FALSE
+            )
+            LIMIT 1
+        ''', where_clause_params)
+        res = self._cr.fetchone()
+        return res and self.browse(res[0]) or self.env['sdd.mandate']
+
+    @api.depends()
+    def _compute_from_moves(self):
+        ''' Retrieve the invoices reconciled to the payments through the reconciliation (account.partial.reconcile). '''
+        stored_mandates = self.filtered('id')
+        if not stored_mandates:
+            self.paid_invoices_nber = 0
+            self.payments_to_collect_nber = 0
+            self.paid_invoice_ids = False
+            self.payment_ids = False
+            return
+        self.env['account.move'].flush(['sdd_mandate_id', 'move_type'])
+
+        self._cr.execute('''
+            SELECT
+                move.sdd_mandate_id,
+                ARRAY_AGG(move.id) AS invoice_ids
+            FROM account_move move
+            WHERE move.sdd_mandate_id IS NOT NULL
+            AND move.move_type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')
+            GROUP BY move.sdd_mandate_id
+        ''')
+        query_res = dict((mandate_id, invoice_ids) for mandate_id, invoice_ids in self._cr.fetchall())
+
+        for mandate in self:
+            invoice_ids = query_res.get(mandate.id, [])
+            mandate.paid_invoice_ids = [(6, 0, invoice_ids)]
+            mandate.paid_invoices_nber = len(invoice_ids)
+
+        self._cr.execute('''
+            SELECT
+                move.sdd_mandate_id,
+                ARRAY_AGG(payment.id) AS payment_ids
+            FROM account_payment payment
+            JOIN account_payment_method method ON method.id = payment.payment_method_id
+            JOIN account_move move ON move.id = payment.move_id
+            WHERE move.sdd_mandate_id IS NOT NULL
+            AND move.state = 'posted'
+            AND method.code = 'sdd'
+            GROUP BY move.sdd_mandate_id
+        ''')
+        query_res = dict((mandate_id, payment_ids) for mandate_id, payment_ids in self._cr.fetchall())
+
+        for mandate in self:
+            payment_ids = query_res.get(mandate.id, [])
+            mandate.payment_ids = [(6, 0, payment_ids)]
+            mandate.payments_to_collect_nber = len(payment_ids)
 
     def action_validate_mandate(self):
         """ Called by the 'validate' button of the form view.
         """
         for record in self:
             if record.state == 'draft':
-                if any([not record.partner_bank_id for record in self]):
+                if not record.partner_bank_id:
                     raise UserError(_("A debtor account is required to validate a SEPA Direct Debit mandate."))
-                if any([record.partner_bank_id.acc_type != 'iban' for record in self]):
+                if record.partner_bank_id.acc_type != 'iban':
                     raise UserError(_("SEPA Direct Debit scheme only accepts IBAN account numbers. Please select an IBAN-compliant debtor account for this mandate."))
 
                 record.state = 'active'
@@ -87,9 +177,6 @@ class SDDMandate(models.Model):
     def action_cancel_draft_mandate(self):
         """ Cancels (i.e. deletes) a mandate in draft state.
         """
-        if self.filtered(lambda x: x.state != 'draft'):
-            raise UserError(_("Only mandates in draft state can be deleted from database when cancelled."))
-
         self.unlink()
 
     def action_revoke_mandate(self):
@@ -136,16 +223,19 @@ class SDDMandate(models.Model):
         for record in self:
             if record.payment_journal_id.bank_account_id.acc_type != 'iban':
                 raise UserError(_("Only IBAN account numbers can receive SEPA Direct Debit payments. Please select a journal associated to one."))
-            if not record.payment_journal_id.bank_id:
-                raise UserError(_("The destination bank account must be related to a bank with a valid BIC."))
-            if not record.payment_journal_id.bank_id.bic:
-                raise UserError(_("The bank your payment account is related to must have a BIC number. Please define one."))
 
     @api.constrains('debtor_id_code')
     def _validate_debtor_id_code(self):
         for record in self:
             if record.debtor_id_code and len(record.debtor_id_code) > 35:  # Arbitrary limitation given by SEPA regulation for the <id> element used for this field when generating the XML
                 raise UserError(_("The debtor identifier you specified exceeds the limitation of 35 characters imposed by SEPA regulation"))
+
+    @api.constrains('partner_id')
+    def _validate_partner_id(self):
+        for mandate in self:
+            for pay in mandate.payment_ids:
+                if mandate.partner_id != pay.partner_id.commercial_partner_id:
+                    raise UserError(_("Trying to register a payment on a mandate belonging to a different partner."))
 
     @api.model
     def cron_update_mandates_states(self):

@@ -3,7 +3,7 @@
 from datetime import date, datetime
 
 from odoo.addons.hr_payroll.tests.common import TestPayslipBase
-from odoo.tests.common import tagged, users, warmup
+from odoo.tests.common import users, warmup
 
 
 class TestPayrollPerformance(TestPayslipBase):
@@ -35,7 +35,7 @@ class TestPayrollPerformance(TestPayslipBase):
     @warmup
     def test_performance_work_entry_generation(self):
         """ Work entry generation """
-        with self.assertQueryCount(__system__=32, admin=35):
+        with self.assertQueryCount(__system__=22, admin=24):
             self.employees.generate_work_entries(date(2018, 1, 1), date(2018, 1, 2))
         self.reset_work_entries()
 
@@ -46,7 +46,7 @@ class TestPayrollPerformance(TestPayslipBase):
         work_entry = self.create_work_entry(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 12, 0))
         self.create_work_entry(datetime(2018, 1, 1, 11, 0), datetime(2018, 1, 1, 17, 0))
 
-        with self.assertQueryCount(__system__=20, admin=22):
+        with self.assertQueryCount(__system__=13, admin=14):
             work_entry.unlink()
 
     @users('__system__', 'admin')
@@ -55,7 +55,7 @@ class TestPayrollPerformance(TestPayslipBase):
         work_entry = self.create_work_entry(datetime(2018, 1, 1, 3, 0), datetime(2018, 1, 1, 4, 0))
         self.create_work_entry(datetime(2018, 1, 1, 11, 0), datetime(2018, 1, 1, 17, 0))
 
-        with self.assertQueryCount(__system__=12, admin=16):
+        with self.assertQueryCount(__system__=7, admin=8):
             work_entry.write({'date_stop': datetime(2018, 1, 1, 13, 0)})
 
     @users('__system__', 'admin')
@@ -65,43 +65,8 @@ class TestPayrollPerformance(TestPayslipBase):
         work_entry_2 = self.create_work_entry(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 11, 0))
         self.create_work_entry(datetime(2018, 1, 1, 11, 0), datetime(2018, 1, 1, 17, 0))
 
-        with self.assertQueryCount(__system__=13, admin=18):
+        with self.assertQueryCount(__system__=8, admin=9):
             (work_entry_1 | work_entry_2).write({'date_stop': datetime(2018, 1, 1, 13, 0)})
-
-    @users('__system__', 'admin')
-    @warmup
-    def test_performance_leave_validate(self):
-        self.richard_emp.generate_work_entries(date(2018, 1, 1), date(2018, 1, 2))
-        leave = self.create_leave(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 18, 0))
-
-        with self.assertQueryCount(__system__=117, admin=261):
-            leave.action_validate()
-        leave.action_refuse()
-
-    @users('__system__', 'admin')
-    @warmup
-    def test_performance_leave_write(self):
-        leave = self.create_leave(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 18, 0))
-
-        with self.assertQueryCount(__system__=22, admin=71):
-            leave.date_to = datetime(2018, 1, 1, 19, 0)
-        leave.action_refuse()
-
-    @users('__system__', 'admin')
-    @warmup
-    def test_performance_leave_create(self):
-        with self.assertQueryCount(__system__=29, admin=102):
-            leave = self.create_leave(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 18, 0))
-        leave.action_refuse()
-
-    @users('__system__', 'admin')
-    @warmup
-    def test_performance_leave_confirm(self):
-        leave = self.create_leave(datetime(2018, 1, 1, 7, 0), datetime(2018, 1, 1, 18, 0))
-        leave.action_draft()
-        with self.assertQueryCount(__system__=21, admin=97):
-            leave.action_confirm()
-        leave.state = 'cancel'
 
     @users('__system__', 'admin')
     @warmup

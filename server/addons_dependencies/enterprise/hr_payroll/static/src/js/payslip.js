@@ -40,4 +40,6 @@ odoo.define('hr_payroll.payslip.tree', function (require) {
     });
 
     viewRegistry.add('hr_payroll_payslip_tree', PayslipListView);
+
+    return PayslipListController;
 });

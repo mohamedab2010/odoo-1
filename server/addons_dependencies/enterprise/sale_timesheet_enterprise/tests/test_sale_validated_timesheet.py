@@ -2,13 +2,13 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from odoo.tests import tagged
 
-from odoo.addons.web_grid.models.models import END_OF
-
-from odoo.addons.sale_timesheet.tests.common import TestCommonSaleTimesheetNoChart
+from odoo.addons.sale_timesheet.tests.common import TestCommonSaleTimesheet
 
 
-class TestSaleValidatedTimesheet(TestCommonSaleTimesheetNoChart):
+@tagged('-at_install', 'post_install')
+class TestSaleValidatedTimesheet(TestCommonSaleTimesheet):
     """ Test timesheet invoicing of "Approved Timesheets Only" with 2 service products that create a task in a new project.
                 1. Create SO, add two SO line ordered service and delivered service and confirm it
                 2. log some timesheet on task and validate it.
@@ -18,32 +18,30 @@ class TestSaleValidatedTimesheet(TestCommonSaleTimesheetNoChart):
     """
 
     @classmethod
-    def setUpClass(self):
-        super(TestSaleValidatedTimesheet, self).setUpClass()
-        # set up
-        self.setUpEmployees()
-        self.setUpServiceProducts()
+    def setUpClass(cls, chart_template_ref=None):
+        super().setUpClass(chart_template_ref=chart_template_ref)
+
         # create SO
-        self.sale_order = self.env['sale.order'].with_context(tracking_disable=True).create({
-            'company_id': self.env.company.id,
-            'partner_id': self.partner_customer_usd.id,
-            'partner_invoice_id': self.partner_customer_usd.id,
-            'partner_shipping_id': self.partner_customer_usd.id,
-            'pricelist_id': self.pricelist_usd.id,
+        cls.sale_order = cls.env['sale.order'].with_context(tracking_disable=True).create({
+            'company_id': cls.env.company.id,
+            'partner_id': cls.partner_a.id,
+            'partner_invoice_id': cls.partner_a.id,
+            'partner_shipping_id': cls.partner_a.id,
+            'pricelist_id': cls.company_data['default_pricelist'].id,
         })
-        self.ordered_so_line = self.env['sale.order.line'].with_context(tracking_disable=True).create({
-            'name': self.product_order_timesheet3.name,
-            'product_id': self.product_order_timesheet3.id,
+        cls.ordered_so_line = cls.env['sale.order.line'].with_context(tracking_disable=True).create({
+            'name': cls.product_order_timesheet3.name,
+            'product_id': cls.product_order_timesheet3.id,
             'product_uom_qty': 10,
-            'product_uom': self.product_order_timesheet3.uom_id.id,
-            'order_id': self.sale_order.id,
+            'product_uom': cls.product_order_timesheet3.uom_id.id,
+            'order_id': cls.sale_order.id,
         })
-        self.delivered_so_line = self.env['sale.order.line'].with_context(tracking_disable=True).create({
-            'name': self.product_delivery_timesheet3.name,
-            'product_id': self.product_delivery_timesheet3.id,
+        cls.delivered_so_line = cls.env['sale.order.line'].with_context(tracking_disable=True).create({
+            'name': cls.product_delivery_timesheet3.name,
+            'product_id': cls.product_delivery_timesheet3.id,
             'product_uom_qty': 10,
-            'product_uom': self.product_delivery_timesheet3.uom_id.id,
-            'order_id': self.sale_order.id,
+            'product_uom': cls.product_delivery_timesheet3.uom_id.id,
+            'order_id': cls.sale_order.id,
         })
 
     def test_sale_validated_timesheet(self):
@@ -102,12 +100,10 @@ class TestSaleValidatedTimesheet(TestCommonSaleTimesheetNoChart):
 
         # Validate ordered and delivered some Timesheet
         timesheet_to_validate = delivered_timesheet1 | ordered_timesheet1
-        validate_action = timesheet_to_validate.with_context(grid_anchor=date.today() - relativedelta(weeks=1)).action_validate_timesheet()
-        wizard = self.env['timesheet.validation'].browse(validate_action['res_id'])
-        wizard.action_validate()
-        # check timesheet date on the employee
-        end_of_week = (week_before + END_OF['week'])
-        self.assertEquals(self.employee_user.timesheet_validated, end_of_week, 'validate timesheet date should be the end of the week')
+        timesheet_to_validate.action_validate_timesheet()
+        # check if timesheets are validated
+        self.assertTrue(delivered_timesheet1.validated)
+        self.assertTrue(ordered_timesheet1.validated)
 
         self.assertTrue(any([delivered_timesheet1.validated, ordered_timesheet1.validated]), 'Timesheet should be validated')
         # check timesheet is linked to SOL
@@ -133,9 +129,7 @@ class TestSaleValidatedTimesheet(TestCommonSaleTimesheetNoChart):
 
         # Validate remaining Timesheet
         timesheet_to_validate = delivered_timesheet2 | ordered_timesheet2
-        validate_action = timesheet_to_validate.action_validate_timesheet()
-        wizard = self.env['timesheet.validation'].browse(validate_action['res_id'])
-        wizard.action_validate()
+        timesheet_to_validate.action_validate_timesheet()
 
         self.assertTrue(any([delivered_timesheet2.validated, ordered_timesheet2.validated]), 'Timesheet should be validated')
         # check remaining timesheet is linked to SOL

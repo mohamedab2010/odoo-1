@@ -1,5 +1,5 @@
 # coding: utf-8
-from odoo import api, fields, models, _
+from odoo import fields, models
 
 
 class TypeCode(models.Model):
@@ -8,8 +8,3 @@ class TypeCode(models.Model):
 
     name = fields.Char(required=True)
     description = fields.Char(required=True)
-    type = fields.Selection([('representation', 'Representation'),
-                             ('obligation', 'Obligation'),
-                             ('customs', 'Customs'),
-                             ('establishment', 'Establishment')],
-                            required=True)

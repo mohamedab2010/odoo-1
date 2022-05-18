@@ -5,7 +5,7 @@ var fieldRegistry = require('web.field_registry');
 var mrpViewerCommon = require('mrp.viewer_common');
 
 
-var FieldEmbedURLViewer = require('mrp.mrp_state');
+var FieldEmbedURLViewer = require('@mrp/js/mrp')[Symbol.for("default")];
 
 /**
  * /!\/!\/!\ WARNING /!\/!\/!\

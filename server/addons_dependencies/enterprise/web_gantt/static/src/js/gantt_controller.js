@@ -3,6 +3,7 @@ odoo.define('web_gantt.GanttController', function (require) {
 
 var AbstractController = require('web.AbstractController');
 var core = require('web.core');
+var config = require('web.config');
 var dialogs = require('web.view_dialogs');
 var confirmDialog = require('web.Dialog').confirm;
 
@@ -30,6 +31,8 @@ var GanttController = AbstractController.extend({
         updating_pill_started: '_onPillUpdatingStarted',
         updating_pill_stopped: '_onPillUpdatingStopped',
     }),
+    buttonTemplateName: 'GanttView.buttons',
+
     /**
      * @override
      * @param {Widget} parent
@@ -50,6 +53,9 @@ var GanttController = AbstractController.extend({
         this.allowedScales = params.allowedScales;
         this.collapseFirstLevel = params.collapseFirstLevel;
         this.createAction = params.createAction;
+        this.actionDomain = params.actionDomain;
+
+        this.isRTL = _t.database.parameters.direction === "rtl";
     },
 
     //--------------------------------------------------------------------------
@@ -58,20 +64,40 @@ var GanttController = AbstractController.extend({
 
     /**
      * @override
-     * @param {jQueryElement} $node to which the buttons will be appended
+     * @param {jQuery} [$node] to which the buttons will be appended
      */
     renderButtons: function ($node) {
+        this.$buttons = this._renderButtonsQWeb();
         if ($node) {
-            var state = this.model.get();
-            this.$buttons = $(QWeb.render('GanttView.buttons', {
-                groupedBy: state.groupedBy,
-                widget: this,
-                SCALES: this.SCALES,
-                activateScale: state.scale,
-                allowedScales: this.allowedScales,
-            }));
             this.$buttons.appendTo($node);
         }
+    },
+    _renderButtonsQWeb: function () {
+        return $(QWeb.render(this.buttonTemplateName, this._renderButtonQWebParameter()));
+    },
+    _renderButtonQWebParameter: function () {
+        var state = this.model.get();
+        var nbGroups = state.groupedBy.length;
+        var minNbGroups = this.collapseFirstLevel ? 0 : 1;
+        var displayExpandCollapseButtons = nbGroups > minNbGroups;
+        return {
+            groupedBy: state.groupedBy,
+            widget: this,
+            SCALES: this.SCALES,
+            activateScale: state.scale,
+            allowedScales: this.allowedScales,
+            displayExpandCollapseButtons: displayExpandCollapseButtons,
+            isMobile: config.device.isMobile,
+        };
+    },
+    /**
+     * @override
+     */
+    updateButtons: function () {
+        if (!this.$buttons) {
+            return;
+        }
+        this.$buttons.html(this._renderButtonsQWeb());
     },
 
     //--------------------------------------------------------------------------
@@ -107,25 +133,28 @@ var GanttController = AbstractController.extend({
      * @private
      * @param {OdooEvent} event
      */
-    _getDialogContext: function (date, groupId) {
+    _getDialogContext: function (date, rowId) {
         var state = this.model.get();
         var context = {};
         context[state.dateStartField] = date.clone();
         context[state.dateStopField] = date.clone().endOf(this.SCALES[state.scale].interval);
-
-        if (groupId) {
+        if (rowId) {
             // Default values of the group this cell belongs in
             // We can read them from any pill in this group row
             _.each(state.groupedBy, function (fieldName) {
-                var groupValue = _.find(state.groups, function (group) {
-                    return group.id === groupId;
-                });
+                const groupValue = Object.assign({}, ...JSON.parse(rowId));
                 var value = groupValue[fieldName];
-                // If many2one field then extract id from array
-                if (_.isArray(value)) {
-                    value = value[0];
+                if (Array.isArray(value)) {
+                    const { type: fieldType } = state.fields[fieldName];
+                    if (fieldType === "many2many") {
+                        value = [value[0]];
+                    } else if (fieldType === "many2one") {
+                        value = value[0];
+                    }
                 }
-                context[fieldName] = value;
+                if (value !== undefined) {
+                    context[fieldName] = value;
+                }
             });
         }
 
@@ -146,6 +175,7 @@ var GanttController = AbstractController.extend({
      * @private
      * @param {integer|undefined} resID
      * @param {Object|undefined} context
+     * @returns {FormViewDialog}
      */
     _openDialog: function (resID, context) {
         var title = resID ? _t("Open") : _t("Create");
@@ -156,7 +186,7 @@ var GanttController = AbstractController.extend({
             view_id: this.dialogViews[0][0],
             res_id: resID,
             readonly: !this.is_action_enabled('edit'),
-            deletable: this.is_action_enabled('edit') && resID,
+            deletable: this.is_action_enabled('delete') && resID,
             context: _.extend({}, this.context, context),
             on_saved: this.reload.bind(this, {}),
             on_remove: this._onDialogRemove.bind(this, resID),
@@ -213,7 +243,7 @@ var GanttController = AbstractController.extend({
         new dialogs.SelectCreateDialog(this, {
             title: _t("Plan"),
             res_model: this.modelName,
-            domain: this.model.domain.concat(domain),
+            domain: this.actionDomain.concat(domain),
             views: this.dialogViews,
             context: _.extend({}, this.context, context),
             on_selected: function (records) {
@@ -221,7 +251,7 @@ var GanttController = AbstractController.extend({
                 if (ids.length) {
                     // Here, the dates are already in server time so we set the
                     // isUTC parameter of reschedule to true to avoid conversion
-                    self._reschedule(ids, context, true);
+                    self._reschedule(ids, context, true, self.openPlanDialogCallback);
                 }
             },
         }).open();
@@ -258,31 +288,11 @@ var GanttController = AbstractController.extend({
      * @returns {Promise} resolved when the record has been reloaded, rejected
      *   if the request has been dropped by DropPrevious
      */
-    _reschedule: function (ids, schedule, isUTC) {
+    _reschedule: function (ids, schedule, isUTC, callback) {
         return this._executeAsyncOperation(
             this.model.reschedule.bind(this.model),
-            [ids, schedule, isUTC]
+            [ids, schedule, isUTC, callback]
         );
-    },
-    /**
-     * Overridden to hide expand/collapse buttons when they have no effect.
-     *
-     * @override
-     * @private
-     */
-    _update: function () {
-        var self = this;
-        return this._super.apply(this, arguments).then(function () {
-            if (self.$buttons) {
-                // When using a saved gantt model from the dashboard
-                // the control panel is missing
-                var nbGroups = self.model.get().groupedBy.length;
-                var minNbGroups = self.collapseFirstLevel ? 0 : 1;
-                var displayButtons = nbGroups > minNbGroups;
-                self.$buttons.find('.o_gantt_button_expand_rows').toggle(displayButtons);
-                self.$buttons.find('.o_gantt_button_collapse_rows').toggle(displayButtons);
-            }
-        });
     },
 
     //--------------------------------------------------------------------------
@@ -297,7 +307,7 @@ var GanttController = AbstractController.extend({
      */
     _onCellAddClicked: function (ev) {
         ev.stopPropagation();
-        var context = this._getDialogContext(ev.data.date, ev.data.groupId);
+        const context = this._getDialogContext(ev.data.date, ev.data.rowId);
         for (var k in context) {
             context[_.str.sprintf('default_%s', k)] = context[k];
         }
@@ -394,8 +404,8 @@ var GanttController = AbstractController.extend({
      * @param {integer} [ev.data.diff]
      * @param {integer} [ev.data.groupLevel]
      * @param {string} [ev.data.pillId]
-     * @param {string} [ev.data.newGroupId]
-     * @param {string} [ev.data.oldGroupId]
+     * @param {string} [ev.data.newRowId]
+     * @param {string} [ev.data.oldRowId]
      * @param {'copy'|'reschedule'} [ev.data.action]
      */
     _onPillDropped: function (ev) {
@@ -406,10 +416,11 @@ var GanttController = AbstractController.extend({
         var schedule = {};
 
         var diff = ev.data.diff;
+        diff = this.isRTL ? -diff : diff;
         if (diff) {
             var pill = _.findWhere(state.records, { id: ev.data.pillId });
-            schedule[state.dateStartField] = pill[state.dateStartField].clone().add(diff, this.SCALES[state.scale].time);
-            schedule[state.dateStopField] = pill[state.dateStopField].clone().add(diff, this.SCALES[state.scale].time);
+            schedule[state.dateStartField] = this.model.dateAdd(pill[state.dateStartField], diff, this.SCALES[state.scale].time);
+            schedule[state.dateStopField] = this.model.dateAdd(pill[state.dateStopField], diff, this.SCALES[state.scale].time);
         } else if (ev.data.action === 'copy') {
             // When we copy the info on dates is sometimes mandatory (e.g. working on hr.leave, see copy_data)
             const pill = _.findWhere(state.records, { id: ev.data.pillId });
@@ -417,20 +428,24 @@ var GanttController = AbstractController.extend({
             schedule[state.dateStopField] = pill[state.dateStopField].clone();
         }
 
-        if (ev.data.newGroupId && ev.data.newGroupId !== ev.data.oldGroupId) {
-            var group = _.findWhere(state.groups, { id: ev.data.newGroupId });
+        if (ev.data.newRowId && ev.data.newRowId !== ev.data.oldRowId) {
+            const groupValue = Object.assign({}, ...JSON.parse(ev.data.newRowId));
 
             // if the pill is dragged in a top level group, we only want to
             // write on fields linked to this top level group
             var fieldsToWrite = state.groupedBy.slice(0, ev.data.groupLevel + 1);
             _.each(fieldsToWrite, function (fieldName) {
                 // TODO: maybe not write if the value hasn't changed?
-                schedule[fieldName] = group[fieldName];
-
-                // TODO: maybe check if field.type === 'many2one' instead
-                if (_.isArray(schedule[fieldName])) {
-                    schedule[fieldName] = schedule[fieldName][0];
+                let valueToWrite = groupValue[fieldName];
+                if (Array.isArray(valueToWrite)) {
+                    const { type: fieldType } = state.fields[fieldName];
+                    if (fieldType === "many2many") {
+                        valueToWrite = [valueToWrite[0]];
+                    } else if (fieldType === "many2one") {
+                        valueToWrite = valueToWrite[0];
+                    }
                 }
+                schedule[fieldName] = valueToWrite;
             });
         }
         if (ev.data.action === 'copy') {
@@ -475,7 +490,7 @@ var GanttController = AbstractController.extend({
      */
     _onCellPlanClicked: function (ev) {
         ev.stopPropagation();
-        var context = this._getDialogContext(ev.data.date, ev.data.groupId);
+        const context = this._getDialogContext(ev.data.date, ev.data.rowId);
         this._openPlanDialog(context);
     },
     /**
@@ -494,9 +509,9 @@ var GanttController = AbstractController.extend({
     _onScaleClicked: function (ev) {
         ev.preventDefault();
         var $button = $(ev.currentTarget);
-        this.$buttons.find('.o_gantt_button_scale').removeClass('active');
-        $button.addClass('active');
-        this.$buttons.find('.o_gantt_dropdown_selected_scale').text($button.text());
+        if ($button.hasClass('active')) {
+            return;
+        }
         this.update({ scale: $button.data('value') });
     },
     /**

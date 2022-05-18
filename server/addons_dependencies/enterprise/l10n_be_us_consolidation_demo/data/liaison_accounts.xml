@@ -18,14 +18,14 @@
         </record>
         <record id="be_specific_receivable_account" model="account.account">
             <field name="user_type_id" ref="account.data_account_type_receivable"/>
-            <field name="company_id" ref="be_company"/>
+            <field name="company_id" ref="l10n_be.demo_company_be"/>
             <field name="code">400010</field>
             <field name="name">Clients IC YourCompany</field>
             <field name="reconcile" eval="True"/>
         </record>
         <record id="be_specific_income_account" model="account.account">
             <field name="user_type_id" ref="account.data_account_type_revenue"/>
-            <field name="company_id" ref="be_company"/>
+            <field name="company_id" ref="l10n_be.demo_company_be"/>
             <field name="code">705210</field>
             <field name="name">Prestations de services IC</field>
             <field name="tag_ids" eval="[(6,0,[ref('account.account_tag_operating')])]"/>
@@ -66,7 +66,7 @@
         <record id="base.main_partner" model="res.partner">
             <field name="property_account_payable_id" ref="main_specific_payable_account"/>
         </record>
-        <record id="be_partner" model="res.partner">
+        <record id="l10n_be.partner_demo_company_be" model="res.partner">
             <field name="property_account_receivable_id" ref="be_specific_receivable_account"/>
         </record>
     </data>

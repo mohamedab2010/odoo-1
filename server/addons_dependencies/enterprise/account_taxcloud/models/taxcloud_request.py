@@ -9,7 +9,7 @@ import requests
 from zeep import Client
 from zeep.exceptions import Fault
 
-from odoo import modules, fields
+from odoo import modules, fields, _
 
 _logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class TaxCloudRequest(object):
         res = requests.post("https://api.taxcloud.com/1.0/TaxCloud/VerifyAddress", data=address_to_verify).json()
         if int(res.get('ErrNumber', False)):
             # If VerifyAddress fails, use Lookup with the initial address
+            _logger.info('Could not verify address for partner #%s using taxcloud; using unverified address instead', partner.id)
             res.update(address_to_verify)
         return res
 
@@ -79,6 +80,7 @@ class TaxCloudRequest(object):
 
     def set_invoice_items_detail(self, invoice):
         self.customer_id = invoice.partner_id.id
+        self.taxcloud_date = invoice.get_taxcloud_reporting_date()
         self.cart_id = invoice.id
         self.cart_items = self.factory.ArrayOfCartItem()
         self.cart_items.CartItem = self._process_lines(invoice.invoice_line_ids)
@@ -106,17 +108,27 @@ class TaxCloudRequest(object):
         return cart_items
 
     def get_all_taxes_values(self):
+        customer_id = hasattr(self, 'customer_id') and self.customer_id or 'NoCustomerID'
+        cart_id = hasattr(self, 'cart_id') and self.cart_id or 'NoCartID'
+        _logger.info('fetching tax values for cart %s (customer: %s)', cart_id, customer_id)
         formatted_response = {}
+        if not self.api_login_id or not self.api_key:
+            formatted_response['error_message'] = _("Please configure taxcloud credentials on the current company "
+                                                    "or use a different fiscal position")
+            return formatted_response
+
         try:
-            response = self.client.service.Lookup(
+            response = self.client.service.LookupForDate(
                 self.api_login_id,
                 self.api_key,
-                hasattr(self, 'customer_id') and self.customer_id or 'NoCustomerID',
-                hasattr(self, 'cart_id') and self.cart_id or 'NoCartID',
+                customer_id,
+                cart_id,
                 self.cart_items,
                 self.origin,
                 self.destination,
-                False
+                False, # deliveredBySeller
+                None, # exemptCert
+                self.taxcloud_date, # useDate
             )
             formatted_response['response'] = response
             if response.ResponseType == 'OK':
@@ -128,7 +140,7 @@ class TaxCloudRequest(object):
             elif response.ResponseType == 'Error':
                 formatted_response['error_message'] = response.Messages.ResponseMessage[0].Message
         except Fault as fault:
-            formatted_response['error_message'] = fault
+            formatted_response['error_message'] = fault.message
         except IOError:
             formatted_response['error_message'] = "TaxCloud Server Not Found"
         return formatted_response
@@ -143,7 +155,7 @@ class TaxCloudRequest(object):
             elif self.response.ResponseType == 'Error':
                 formatted_response['error_message'] = self.response.Messages.ResponseMessage[0].Message
         except Fault as fault:
-            formatted_response['error_message'] = fault
+            formatted_response['error_message'] = fault.message
         except IOError:
             formatted_response['error_message'] = "TaxCloud Server Not Found"
 
@@ -156,8 +168,8 @@ class TaxCloudRequest(object):
         # The current date is appended to refresh the value every day.
         return hashlib.sha1(
             (
-                self.api_login_id
-                + self.api_key
+                (self.api_login_id or '')
+                + (self.api_key or '')
                 + str(hasattr(self, "customer_id") and self.customer_id or "NoCustomerID")
                 + str(hasattr(self, "cart_id") and self.cart_id or "NoCartID")
                 + str(self.cart_items)

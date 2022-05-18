@@ -1,28 +1,28 @@
-odoo.define('documents.systray.ActivityMenuTests', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var ActivityMenu = require('mail.systray.ActivityMenu');
-var mailTestUtils = require('mail.testUtils');
+import ActivityMenu from '@mail/js/systray/systray_activity_menu';
+import { afterEach, beforeEach, start } from '@mail/utils/test_utils';
 
-var testUtils = require('web.test_utils');
+import testUtils from 'web.test_utils';
 
-QUnit.module('mail', {}, function () {
-
-    QUnit.module('DocumentsActivityMenu', {
-        beforeEach: function () {
-            this.services = mailTestUtils.getMailServices();
+QUnit.module('documents', {}, function () {
+    QUnit.module('documents_systray_activity_menu_tests.js', {
+        beforeEach() {
+            beforeEach(this);
+        },
+        afterEach() {
+            afterEach(this);
         },
     });
 
     QUnit.test('activity menu widget: documents request button', async function (assert) {
-        assert.expect(4);
+        assert.expect(6);
 
-        var activityMenu = new ActivityMenu();
-        testUtils.mock.addMockEnvironment(activityMenu, {
-            services: this.services,
-            mockRPC: function (route, args) {
+        const { widget } = await start({
+            data: this.data,
+            async mockRPC(route, args) {
                 if (args.method === 'systray_get_activities') {
-                    return Promise.resolve([]);
+                    return [];
                 }
                 return this._super.apply(this, arguments);
             },
@@ -42,14 +42,19 @@ QUnit.module('mail', {}, function () {
                 },
             },
         });
+
+        const activityMenu = new ActivityMenu(widget);
         await activityMenu.appendTo($('#qunit-fixture'));
 
         await testUtils.dom.click(activityMenu.$('> .dropdown-toggle'));
+        assert.hasClass(activityMenu.$('.dropdown-menu'), 'show',
+            "dropdown should be expanded");
         assert.verifySteps(['user_has_group:documents.group_documents_user']);
         assert.containsOnce(activityMenu, '.o_sys_documents_request');
         await testUtils.dom.click(activityMenu.$('.o_sys_documents_request'));
+        assert.doesNotHaveClass(activityMenu.$('.dropdown-menu'), 'show',
+            "dropdown should be collapsed");
 
-        activityMenu.destroy();
+        widget.destroy();
     });
-});
 });

@@ -1,6 +1,7 @@
 from . import studio_mixin
 from . import base_automation
 from . import mail_template
+from . import mail_thread
 from . import ir_actions_act_window
 from . import ir_actions_report
 from . import ir_actions_server
@@ -15,3 +16,5 @@ from . import res_groups
 from . import res_company
 from . import ir_qweb
 from . import report_paperformat
+from . import studio_approval
+from . import ir_default

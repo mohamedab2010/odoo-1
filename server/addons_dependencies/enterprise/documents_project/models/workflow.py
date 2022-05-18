@@ -5,7 +5,6 @@ from odoo import models, fields, api, exceptions
 class WorkflowActionRuleTask(models.Model):
     _inherit = ['documents.workflow.rule']
 
-    has_business_option = fields.Boolean(default=True, compute='_get_business')
     create_model = fields.Selection(selection_add=[('project.task', "Task")])
 
     def create_record(self, documents=None):

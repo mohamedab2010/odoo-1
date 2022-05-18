@@ -2,13 +2,16 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 import binascii
 import logging
-import os
 import re
 
 from datetime import datetime, date
 from zeep import Client, Plugin, Settings
 from zeep.exceptions import Fault
 from zeep.wsdl.utils import etree_to_string
+
+from odoo.modules.module import get_resource_path
+from odoo.tools import remove_accents
+
 
 _logger = logging.getLogger(__name__)
 # uncomment to enable logging of Zeep requests and responses
@@ -44,18 +47,12 @@ class FedexRequest():
         self.hasCommodities = False
         self.hasOnePackage = False
 
+        wsdl_folder = 'prod' if prod_environment else 'test'
         if request_type == "shipping":
-            if not prod_environment:
-                wsdl_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../api/test/ShipService_v15.wsdl')
-            else:
-                wsdl_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../api/prod/ShipService_v15.wsdl')
+            wsdl_path = get_resource_path('delivery_fedex', 'api', wsdl_folder, 'ShipService_v28.wsdl')
             self.start_shipping_transaction(wsdl_path)
-
         elif request_type == "rating":
-            if not prod_environment:
-                wsdl_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../api/test/RateService_v16.wsdl')
-            else:
-                wsdl_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../api/prod/RateService_v16.wsdl')
+            wsdl_path = get_resource_path('delivery_fedex', 'api', wsdl_folder, 'RateService_v31.wsdl')
             self.start_rating_transaction(wsdl_path)
 
     # Authentification stuff
@@ -80,14 +77,14 @@ class FedexRequest():
 
     def set_shipper(self, company_partner, warehouse_partner):
         Contact = self.factory.Contact()
-        Contact.PersonName = company_partner.name if not company_partner.is_company else ''
-        Contact.CompanyName = company_partner.name if company_partner.is_company else ''
+        Contact.PersonName = remove_accents(company_partner.name) if not company_partner.is_company else ''
+        Contact.CompanyName = remove_accents(company_partner.commercial_company_name) or ''
         Contact.PhoneNumber = warehouse_partner.phone or ''
         # TODO fedex documentation asks for TIN number, but it seems to work without
 
         Address = self.factory.Address()
-        Address.StreetLines = [warehouse_partner.street or '', warehouse_partner.street2 or '']
-        Address.City = warehouse_partner.city or ''
+        Address.StreetLines = [remove_accents(warehouse_partner.street) or '',remove_accents(warehouse_partner.street2) or '']
+        Address.City = remove_accents(warehouse_partner.city) or ''
         if warehouse_partner.country_id.code in STATECODE_REQUIRED_COUNTRIES:
             Address.StateOrProvinceCode = warehouse_partner.state_id.code or ''
         else:
@@ -103,15 +100,15 @@ class FedexRequest():
         Contact = self.factory.Contact()
         if recipient_partner.is_company:
             Contact.PersonName = ''
-            Contact.CompanyName = recipient_partner.name
+            Contact.CompanyName = remove_accents(recipient_partner.name)
         else:
-            Contact.PersonName = recipient_partner.name
-            Contact.CompanyName = recipient_partner.parent_id.name or ''
+            Contact.PersonName = remove_accents(recipient_partner.name)
+            Contact.CompanyName = remove_accents(recipient_partner.commercial_company_name) or ''
         Contact.PhoneNumber = recipient_partner.phone or ''
 
         Address = self.factory.Address()
-        Address.StreetLines = [recipient_partner.street or '', recipient_partner.street2 or '']
-        Address.City = recipient_partner.city or ''
+        Address.StreetLines = [remove_accents(recipient_partner.street) or '', remove_accents(recipient_partner.street2) or '']
+        Address.City = remove_accents(recipient_partner.city) or ''
         if recipient_partner.country_id.code in STATECODE_REQUIRED_COUNTRIES:
             Address.StateOrProvinceCode = recipient_partner.state_id.code or ''
         else:
@@ -125,6 +122,7 @@ class FedexRequest():
 
     def shipment_request(self, dropoff_type, service_type, packaging_type, overall_weight_unit, saturday_delivery):
         self.RequestedShipment = self.factory.RequestedShipment()
+        self.RequestedShipment.SpecialServicesRequested = self.factory.ShipmentSpecialServicesRequested()
         self.RequestedShipment.ShipTimestamp = datetime.now()
         self.RequestedShipment.DropoffType = dropoff_type
         self.RequestedShipment.ServiceType = service_type
@@ -142,13 +140,12 @@ class FedexRequest():
         if saturday_delivery:
             timestamp_day = self.RequestedShipment.ShipTimestamp.strftime("%A")
             if (service_type == 'FEDEX_2_DAY' and timestamp_day == 'Thursday') or (service_type in ['PRIORITY_OVERNIGHT', 'FIRST_OVERNIGHT', 'INTERNATIONAL_PRIORITY'] and timestamp_day == 'Friday'):
-                SpecialServiceTypes = self.factory.ShipmentSpecialServiceType('SATURDAY_DELIVERY')
-                self.RequestedShipment.SpecialServicesRequested = self.factory.PackageSpecialServicesRequested()
-                self.RequestedShipment.SpecialServicesRequested.SpecialServiceTypes = SpecialServiceTypes
+                self.RequestedShipment.SpecialServicesRequested.SpecialServiceTypes.append('SATURDAY_DELIVERY')
 
     def set_currency(self, currency):
         self.RequestedShipment.PreferredCurrency = currency
-        # self.RequestedShipment.RateRequestTypes = 'PREFERRED'
+        # ask Fedex to include our preferred currency in the response
+        self.RequestedShipment.RateRequestTypes = 'PREFERRED'
 
     def set_master_package(self, total_weight, package_count, master_tracking_id=False):
         self.RequestedShipment.TotalWeight.Value = total_weight
@@ -214,7 +211,7 @@ class FedexRequest():
         self.factory = self.client.type_factory('ns0')
         self.VersionId = self.factory.VersionId()
         self.VersionId.ServiceId = 'crs'
-        self.VersionId.Major = '16'
+        self.VersionId.Major = '31'
         self.VersionId.Intermediate = '0'
         self.VersionId.Minor = '0'
 
@@ -262,7 +259,7 @@ class FedexRequest():
         self.factory = self.client.type_factory("ns0")
         self.VersionId = self.factory.VersionId()
         self.VersionId.ServiceId = 'ship'
-        self.VersionId.Major = '15'
+        self.VersionId.Major = '28'
         self.VersionId.Intermediate = '0'
         self.VersionId.Minor = '0'
 
@@ -355,8 +352,6 @@ class FedexRequest():
         self.listCommodities.append(commodity)
 
     def return_label(self, tracking_number, origin_date):
-        shipment_special_services = self.factory.ShipmentSpecialServicesRequested()
-        shipment_special_services.SpecialServiceTypes = ["RETURN_SHIPMENT"]
         return_details = self.factory.ReturnShipmentDetail()
         return_details.ReturnType = "PRINT_RETURN_LABEL"
         if tracking_number and origin_date:
@@ -364,8 +359,8 @@ class FedexRequest():
             return_association.TrackingNumber = tracking_number
             return_association.ShipDate = origin_date
             return_details.ReturnAssociation = return_association
-        shipment_special_services.ReturnShipmentDetail = return_details
-        self.RequestedShipment.SpecialServicesRequested = shipment_special_services
+        self.RequestedShipment.SpecialServicesRequested.SpecialServiceTypes.append("RETURN_SHIPMENT")
+        self.RequestedShipment.SpecialServicesRequested.ReturnShipmentDetail = return_details
         if self.hasCommodities:
             bla = self.factory.CustomsOptionDetail()
             bla.Type = "FAULTY_ITEM"

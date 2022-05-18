@@ -14,19 +14,36 @@ var KanbanController = require('web.KanbanController');
 var KanbanModel = require('web.KanbanModel');
 var KanbanRenderer = require('web.KanbanRenderer');
 var KanbanView = require('web.KanbanView');
+var KanbanRecord = require('web.KanbanRecord');
 var session = require('web.session');
 var view_registry = require('web.view_registry');
+const { format } = require('web.field_utils');
 
 var QWeb = core.qweb;
 
 var _t = core._t;
 var _lt = core._lt;
 
+KanbanRecord.include({
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @override
+     * @private
+     */
+    _openRecord() {
+        const kanbanTicketElement = this.el.querySelectorAll('.o_helpdesk_ticket_btn');
+        if (this.selectionMode !== true && this.modelName === 'helpdesk.team' && kanbanTicketElement.length) {
+            kanbanTicketElement[0].click();
+        } else {
+            this._super.apply(this, arguments);
+        }
+    },
+});
+
 var HelpdeskDashboardRenderer = KanbanRenderer.extend({
-    events: _.extend({}, KanbanRenderer.prototype.events, {
-        'click .o_dashboard_action': '_onDashboardActionClicked',
-        'click .o_target_to_set': '_onDashboardTargetClicked',
-    }),
 
     //--------------------------------------------------------------------------
     // Private
@@ -61,8 +78,18 @@ var HelpdeskDashboardRenderer = KanbanRenderer.extend({
                 rating_enable: values.rating_enable,
                 success_rate_enable: values.success_rate_enable,
                 values: values,
+                format_float: (value) => format.float(value),
+                format_time: (value) => format.float_time(value),
             });
-            self.$el.prepend(helpdesk_dashboard);
+            if (!self.$el.parent('.o_kanban_view_wrapper').length) {
+                self.$el.wrap('<div class="o_kanban_view_wrapper d-flex flex-column align-items-start"></div>');
+            }
+            self.$el.parent().find(".o_helpdesk_dashboard").remove();
+            self.$el.before(helpdesk_dashboard);
+            self.$el.parent().find('.o_dashboard_action')
+              .on('click', self, self._onDashboardActionClicked.bind(self));
+            self.$el.parent().find('.o_target_to_set')
+              .on('click', self, self._onDashboardTargetClicked.bind(self));
         });
     },
 
@@ -75,12 +102,34 @@ var HelpdeskDashboardRenderer = KanbanRenderer.extend({
      * @param {MouseEvent}
      */
     _onDashboardActionClicked: function (e) {
+        var self = this;
         e.preventDefault();
         var $action = $(e.currentTarget);
-        this.trigger_up('dashboard_open_action', {
-            action_name: $action.attr('name'),
-        });
+        var action_ref = $action.attr('name');
+        var title = $action.data('actionTitle') || $action.attr('title');
+        var search_view_ref = $action.attr('search_view_ref');
+        if ($action.attr('show_demo') != 'true'){
+            if ($action.attr('name').includes("helpdesk.")) {
+                this._rpc({
+                    model: 'helpdesk.ticket',
+                    method: 'create_action',
+                    args: [action_ref, title, search_view_ref],
+                }).then(function (result) {
+                    if (result.action) {
+                        self.do_action(result.action, {
+                            additional_context: $action.attr('context')
+                        });
+                    }
+                });
+            }
+            else {
+                this.trigger_up('dashboard_open_action', {
+                    action_name: $action.attr('name'),
+                });
+            }
+        }
     },
+
     /**
      * @private
      * @param {MouseEvent}
@@ -125,7 +174,7 @@ var HelpdeskDashboardModel = KanbanModel.extend({
     /**
      * @override
      */
-    get: function (localID) {
+    __get: function (localID) {
         var result = this._super.apply(this, arguments);
         if (_.isObject(result)) {
             result.dashboardValues = this.dashboardValues[localID];
@@ -136,14 +185,14 @@ var HelpdeskDashboardModel = KanbanModel.extend({
      * @œverride
      * @returns {Promise}
      */
-    load: function () {
+    __load: function () {
         return this._loadDashboard(this._super.apply(this, arguments));
     },
     /**
      * @œverride
      * @returns {Promise}
      */
-    reload: function () {
+    __reload: function () {
         return this._loadDashboard(this._super.apply(this, arguments));
     },
 
@@ -161,10 +210,10 @@ var HelpdeskDashboardModel = KanbanModel.extend({
         var dashboard_def = this._rpc({
             model: 'helpdesk.team',
             method: 'retrieve_dashboard',
+            context: session.user_context,
         });
         return Promise.all([super_def, dashboard_def]).then(function(results) {
-            var id = results[0];
-            var dashboardValues = results[1];
+            const [id, dashboardValues] = results;
             self.dashboardValues[id] = dashboardValues;
             return id;
         });
@@ -189,7 +238,7 @@ var HelpdeskDashboardController = KanbanController.extend({
         var target_name = e.data.target_name;
         var target_value = e.data.target_value;
         if (isNaN(target_value)) {
-            this.do_warn(_t("Wrong value entered!"), _t("Only Integer Value should be valid."));
+            this.displayNotification({ message: _t("Please enter an integer value"), type: 'danger' });
         } else {
             var values = {};
             values[target_name] = parseInt(target_value);
@@ -212,7 +261,13 @@ var HelpdeskDashboardController = KanbanController.extend({
             return this._rpc({model: this.modelName, method: action_name})
                 .then(function (data) {
                     if (data) {
-                    return self.do_action(data);
+                        // Rename 'tree' to 'list' in the views
+                        for (let view of data.views) {
+                            if (view[1] === 'tree') {
+                                view[1] = 'list';
+                            }
+                        }
+                        return self.do_action(data);
                     }
                 });
         }

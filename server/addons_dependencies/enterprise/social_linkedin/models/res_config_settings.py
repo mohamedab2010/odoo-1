@@ -8,7 +8,8 @@ class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
     linkedin_use_own_account = fields.Boolean("Use your own LinkedIn Account",
-        config_parameter='social.linkedin_use_own_account')
+        config_parameter='social.linkedin_use_own_account',
+        help="""Check this if you want to use your personal LinkedIn Developer Account instead of the provided one.""")
     linkedin_app_id = fields.Char("App ID", config_parameter='social.linkedin_app_id',
         compute='_compute_linkedin_app_id', inverse='_inverse_linkedin_app_id')
     linkedin_client_secret = fields.Char("App Secret", config_parameter='social.linkedin_client_secret',

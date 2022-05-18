@@ -9,6 +9,7 @@
                     <group>
                         <field name="name"/>
                         <field name="product_id"/>
+                        <field name="company_id" />
                     </group>
                     <notebook>
                         <page string="Rules" name="commission_rules">
@@ -28,6 +29,18 @@
                 <field name="name"/>
                 <field name="product_id"/>
             </tree>
+        </field>
+    </record>
+
+    <record id="commission_plan_search_view" model="ir.ui.view">
+        <field name="name">commission.plan.search.view</field>
+        <field name="model">commission.plan</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="company_id"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
         </field>
     </record>
 

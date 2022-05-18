@@ -24,6 +24,7 @@
     <record id="helpdesk_ticket_view_form_inherit_stock_user" model="ir.ui.view">
         <field name='name'>helpdesk.ticket.form.inherit.repair.stock.user</field>
         <field name="model">helpdesk.ticket</field>
+        <field name="priority">50</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="arch" type="xml">
             <field name="stage_id" position="before">
@@ -42,6 +43,11 @@
         <field name="model">helpdesk.team</field>
         <field name="inherit_id" ref="helpdesk.helpdesk_team_view_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_view_sla_policy']" position="before">
+                <button class="oe_stat_button" icon="fa-wrench" type="object" name="action_view_repairs" attrs="{'invisible': [('use_product_repairs', '=', False)]}">
+                    <field name="repairs_count" string="Repairs" widget="statinfo"/>
+                </button>
+            </xpath>
             <div id="use_product_repairs" position="replace"/>
         </field>
     </record>

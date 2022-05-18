@@ -10,14 +10,10 @@ class HrReferralLinkToShare(models.TransientModel):
     _name = 'hr.referral.link.to.share'
     _description = 'Referral Link To Share'
 
-    @api.model
-    def default_get(self, default_fields):
-        res = super().default_get(default_fields)
-        if 'job_id' not in res:
-            res['job_id'] = self.env.context.get('active_id')
-        return res
-
-    job_id = fields.Many2one('hr.job')
+    job_id = fields.Many2one(
+        'hr.job',
+        default=lambda self: self.env.context.get('active_id', None),
+    )
     channel = fields.Selection([
         ('direct', 'Link'),
         ('facebook', 'Facebook'),
@@ -36,7 +32,7 @@ class HrReferralLinkToShare(models.TransientModel):
         if self.job_id and not self.job_id.utm_campaign_id:
             self.job_id.utm_campaign_id = self.env['utm.campaign'].create({'name': self.job_id.name}).id
 
-        link_tracker = self.env['link.tracker'].create({
+        link_tracker = self.env['link.tracker'].search_or_create({
             'url': self.get_base_url() + (self.job_id.website_url or '/jobs'),
             'campaign_id': self.job_id.utm_campaign_id.id,
             'source_id': self.env.user.utm_source_id.id,
@@ -49,4 +45,4 @@ class HrReferralLinkToShare(models.TransientModel):
         elif self.channel == 'twitter':
             self.url = 'https://twitter.com/intent/tweet?tw_p=tweetbutton&text=Amazing job offer for %s! Check it live: %s' % (self.job_id.name, link_tracker.short_url)
         elif self.channel == 'linkedin':
-            self.url = 'https://www.linkedin.com/shareArticle?mini=true&url=%s' % link_tracker.short_url
+            self.url = 'https://www.linkedin.com/sharing/share-offsite?url=%s' % link_tracker.short_url

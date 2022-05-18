@@ -45,10 +45,10 @@ class Company(models.Model):
         :return: the action to execute
         """
         self.ensure_one()
-        action = self.env.ref('account_consolidation.account_mapping_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.account_mapping_action")
         action.update({
             'domain': [('company_id', '=', self.id)],
-            'display_name': _('Account Mapping: ') + self.name,
+            'display_name': _('Account Mapping: %(company)s', company=self.name),
         })
         return action
 
@@ -59,7 +59,7 @@ class Company(models.Model):
         :return: the action to execute
         """
         self.ensure_one()
-        action = self.env.ref('account_consolidation.consolidation_rate_action').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("account_consolidation.consolidation_rate_action")
         action.update({
             'context': {
                 'default_chart_id': self.env.context.get('chart_id', False),
@@ -68,7 +68,7 @@ class Company(models.Model):
                 'search_default_company_id': self.id
             },
             'domain': [('company_id', '=', self.id)],
-            'display_name': _('Historical Rates: ') + self.name,
+            'display_name': _('Historical Rates: %(company)s', company=self.name),
         })
         return action
 

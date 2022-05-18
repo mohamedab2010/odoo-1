@@ -8,13 +8,10 @@ class SignRequestSendCopy(models.TransientModel):
     _name = 'sign.request.send.copy'
     _description = 'Sign send request copy'
 
-    @api.model
-    def default_get(self, fields):
-        res = super(SignRequestSendCopy, self).default_get(fields)
-        res['request_id'] = self.env.context.get('active_id')
-        return res
-
-    request_id = fields.Many2one('sign.request')
+    request_id = fields.Many2one(
+        'sign.request',
+        default=lambda self: self.env.context.get('active_id', None),
+    )
     partner_ids = fields.Many2many('res.partner', string="Contact")
 
     def send_a_copy(self):

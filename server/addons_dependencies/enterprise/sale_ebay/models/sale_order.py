@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-from odoo.osv import expression
 from . import product
 
 _logger = logging.getLogger(__name__)
@@ -16,31 +15,32 @@ class SaleOrder(models.Model):
 
     @api.model
     def _process_order(self, order):
-        so = self.env['sale.order'].search(
-            [('client_order_ref', '=', order['OrderID'])], limit=1)
-        try:
-            if not so:
-                so = self._process_order_new(order)
-                so._process_order_update(order)
-        except Exception as e:
-            message = _("Ebay could not synchronize order:\n%s") % str(e)
-            path = str(order)
-            product._log_logging(self.env, message, "_process_order", path)
-            _logger.exception(message)
+        for transaction in order['TransactionArray']['Transaction']:
+            so = self.env['sale.order'].search(
+                [('client_order_ref', '=', transaction['OrderLineItemID'])], limit=1)
+            try:
+                if not so:
+                    so = self._process_order_new(order, transaction)
+                    so._process_order_update(order)
+            except Exception as e:
+                message = _("Ebay could not synchronize order:\n%s") % str(e)
+                path = str(order)
+                product._log_logging(self.env, message, "_process_order", path)
+                _logger.exception(message)
 
     @api.model
-    def _process_order_new(self, order):
+    def _process_order_new(self, order, transaction):
         (partner, shipping_partner) = self._process_order_new_find_partners(order)
-        fp_id = self.env['account.fiscal.position'].get_fiscal_position(partner.id, delivery_id=shipping_partner.id)
-        if fp_id:
-            partner.property_account_position_id = fp_id
+        fp = self.env['account.fiscal.position'].get_fiscal_position(partner.id, delivery_id=shipping_partner.id)
+        if fp:
+            partner.property_account_position_id = fp
         create_values = {
             'partner_id': partner.id,
             'partner_shipping_id': shipping_partner.id,
             'state': 'draft',
-            'client_order_ref': order['OrderID'],
-            'origin': 'eBay' + order['OrderID'],
-            'fiscal_position_id': fp_id if fp_id else False,
+            'client_order_ref': transaction['OrderLineItemID'],
+            'origin': 'eBay' + transaction['OrderLineItemID'],
+            'fiscal_position_id': fp.id,
             'date_order': product._ebay_parse_date(order['PaidTime']),
         }
         if self.env['ir.config_parameter'].sudo().get_param('ebay_sales_team'):
@@ -49,8 +49,7 @@ class SaleOrder(models.Model):
 
         sale_order = self.env['sale.order'].create(create_values)
 
-        for transaction in order['TransactionArray']['Transaction']:
-            sale_order._process_order_new_transaction(transaction)
+        sale_order._process_order_new_transaction(transaction)
 
         sale_order._process_order_shipping(order)
 
@@ -211,7 +210,7 @@ class SaleOrder(models.Model):
                 'ebay_sync_stock': False,
             })
             product.message_post(body=
-                _('Product created from eBay transaction %s') % transaction['TransactionID'])
+                _('Product created from eBay transaction %s', transaction['TransactionID']))
 
         if product.product_variant_count > 1:
             if 'Variation' in transaction:
@@ -295,4 +294,4 @@ class SaleOrder(models.Model):
                     body=_('The Buyer Chose The Following Delivery Method :\n') + shipping_name)
         except UserError as e:
             self.message_post(body=
-                _('Ebay Synchronisation could not confirm because of the following error:\n%s') % str(e))
+                _('Ebay Synchronisation could not confirm because of the following error:\n%s', str)(e))

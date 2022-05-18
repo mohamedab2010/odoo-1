@@ -27,22 +27,22 @@
                                 <div class="d-flex align-items-start flex-row">
                                     <div class="mt-2 h6 flex-grow-1">
                                         <t t-if="record.no_of_recruitment.raw_value > 1">
-                                            <t t-set="pos" t-value="'Positions'"/>
+                                            <t t-set="pos">Positions</t>
                                         </t>
                                         <t t-else="">
-                                            <t t-set="pos" t-value="'Position'"/>
+                                            <t t-set="pos">Position</t>
                                         </t>
                                         <field name="no_of_recruitment"/> Open <t t-esc="pos"/>
                                     </div>
                                     <div class="d-flex align-items-center flex-grow-0 mt-1">
-                                        <img src="/hr_referral/static/src/img/points.svg" class="mr-2" height="20px" alt=""/>
+                                        <img src="/hr_referral/static/src/img/points.svg" class="mr-2" height="20px" alt="Points icon"/>
                                         <span class="text-nowrap"><field name="max_points"/> Points</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="o_kanban_card_content container">
                                 <div class="pb-2">
-                                    <p class="text-muted"><field name="description"/></p>
+                                    <t t-out="record.description.value" class="text-muted"/>
                                 </div>
                                 <div>
                                     <div class="o_button_referral">
@@ -87,7 +87,7 @@
         <field name="view_id" ref="hr_referral.view_hr_job_employee_referral_kanban"/>
         <field name="domain">[('is_published', '=', True), ('state', '=', 'recruit')]</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
+            <p class="o_view_nocontent_referral_job_kanban">
                 No job positions are available to share.
             </p>
         </field>

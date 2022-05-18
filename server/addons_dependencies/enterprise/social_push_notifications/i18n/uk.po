@@ -3,18 +3,16 @@
 # 	* social_push_notifications
 # 
 # Translators:
-# Martin Trigaux, 2019
-# ТАрас <tratatuta@i.ua>, 2019
-# Bohdan Lisnenko, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-07 07:21+0000\n"
-"PO-Revision-Date: 2019-09-23 14:03+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -60,20 +58,23 @@ msgstr "Затримка"
 #: code:addons/social_push_notifications/static/src/xml/social_push_notifications_templates.xml:0
 #, python-format
 msgid "Deny"
-msgstr "Заперечувати"
+msgstr "Заборонити"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__display_push_notification_attributes
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__display_push_notification_attributes
 msgid "Display Push Notifications Attributes"
 msgstr "Відображати атрибути push-сповіщень"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__display_push_notifications_preview
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__display_push_notifications_preview
 msgid "Display Push Notifications Preview"
 msgstr "Відображати попередній переглял push-сповіщень"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,help:social_push_notifications.field_social_post__visitor_domain
+#: model:ir.model.fields,help:social_push_notifications.field_social_post_template__visitor_domain
 msgid "Domain to send push notifications to visitors."
 msgstr "Домен для відправлення push-сповіщень відвідувачам."
 
@@ -84,21 +85,12 @@ msgid "Enable Web Push Notifications"
 msgstr "Увімкнути веб push-сповіщення"
 
 #. module: social_push_notifications
-#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
-msgid ""
-"Enable push notifications and configure this website's notifications "
-"permission request"
-msgstr ""
-"Увімкніть push-сповіщення та налаштуйте запит на дозвіл сповіщень цього "
-"сайту"
-
-#. module: social_push_notifications
 #: code:addons/social_push_notifications/controllers/main.py:0
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
 #, python-format
-msgid ""
-"Enable push notifications to be notified about new features and events."
-msgstr "Увімкніть push-сповіщення, щоби бути в курсі нових функцій та подій."
+msgid "Enable push notifications to be notified about new features."
+msgstr ""
+"Увімкніть push-сповіщення, щоб отримувати сповіщення про нові функції."
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_res_config_settings__firebase_admin_key_file
@@ -147,9 +139,19 @@ msgid "Google Chrome ·"
 msgstr "Google Chrome ·"
 
 #. module: social_push_notifications
+#: model:ir.model,name:social_push_notifications.model_ir_http
+msgid "HTTP Routing"
+msgstr "Маршрутизація HTTP"
+
+#. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
 msgid "Icon"
 msgstr "Значок"
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_template_view_form
+msgid "Icon Image"
+msgstr "Зображення іконки"
 
 #. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
@@ -157,13 +159,21 @@ msgid "Key File"
 msgstr "Файл ключа"
 
 #. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_template_view_form
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_view_form
+msgid "Local Time"
+msgstr "Місцевий час"
+
+#. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_media__media_type
 msgid "Media Type"
 msgstr "Тип медіа"
 
 #. module: social_push_notifications
+#. openerp-web
 #: code:addons/social_push_notifications/models/social_live_post.py:0
-#: code:addons/social_push_notifications/models/social_post.py:0
+#: code:addons/social_push_notifications/models/social_post_template.py:0
+#: code:addons/social_push_notifications/static/src/js/push_preview.js:0
 #, python-format
 msgid "New Message"
 msgstr "Нове повідомлення"
@@ -198,6 +208,11 @@ msgstr "Текст запиту сповіщення"
 #: model:ir.model.fields,field_description:social_push_notifications.field_website__notification_request_title
 msgid "Notification Request Title"
 msgstr "Заголовок запиту сповіщення"
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_template_view_form
+msgid "Notification Title"
+msgstr "Заголовок сповіщення"
 
 #. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.utm_campaign_view_form
@@ -235,6 +250,7 @@ msgstr "ID ключа сертифікації Push"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__push_notification_image
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__push_notification_image
 msgid "Push Icon Image"
 msgstr "Зобращення іконки сповіщення"
 
@@ -245,16 +261,22 @@ msgstr " Спливаюче сповіщення"
 
 #. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.website_visitor_view_search
-msgid "Push Notification Disabled"
-msgstr "Вимкнене спливаюче сповіщення"
+msgid "Push Notification Off"
+msgstr "Спливаючі сповіщення вимкнуті"
 
 #. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.website_visitor_view_search
-msgid "Push Notification Enabled"
-msgstr "Увімкнене спливаюче сповіщення"
+msgid "Push Notification On"
+msgstr "Спливаючі сповіщення увімкнуті"
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_template_view_form
+msgid "Push Notification Options"
+msgstr "Опції спливаючих сповіщень"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__push_notification_title
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__push_notification_title
 msgid "Push Notification Title"
 msgstr "Заголовок спливаючого сповіщення"
 
@@ -263,13 +285,14 @@ msgstr "Заголовок спливаючого сповіщення"
 #: model:ir.model.fields,field_description:social_push_notifications.field_utm_campaign__social_push_notification_ids
 #: model:ir.model.fields,field_description:social_push_notifications.field_website_visitor__has_push_notifications
 #: model:ir.model.fields.selection,name:social_push_notifications.selection__social_media__media_type__push_notifications
-#: model_terms:ir.ui.view,arch_db:social_push_notifications.utm_campaign_view_form
 #: model:social.media,name:social_push_notifications.social_media_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.utm_campaign_view_form
 msgid "Push Notifications"
 msgstr "Push-сповіщення"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__push_notifications_preview
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__push_notifications_preview
 msgid "Push Notifications Preview"
 msgstr "Попередній перегляд спливаючого сповіщення"
 
@@ -280,6 +303,7 @@ msgstr "Підписка сповіщення"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__push_notification_target_url
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__push_notification_target_url
 msgid "Push Target URL"
 msgstr "URL-адреса цільового сповіщення"
 
@@ -307,8 +331,18 @@ msgstr "Надіслати спливаючі сповіщення"
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__use_visitor_timezone
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__use_visitor_timezone
 msgid "Send at Visitors' Timezone"
 msgstr "Надіслати у часовому поясі відвідувачів"
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
+msgid ""
+"Send push notifications and configure this website's notifications "
+"permission request"
+msgstr ""
+"Надсилайте push-сповіщення та налаштовуйте запит на дозвіл сповіщень цього "
+"веб-сайту"
 
 #. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
@@ -336,10 +370,20 @@ msgid "Social Post"
 msgstr "Публікація в соцмережах"
 
 #. module: social_push_notifications
+#: model:ir.model,name:social_push_notifications.model_social_post_template
+msgid "Social Post Template"
+msgstr "Шаблон публікації соцмереж"
+
+#. module: social_push_notifications
 #: code:addons/social_push_notifications/models/website_visitor.py:0
 #, python-format
 msgid "Some selected visitors do not allow push notifications."
 msgstr "Деякі відвідувачі не дозволяють спливаючі сповіщення."
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_template_view_form
+msgid "Target URL"
+msgstr "Цільова URL"
 
 #. module: social_push_notifications
 #. openerp-web
@@ -362,6 +406,7 @@ msgstr ""
 
 #. module: social_push_notifications
 #: model:ir.model.fields,help:social_push_notifications.field_social_post__push_notification_image
+#: model:ir.model.fields,help:social_push_notifications.field_social_post_template__push_notification_image
 msgid "This icon will be displayed in the browser notification"
 msgstr "Ця іконка буде відображатися у сповіщенні браузера"
 
@@ -400,6 +445,7 @@ msgstr ""
 
 #. module: social_push_notifications
 #: model:ir.model.fields,field_description:social_push_notifications.field_social_post__visitor_domain
+#: model:ir.model.fields,field_description:social_push_notifications.field_social_post_template__visitor_domain
 msgid "Visitor Domain"
 msgstr "Домен відвідувача"
 
@@ -421,14 +467,9 @@ msgid "Web API Key"
 msgstr "Ключ веб API"
 
 #. module: social_push_notifications
-#: model_terms:ir.ui.view,arch_db:social_push_notifications.social_post_view_form
-msgid "Web Notification Options"
-msgstr "Функції веб-сповіщень"
-
-#. module: social_push_notifications
 #: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
-msgid "Web Push Notifications (Social app)"
-msgstr "Спливаючі веб-сповіщення (модуль Соцмережі)"
+msgid "Web Push Notifications"
+msgstr "Веб спливаючі сповіщення"
 
 #. module: social_push_notifications
 #: model:ir.model,name:social_push_notifications.model_website
@@ -448,6 +489,16 @@ msgid "You can't delete a Push Notification account."
 msgstr "Ви не можете видалити оліковий запис спливаючих сповіщень."
 
 #. module: social_push_notifications
+#: code:addons/social_push_notifications/models/social_account.py:0
+#, python-format
+msgid ""
+"You have to either install \"firebase_admin>=2.17.0\" or "
+"\"google_auth>=1.18.0\" to be able to send push notifications."
+msgstr ""
+"Вам потрібно або встановити \"firebase_admin>=2.17.0\" або "
+"\"google_auth>=1.18.0\" щоби мати змогу надсилати сповіщення."
+
+#. module: social_push_notifications
 #. openerp-web
 #: code:addons/social_push_notifications/static/src/js/push_preview.js:0
 #, python-format
@@ -457,10 +508,31 @@ msgid ""
 msgstr "Ваші сповіщення браузера заблоковано або ви не в середовищі HTTPS."
 
 #. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
+msgid "e.g. \"280765099157\""
+msgstr "напр. \"280765099157\""
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
+msgid "e.g. \"BIzbSyXhhsFHEgphW55CSg5cV7h7c_S-AuTMKc9\""
+msgstr "напр. \"BIzbSyXhhsFHEgphW55CSg5cV7h7c_S-AuTMKc9\""
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
+msgid "e.g. \"CCSc77KP_LX8dTAogFakOoJ_VqNP15u0-43psDJe__a9B...\""
+msgstr "напр. \"CCSc77KP_LX8dTAogFakOoJ_VqNP15u0-43psDJe__a9B...\""
+
+#. module: social_push_notifications
+#: model_terms:ir.ui.view,arch_db:social_push_notifications.res_config_settings_view_form
+msgid "e.g. \"my-project-id\""
+msgstr "напр. \"my-project-id\""
+
+#. module: social_push_notifications
 #: model:ir.model.fields,help:social_push_notifications.field_social_post__use_visitor_timezone
+#: model:ir.model.fields,help:social_push_notifications.field_social_post_template__use_visitor_timezone
 msgid ""
-"e.g: If you post at 15:00, visitors will receive the post at 15:00 their "
-"time."
+"e.g: If you post at 15:00 your time, all visitors will receive the post at "
+"15:00 their time."
 msgstr ""
-"напр: Якщо ви публікуєте о 15:00, відвідувачі отримають публікацію о 15:00 "
-"за їхнім часом."
+"напр.: Якщо ви публікуєте о 15:00 за вашим часом, усі відвідувачі отримають "
+"повідомлення о 15:00 свого часу."

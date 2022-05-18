@@ -69,6 +69,12 @@ class DocumentShare(models.Model):
             name_array.append((record.id, record.name or "unnamed link"))
         return name_array
 
+    def _get_documents_domain(self):
+        """
+            Allows overriding the domain in customizations for modifying the search() domain
+        """
+        return [[('folder_id', '=', self.folder_id.id)]]
+
     def _get_documents(self, document_ids=None):
         """
         :param list[int] document_ids: limit to the list of documents to fetch.
@@ -80,7 +86,7 @@ class DocumentShare(models.Model):
         Documents = limited_self.env['documents.document']
 
         search_ids = set()
-        domains = [[('folder_id', '=', self.folder_id.id)]]
+        domains = self._get_documents_domain()
 
         if document_ids is not None:
             if not document_ids:
@@ -88,8 +94,12 @@ class DocumentShare(models.Model):
             search_ids = set(document_ids)
 
         if self.type == 'domain':
-            record_domain = literal_eval(self.domain)
+            record_domain = []
+            if self.domain:
+                record_domain = literal_eval(self.domain)
             domains.append(record_domain)
+            if self.action == 'download':
+                domains.append([('type', '!=', 'empty')])
         else:
             share_ids = limited_self.document_ids.ids
             search_ids = search_ids.intersection(share_ids) if search_ids else share_ids
@@ -164,29 +174,35 @@ class DocumentShare(models.Model):
                 if diff_time <= 0:
                     record.state = 'expired'
 
-    def get_alias_model_name(self, vals):
-        return vals.get('alias_model', 'documents.document')
-
-    def _compute_alias_domain(self):
-        alias_domain = self.env["ir.config_parameter"].sudo().get_param("mail.catchall.domain")
-        for record in self:
-            record.alias_domain = alias_domain
-
     @api.onchange('access_token')
     def _compute_full_url(self):
-        base_url = self.env["ir.config_parameter"].sudo().get_param("web.base.url")
         for record in self:
-            record.full_url = "%s/document/share/%s/%s" % (base_url, record.id, record.access_token)
+            record.full_url = "%s/document/share/%s/%s" % (record.get_base_url(), record.id, record.access_token)
 
-    def update_alias_defaults(self):
-        for share in self:
-            values = {
+    def _alias_get_creation_values(self):
+        values = super(DocumentShare, self)._alias_get_creation_values()
+        values['alias_model_id'] = self.env['ir.model']._get('documents.document').id
+        if self.id:
+            values['alias_defaults'] = defaults = literal_eval(self.alias_defaults or "{}")
+            defaults.update({
                 'tag_ids': [(6, 0, self.tag_ids.ids)],
                 'folder_id': self.folder_id.id,
                 'partner_id': self.partner_id.id,
                 'create_share_id': self.id,
-            }
-            share.alias_id.alias_defaults = values
+            })
+        return values
+
+    def _get_share_popup(self, context, vals):
+        view_id = self.env.ref('documents.share_view_form_popup').id
+        return {
+            'context': context,
+            'res_model': 'documents.share',
+            'target': 'new',
+            'name': _('Share selected records') if vals.get('type') == 'ids' else _('Share domain'),
+            'res_id': self.id if self else False,
+            'type': 'ir.actions.act_window',
+            'views': [[view_id, 'form']], 
+        }
 
     def send_share_by_mail(self, template_xmlid):
         self.ensure_one()
@@ -194,34 +210,33 @@ class DocumentShare(models.Model):
         if request_template:
             request_template.send_mail(self.id)
 
-    def write(self, vals):
-        result = super(DocumentShare, self).write(vals)
-        self.update_alias_defaults()
-        return result
-
     @api.model
     def create(self, vals):
         if not vals.get('owner_id'):
             vals['owner_id'] = self.env.uid
         share = super(DocumentShare, self).create(vals)
-        share.update_alias_defaults()
         return share
 
     @api.model
-    def create_share(self, vals):
+    def open_share_popup(self, vals):
         """
-        creates a share link and returns a view.
-        :return: a form action that opens the share window to display the URL and the settings.
+        returns a view.
+        :return: a form action that opens the share window to display the settings.
         """
+        new_context = dict(self.env.context)
+        new_context.update({
+            'default_owner_id': self.env.uid,
+            'default_folder_id': vals.get('folder_id'),
+            'default_tag_ids': vals.get('tag_ids'),
+            'default_type': vals.get('type', 'domain'),
+            'default_domain': vals.get('domain') if vals.get('type', 'domain') == 'domain' else False,
+            'default_document_ids': vals.get('document_ids', False),
+        })
+        return self._get_share_popup(new_context, vals)
 
-        share = self.create(vals)
-        view_id = self.env.ref('documents.share_view_form_popup').id
-        return {
-            'context': self._context,
-            'res_model': 'documents.share',
-            'target': 'new',
-            'name': _('Share selected records') if vals.get('type') == 'ids' else _('Share domain'),
-            'res_id': share.id,
-            'type': 'ir.actions.act_window',
-            'views': [[view_id, 'form']],
-        }
+    def action_delete_shares(self):
+        self.unlink()
+
+    def action_generate_url(self):
+        #Reload the wizard view to display the generated full url.
+        return self._get_share_popup(self.env.context, {'type': self.type})

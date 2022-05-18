@@ -3,16 +3,17 @@
 # 	* account_invoice_extract
 # 
 # Translators:
-# Martin Trigaux, 2020
-# Khwunchai Jaengsawang <khwunchai.j@ku.th>, 2020
+# Martin Trigaux, 2021
+# Odoo Thaidev <odoothaidev@gmail.com>, 2021
+# Wichanon Jamwutthipreecha, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 13.0+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-12-05 09:37+0000\n"
-"PO-Revision-Date: 2019-08-26 09:34+0000\n"
-"Last-Translator: Khwunchai Jaengsawang <khwunchai.j@ku.th>, 2020\n"
+"POT-Creation-Date: 2022-01-24 09:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:37+0000\n"
+"Last-Translator: Wichanon Jamwutthipreecha, 2022\n"
 "Language-Team: Thai (https://www.transifex.com/odoo/teams/41243/th/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -45,10 +46,20 @@ msgid ""
 "<span class=\"fa fa-lg fa-building-o\" title=\"Values set here are company-"
 "specific.\"/>"
 msgstr ""
+"<span class=\"fa fa-lg fa-building-o\" title=\"ค่าที่กำหนดเป็นค่าเฉพาะของ "
+"บริษัท.\"/>"
 
 #. module: account_invoice_extract
+#: model:mail.template,name:account_invoice_extract.account_invoice_extract_no_credit
 #: model:mail.template,subject:account_invoice_extract.account_invoice_extract_no_credit
 msgid "Account Invoice Extract Notification"
+msgstr ""
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid ""
+"All fields will be automated by Artificial Intelligence, it might take 5 "
+"seconds."
 msgstr ""
 
 #. module: account_invoice_extract
@@ -56,7 +67,7 @@ msgstr ""
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__error_status
 #, python-format
 msgid "An error occurred"
-msgstr ""
+msgstr "An error occurred"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_ir_attachment
@@ -66,17 +77,21 @@ msgstr "แนบ"
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "Buy credits"
-msgstr ""
+msgstr "ซื้อเครดิต"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_resend_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_resend_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_resend_button
 msgid "Can show the ocr resend button"
-msgstr ""
+msgstr "สามารถแสดงปุ่มส่ง ocr อีกครั้ง"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_can_show_send_button
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_can_show_send_button
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_can_show_send_button
 msgid "Can show the ocr send button"
-msgstr ""
+msgstr "สามารถแสดงปุ่มส่ง ocr ได้"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_res_company
@@ -86,12 +101,12 @@ msgstr "บริษัท"
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__done
 msgid "Completed flow"
-msgstr ""
+msgstr "สิ้นสุดกระแส"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_res_config_settings
 msgid "Config Settings"
-msgstr ""
+msgstr "การตั้งค่า"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__create_uid
@@ -102,6 +117,27 @@ msgstr "สร้างโดย"
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__create_date
 msgid "Created on"
 msgstr "สร้างเมื่อ"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Currency"
+msgstr "สกุลเงิน"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Customer"
+msgstr "ลูกค้า"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Date"
+msgstr "วันที่"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__res_company__extract_show_ocr_option_selection__auto_send
@@ -124,7 +160,16 @@ msgid "Do not digitalize bills"
 msgstr ""
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Due Date"
+msgstr "วันกำหนดจ่าย"
+
+#. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__duplicated_vendor_ref
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__duplicated_vendor_ref
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__duplicated_vendor_ref
 msgid "Duplicated vendor reference"
 msgstr ""
 
@@ -134,19 +179,25 @@ msgid "Enable to get only one invoice line per tax"
 msgstr ""
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_error_message
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_error_message
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_error_message
 msgid "Error message"
-msgstr ""
+msgstr "ข้อความผิดพลาด"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_word_ids
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_word_ids
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_word_ids
 msgid "Extract Word"
-msgstr ""
+msgstr "Extract Word"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_state
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_state
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_state
 msgid "Extract state"
-msgstr ""
+msgstr "สถานะ Extract"
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_account_invoice_extract_words
@@ -169,9 +220,11 @@ msgid "ID"
 msgstr "รหัส"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Id of the request to IAP-OCR"
-msgstr ""
+msgstr "ไอดีของคำร้องขอไปยัง IAP-OCR"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__invoice_id
@@ -186,7 +239,9 @@ msgid "Invoice OCR: Update All Status"
 msgstr ""
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,help:account_invoice_extract.field_account_bank_statement_line__extract_remote_id
 #: model:ir.model.fields,help:account_invoice_extract.field_account_move__extract_remote_id
+#: model:ir.model.fields,help:account_invoice_extract.field_account_payment__extract_remote_id
 msgid "Invoice extract id"
 msgstr ""
 
@@ -202,8 +257,8 @@ msgstr ""
 
 #. module: account_invoice_extract
 #: model:ir.model,name:account_invoice_extract.model_account_move
-msgid "Journal Entries"
-msgstr "การบันทึกรายวัน"
+msgid "Journal Entry"
+msgstr "รายการบันทึกบัญชี"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words____last_update
@@ -224,17 +279,17 @@ msgstr "อัพเดทครั้งสุดท้ายเมื่อ"
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "No document name provided"
-msgstr ""
+msgstr "ไม่ได้ระบุชื่อเอกสาร"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__no_extract_requested
 msgid "No extract requested"
-msgstr ""
+msgstr "ไม่มีการร้องขอการดึง"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__not_enough_credit
 msgid "Not enough credit"
-msgstr ""
+msgstr "เครดิตไม่เพียงพอ"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_res_company__extract_single_line_per_tax
@@ -248,14 +303,31 @@ msgid "Processing Option"
 msgstr ""
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Reference"
+msgstr "อ้างอิง"
+
+#. module: account_invoice_extract
+#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
+msgid "Refresh"
+msgstr "รีเฟรช"
+
+#. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "Resend For Digitalization"
+msgstr "ส่งอีกครั้งเพื่อการแปลงเป็นดิจิทัล"
+
+#. module: account_invoice_extract
+#: model:ir.actions.server,name:account_invoice_extract.model_account_send_for_digitalization
+msgid "Send Bills for digitalization"
 msgstr ""
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
 msgid "Send For Digitalization"
-msgstr ""
+msgstr "ส่งเพื่อแปลงเป็นดิจิทัล"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_res_company__extract_show_ocr_option_selection
@@ -266,17 +338,27 @@ msgstr ""
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "Server is currently under maintenance. Please retry later"
-msgstr ""
+msgstr "ขณะนี้เซิร์ฟเวอร์อยู่ในระหว่างการบำรุงรักษา โปรดลองอีกครั้งภายหลัง"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "Server not available. Please retry later"
-msgstr ""
+msgstr "เซิร์ฟเวอร์ไม่พร้อมใช้งาน โปรดลองอีกครั้งในภายหลัง"
 
 #. module: account_invoice_extract
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_bank_statement_line__extract_status_code
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_move__extract_status_code
+#: model:ir.model.fields,field_description:account_invoice_extract.field_account_payment__extract_status_code
 msgid "Status code"
+msgstr "โค้ดสถานะ"
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
+"The 'invoice_ocr' IAP account token is invalid. Please delete it to let Odoo"
+" generate a new one or fill it with a valid token."
 msgstr ""
 
 #. module: account_invoice_extract
@@ -292,31 +374,19 @@ msgstr ""
 msgid ""
 "The data extraction is not finished yet. The extraction usually takes "
 "between 5 and 60 seconds."
-msgstr ""
+msgstr "การดึงข้อมูลยังไม่เสร็จสิ้น การดึงมักจะใช้เวลาประมาณ 5 ถึง 60 วินาที"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "The document could not be found"
-msgstr ""
-
-#. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid ""
-"The file has been sent and is being processed. It usually takes between 5 "
-"and 60 seconds."
-msgstr ""
+msgstr "ไม่พบเอกสาร"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "Unsupported image format"
-msgstr ""
-
-#. module: account_invoice_extract
-#: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
-msgid "Update status"
-msgstr ""
+msgstr "รูปแบบรูปภาพที่ไม่รองรับ"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__user_selected
@@ -324,13 +394,42 @@ msgid "User Selected"
 msgstr ""
 
 #. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "VAT"
+msgstr "ภาษีมูลค่าเพิ่ม (VAT)"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor"
+msgstr "ผู้ขาย"
+
+#. module: account_invoice_extract
+#. openerp-web
+#: code:addons/account_invoice_extract/static/src/js/invoice_extract_fields.js:0
+#, python-format
+msgid "Vendor Reference"
+msgstr "เอกสารอ้างอิง"
+
+#. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_extraction
 msgid "Waiting extraction"
-msgstr ""
+msgstr "รอการดึง"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__waiting_validation
 msgid "Waiting validation"
+msgstr "กำลังรอการตรวจสอบ"
+
+#. module: account_invoice_extract
+#: code:addons/account_invoice_extract/models/account_invoice.py:0
+#, python-format
+msgid ""
+"Warning: as the bill date is prior to the lock date, the accounting date was"
+" set for the first following day"
 msgstr ""
 
 #. module: account_invoice_extract
@@ -367,12 +466,12 @@ msgstr ""
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__word_page
 msgid "Word Page"
-msgstr ""
+msgstr "Word Page"
 
 #. module: account_invoice_extract
 #: model:ir.model.fields,field_description:account_invoice_extract.field_account_invoice_extract_words__word_text
 msgid "Word Text"
-msgstr ""
+msgstr "Word Text"
 
 #. module: account_invoice_extract
 #: model_terms:ir.ui.view,arch_db:account_invoice_extract.view_move_form_inherit_ocr
@@ -383,7 +482,7 @@ msgstr ""
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
 #, python-format
 msgid "You must send the same quantity of documents and file names"
-msgstr ""
+msgstr "คุณต้องส่งเอกสารและชื่อไฟล์ในจำนวนที่เท่ากัน"
 
 #. module: account_invoice_extract
 #: code:addons/account_invoice_extract/models/account_invoice.py:0
@@ -403,4 +502,4 @@ msgstr ""
 #. module: account_invoice_extract
 #: model:ir.model.fields.selection,name:account_invoice_extract.selection__account_move__extract_state__extract_not_ready
 msgid "waiting extraction, but it is not ready"
-msgstr ""
+msgstr "รอการดึงแต่ยังไม่พร้อม"

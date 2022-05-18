@@ -5,10 +5,10 @@ from contextlib import contextmanager
 
 from odoo import fields
 
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 
 
-class TestCommonForecast(SavepointCase):
+class TestCommonForecast(TransactionCase):
 
     @classmethod
     def setUpEmployees(cls):
@@ -17,11 +17,13 @@ class TestCommonForecast(SavepointCase):
             'work_email': 'joseph@a.be',
             'tz': 'UTC'
         })
+        cls.resource_joseph = cls.employee_joseph.resource_id
         cls.employee_bert = cls.env['hr.employee'].create({
             'name': 'bert',
             'work_email': 'bert@a.be',
             'tz': 'UTC'
         })
+        cls.resource_bert = cls.employee_bert.resource_id
 
     @classmethod
     def setUpProjects(cls):

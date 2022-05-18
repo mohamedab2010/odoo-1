@@ -16,7 +16,7 @@ class AssetModify(models.TransientModel):
     value_residual = fields.Monetary(string="Depreciable Amount", help="New residual amount for the asset")
     salvage_value = fields.Monetary(string="Not Depreciable Amount", help="New salvage amount for the asset")
     currency_id = fields.Many2one(related='asset_id.currency_id')
-    date = fields.Date(default=fields.Date.today(), string='Date')
+    date = fields.Date(default=lambda self: fields.Date.today(), string='Date')
     need_date = fields.Boolean(compute="_compute_need_date")
     gain_value = fields.Boolean(compute="_compute_gain_value", help="Technical field to know if we should display the fields for the creation of gross increase asset")
     account_asset_id = fields.Many2one('account.account', string="Asset Gross Increase Account")
@@ -65,7 +65,6 @@ class AssetModify(models.TransientModel):
         }
         if self.need_date:
             asset_vals.update({
-                'first_depreciation_date': self.asset_id._get_first_depreciation_date(),
                 'prorata_date': self.date,
             })
         if self.env.context.get('resume_after_pause'):
@@ -83,7 +82,8 @@ class AssetModify(models.TransientModel):
         residual_increase = max(0, self.value_residual - new_residual)
         salvage_increase = max(0, self.salvage_value - new_salvage)
 
-        if residual_increase or salvage_increase:
+        # Check for residual/salvage increase while rounding with the company currency precision to prevent float precision issues.
+        if  self.currency_id.round(residual_increase + salvage_increase) > 0:
             move = self.env['account.move'].create({
                 'journal_id': self.asset_id.journal_id.id,
                 'date': fields.Date.today(),
@@ -92,17 +92,17 @@ class AssetModify(models.TransientModel):
                         'account_id': self.account_asset_id.id,
                         'debit': residual_increase + salvage_increase,
                         'credit': 0,
-                        'name': _('Value increase for: ') + self.asset_id.name,
+                        'name': _('Value increase for: %(asset)s', asset=self.asset_id.name),
                     }),
                     (0, 0, {
                         'account_id': self.account_asset_counterpart_id.id,
                         'debit': 0,
                         'credit': residual_increase + salvage_increase,
-                        'name': _('Value increase for: ') + self.asset_id.name,
+                        'name': _('Value increase for: %(asset)s', asset=self.asset_id.name),
                     }),
                 ],
             })
-            move.post()
+            move._post()
             asset_increase = self.env['account.asset'].create({
                 'name': self.asset_id.name + ': ' + self.name,
                 'currency_id': self.asset_id.currency_id.id,
@@ -132,12 +132,12 @@ class AssetModify(models.TransientModel):
             move = self.env['account.move'].create(self.env['account.move']._prepare_move_for_asset_depreciation({
                 'amount': -increase,
                 'asset_id': self.asset_id,
-                'move_ref': _('Value decrease for: ') + self.asset_id.name,
+                'move_ref': _('Value decrease for: %(asset)s', asset=self.asset_id.name),
                 'date': self.date,
                 'asset_remaining_value': 0,
                 'asset_depreciated_value': 0,
                 'asset_value_change': True,
-            })).post()
+            }))._post()
 
         asset_vals.update({
             'value_residual': new_residual,
@@ -152,7 +152,7 @@ class AssetModify(models.TransientModel):
         for child in self.asset_id.children_ids:
             child.compute_depreciation_board()
         tracked_fields = self.env['account.asset'].fields_get(old_values.keys())
-        changes, tracking_value_ids = self.asset_id._message_track(tracked_fields, old_values)
+        changes, tracking_value_ids = self.asset_id._mail_track(tracked_fields, old_values)
         if changes:
             self.asset_id.message_post(body=_('Depreciation board modified') + '<br>' + self.name, tracking_value_ids=tracking_value_ids)
         return {'type': 'ir.actions.act_window_close'}
@@ -160,10 +160,10 @@ class AssetModify(models.TransientModel):
     @api.depends('asset_id', 'value_residual', 'salvage_value')
     def _compute_need_date(self):
         for record in self:
-            value_changed = self.value_residual + self.salvage_value != self.asset_id.value_residual + self.asset_id.salvage_value
+            value_changed = record.value_residual + record.salvage_value != record.asset_id.value_residual + record.asset_id.salvage_value
             record.need_date = (self.env.context.get('resume_after_pause') and record.asset_id.prorata) or value_changed
 
     @api.depends('asset_id', 'value_residual', 'salvage_value')
     def _compute_gain_value(self):
         for record in self:
-            record.gain_value = self.value_residual + self.salvage_value > self.asset_id.value_residual + self.asset_id.salvage_value
+            record.gain_value = record.value_residual + record.salvage_value > record.asset_id.value_residual + record.asset_id.salvage_value

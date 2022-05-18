@@ -2,10 +2,14 @@ odoo.define('web_gantt.GanttRow', function (require) {
 "use strict";
 
 var core = require('web.core');
+var config = require('web.config');
 var session = require('web.session');
 var Widget = require('web.Widget');
+const pyUtils = require('web.py_utils');
+let pyUtilsContext = null;
 
 var QWeb = core.qweb;
+var _t = core._t;
 
 var GanttRow = Widget.extend({
     template: 'GanttView.Row',
@@ -20,7 +24,7 @@ var GanttRow = Widget.extend({
     },
     NB_GANTT_RECORD_COLORS: 12,
     LEVEL_LEFT_OFFSET: 16, // 16 px per level
-    // This determines the pills heigth. It needs to be an odd number. If it is not a pill can
+    // This determines the pills height. It needs to be an odd number. If it is not a pill can
     // be dropped between two rows without the droppables drop method being called (see tolerance: 'intersect').
     LEVEL_TOP_OFFSET: 31, // 31 px per level
     POPOVER_DELAY: 260,
@@ -32,6 +36,7 @@ var GanttRow = Widget.extend({
      * @param {boolean} options.canCreate
      * @param {boolean} options.canEdit
      * @param {boolean} options.disableResize Disable resize for pills
+     * @param {boolean} options.disableDragdrop Disable drag and drop for pills
      * @param {boolean} options.hideSidebar Hide sidebar
      * @param {boolean} options.isGroup If is group, It will display all its
      *                  pills on one row, disable resize, don't allow to create
@@ -42,7 +47,6 @@ var GanttRow = Widget.extend({
         var self = this;
 
         this.name = pillsInfo.groupName;
-        this.groupId = pillsInfo.groupId;
         this.groupLevel = pillsInfo.groupLevel;
         this.groupedByField = pillsInfo.groupedByField;
         this.pills = _.map(pillsInfo.pills, _.clone);
@@ -58,12 +62,13 @@ var GanttRow = Widget.extend({
         this.isGroup = options.isGroup;
         this.isOpen = options.isOpen;
         this.rowId = options.rowId;
-        this.unavailabilities = _.map(options.unavailabilities, function(u) {
-            u.startDate = self._convertToUserTime(u.start);
-            u.stopDate = self._convertToUserTime(u.stop);
-            return u;
+        this.fromServer = options.fromServer;
+        this.unavailabilities = (options.unavailabilities || []).map(u => {
+            return {
+                startDate: self._convertToUserTime(u.start),
+                stopDate: self._convertToUserTime(u.stop)
+            };
         });
-        this._snapToGrid(this.unavailabilities);
 
         this.consolidate = options.consolidate;
         this.consolidationParams = viewInfo.consolidationParams;
@@ -77,7 +82,7 @@ var GanttRow = Widget.extend({
         }
 
         // the total row has some special behaviour
-        this.isTotal = this.groupId === 'groupTotal';
+        this.isTotal = this.rowId === '__total_row__';
 
         this._adaptPills();
         this._snapToGrid(this.pills);
@@ -89,17 +94,19 @@ var GanttRow = Widget.extend({
             this._evaluateDecoration();
         }
         this._calculateMarginAndWidth();
-        this._insertIntoSlot();
 
         // Add the 16px odoo window default padding.
         this.leftPadding = (this.groupLevel + 1) * this.LEVEL_LEFT_OFFSET;
-        this.cellHeight = this.level * this.LEVEL_TOP_OFFSET + (this.level > 0 ? this.level - 1 : 0);
+        this.cellHeight = this.level * (this.LEVEL_TOP_OFFSET + 3) + (this.level > 0 ? this.level : 0);
 
         this.MIN_WIDTHS = { full: 100, half: 50, quarter: 25 };
         this.PARTS = { full: 1, half: 2, quarter: 4 };
 
         this.cellMinWidth = this.MIN_WIDTHS[this.viewInfo.activeScaleInfo.precision];
         this.cellPart = this.PARTS[this.viewInfo.activeScaleInfo.precision];
+
+        this._prepareSlots();
+        this._insertIntoSlot();
 
         this.childrenRows = [];
 
@@ -114,17 +121,18 @@ var GanttRow = Widget.extend({
                 p.totalHeight = factor * p.count;
             }
         }
+        this.isRTL = _t.database.parameters.direction === "rtl";
     },
     /**
      * @override
      */
-    start: function () {
-        if (!this.isGroup) {
-            this._bindPopover();
+    destroy: function () {
+        if (this.$el) {
+            this.$('.o_gantt_pill').popover('dispose');
         }
-        return this._super.apply(this, arguments);
+        this._super();
     },
-
+ 
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
@@ -145,10 +153,10 @@ var GanttRow = Widget.extend({
             drop: function (event, ui) {
                 var diff = self._getDiff(resizeSnappingWidth, ui.position.left);
                 var $pill = ui.draggable;
-                var oldGroupId = $pill.closest('.o_gantt_row').data('group-id');
-                if (diff || (self.groupId !== oldGroupId)) { // do not perform write if nothing change
+                const oldRowId = $pill.closest('.o_gantt_row')[0].dataset.rowId;
+                if (diff || (self.rowId !== oldRowId)) { // do not perform write if nothing change
                     const action = event.ctrlKey || event.metaKey ? 'copy': 'reschedule';
-                    self._saveDragChanges($pill.data('id'), diff, oldGroupId, self.groupId, action);
+                    self._saveDragChanges($pill.data('id'), diff, oldRowId, self.rowId, action);
                 } else {
                     ui.helper.animate({
                         left: 0,
@@ -165,23 +173,28 @@ var GanttRow = Widget.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * Bind popover on pills
-     *
+     * binds the popover of a specific pill
+     * @param target
      * @private
      */
-    _bindPopover: function () {
+    _bindPillPopover: function(target) {
         var self = this;
-        this.$('.o_gantt_pill').popover({
+        var $target = $(target);
+        if (!$target.hasClass('o_gantt_pill')) {
+            $target = this.$(target.offsetParent);
+        }
+        $target.popover({
             container: this.$el,
             trigger: 'hover',
             delay: {show: this.POPOVER_DELAY},
             html: true,
-            placement: 'top',
+            placement: 'auto',
             content: function () {
                 return self.viewInfo.popoverQWeb.render('gantt-popover', self._getPopoverContext($(this).data('id')));
             },
-        });
+        }).popover("show");
     },
+
     /**
      * Compute minimal levels required to display all pills without overlapping
      *
@@ -353,13 +366,17 @@ var GanttRow = Widget.extend({
         var left;
         var diff;
         this.pills.forEach(function (pill) {
+            let widthPill;
+            let margin;
             switch (self.state.scale) {
                 case 'day':
                     left = pill.startDate.diff(pill.startDate.clone().startOf('hour'), 'minutes');
                     pill.leftMargin = (left / 60) * 100;
                     diff = pill.stopDate.diff(pill.startDate, 'minutes');
                     var gapSize = pill.stopDate.diff(pill.startDate, 'hours') - 1; // Eventually compensate border(s) width
-                    pill.width = gapSize > 0 ? 'calc(' + (diff / 60) * 100 + '% + ' + gapSize + 'px)' : (diff / 60) * 100 + '%';
+                    widthPill = (diff / 60) * 100;
+                    margin = pill.aggregatedPills ? 0 : 4;
+                    pill.width = gapSize > 0 ? `calc(${widthPill}% + ${gapSize}px - ${margin}px)` : `calc(${widthPill}% - ${margin}px)`;
                     break;
                 case 'week':
                 case 'month':
@@ -367,7 +384,9 @@ var GanttRow = Widget.extend({
                     pill.leftMargin = (left / 24) * 100;
                     diff = pill.stopDate.diff(pill.startDate, 'hours');
                     var gapSize = pill.stopDate.diff(pill.startDate, 'days') - 1; // Eventually compensate border(s) width
-                    pill.width = gapSize > 0 ? 'calc(' + (diff / 24) * 100 + '% + ' + gapSize + 'px)' : (diff / 24) * 100 + '%';
+                    widthPill = (diff / 24) * 100;
+                    margin = pill.aggregatedPills ? 0 : 4;
+                    pill.width = gapSize > 0 ? `calc(${widthPill}% + ${gapSize}px - ${margin}px)` : `calc(${widthPill}% - ${margin}px)`;
                     break;
                 case 'year':
                     var startDateMonthStart = pill.startDate.clone().startOf('month');
@@ -376,11 +395,12 @@ var GanttRow = Widget.extend({
                     pill.leftMargin = (left / 30) * 100;
 
                     var monthsDiff = stopDateMonthEnd.diff(startDateMonthStart, 'months', true);
+                    margin = pill.aggregatedPills ? 0 : 4;
                     if (monthsDiff < 1) {
                         // A 30th of a month slot is too small to display
                         // 1-day events are displayed as if they were 2-days events
                         diff = Math.max(Math.ceil(pill.stopDate.diff(pill.startDate, 'days', true)), 2);
-                        pill.width = (diff / pill.startDate.daysInMonth()) * 100 + "%";
+                        pill.width = `calc(${(diff / pill.startDate.daysInMonth()) * 100}% - ${margin}px)`;
                     } else {
                         // The pill spans more than one month, so counting its
                         // number of days is not enough as some months have more
@@ -400,7 +420,7 @@ var GanttRow = Widget.extend({
                             // that the middle months are fully covered
                             width += (monthsDiff - 2) * 100;
                         }
-                        pill.width = width + "%";
+                        pill.width = `calc(${width}% - ${margin}px)`;
                     }
                     break;
                 default:
@@ -408,7 +428,7 @@ var GanttRow = Widget.extend({
             }
 
             // Add 1px top-gap to events sharing the same cell.
-            pill.topPadding = pill.level * (self.LEVEL_TOP_OFFSET + 1);
+            pill.topPadding = pill.level * (self.LEVEL_TOP_OFFSET + 4) + 2;
         });
     },
     /**
@@ -468,10 +488,11 @@ var GanttRow = Widget.extend({
      * @returns {Object} context contains pill data, current date, user session
      */
     _getDecorationEvalContext: function (pillData) {
-        return _.extend(
-            this._getPillEvalContext(pillData),
+        return Object.assign(
+            {},
+            this._getPyUtilsContext(),
             session.user_context,
-            {current_date: moment().format('YYYY-MM-DD')}
+            this._getPillEvalContext(pillData),
         );
     },
     /**
@@ -491,14 +512,16 @@ var GanttRow = Widget.extend({
     _getPillEvalContext: function (pillData) {
         var pillContext = _.clone(pillData);
         for (var fieldName in pillContext) {
-            if (this.fieldsInfo[fieldName]) {
-                var fieldType = this.fieldsInfo[fieldName].type;
-                if (pillContext[fieldName]._isAMomentObject) {
-                    pillContext[fieldName] = pillContext[fieldName].format(pillContext[fieldName].f);
+            const field = this.fieldsInfo[fieldName];
+            if (field) {
+                const pillCurrentField = pillContext[fieldName];
+                if (pillCurrentField instanceof moment) {
+                    // Replace by ISO formatted string only, without computing it as it is already avalaible in the Moment object interns.
+                    pillContext[fieldName] = pillCurrentField._i;
                 }
-                else if (fieldType === 'date' || fieldType === 'datetime') {
-                    if (pillContext[fieldName]) {
-                        pillContext[fieldName] = JSON.parse(JSON.stringify(pillContext[fieldName]));
+                else if (field.type === 'date' || field.type === 'datetime') {
+                    if (pillCurrentField) {
+                        pillContext[fieldName] = JSON.parse(JSON.stringify(pillCurrentField));
                     }
                     continue;
                 }
@@ -520,6 +543,21 @@ var GanttRow = Widget.extend({
         return data;
     },
     /**
+    * Get pyUtils context
+    * When in the same tick, the same pyUtils.context in returned.
+    *
+    * @returns {Object} the pyUtils context
+     */
+    _getPyUtilsContext() {
+        if (!pyUtilsContext) {
+            pyUtilsContext = pyUtils.context();
+            Promise.resolve().then(() => {
+                pyUtilsContext = null;
+            });
+        }
+        return pyUtilsContext;
+    },
+    /**
      * @private
      * @returns {number}
      */
@@ -532,72 +570,11 @@ var GanttRow = Widget.extend({
         return this.firstCell.getBoundingClientRect().width / this.cellPart;
     },
     /**
-     * Insert pill into gantt row slot according to its start date
+     * Insert the pills into the gantt row slots according to their start dates
      *
      * @private
      */
     _insertIntoSlot: function () {
-        var self = this;
-        var scale = this.state.scale;
-        var intervalToken = this.SCALES[scale].interval;
-        var precision = this.viewInfo.activeScaleInfo.precision;
-        var x, y;
-        this.slots = _.map(this.viewInfo.slots, function (date, key) {
-            var slotStart = date;
-            var slotStop = date.clone().add(1, intervalToken);
-            var slotHalf = moment((slotStart + slotStop) / 2);
-            var slotUnavailability;
-            var morningUnavailabilities = 0; //morning hours unavailabilities
-            var afternoonUnavailabilities = 0; //afternoon hours unavailabilities
-            self.unavailabilities.forEach(function (unavailability) {
-                if (unavailability.start < slotStop && unavailability.stop > slotStart) {
-                    if ((scale === 'month' || scale === 'week')) {
-                        // We can face to 3 different cases and we will compute the sum
-                        // of all unavailability periods for the morning and the afternoon:
-                        //
-                        // slotStart                slotHalf            slotStop
-                        //    |      ______________     :                   |
-                        // 1. |     |______________|    :                   |
-                        //    |                         :    ___________    |
-                        // 2. |                         :   |___________|   |
-                        //    |                 ________:_______            |
-                        // 3. |                |________:_______|           |
-                        //    |                         :                   |
-                        //    |                         :                   |
-                        x = unavailability.start.diff(slotHalf) / (3600 * 1000);
-                        y = unavailability.stop.diff(slotHalf) / (3600 * 1000);
-                        if (x < 0 && y < 0) { // Case 1.
-                            morningUnavailabilities += Math.min(-x, 12) - Math.min(-y, 12);
-                        } else if (x > 0 && y > 0) { // Case 2.
-                            afternoonUnavailabilities += Math.min(y, 12) - Math.min(x, 12);
-                        } else { // Case 3.
-                            morningUnavailabilities += Math.min(-x, 12);
-                            afternoonUnavailabilities += Math.min(y, 12);
-                        }
-                    } else {
-                        slotUnavailability = 'full';
-                    }
-                }
-            });
-            if (scale === 'month' || scale === 'week') {
-                if ((morningUnavailabilities > 10 && afternoonUnavailabilities > 10) || (precision !== 'half' && morningUnavailabilities + afternoonUnavailabilities > 22)) {
-                    slotUnavailability = 'full';
-                } else if (morningUnavailabilities > 10 && precision === 'half') {
-                    slotUnavailability = 'first_half';
-
-                } else if (afternoonUnavailabilities > 10 && precision === 'half') {
-                    slotUnavailability = 'second_half';
-                }
-            }
-            return {
-                isToday: date.isSame(new Date(), 'day') && self.state.scale !== 'day',
-                unavailability: slotUnavailability,
-                hasButtons: !self.isGroup && !self.isTotal,
-                start: slotStart,
-                stop: slotStop,
-                pills: [],
-            };
-        });
         var slotsToFill = this.slots;
         this.pills.forEach(function (currentPill) {
             var skippedSlots = [];
@@ -616,21 +593,99 @@ var GanttRow = Widget.extend({
         });
     },
     /**
+     * Prepare the gantt row slots
+     *
+     * @private
+     */
+    _prepareSlots: function () {
+        const { interval, time, cellPrecisions } = this.SCALES[this.state.scale];
+        const precision = this.viewInfo.activeScaleInfo.precision;
+        const cellTime = cellPrecisions[precision];
+
+        function getSlotStyle(cellPart, subSlotUnavailabilities, isToday) {
+            function color(d) {
+                if (isToday) {
+                    return d ? '#e9ecef' : '#fffaeb';
+                }
+                return d ? '#e9ecef' : '#ffffff';
+            }
+            const sum = subSlotUnavailabilities.reduce((acc, d) => acc + d);
+            if (!sum) {
+                return '';
+            }
+            if (cellPart === sum) {
+                return `background: ${color(1)}`;
+            }
+            if (cellPart === 2) {
+                const [c0, c1] = subSlotUnavailabilities.map(color);
+                return `background: linear-gradient(90deg, ${c0} 49%, ${c1} 50%);`
+            }
+            if (cellPart === 4) {
+                const [c0, c1, c2, c3] = subSlotUnavailabilities.map(color);
+                return `background: linear-gradient(90deg, ${c0} 24%, ${c1} 25%, ${c1} 49%, ${c2} 50%, ${c2} 74%, ${c3} 75%);`
+            }
+        }
+
+        this.slots = [];
+
+        // We assume that the 'slots' (dates) are naturally ordered
+        // and that unavailabilties have been normalized
+        // (i.e. naturally ordered and pairwise disjoint).
+        // A subslot is considered unavailable (and greyed) when totally covered by
+        // an unavailability.
+        let index = 0;
+        for (const date of this.viewInfo.slots) {
+            const slotStart = date;
+            const slotStop = date.clone().add(1, interval);
+            const isToday = date.isSame(new Date(), 'day') && this.state.scale !== 'day';
+
+            let slotStyle = '';
+            if (!this.isGroup && this.unavailabilities.slice(index).length) {
+                let subSlotUnavailabilities = [];
+                for (let j = 0; j < this.cellPart; j++) {
+                    const subSlotStart = date.clone().add(j * cellTime, time);
+                    const subSlotStop = date.clone().add((j + 1) * cellTime, time).subtract(1, 'seconds');
+                    let subSlotUnavailable = 0;
+                    for (let i = index; i < this.unavailabilities.length; i++) {
+                        let u = this.unavailabilities[i];
+                        if (subSlotStop > u.stopDate) {
+                            index++;
+                        } else if (u.startDate <= subSlotStart) {
+                            subSlotUnavailable = 1;
+                            break;
+                        }
+                    }
+                    subSlotUnavailabilities.push(subSlotUnavailable);
+                }
+                slotStyle = getSlotStyle(this.cellPart, subSlotUnavailabilities, isToday);
+            }
+
+            this.slots.push({
+                isToday: isToday,
+                style: slotStyle,
+                hasButtons: !this.isGroup && !this.isTotal,
+                start: slotStart,
+                stop: slotStop,
+                pills: [],
+            });
+        }
+    },
+    /**
      * Save drag changes
      *
      * @private
      * @param {integer} pillID
      * @param {integer} diff
-     * @param {string} oldGroupId
-     * @param {string} newGroupId
+     * @param {string} oldRowId
+     * @param {string} newRowId
      * @param {'copy'|'reschedule'} action
      */
-    _saveDragChanges: function (pillId, diff, oldGroupId, newGroupId, action) {
+    _saveDragChanges: function (pillId, diff, oldRowId, newRowId, action) {
         this.trigger_up('pill_dropped', {
             pillId: pillId,
             diff: diff,
-            oldGroupId: oldGroupId,
-            newGroupId: newGroupId,
+            oldRowId: oldRowId,
+            newRowId: newRowId,
             groupLevel: this.groupLevel,
             action: action,
         });
@@ -671,11 +726,9 @@ var GanttRow = Widget.extend({
         // DRAGGABLE
         if (this.options.canEdit && !pill.disableStartResize && !pill.disableStopResize && !this.isGroup) {
 
-            const resizeSnappingWidth = this._getResizeSnappingWidth()
-            const grid = [resizeSnappingWidth, 1];
+            const resizeSnappingWidth = this._getResizeSnappingWidth();
 
             if ($pill.draggable( "instance")) {
-                $pill.draggable("option", "grid", grid);
                 return;
             }
             if (!this.$containment) {
@@ -683,7 +736,6 @@ var GanttRow = Widget.extend({
             }
             $pill.draggable({
                 containment: this.$containment,
-                grid: grid,
                 start: function (event, ui) {
                     self.trigger_up('updating_pill_started');
 
@@ -709,13 +761,23 @@ var GanttRow = Widget.extend({
                     }
                     var diff = self._getDiff(resizeSnappingWidth, ui.position.left);
                     self._updateResizeBadge(ui.helper, diff, ui);
+
+                    const pointObject = { x: event.pageX, y: event.pageY };
+                    const options = { container: document.body };
+                    const $el = $.nearest(pointObject, '.o_gantt_hoverable', options).first();
+                    if ($el.length) {
+                        // remove ui-drag-hover class from other rows
+                        $('.o_gantt_hoverable').removeClass('ui-drag-hover');
+                        $el.addClass('ui-drag-hover');
+                    }
                 },
                 stop: function () {
                     self.trigger_up('updating_pill_stopped');
                     self.trigger_up('stop_dragging');
 
+                    self.$('.ui-drag-hover').removeClass('ui-drag-hover');
                     self.$el.removeClass('o_gantt_dragging');
-                    self.$('.o_gantt_pill').popover('enable');
+                    self.$('.o_gantt_pill').popover('enable').popover('dispose');
                 },
                 helper: 'clone',
             });
@@ -741,8 +803,8 @@ var GanttRow = Widget.extend({
                     self.$('.o_gantt_pill').popover('disable');
                     self.$lockIndicator.appendTo($pill);
                 },
-                drag: function () {
-                    if ($(event.target).hasClass('o_gantt_pill_editing')) {
+                drag: function (ev) {
+                    if ($(ev.target).hasClass('o_gantt_pill_editing')) {
                         // Kill draggable if pill opened its dialog
                         return false;
                     }
@@ -750,7 +812,7 @@ var GanttRow = Widget.extend({
                 stop: function () {
                     self.trigger_up('updating_pill_stopped');
                     self.trigger_up('stop_no_dragging');
-                    self.$('.o_gantt_pill').popover('enable');
+                    self.$('.o_gantt_pill').popover('enable').popover('dispose');
                     self.$lockIndicator.detach();
                 },
             });
@@ -784,6 +846,7 @@ var GanttRow = Widget.extend({
         if (handles.length && !self.options.disableResize && !self.isGroup && self.options.canEdit) {
             $pill.resizable({
                 handles: handles.join(', '),
+                odoo_isRTL: this.isRTL,
                 // DAM: I wanted to use a containment but there is a bug with them
                 // when elements are both draggable and resizable. In that case, is is no more possible
                 // to resize on the left side of the pill (I mean starting from left, go to left)
@@ -806,7 +869,7 @@ var GanttRow = Widget.extend({
                     setTimeout(() => {
                         self.trigger_up('updating_pill_stopped');
                         self.$el.removeClass('o_gantt_dragging');
-                        self.$('.o_gantt_pill').popover('enable');
+                        self.$('.o_gantt_pill').popover('enable').popover('dispose');
                     });
                     var diff = Math.round((ui.size.width - ui.originalSize.width) / resizeSnappingWidth * self.viewInfo.activeScaleInfo.interval);
                     var direction = ui.position.left ? 'left' : 'right';
@@ -856,7 +919,10 @@ var GanttRow = Widget.extend({
                     // Set min width
                     var hourDiff = snappedStartDate.diff(snappedStopDate, 'hour');
                     if (hourDiff === 0) {
-                        if (snappedStartDate > span.startDate) {
+                        if (snappedStartDate.diff(span.startDate, 'hours') > 2 && span.stopDate.diff(snappedStopDate, 'hours') > 2) {
+                            span.startDate = snappedStartDate.subtract(interval, 'hour');
+                            span.stopDate = snappedStopDate.add(interval, 'hour');
+                        } else if (snappedStartDate > span.startDate) {
                             span.startDate = snappedStartDate.subtract(interval, 'hour');
                             span.stopDate = snappedStopDate;
                         } else {
@@ -864,6 +930,12 @@ var GanttRow = Widget.extend({
                             span.stopDate = snappedStopDate.add(interval, 'hour');
                         }
                     } else {
+                        if (snappedStartDate.diff(span.startDate, 'hours') > 2) {
+                            snappedStartDate = snappedStartDate.subtract(interval, 'hour');
+                        }
+                        if (span.stopDate.diff(snappedStopDate, 'hours') > 2) {
+                            snappedStopDate = snappedStopDate.add(interval, 'hour');
+                        }
                         span.startDate = snappedStartDate;
                         span.stopDate = snappedStopDate;
                     }
@@ -936,7 +1008,7 @@ var GanttRow = Widget.extend({
         var date = moment($(ev.currentTarget).closest('.o_gantt_cell').data('date'));
         this.trigger_up('add_button_clicked', {
             date: date,
-            groupId: this.groupId,
+            rowId: this.rowId,
         });
     },
     /**
@@ -949,7 +1021,7 @@ var GanttRow = Widget.extend({
         var date = moment($(ev.currentTarget).closest('.o_gantt_cell').data('date'));
         this.trigger_up('plan_button_clicked', {
             date: date,
-            groupId: this.groupId,
+            rowId: this.rowId,
         });
     },
     /**
@@ -1039,8 +1111,11 @@ var GanttRow = Widget.extend({
         var $pill = $(ev.currentTarget);
 
         this._setResizable($pill);
-        if (!this.isTotal) {
+        if (!this.isTotal && !this.options.disableDragdrop) {
             this._setDraggable($pill);
+        }
+        if (!this.isGroup && !config.device.isMobile) {
+            this._bindPillPopover(ev.target);
         }
     },
     /**

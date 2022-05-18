@@ -3,73 +3,19 @@
 from datetime import datetime
 from unittest.mock import patch, Mock
 
-from odoo.tests import TransactionCase
 from odoo.tools import mute_logger
 
-BASE_ORDER_DATA = {
-    'AmazonOrderId': {'value': '123456789'},
-    'PurchaseDate': {'value': '1378-04-08T00:00:00.000Z'},
-    'LastUpdateDate': {'value': '1976-08-21T07:00:00.000Z'},
-    'OrderStatus': {'value': 'Unshipped'},
-    'FulfillmentChannel': {'value': 'MFN'},
-    'ShipServiceLevel': {'value': 'SHIPPING-CODE'},
-    'ShippingAddress': {
-        'City': {'value': 'OdooCity'},
-        'AddressType': {'value': 'Commercial'},
-        'PostalCode': {'value': '12345-1234'},
-        'StateOrRegion': {'value': 'CA'},
-        'Phone': {'value': '+1 234-567-8910 ext. 12345'},
-        'CountryCode': {'value': 'US'},
-        'Name': {'value': 'Gederic Frilson'},
-        'AddressLine1': {'value': '123 RainBowMan Street'},
-    },
-    'OrderTotal': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'MarketplaceId': {'value': 'ATVPDKIKX0DER'},
-    'BuyerEmail': {'value': 'iliketurtles@marketplace.amazon.com'},
-    'BuyerName': {'value': 'Gederic Frilson'},
-    'EarliestDeliveryDate': {'value': '1979-04-20T00:00:00.000Z'},
-}
-
-BASE_ITEM_DATA = {
-    'OrderItemId': {'value': '123456789'},
-    'SellerSKU': {'value': 'SKU'},
-    'ConditionId': {'value': 'Used'},
-    'ConditionSubtypeId': {'value': 'Good'},
-    'Title': {'value': 'OdooBike Spare Wheel, 26x2.1, Pink, 200-Pack'},
-    'QuantityOrdered': {'value': '2'},
-    'ItemPrice': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '100.00'}},
-    'ShippingPrice': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '12.50'}},
-    'GiftWrapPrice': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '3.33'}},
-    'ItemTax': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'ShippingTax': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'GiftWrapTax': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'ShippingDiscount': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'PromotionDiscount': {'CurrencyCode': {'value': 'USD'}, 'Amount': {'value': '0.00'}},
-    'IsGift': {'value': 'true'},
-    'GiftWrapLevel': {'value': 'WRAP-CODE'},
-    'GiftMessageText': {'value': 'Hi,\nEnjoy your gift!\nFrom Gederic Frilson'},
-}
+from odoo.addons.sale_amazon.tests.common import TestAmazonCommon, BASE_ORDER_DATA, BASE_ITEM_DATA
 
 
-class TestAmazon(TransactionCase):
+class TestAmazon(TestAmazonCommon):
 
-    def setUp(self):
-
-        def _get_available_marketplace_api_refs_mock(*_args, **_kwargs):
-            """ Return the API ref of all marketplaces without calling MWS API. """
-            return self.env['amazon.marketplace'].search([]).mapped('api_ref'), False
-
-        super(TestAmazon, self).setUp()
-        with patch('odoo.addons.sale_amazon.models.mws_connector.get_api_connector',
-                   new=lambda *args, **kwargs: None), \
-             patch('odoo.addons.sale_amazon.models.mws_connector.get_available_marketplace_api_refs',
-                   new=_get_available_marketplace_api_refs_mock):
-            self.account = self.env['amazon.account'].create({
-                'name': "TestAccountName",
-                **dict.fromkeys(('seller_key', 'access_key', 'secret_key'), ''),
-                'base_marketplace_id': 1,
-                'company_id': self.env.company.id,
-            })
+    def test_check_credentials_succeed(self):
+        """ Test the credentials check with valid credentials. """
+        with patch(
+                'odoo.addons.sale_amazon.models.mws_connector.do_account_credentials_check',
+                new=lambda *args, **kwargs: False):
+            self.assertTrue(self.account.action_check_credentials())
 
     def test_update_marketplaces_no_change(self):
         """ Test the available marketplaces synchronization with no change. """
@@ -168,6 +114,7 @@ class TestAmazon(TransactionCase):
             self.assertEqual(order.company_id.id, self.account.company_id.id)
             self.assertEqual(order.user_id.id, self.account.user_id.id)
             self.assertEqual(order.team_id.id, self.account.team_id.id)
+            self.assertEqual(order.warehouse_id.id, self.account.location_id.warehouse_id.id)
             self.assertEqual(order.amazon_channel, 'fbm')
 
             order_lines = self.env['sale.order.line'].search([('order_id', '=', order.id)])
@@ -390,13 +337,15 @@ class TestAmazon(TransactionCase):
             self.assertEqual(
                 order.state, 'cancel', "cancellation of orders should be synchronized from Amazon")
 
-    @mute_logger('odoo.addons.sale_amazon.models.amazon_account')
-    @mute_logger('odoo.addons.sale_amazon.models.sale')
-    def test_sync_cancellations(self):
-        """ Test the orders cancellation synchronization. """
+    @mute_logger('odoo.addons.sale_amazon.models.stock_picking')
+    def test_sync_orders_cancel_abort(self):
+        """ Test the pickings that were confirmed at odoo and then order is canceled at amazon. """
+
         def _get_orders_data_mock(*_args, **_kwargs):
             """ Return a one-order batch of test order data without calling MWS API. """
-            return [BASE_ORDER_DATA], datetime(2020, 1, 1), None, False
+            _order_status = 'Unshipped' if not self.order_canceled else 'Canceled'
+            return [dict(BASE_ORDER_DATA, OrderStatus={'value': _order_status})], \
+                   datetime(2020, 1, 1), None, False
 
         def _get_items_data_mock(*_args, **_kwargs):
             """ Return a one-item batch of test order line data without calling MWS API. """
@@ -410,14 +359,25 @@ class TestAmazon(TransactionCase):
                    new=_get_items_data_mock), \
              patch('odoo.addons.sale_amazon.models.mws_connector.submit_feed',
                    new=Mock(return_value=(0, False))) as mock:
+
+            # sync order created on Amazon
+            self.order_canceled = False
             self.account._sync_orders(auto_commit=False)
+
+            # check order and validate picking
             order = self.env['sale.order'].search([('amazon_order_ref', '=', '123456789')])
-            order.action_cancel()
-            self.assertTrue(order.amazon_cancellation_pending)
-            order._sync_cancellations(account_ids=(self.account.id,))
-            self.assertEqual(mock.call_count, 1, "an order acknowledgement feed should be sent to "
-                                                 "Amazon for each canceled order")
-            self.assertFalse(order.amazon_cancellation_pending)
+            self.assertNotEqual(order.state, 'canceled')
+            picking = self.env['stock.picking'].search([('sale_id', '=', order.id)])
+            for ml in picking.move_line_ids:
+                ml.qty_done = ml.product_uom_qty
+            picking.carrier_id = self.carrier
+            picking.carrier_tracking_ref = "dummy tracking ref"
+            picking._action_done()
+            self.assertEqual(picking.state, 'done')
+
+            # sync order canceled on Amazon
+            self.order_canceled = True
+            self.account._sync_orders(auto_commit=False)
 
     @mute_logger('odoo.addons.sale_amazon.models.amazon_account')
     @mute_logger('odoo.addons.sale_amazon.models.stock_picking')
@@ -444,13 +404,15 @@ class TestAmazon(TransactionCase):
             order = self.env['sale.order'].search([('amazon_order_ref', '=', '123456789')])
             picking = self.env['stock.picking'].search([('sale_id', '=', order.id)])
             self.assertEqual(len(picking), 1, "FBM orders should generate exactly one picking")
-            picking.action_done()
+            picking.carrier_id = self.carrier
+            picking.carrier_tracking_ref = "dummy tracking ref"
+            picking._action_done()
             self.assertTrue(picking.amazon_sync_pending)
             picking._sync_pickings(account_ids=(self.account.id,))
             self.assertEqual(mock.call_count, 1, "an order fulfillment feed should be sent to "
                                                  "Amazon for each confirmed picking")
             self.assertFalse(picking.amazon_sync_pending)
-    
+
     def test_get_product_search(self):
         """ Test the product search based on the internal reference. """
         self.env['product.product'].create({
@@ -544,6 +506,7 @@ class TestAmazon(TransactionCase):
             'state_id': self.env['res.country.state'].search(
                 [('country_id', '=', country_id), ('code', '=', 'CA')], limit=1).id,
             'phone': '+1 234-567-8910 ext. 12345',
+            'customer_rank': 1,
             'company_id': self.account.company_id.id,
             'amazon_email': 'iliketurtles@marketplace.amazon.com',
         })
@@ -566,6 +529,7 @@ class TestAmazon(TransactionCase):
             'state_id': self.env['res.country.state'].search(
                 [('country_id', '=', country_id), ('code', '=', 'CA')], limit=1).id,
             'phone': '+1 234-567-8910 ext. 12345',
+            'customer_rank': 1,
             'company_id': self.account.company_id.id,
             'amazon_email': 'iliketurtles@marketplace.amazon.com',
         }
@@ -624,6 +588,7 @@ class TestAmazon(TransactionCase):
         self.assertEqual(contact.country_id.code, 'US')
         self.assertEqual(contact.state_id.code, 'CA')
         self.assertEqual(contact.phone, '+1 234-567-8910 ext. 12345')
+        self.assertEqual(contact.customer_rank, 1)
         self.assertEqual(contact.company_id.id, self.account.company_id.id)
         self.assertEqual(contact.amazon_email, 'iliketurtles@marketplace.amazon.com')
 
@@ -645,25 +610,60 @@ class TestAmazon(TransactionCase):
         self.assertEqual(contact.company_id.id, delivery.company_id.id)
         self.assertEqual(contact.amazon_email, delivery.amazon_email)
 
-    def test_get_partners_anonymized_info(self):
-        """ Test the partners search with creation of an anonymized contact. """
+    def test_get_partners_missing_buyer_name(self):
+        """ Test the partners search with missing buyer name. """
+        self.env['res.partner'].create({
+            'name': 'Gederic Frilson',
+            'company_id': self.account.company_id.id,
+            'amazon_email': 'iliketurtles@marketplace.amazon.com',
+        })
         partners_count = self.env['res.partner'].search_count([])
         contact, delivery = self.account._get_partners(
-            dict(BASE_ORDER_DATA, ShippingAddress=dict(
-                BASE_ORDER_DATA['ShippingAddress'], Name={'value': None})),
-            '123456789')
-        self.assertEqual(self.env['res.partner'].search_count([]), partners_count + 1,
-                         "a contact partner should be created regardless of whether another "
-                         "contact for the same customer exists when at least one personally"
-                         "identifiable information is missing")
-        self.assertEqual(contact.id, delivery.id)
+            dict(BASE_ORDER_DATA, BuyerName={'value': None}), '123456789')
+        self.assertEqual(self.env['res.partner'].search_count([]), partners_count + 2,
+                         "a contact partner should be created when the buyer name is missing, "
+                         "regardless of whether the same customer already had a partner, and a"
+                         " delivery partner should also be created if the address name is "
+                         "different")
+        self.assertNotEqual(contact.id, delivery.id)
         self.assertEqual(contact.type, 'contact')
-        self.assertFalse(contact.street)
-        self.assertFalse(contact.street2)
-        self.assertFalse(contact.phone)
-        self.assertEqual(contact.company_id.id, self.account.company_id.id)
+        self.assertEqual(delivery.type, 'delivery')
+        self.assertEqual(delivery.parent_id.id, contact.id)
+        self.assertEqual(contact.amazon_email, 'iliketurtles@marketplace.amazon.com')
+        self.assertEqual(contact.street, '123 RainBowMan Street',
+                         "partners synchronized with partial personal information should still "
+                         "hold all the available personal information")
+
+    def test_get_partners_missing_amazon_email(self):
+        """ Test the partners search with missing amazon email. """
+        self.env['res.partner'].create({
+            'name': 'Gederic Frilson',
+            'company_id': self.account.company_id.id,
+            'amazon_email': 'iliketurtles@marketplace.amazon.com',
+        })
+        partners_count = self.env['res.partner'].search_count([])
+        contact, delivery = self.account._get_partners(
+            dict(BASE_ORDER_DATA, BuyerEmail={'value': None}), '123456789')
+        self.assertEqual(self.env['res.partner'].search_count([]), partners_count + 1,
+                         "a contact partner should always be created when the amazon email is "
+                         "missing")
         self.assertFalse(contact.amazon_email)
-    
+
+    def test_get_partners_arbitrary_fields(self):
+        """ Test the partners search with all PII filled but in arbitrary fields. """
+        contact, _delivery = self.account._get_partners(dict(
+            BASE_ORDER_DATA,
+            ShippingAddress=dict(
+                BASE_ORDER_DATA['ShippingAddress'],
+                AddressLine1={'value': None},
+                AddressLine2={'value': '123 RainBowMan Street'})
+        ), '123456789')
+        self.assertFalse(contact.street)
+        self.assertTrue(contact.street2)
+        self.assertTrue(contact.phone)
+        self.assertTrue(contact.customer_rank)
+        self.assertTrue(contact.amazon_email)
+
     def test_get_amazon_offer_search(self):
         """ Test the offer search. """
         marketplace = self.env['amazon.marketplace'].search([('api_ref', '=', 'ATVPDKIKX0DER')])
@@ -674,13 +674,14 @@ class TestAmazon(TransactionCase):
             'sku': 'SKU',
         })
         offers_count = self.env['amazon.offer'].search_count([])
-        self.assertTrue(self.account._get_offer(BASE_ORDER_DATA, 'SKU'))
+        self.assertTrue(self.account._get_offer('SKU', marketplace))
         self.assertEqual(self.env['amazon.offer'].search_count([]), offers_count)
 
     def test_get_amazon_offer_creation(self):
         """ Test the offer creation. """
         offers_count = self.env['amazon.offer'].search_count([])
-        offer = self.account._get_offer(BASE_ORDER_DATA, 'SKU')
+        marketplace = self.env['amazon.marketplace'].search([('api_ref', '=', 'ATVPDKIKX0DER')])
+        offer = self.account._get_offer('SKU', marketplace)
         self.assertEqual(self.env['amazon.offer'].search_count([]), offers_count + 1)
         self.assertEqual(offer.account_id.id, self.account.id)
         self.assertEqual(offer.company_id.id, self.account.company_id.id)

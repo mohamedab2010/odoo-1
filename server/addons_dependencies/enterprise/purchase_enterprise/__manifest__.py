@@ -4,7 +4,7 @@
 {
     'name': "Purchase enterprise",
     'version': "1.0",
-    'category': "Operations/Purchase",
+    'category': 'Inventory/Purchase',
     'summary': "Advanced Features for Purchase Management",
     'description': """
 Contains advanced features for purchase management
@@ -19,4 +19,5 @@ Contains advanced features for purchase management
     'installable': True,
     'application': False,
     'auto_install': ['purchase'],
+    'license': 'OEEL-1',
 }

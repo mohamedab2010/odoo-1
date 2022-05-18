@@ -11,7 +11,7 @@ class MarketingCampaignTest(models.TransientModel):
     @api.model
     def default_get(self, default_fields):
         defaults = super(MarketingCampaignTest, self).default_get(default_fields)
-        if not defaults.get('res_id'):
+        if 'res_id' in default_fields and not defaults.get('res_id'):
             model_name = defaults.get('model_name')
             if not model_name and defaults.get('campaign_id'):
                 model_name = self.env['marketing.campaign'].browse(defaults['campaign_id']).model_name
@@ -22,12 +22,12 @@ class MarketingCampaignTest(models.TransientModel):
 
     @api.model
     def _selection_target_model(self):
-        models = self.env['ir.model'].search([('is_mail_thread', '=', True)])
+        models = self.env['ir.model'].sudo().search([('is_mail_thread', '=', True)])
         return [(model.model, model.name) for model in models]
 
     campaign_id = fields.Many2one(
         'marketing.campaign', string='Campaign', required=True)
-    model_id = fields.Many2one('ir.model', string='Object', related='campaign_id.model_id', readonly=True)
+    model_id = fields.Many2one('ir.model', string='Model', related='campaign_id.model_id', readonly=True)
     model_name = fields.Char('Record model', related='campaign_id.model_id.model', readonly=True)
     res_id = fields.Integer(string='Record ID', index=True)
     resource_ref = fields.Reference(

@@ -37,6 +37,7 @@ FEDEX_CURR_MATCH = {
 
 FEDEX_STOCK_TYPE = [
     ('PAPER_4X6', 'PAPER_4X6'),
+    ('PAPER_4X6.75', 'PAPER_4X6.75'),
     ('PAPER_4X8', 'PAPER_4X8'),
     ('PAPER_4X9', 'PAPER_4X9'),
     ('PAPER_7X4.75', 'PAPER_7X4.75'),
@@ -44,9 +45,11 @@ FEDEX_STOCK_TYPE = [
     ('PAPER_8.5X11_TOP_HALF_LABEL', 'PAPER_8.5X11_TOP_HALF_LABEL'),
     ('PAPER_LETTER', 'PAPER_LETTER'),
     ('STOCK_4X6', 'STOCK_4X6'),
+    ('STOCK_4X6.75', 'STOCK_4X6.75'),
     ('STOCK_4X6.75_LEADING_DOC_TAB', 'STOCK_4X6.75_LEADING_DOC_TAB'),
     ('STOCK_4X6.75_TRAILING_DOC_TAB', 'STOCK_4X6.75_TRAILING_DOC_TAB'),
     ('STOCK_4X8', 'STOCK_4X8'),
+    ('STOCK_4X9', 'STOCK_4X9'),
     ('STOCK_4X9_LEADING_DOC_TAB', 'STOCK_4X9_LEADING_DOC_TAB'),
     ('STOCK_4X9_TRAILING_DOC_TAB', 'STOCK_4X9_TRAILING_DOC_TAB')
 ]
@@ -55,7 +58,9 @@ FEDEX_STOCK_TYPE = [
 class ProviderFedex(models.Model):
     _inherit = 'delivery.carrier'
 
-    delivery_type = fields.Selection(selection_add=[('fedex', "FedEx")])
+    delivery_type = fields.Selection(selection_add=[
+        ('fedex', "FedEx")
+    ], ondelete={'fedex': lambda recs: recs.write({'delivery_type': 'fixed', 'fixed_price': 0})})
 
     fedex_developer_key = fields.Char(string="Developer Key", groups="base.group_system")
     fedex_developer_password = fields.Char(string="Password", groups="base.group_system")
@@ -66,11 +71,13 @@ class ProviderFedex(models.Model):
                                             ('REGULAR_PICKUP', 'REGULAR_PICKUP'),
                                             ('REQUEST_COURIER', 'REQUEST_COURIER'),
                                             ('STATION', 'STATION')],
-                                           string="Fedex drop-off type",
+                                           string="Fedex Drop-Off Type",
                                            default='REGULAR_PICKUP')
-    fedex_default_packaging_id = fields.Many2one('product.packaging', string="Default Package Type")
+    fedex_default_package_type_id = fields.Many2one('stock.package.type', string="Fedex Package Type")
     fedex_service_type = fields.Selection([('INTERNATIONAL_ECONOMY', 'INTERNATIONAL_ECONOMY'),
                                            ('INTERNATIONAL_PRIORITY', 'INTERNATIONAL_PRIORITY'),
+                                           ('FEDEX_INTERNATIONAL_PRIORITY', 'FEDEX_INTERNATIONAL_PRIORITY'),
+                                           ('FEDEX_INTERNATIONAL_PRIORITY_EXPRESS', 'FEDEX_INTERNATIONAL_PRIORITY_EXPRESS'),
                                            ('FEDEX_GROUND', 'FEDEX_GROUND'),
                                            ('FEDEX_2_DAY', 'FEDEX_2_DAY'),
                                            ('FEDEX_2_DAY_AM', 'FEDEX_2_DAY_AM'),
@@ -84,7 +91,7 @@ class ProviderFedex(models.Model):
                                            ('FEDEX_NEXT_DAY_END_OF_DAY', 'FEDEX_NEXT_DAY_END_OF_DAY'),
                                            ('FEDEX_EXPRESS_SAVER', 'FEDEX_EXPRESS_SAVER'),
                                            ],
-                                          default='INTERNATIONAL_PRIORITY')
+                                          default='FEDEX_INTERNATIONAL_PRIORITY')
     fedex_duty_payment = fields.Selection([('SENDER', 'Sender'), ('RECIPIENT', 'Recipient')], required=True, default="SENDER")
     fedex_weight_unit = fields.Selection([('LB', 'LB'),
                                           ('KG', 'KG')],
@@ -116,13 +123,11 @@ class ProviderFedex(models.Model):
         self.fedex_saturday_delivery = False
 
     def fedex_rate_shipment(self, order):
-        max_weight = self._fedex_convert_weight(self.fedex_default_packaging_id.max_weight, self.fedex_weight_unit)
+        max_weight = self._fedex_convert_weight(self.fedex_default_package_type_id.max_weight, self.fedex_weight_unit)
         price = 0.0
         is_india = order.partner_shipping_id.country_id.code == 'IN' and order.company_id.partner_id.country_id.code == 'IN'
 
-        # Estimate weight of the sales order; will be definitely recomputed on the picking field "weight"
-        est_weight_value = sum([(line.product_id.weight * line.product_uom_qty) for line in order.order_line if not line.display_type]) or 0.0
-        weight_value = self._fedex_convert_weight(est_weight_value, self.fedex_weight_unit)
+        weight_value = self._fedex_convert_weight(order._get_estimated_weight(), self.fedex_weight_unit)
 
         # Some users may want to ship very lightweight items; in order to give them a rating, we round the
         # converted weight of the shipping to the smallest value accepted by FedEx: 0.01 kg or lb.
@@ -143,12 +148,13 @@ class ProviderFedex(models.Model):
         srm.shipment_request(
             self.fedex_droppoff_type,
             self.fedex_service_type,
-            self.fedex_default_packaging_id.shipper_package_code,
+            self.fedex_default_package_type_id.shipper_package_code,
             self.fedex_weight_unit,
             self.fedex_saturday_delivery,
         )
-        pkg = self.fedex_default_packaging_id
+        pkg = self.fedex_default_package_type_id
 
+        pkg_width, pkg_height, pkg_length = self._fedex_convert_size(pkg)
         srm.set_currency(_convert_curr_iso_fdx(order_currency.name))
         srm.set_shipper(order.company_id.partner_id, order.warehouse_id.partner_id)
         srm.set_recipient(order.partner_shipping_id)
@@ -161,9 +167,9 @@ class ProviderFedex(models.Model):
                 srm.add_package(
                     max_weight,
                     package_code=pkg.shipper_package_code,
-                    package_height=pkg.height,
-                    package_width=pkg.width,
-                    package_length=pkg.length,
+                    package_height=pkg_height,
+                    package_width=pkg_width,
+                    package_length=pkg_length,
                     sequence_number=sequence,
                     mode='rating',
                 )
@@ -172,9 +178,9 @@ class ProviderFedex(models.Model):
                 srm.add_package(
                     last_package_weight,
                     package_code=pkg.shipper_package_code,
-                    package_height=pkg.height,
-                    package_width=pkg.width,
-                    package_length=pkg.length,
+                    package_height=pkg_height,
+                    package_width=pkg_width,
+                    package_length=pkg_length,
                     sequence_number=total_package,
                     mode='rating',
                 )
@@ -183,15 +189,15 @@ class ProviderFedex(models.Model):
             srm.add_package(
                 weight_value,
                 package_code=pkg.shipper_package_code,
-                package_height=pkg.height,
-                package_width=pkg.width,
-                package_length=pkg.length,
+                package_height=pkg_height,
+                package_width=pkg_width,
+                package_length=pkg_length,
                 mode='rating',
             )
             srm.set_master_package(weight_value, 1)
 
         # Commodities for customs declaration (international shipping)
-        if self.fedex_service_type in ['INTERNATIONAL_ECONOMY', 'INTERNATIONAL_PRIORITY'] or is_india:
+        if 'INTERNATIONAL' in self.fedex_service_type or is_india:
             total_commodities_amount = 0.0
             commodity_country_of_manufacture = order.warehouse_id.partner_id.country_id.code
 
@@ -216,27 +222,17 @@ class ProviderFedex(models.Model):
             _logger.info(warnings)
 
         if not request.get('errors_message'):
-            if _convert_curr_iso_fdx(order_currency.name) in request['price']:
-                price = request['price'][_convert_curr_iso_fdx(order_currency.name)]
-            else:
-                _logger.info("Preferred currency has not been found in FedEx response")
-                company_currency = order.company_id.currency_id
-                if _convert_curr_iso_fdx(company_currency.name) in request['price']:
-                    amount = request['price'][_convert_curr_iso_fdx(company_currency.name)]
-                    price = company_currency._convert(amount, order_currency, order.company_id, order.date_order or fields.Date.today())
-                else:
-                    amount = request['price']['USD']
-                    price = company_currency._convert(amount, order_currency, order.company_id, order.date_order or fields.Date.today())
+            price = self._get_request_price(request['price'], order, order_currency)
         else:
             return {'success': False,
                     'price': 0.0,
-                    'error_message': _('Error:\n%s') % request['errors_message'],
+                    'error_message': _('Error:\n%s', request['errors_message']),
                     'warning_message': False}
 
         return {'success': True,
                 'price': price,
                 'error_message': False,
-                'warning_message': _('Warning:\n%s') % warnings if warnings else False}
+                'warning_message': _('Warning:\n%s', warnings) if warnings else False}
 
     def fedex_send_shipping(self, pickings):
         res = []
@@ -250,7 +246,7 @@ class ProviderFedex(models.Model):
 
             srm.transaction_detail(picking.id)
 
-            package_type = picking.package_ids and picking.package_ids[0].packaging_id.shipper_package_code or self.fedex_default_packaging_id.shipper_package_code
+            package_type = picking.package_ids and picking.package_ids[0].package_type_id.shipper_package_code or self.fedex_default_package_type_id.shipper_package_code
             srm.shipment_request(self.fedex_droppoff_type, self.fedex_service_type, package_type, self.fedex_weight_unit, self.fedex_saturday_delivery)
             srm.set_currency(_convert_curr_iso_fdx(picking.company_id.currency_id.name))
             srm.set_shipper(picking.company_id.partner_id, picking.picking_type_id.warehouse_id.partner_id)
@@ -267,22 +263,23 @@ class ProviderFedex(models.Model):
             net_weight = self._fedex_convert_weight(picking.shipping_weight, self.fedex_weight_unit)
 
             # Commodities for customs declaration (international shipping)
-            if self.fedex_service_type in ['INTERNATIONAL_ECONOMY', 'INTERNATIONAL_PRIORITY'] or (picking.partner_id.country_id.code == 'IN' and picking.picking_type_id.warehouse_id.partner_id.country_id.code == 'IN'):
+            if 'INTERNATIONAL' in self.fedex_service_type  or (picking.partner_id.country_id.code == 'IN' and picking.picking_type_id.warehouse_id.partner_id.country_id.code == 'IN'):
 
                 commodity_currency = order_currency
                 total_commodities_amount = 0.0
                 commodity_country_of_manufacture = picking.picking_type_id.warehouse_id.partner_id.country_id.code
 
-                for operation in picking.move_line_ids:
-                    commodity_amount = operation.move_id.sale_line_id.price_reduce_taxinc or operation.product_id.list_price
-                    total_commodities_amount += (commodity_amount * operation.qty_done)
-                    commodity_description = operation.product_id.name
+                for product in picking.move_line_ids.mapped('product_id'):
+                    related_operations = picking.move_line_ids.filtered(lambda ml: ml.product_id == product)
+                    commodity_quantity = sum(related_operations.mapped('qty_done'))
+                    commodity_amount = sum([round(operation.sale_price / (commodity_quantity or 1), 2) for operation in related_operations])
+                    total_commodities_amount += (commodity_amount * commodity_quantity)
+                    commodity_description = product.name
                     commodity_number_of_piece = '1'
                     commodity_weight_units = self.fedex_weight_unit
-                    commodity_weight_value = self._fedex_convert_weight(operation.product_id.weight * operation.qty_done, self.fedex_weight_unit)
-                    commodity_quantity = operation.qty_done
+                    commodity_weight_value = self._fedex_convert_weight(product.weight * commodity_quantity, self.fedex_weight_unit)
                     commodity_quantity_units = 'EA'
-                    commodity_harmonized_code = operation.product_id.hs_code or ''
+                    commodity_harmonized_code = product.hs_code or ''
                     srm.commodities(_convert_curr_iso_fdx(commodity_currency.name), commodity_amount, commodity_number_of_piece, commodity_weight_units, commodity_weight_value, commodity_description, commodity_country_of_manufacture, commodity_quantity, commodity_quantity_units, commodity_harmonized_code)
                 srm.customs_value(_convert_curr_iso_fdx(commodity_currency.name), total_commodities_amount, "NON_DOCUMENTS")
                 srm.duties_payment(picking.picking_type_id.warehouse_id.partner_id, superself.fedex_account_number, superself.fedex_duty_payment)
@@ -320,14 +317,15 @@ class ProviderFedex(models.Model):
 
                 for sequence, package in enumerate(picking.package_ids, start=1):
 
+                    package_width, package_height, package_length = self._fedex_convert_size(package_type)
                     package_weight = self._fedex_convert_weight(package.shipping_weight, self.fedex_weight_unit)
-                    packaging = package.packaging_id
+                    package_type = package.package_type_id
                     srm._add_package(
                         package_weight,
-                        package_code=packaging.shipper_package_code,
-                        package_height=packaging.height,
-                        package_width=packaging.width,
-                        package_length=packaging.length,
+                        package_code=package_type.shipper_package_code,
+                        package_height=package_height,
+                        package_width=package_width,
+                        package_length=package_length,
                         sequence_number=sequence,
                         po_number=po_number,
                         dept_number=dept_number,
@@ -364,19 +362,7 @@ class ProviderFedex(models.Model):
                         if not request.get('errors_message'):
                             package_labels.append((package_name, srm.get_label()))
 
-                            if _convert_curr_iso_fdx(order_currency.name) in request['price']:
-                                carrier_price = request['price'][_convert_curr_iso_fdx(order_currency.name)]
-                            else:
-                                _logger.info("Preferred currency has not been found in FedEx response")
-                                company_currency = picking.company_id.currency_id
-                                if _convert_curr_iso_fdx(company_currency.name) in request['price']:
-                                    amount = request['price'][_convert_curr_iso_fdx(company_currency.name)]
-                                    carrier_price = company_currency._convert(
-                                        amount, order_currency, company, order.date_order or fields.Date.today())
-                                else:
-                                    amount = request['price']['USD']
-                                    carrier_price = company_currency._convert(
-                                        amount, order_currency, company, order.date_order or fields.Date.today())
+                            carrier_price = self._get_request_price(request['price'], order, order_currency)
 
                             carrier_tracking_ref = carrier_tracking_ref + "," + request['tracking_number']
 
@@ -400,13 +386,14 @@ class ProviderFedex(models.Model):
             # One package #
             ###############
             elif package_count == 1:
-                packaging = picking.package_ids[:1].packaging_id or picking.carrier_id.fedex_default_packaging_id
+                package_type = picking.package_ids[:1].package_type_id or picking.carrier_id.fedex_default_package_type_id
+                package_width, package_height, package_length = self._fedex_convert_size(package_type)
                 srm._add_package(
                     net_weight,
-                    package_code=packaging.shipper_package_code,
-                    package_height=packaging.height,
-                    package_width=packaging.width,
-                    package_length=packaging.length,
+                    package_code=package_type.shipper_package_code,
+                    package_height=package_height,
+                    package_width=package_width,
+                    package_length=package_length,
                     po_number=po_number,
                     dept_number=dept_number,
                     reference=picking.display_name,
@@ -441,7 +428,11 @@ class ProviderFedex(models.Model):
 
                     fedex_labels = [('LabelFedex-%s-%s.%s' % (carrier_tracking_ref, index, self.fedex_label_file_type), label)
                                     for index, label in enumerate(srm._get_labels(self.fedex_label_file_type))]
-                    picking.message_post(body=logmessage, attachments=fedex_labels)
+                    if picking.sale_id:
+                        for pick in picking.sale_id.picking_ids:
+                            pick.message_post(body=logmessage, attachments=fedex_labels)
+                    else:
+                        picking.message_post(body=logmessage, attachments=fedex_labels)
                     shipping_data = {'exact_price': carrier_price,
                                      'tracking_number': carrier_tracking_ref}
                     res = res + [shipping_data]
@@ -470,7 +461,7 @@ class ProviderFedex(models.Model):
 
         srm.transaction_detail(picking.id)
 
-        package_type = picking.package_ids and picking.package_ids[0].packaging_id.shipper_package_code or self.fedex_default_packaging_id.shipper_package_code
+        package_type = picking.package_ids and picking.package_ids[0].package_type_id.shipper_package_code or self.fedex_default_package_type_id.shipper_package_code
         srm.shipment_request(self.fedex_droppoff_type, self.fedex_service_type, package_type, self.fedex_weight_unit, self.fedex_saturday_delivery)
         srm.set_currency(_convert_curr_iso_fdx(picking.company_id.currency_id.name))
         srm.set_shipper(picking.partner_id, picking.partner_id)
@@ -479,44 +470,47 @@ class ProviderFedex(models.Model):
         srm.shipping_charges_payment(superself.fedex_account_number)
 
         srm.shipment_label('COMMON2D', self.fedex_label_file_type, self.fedex_label_stock_type, 'TOP_EDGE_OF_TEXT_FIRST', 'SHIPPING_LABEL_FIRST')
-        estimated_weight = sum([move.product_qty * move.product_id.weight for move in picking.move_lines])
-        net_weight = self._fedex_convert_weight(picking.shipping_weight, self.fedex_weight_unit) or self._fedex_convert_weight(picking.weight, self.fedex_weight_unit)
-        packaging = packaging = picking.package_ids[:1].packaging_id or picking.carrier_id.fedex_default_packaging_id
+        if picking.is_return_picking:
+            net_weight = self._fedex_convert_weight(picking._get_estimated_weight(), self.fedex_weight_unit)
+        else:
+            net_weight = self._fedex_convert_weight(picking.shipping_weight, self.fedex_weight_unit)
+        package_type = picking.package_ids[:1].package_type_id or picking.carrier_id.fedex_default_package_type_id
         order = picking.sale_id
+        package_width, package_height, package_length = self._fedex_convert_size(package_type)
         po_number = order.display_name or False
         dept_number = False
         srm._add_package(
             net_weight,
-            package_code=packaging.shipper_package_code,
-            package_height=packaging.height,
-            package_width=packaging.width,
-            package_length=packaging.length,
+            package_code=package_type.shipper_package_code,
+            package_height=package_height,
+            package_width=package_width,
+            package_length=package_length,
             reference=picking.display_name,
             po_number=po_number,
             dept_number=dept_number,
         )
         srm.set_master_package(net_weight, 1)
-        if self.fedex_service_type in ['INTERNATIONAL_ECONOMY', 'INTERNATIONAL_PRIORITY'] or (picking.partner_id.country_id.code == 'IN' and picking.picking_type_id.warehouse_id.partner_id.country_id.code == 'IN'):
+        if 'INTERNATIONAL' in self.fedex_service_type  or (picking.partner_id.country_id.code == 'IN' and picking.picking_type_id.warehouse_id.partner_id.country_id.code == 'IN'):
 
             order_currency = picking.sale_id.currency_id or picking.company_id.currency_id
             commodity_currency = order_currency
             total_commodities_amount = 0.0
             commodity_country_of_manufacture = picking.picking_type_id.warehouse_id.partner_id.country_id.code
 
-            for operation in picking.move_line_ids:
-                commodity_amount = operation.move_id.sale_line_id.price_unit or operation.product_id.list_price
-                total_commodities_amount += (commodity_amount * operation.qty_done)
-                commodity_description = operation.product_id.name
+            for product in picking.move_line_ids.mapped('product_id'):
+                related_operations = picking.move_line_ids.filtered(lambda ml: ml.product_id == product)
+                commodity_quantity = sum([
+                    operation.qty_done if operation.state == 'done' else operation.product_uom_qty
+                    for operation in related_operations
+                ])
+                commodity_amount = sum([round(operation.sale_price / (commodity_quantity or 1), 2) for operation in related_operations])
+                total_commodities_amount += (commodity_amount * commodity_quantity)
+                commodity_description = product.name
                 commodity_number_of_piece = '1'
                 commodity_weight_units = self.fedex_weight_unit
-                if operation.state == 'done':
-                    commodity_weight_value = self._fedex_convert_weight(operation.product_id.weight * operation.qty_done, self.fedex_weight_unit)
-                    commodity_quantity = operation.qty_done
-                else:
-                    commodity_weight_value = self._fedex_convert_weight(operation.product_id.weight * operation.product_uom_qty, self.fedex_weight_unit)
-                    commodity_quantity = operation.product_uom_qty
+                commodity_weight_value = self._fedex_convert_weight(product.weight * commodity_quantity, self.fedex_weight_unit)
                 commodity_quantity_units = 'EA'
-                commodity_harmonized_code = operation.product_id.hs_code or ''
+                commodity_harmonized_code = product.hs_code or ''
                 srm.commodities(_convert_curr_iso_fdx(commodity_currency.name), commodity_amount, commodity_number_of_piece, commodity_weight_units, commodity_weight_value, commodity_description, commodity_country_of_manufacture, commodity_quantity, commodity_quantity_units, commodity_harmonized_code)
             srm.customs_value(_convert_curr_iso_fdx(commodity_currency.name), total_commodities_amount, "NON_DOCUMENTS")
             # We consider that returns are always paid by the company creating the label
@@ -549,12 +543,42 @@ class ProviderFedex(models.Model):
             _logger.info(warnings)
 
         if result.get('delete_success') and not result.get('errors_message'):
-            picking.message_post(body=_(u'Shipment N° %s has been cancelled' % master_tracking_id))
+            picking.message_post(body=_(u'Shipment #%s has been cancelled', master_tracking_id))
             picking.write({'carrier_tracking_ref': '',
                            'carrier_price': 0.0})
         else:
             raise UserError(result['errors_message'])
 
+    def _get_request_price(self, req_price, order, order_currency=None):
+        """Extract price info in target currency, converting if necessary"""
+        if not order_currency:
+            order_currency = order.currency_id
+        company_currency = order.company_id.currency_id if order.company_id else self.env.user.company_id.currency_id
+        fdx_currency = _convert_curr_iso_fdx(order_currency.name)
+        if fdx_currency in req_price:
+            # normally we'll have the order currency on the response, then we can take it as is
+            return req_price[fdx_currency]
+        _logger.info("Preferred currency has not been found in FedEx response")
+        # otherwise, see if we have the company currency, and convert to the order's currency
+        fdx_currency = _convert_curr_iso_fdx(company_currency.name)
+        if fdx_currency in req_price:
+            return company_currency._convert(
+                req_price[fdx_currency], order_currency, order.company_id, order.date_order or fields.Date.today())
+        # finally, attempt to find active currency in the database
+        currency_codes = list(req_price.keys())
+        # note, fedex sometimes return the currency as ISO instead of using their own code 
+        # (eg it can return GBP instead of UKL for a UK address)
+        # so we'll do the search for both
+        currency_codes += [_convert_curr_fdx_iso(c) for c in currency_codes]
+        currency_instances = self.env['res.currency'].search([('name', 'in', currency_codes)])
+        currency_by_name = {c.name: c for c in currency_instances}
+        for fdx_currency in req_price:
+            if fdx_currency in currency_by_name:
+                return currency_by_name[fdx_currency]._convert(
+                    req_price[fdx_currency], order_currency, order.company_id, order.date_order or fields.Date.today())
+        _logger.info("No known currency has not been found in FedEx response")
+        return 0.0
+        
     def _fedex_get_default_custom_package_code(self):
         return 'YOUR_PACKAGING'
 
@@ -567,6 +591,14 @@ class ProviderFedex(models.Model):
             return weight_uom_id._compute_quantity(weight, self.env.ref('uom.product_uom_lb'), round=False)
         else:
             raise ValueError
+
+    def _fedex_convert_size(self, dimensions, unit='IN'):
+        size_uom_id = self.env['product.template']._get_length_uom_id_from_ir_config_parameter()
+        target_uom_unit = 'uom.product_uom_cm' if unit == 'CM' else 'uom.product_uom_inch'
+        width = size_uom_id._compute_quantity(dimensions.width, self.env.ref(target_uom_unit), round=False)
+        height = size_uom_id._compute_quantity(dimensions.height, self.env.ref(target_uom_unit), round=False)
+        length = size_uom_id._compute_quantity(dimensions.packaging_length, self.env.ref(target_uom_unit), round=False)
+        return width, height, length
 
 def _convert_curr_fdx_iso(code):
     curr_match = {v: k for k, v in FEDEX_CURR_MATCH.items()}

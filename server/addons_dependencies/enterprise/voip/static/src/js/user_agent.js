@@ -2,9 +2,11 @@ odoo.define('voip.UserAgent', function (require) {
 "use strict";
 
 const Class = require('web.Class');
+const concurrency = require('web.concurrency');
 const core = require('web.core');
 const Dialog = require('web.Dialog');
 const mixins = require('web.mixins');
+const mobile = require('web_mobile.core');
 const ServicesMixin = require('web.ServicesMixin');
 
 const _t = core._t;
@@ -37,14 +39,14 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @constructor
      */
     init(parent) {
+        var self = this;
         mixins.EventDispatcherMixin.init.call(this);
         this.setParent(parent);
         this._audioDialRingtone = undefined;
         this._audioIncomingRingtone = undefined;
         this._audioRingbackTone = undefined;
-        this._callState = CALL_STATE.NO_CALL;
+        this._updateCallState(CALL_STATE.NO_CALL);
         this._currentNumber = undefined;
-        this._dialog = undefined;
         this._currentCallParams = false;
         this._currentInviteSession = false;
         this._isOutgoing = false;
@@ -61,6 +63,12 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
             args: [],
             kwargs: {},
         }).then(result => this._initUserAgent(result));
+
+        window.onbeforeunload = function (event) {
+            if (self._callState !== CALL_STATE.NO_CALL) {
+                return _t("Are you sure that you want to close this website? There's a call ongoing.");
+            }
+        };
     },
 
     //--------------------------------------------------------------------------
@@ -74,12 +82,37 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
         this._answerCall();
     },
     /**
+     * Return the Mobile Call config
+     */
+    async getMobileCallConfig() {
+        this.infoPbxConfiguration = await this._rpc({
+            model: 'voip.configurator',
+            method: 'get_pbx_config',
+            args: [],
+            kwargs: {},
+        });
+        return this.infoPbxConfiguration.mobile_call_method;
+    },
+    /**
      * Returns PBX Configuration.
      *
      * @return {Object} result user and pbx configuration return by the rpc
      */
     getPbxConfiguration() {
         return this.infoPbxConfiguration;
+    },
+    /**
+     *
+     * @param userUID
+     * @param useVoIPChoice
+     */
+    async updateCallPreference(userUID, useVoIPChoice) {
+        await this._rpc({
+            model: 'res.users',
+            method: 'write',
+            args: [[userUID], {mobile_call_method: useVoIPChoice}],
+        });
+        await this.getMobileCallConfig();
     },
     /**
      * Hangs up the current call.
@@ -89,13 +122,13 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
             if (this._callState === CALL_STATE.ONGOING_CALL) {
                 this._onBye();
             } else {
-                this._callState = CALL_STATE.CANCELING_CALL;
+                this._updateCallState(CALL_STATE.CANCELING_CALL);
                 this._onCancel();
             }
         }
         if (this._callState !== CALL_STATE.NO_CALL) {
             if (this._callState === CALL_STATE.RINGING_CALL) {
-                this._callState = CALL_STATE.CANCELING_CALL;
+                this._updateCallState(CALL_STATE.CANCELING_CALL);
                 try {
                     this._sipSession.cancel();
                 } catch (err) {
@@ -141,12 +174,18 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * Reject an incoming Call
      */
     rejectIncomingCall() {
-        this._callState = CALL_STATE.REJECTING_CALL;
+        this._updateCallState(CALL_STATE.REJECTING_CALL);
         if (this._mode === 'demo') {
             this.trigger_up('sip_rejected', this._currentCallParams);
         }
         if (!this._isOutgoing) {
-            this._currentInviteSession.reject();
+            if (this._currentInviteSession.status === 9) {
+                // 9: STATUS_TERMINATED
+                this._audioIncomingRingtone.pause();
+                this._canceledIncomingCall();
+                return;
+            }
+            this._currentInviteSession.reject({ statusCode: 603 });
         }
     },
     /**
@@ -170,6 +209,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      */
     transfer(number) {
         if (this._mode === 'demo') {
+            this._onBye();
             return;
         }
         if (this._callState !== CALL_STATE.ONGOING_CALL) {
@@ -200,14 +240,20 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
         const incomingCallParams = this._currentCallParams;
 
         if (this._mode === 'demo') {
-            this._callState = CALL_STATE.ONGOING_CALL;
+            this._updateCallState(CALL_STATE.ONGOING_CALL);
             this.trigger_up('sip_incoming_call', incomingCallParams);
             return;
         }
         if (!inviteSession) {
             return;
         }
+
         this._audioIncomingRingtone.pause();
+        if (this._currentInviteSession.status === 9) {
+            // 9: STATUS_TERMINATED
+            this._canceledIncomingCall();
+            return;
+        }
         const callOptions = {
             sessionDescriptionHandlerOptions: {
                 constraints: {
@@ -238,7 +284,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @private
      */
     _canceledIncomingCall() {
-        this._callState = CALL_STATE.CANCELING_CALL;
+        this._updateCallState(CALL_STATE.CANCELING_CALL);
         this._onCancel();
     },
     /**
@@ -270,6 +316,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
         this._audioDialRingtone = document.createElement('audio');
         this._audioDialRingtone.loop = 'true';
         this._audioDialRingtone.src = '/voip/static/src/sounds/dialtone.mp3';
+        this._audioDialRingtone.volume = 0.7;
         $('html').append(this._audioDialRingtone);
     },
     /**
@@ -447,7 +494,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
     _rejectInvite(inviteSession) {
         if (!this._isOutgoing) {
             this._audioIncomingRingtone.pause();
-            inviteSession.reject();
+            inviteSession.reject({ statusCode: 603 });
         }
     },
     /**
@@ -461,7 +508,10 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
     _sendNotification(title, content) {
         if (
             window.Notification &&
-            window.Notification.permission === 'granted'
+            window.Notification.permission === 'granted' &&
+            // Only send notifications in master tab, so that the user doesn't
+            // get a notification for every open tab.
+            this.call('bus_service', 'isMasterTab')
         ) {
             return new window.Notification(title, {
                 body: content,
@@ -500,7 +550,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      */
     _setupOutCall() {
         this._isOutgoing = true;
-        this._callState = CALL_STATE.RINGING_CALL;
+        this._updateCallState(CALL_STATE.RINGING_CALL);
         this.trigger_up('sip_error', {
             isConnecting: true,
             message: _t("Please accept the use of the microphone."),
@@ -534,6 +584,35 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
         });
     },
 
+    _updateCallState(newState) {
+        this._callState = newState;
+        if (!mobile.methods.changeAudioMode) {
+            return;
+        }
+        let mode = false;
+        switch (this._callState) {
+            case CALL_STATE.NO_CALL:
+                mode = 'NO_CALL';
+                break;
+            case CALL_STATE.RINGING_CALL:
+                mode = 'RINGING_CALL';
+                break;
+            case CALL_STATE.ONGOING_CALL:
+                mode = 'CALL';
+                break;
+            case CALL_STATE.CANCELING_CALL:
+            case CALL_STATE.REJECTING_CALL:
+                // check if we are already in existing call
+                mode = this._isOutgoing ? false : 'NO_CALL';
+                break;
+            default: // Don't update if call state set with an unknown value
+                mode = false;
+        }
+        if (mode) {
+            concurrency.delay(50).then(() => mobile.methods.changeAudioMode({mode}));
+        }
+    },
+
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
@@ -544,7 +623,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @private
      */
     async _onAccepted() {
-        this._callState = CALL_STATE.ONGOING_CALL;
+        this._updateCallState(CALL_STATE.ONGOING_CALL);
         const call = this._sipSession;
         this._stopRingtones();
         if (this._mode === 'prod') {
@@ -567,7 +646,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
         this._cleanRemoteAudio();
         this._audioDialRingtone.pause();
         this._sipSession = false;
-        this._callState = CALL_STATE.NO_CALL;
+        this._updateCallState(CALL_STATE.NO_CALL);
         if (this._mode === 'demo') {
             clearTimeout(this._timerAcceptedTimeout);
         }
@@ -588,7 +667,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
             this.trigger_up('sip_cancel_incoming', this._currentCallParams);
         }
         this._sipSession = false;
-        this._callState = CALL_STATE.NO_CALL;
+        this._updateCallState(CALL_STATE.NO_CALL);
         this._stopRingtones();
         if (this._mode === 'demo') {
             clearTimeout(this._timerAcceptedTimeout);
@@ -599,19 +678,15 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @param {Object} inviteSession
      */
     _onCurrentInviteSessionRejected(inviteSession) {
+        this._audioIncomingRingtone.pause();
         if (this._notification) {
             this._notification.removeEventListener('close', this._rejectInvite, inviteSession);
             this._notification.close();
             this._notification = undefined;
-            this._audioIncomingRingtone.pause();
-        }
-        if ((typeof this._dialog !== 'undefined') && (this._dialog.$el.is(":visible"))) {
-            this._dialog.close();
-            this._audioIncomingRingtone.pause();
         }
         if (this._callState === CALL_STATE.REJECTING_CALL) {
             this.trigger_up('sip_rejected', this._currentCallParams);
-            this._callState = CALL_STATE.NO_CALL;
+            this._updateCallState(CALL_STATE.NO_CALL);
         } else {
             this._canceledIncomingCall();
         }
@@ -634,11 +709,24 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @param {Object} inviteSession
      */
     async _onInvite(inviteSession) {
-        if (
-            this._ignoreIncoming ||
-            this._callState === CALL_STATE.ONGOING_CALL
-        ) {
-            inviteSession.reject();
+        if (this._callState === CALL_STATE.ONGOING_CALL){
+            // another session is active, therefore decline
+            inviteSession.reject({ statusCode: 603 });
+            return;
+        } else if (this._ignoreIncoming) {
+            /**
+             * 488: "Not Acceptable Here"
+             * Request doesn't succeed but may succeed elsewhere.
+             *
+             * If the VOIP account is also associated to other tools, like a desk phone,
+             * the invitation is refused on web browser but might be accepted on the desk phone.
+             *
+             * If the call is ignored on the desk phone, will receive status code 486: "Busy Here",
+             * meaning the endpoint is unavailable.
+             *
+             * If the call is not accepted at all, no invite session will launch.
+            */
+            inviteSession.reject({ statusCode: 488 });
             return;
         }
 
@@ -648,6 +736,12 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
             }
             else if (number.startsWith("0")) {
                 return "+" + prefix + number.substr(1, number.length);
+            }
+            /* USA exception for domestic numbers : In the US, the convention is 1 (area code)
+             * extension, while in Europe it is (0 area code)/extension.
+             */
+            else if (number.startsWith("1")) {
+                return "+" + number;
             }
         }
 
@@ -672,13 +766,35 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
                 ['sanitized_mobile', 'ilike', number],
             ];
         }
-        const contacts = await this._rpc({
+        let contacts = await this._rpc({
             model: 'res.partner',
             method: 'search_read',
-            domain: domain,
+            domain: [['user_ids', '!=', false]].concat(domain),
             fields: ['id', 'display_name'],
-            limit: 1,
         });
+        if (!contacts.length) {
+            contacts = await this._rpc({
+                model: 'res.partner',
+                method: 'search_read',
+                domain: domain,
+                fields: ['id', 'display_name'],
+            });
+        }
+        /* Fallback if inviteSession.remoteIdentity.uri.type didn't give the correct country prefix
+        */
+        if (!contacts.length) {
+            let lastSixDigitsNumber = number.substr(number.length - 6)
+            contacts = await this._rpc({
+                model: 'res.partner',
+                method: 'search_read',
+                domain: [
+                    '|',
+                    ['sanitized_phone', '=like', '%'+lastSixDigitsNumber],
+                    ['sanitized_mobile', '=like', '%'+lastSixDigitsNumber],
+                ],
+                fields: ['id', 'display_name'],
+            });
+        }
         const incomingCallParams = { number };
         let contact = false;
         if (contacts.length) {
@@ -693,9 +809,9 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
             content = _.str.sprintf(_t("Incoming call from %s"), number);
         }
         this._isOutgoing = false;
-        this._callState = CALL_STATE.RINGING_CALL;
+        this._updateCallState(CALL_STATE.RINGING_CALL);
         this._audioIncomingRingtone.currentTime = 0;
-        if (this.PLAY_MEDIA) {
+        if (this.PLAY_MEDIA && this.call('bus_service', 'isMasterTab')) {
             this._audioIncomingRingtone.play().catch(() => {});
         }
         this._notification = this._sendNotification('Odoo', content);
@@ -704,13 +820,18 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
 
         this._currentInviteSession.on('rejected', () =>
             this._onCurrentInviteSessionRejected(inviteSession));
-        if (window.Notification && window.Notification.requestPermission) {
-            window.Notification.requestPermission()
-                .then(permission => this._onWindowNotificationPermissionRequested({ content, inviteSession, permission }))
-                .catch(() => this._onWindowNotificationPermissionRequested({ content, inviteSession }));
-        } else {
-            this._onWindowNotificationPermissionRequested({ content, inviteSession })
+        if (!window.Notifcation || !window.Notification.requestPermission) {
+           this._onWindowNotificationPermissionRequested({ content, inviteSession });
+           return;
         }
+        const res = window.Notification.requestPermission();
+        if (!res) {
+           this._onWindowNotificationPermissionRequested({ content, inviteSession });
+           return;
+        }
+        res
+            .then(permission => this._onWindowNotificationPermissionRequested({ content, inviteSession, permission }))
+            .catch(() => this._onWindowNotificationPermissionRequested({ content, inviteSession }));
     },
     /**
      * Starts the first ringing tone
@@ -745,7 +866,7 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @param {integer} incomingCallParams.partnerId
      */
     _onMicrophoneAccepted(incomingCallParams) {
-        this._callState = CALL_STATE.ONGOING_CALL;
+        this._updateCallState(CALL_STATE.ONGOING_CALL);
         this.trigger_up('sip_incoming_call', incomingCallParams);
     },
     /**
@@ -787,14 +908,22 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
      * @param {integer} response.statusCode used in this function respectively
      *   stand for:
      * - 404 : Not Found
+     * - 486 : Busy Here
+     * - 487 : Request Terminated (request has terminated by bye or cancel)
      * - 488 : Not Acceptable Here
+     * - 600 : Busy Everywhere
      * - 603 : Decline
      */
     _onRejected(response) {
-        this._callState = CALL_STATE.REJECTING_CALL;
+        this._updateCallState(CALL_STATE.REJECTING_CALL);
         this._stopRingtones();
         this._sipSession = false;
-        this._callState = CALL_STATE.NO_CALL;
+        this._updateCallState(CALL_STATE.NO_CALL);
+        if (response.statusCode === 487) {
+            this.trigger_up('sip_cancel_outgoing');
+            // Don't show an error when the user hung up on their own.
+            return;
+        }
         if (
             response.statusCode === 404 ||
             response.statusCode === 488 ||
@@ -805,6 +934,22 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
                     "The number is incorrect, the user credentials could be wrong or the connection cannot be made. Please check your configuration.</br> (Reason received: %s)",
                     response.reasonPhrase),
                 { isTemporary: true });
+            this.trigger_up('sip_cancel_outgoing');
+        } else if (response.statusCode === 486 || response.statusCode === 600) {
+            this._triggerError(
+                _t("The person you try to contact is currently unavailable."),
+                { isTemporary: true }
+            );
+            this.trigger_up('sip_cancel_outgoing');
+        } else {
+            // call rejected for unknown reason
+            this._triggerError(
+                _.str.sprintf(
+                    _t(`Call rejected (reason: "%s")`),
+                    response.reasonPhrase
+                ),
+                { isTemporary: true }
+            );
             this.trigger_up('sip_cancel_outgoing');
         }
     },
@@ -847,19 +992,6 @@ const UserAgent = Class.extend(mixins.EventDispatcherMixin, ServicesMixin, {
                 };
                 this._notification.removeEventListener('close', this._rejectInvite, inviteSession);
             }
-        } else {
-            this._dialog = Dialog.confirm(this, content, {
-                confirm_callback: () => this._answerCall(),
-                cancel_callback: () => {
-                    try {
-                        this.rejectIncomingCall();
-                    } catch (err) {
-                        console.error(
-                            _.str.sprintf(_t("Reject failed: %s"), err));
-                    }
-                    this._audioIncomingRingtone.pause();
-                },
-            });
         }
     },
 });

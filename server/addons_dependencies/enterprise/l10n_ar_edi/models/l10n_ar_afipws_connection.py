@@ -3,7 +3,8 @@ from odoo import fields, models, api, _
 from odoo.exceptions import UserError
 from lxml import builder
 from lxml import etree
-from OpenSSL import crypto
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context, DEFAULT_CIPHERS
 from zeep import transports
 import time
 import datetime
@@ -13,8 +14,29 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+try:
+    from OpenSSL import crypto
+except ImportError:
+    _logger.warning('OpenSSL library not found. If you plan to use l10n_ar_edi, please install the library from https://pypi.python.org/pypi/pyOpenSSL')
+
+AFIP_CIPHERS = DEFAULT_CIPHERS + ":!DH"
+
+
+class L10nArHTTPAdapter(HTTPAdapter):
+    """ An adapter to block DH ciphers which may not work for *.afip.gov.ar """
+
+    def init_poolmanager(self, *args, **kwargs):
+        context = create_urllib3_context(ciphers=AFIP_CIPHERS)
+        kwargs["ssl_context"] = context
+        return super().init_poolmanager(*args, **kwargs)
+
 
 class ARTransport(transports.Transport):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session.mount('https://', L10nArHTTPAdapter()) # block DH ciphers for AFIP servers
+
     def post(self, address, message, headers):
         """ We overwrite this method only to be able to save the xml request and response.
         This will only affect to the connections that are made n this field and it do not extend the original
@@ -61,8 +83,8 @@ class L10nArAfipwsConnection(models.Model):
                             'testing': "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"},
                    'wsfex': {'production': "https://servicios1.afip.gov.ar/wsfexv1/service.asmx?WSDL",
                              'testing': "https://wswhomo.afip.gov.ar/wsfexv1/service.asmx?WSDL"},
-                   'wsbfe': {'production': "http://servicios1.afip.gov.ar/wsbfev1/service.asmx?WSDL",
-                             'testing': "http://wswhomo.afip.gov.ar/wsbfev1/service.asmx?WSDL"},
+                   'wsbfe': {'production': "https://servicios1.afip.gov.ar/wsbfev1/service.asmx?WSDL",
+                             'testing': "https://wswhomo.afip.gov.ar/wsbfev1/service.asmx?WSDL"},
                    'wscdc': {'production': "https://servicios1.afip.gov.ar/WSCDC/service.asmx?WSDL",
                              'testing': "https://wswhomo.afip.gov.ar/WSCDC/service.asmx?WSDL"}}
         return ws_data.get(afip_ws, {}).get(environment_type)
@@ -70,7 +92,7 @@ class L10nArAfipwsConnection(models.Model):
     def _get_client(self, return_transport=False):
         """ Get zeep client to connect to the webservice """
         wsdl = self._l10n_ar_get_afip_ws_url(self.l10n_ar_afip_ws, self.type)
-        auth = {'Token': self.token, 'Sign': self.sign, 'Cuit': self.company_id.partner_id.l10n_ar_vat}
+        auth = {'Token': self.token, 'Sign': self.sign, 'Cuit': self.company_id.partner_id.ensure_vat()}
         try:
             transport = ARTransport(operation_timeout=60, timeout=60)
             client = zeep.Client(wsdl, transport=transport)
@@ -98,8 +120,7 @@ class L10nArAfipwsConnection(models.Model):
         token_in_use = 'El CEE ya posee un TA valido para el acceso al WSN solicitado'
         data = {
             'Computador no autorizado a acceder al servicio': _(
-                'it seems like you do not have permissions in AFIP to connect using the current certificate and CUIT.'
-                ' Please confirm this two parameters and then try again'),
+                'The certificate is not authorized (delegated) to work with this web service'),
             "ns1:cms.sign.invalid: Firma inválida o algoritmo no soportado": certificate_expired,
             "ns1:cms.cert.expired: Certificado expirado": certificate_expired,
             '500 Server Error: Internal Server': _('Webservice is down'),
@@ -108,6 +129,7 @@ class L10nArAfipwsConnection(models.Model):
                 ' that is requested to AFIP has been requested multiple times and the last one requested is still valid.'
                 ' You will need to wait 12 hours to generate a new token and be able to connect to AFIP'
                 '\n\n If not, then could be a overload of AFIP service, please wait some time and try again'),
+            'No se puede decodificar el BASE64': _('The certificate and private key do not match'),
         }
         for item, value in data.items():
             if item in error_name:
@@ -156,7 +178,7 @@ class L10nArAfipwsConnection(models.Model):
                 'testing': "https://wsaahomo.afip.gov.ar/ws/services/LoginCms?WSDL"}.get(environment_type)
 
         try:
-            _logger.info('Connect to AFIP to get token')
+            _logger.info('Connect to AFIP to get token: %s %s %s' % (afip_ws, company.l10n_ar_afip_ws_crt_fname, company.name))
             transport = ARTransport(operation_timeout=60, timeout=60)
             client = zeep.Client(wsdl, transport=transport)
             response = client.service.loginCms(base64.b64encode(signed_request).decode())

@@ -7,7 +7,7 @@
     'sequence': 9876,
     'summary': 'Web cohort Test',
     'description': """This module contains tests related to web cohort. Those are
-contained in a separate module as it contains models used only to perform
+present in a separate module as it contains models used only to perform
 tests independently to functional aspects of other models. """,
     'depends': ['web_cohort'],
     'data': [
@@ -17,4 +17,5 @@ tests independently to functional aspects of other models. """,
     ],
     'installable': True,
     'application': False,
+    'license': 'OEEL-1',
 }

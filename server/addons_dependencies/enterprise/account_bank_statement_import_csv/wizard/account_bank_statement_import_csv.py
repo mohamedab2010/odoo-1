@@ -6,6 +6,7 @@ import psycopg2
 
 from odoo import _, api, models
 from odoo.exceptions import UserError
+from odoo.addons.base_import.models.base_import import FIELDS_RECURSION_LIMIT
 
 
 class AccountBankStatementImport(models.TransientModel):
@@ -50,8 +51,8 @@ class AccountBankStmtImportCSV(models.TransientModel):
     _inherit = 'base_import.import'
 
     @api.model
-    def get_fields(self, model, depth=2):
-        fields_list = super(AccountBankStmtImportCSV, self).get_fields(model, depth=depth)
+    def get_fields_tree(self, model, depth=FIELDS_RECURSION_LIMIT):
+        fields_list = super(AccountBankStmtImportCSV, self).get_fields_tree(model, depth=depth)
         if self._context.get('bank_stmt_import', False):
             add_fields = [{
                 'id': 'balance',
@@ -109,7 +110,7 @@ class AccountBankStmtImportCSV(models.TransientModel):
             vals['balance_start'] = self._convert_to_float(data[0][index_balance])
             vals['balance_start'] -= self._convert_to_float(data[0][import_fields.index('amount')]) \
                                             if not convert_to_amount \
-                                            else abs(self._convert_to_float(data[0][index_debit]))-abs(self._convert_to_float(data[0][index_credit]))
+                                            else abs(self._convert_to_float(data[0][index_credit]))-abs(self._convert_to_float(data[0][index_debit]))
             vals['balance_end_real'] = data[len(data)-1][index_balance]
             import_fields.remove('balance')
         # Remove debit/credit field from import_fields
@@ -117,7 +118,7 @@ class AccountBankStmtImportCSV(models.TransientModel):
             import_fields.remove('debit')
             import_fields.remove('credit')
 
-        currency_index = 'currency_id' in import_fields and import_fields.index('currency_id') or False
+        currency_index = 'foreign_currency_id' in import_fields and import_fields.index('foreign_currency_id') or False
         for index, line in enumerate(data):
             line.append(statement_id)
             line.append(index)
@@ -151,7 +152,7 @@ class AccountBankStmtImportCSV(models.TransientModel):
             self = self.with_context(bank_stmt_import=True)
         return super(AccountBankStmtImportCSV, self).parse_preview(options, count=count)
 
-    def do(self, fields, columns, options, dryrun=False):
+    def execute_import(self, fields, columns, options, dryrun=False):
         if options.get('bank_stmt_import', False):
             self._cr.execute('SAVEPOINT import_bank_stmt')
             vals = {
@@ -159,7 +160,7 @@ class AccountBankStmtImportCSV(models.TransientModel):
                 'reference': self.file_name
             }
             statement = self.env['account.bank.statement'].create(vals)
-            res = super(AccountBankStmtImportCSV, self.with_context(bank_statement_id=statement.id)).do(fields, columns, options, dryrun=dryrun)
+            res = super(AccountBankStmtImportCSV, self.with_context(bank_statement_id=statement.id)).execute_import(fields, columns, options, dryrun=dryrun)
 
             try:
                 if dryrun:
@@ -174,4 +175,4 @@ class AccountBankStmtImportCSV(models.TransientModel):
                 pass
             return res
         else:
-            return super(AccountBankStmtImportCSV, self).do(fields, columns, options, dryrun=dryrun)
+            return super(AccountBankStmtImportCSV, self).execute_import(fields, columns, options, dryrun=dryrun)

@@ -1,8 +1,28 @@
 # coding: utf-8
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import fields, models, api
 from odoo.tools import DEFAULT_SERVER_DATE_FORMAT
+
+
+class AccountGeneralLedgerReport(models.AbstractModel):
+    _inherit = 'account.general.ledger'
+
+    def _get_options_sum_balance(self, options):
+        # OVERRIDE to fetch the closing moves.
+        options = super()._get_options_sum_balance(options)
+        if self.env.context.get('model') == 'l10n_mx.trial.report':
+            closing_moves = self.env['account.move']._get_closing_move(fields.Date.from_string(options['date']['date_to']))
+            options['closing_move_ids'] = closing_moves.ids
+        return options
+
+    @api.model
+    def _query_get(self, options, domain=None):
+        # OVERRIDE to exclude closing moves.
+        if options.get('closing_move_ids'):
+            domain = list(domain or [])
+            domain.append(('move_id', 'not in', options['closing_move_ids']))
+        return super()._query_get(options, domain=domain)
 
 
 class MxClosingReportAccountTrial(models.AbstractModel):
@@ -46,7 +66,7 @@ class MxClosingReportAccountTrial(models.AbstractModel):
         cols += [initial_balances.get(account, 0.0) + total_periods]
         return cols
 
-    def get_report_name(self):
+    def _get_report_name(self):
         context = self.env.context
         date_report = fields.datetime.strptime(
             context['date_from'], DEFAULT_SERVER_DATE_FORMAT) if context.get(

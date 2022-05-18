@@ -14,14 +14,14 @@ class RevenueKPIsDashboard(http.Controller):
 
     @http.route('/sale_subscription_dashboard/fetch_data', type='json', auth='user')
     def fetch_data(self):
-        # context is necessary so _(...) can translate in the appropriate language
-        context = request.env.context
+        dates_ranges = request.env['sale.subscription'].get_dates_ranges()
         return {
             'stat_types': {
                 key: {
                     'name': stat['name'],
                     'dir': stat['dir'],
                     'code': stat['code'],
+                    'tooltip': stat.get('tooltip'),
                     'prior': stat['prior'],
                     'add_symbol': stat['add_symbol'],
                 }
@@ -31,6 +31,7 @@ class RevenueKPIsDashboard(http.Controller):
                 key: {
                     'name': stat['name'],
                     'code': stat['code'],
+                    'tooltip': stat.get('tooltip'),
                     'prior': stat['prior'],
                     'add_symbol': stat['add_symbol'],
                 }
@@ -42,7 +43,8 @@ class RevenueKPIsDashboard(http.Controller):
             'companies': request.env['res.company'].search_read([], fields=['name']),
             'has_template': bool(request.env['sale.subscription.template'].search_count([])),
             'has_mrr': bool(request.env['account.move.line'].search_count([('subscription_start_date', '!=', False)])),
-            'sales_team': request.env['crm.team'].search_read([], fields=['name'])
+            'sales_team': request.env['crm.team'].search_read([], fields=['name']),
+            'dates_ranges': dates_ranges,
         }
 
     @http.route('/sale_subscription_dashboard/companies_check', type='json', auth='user')
@@ -215,14 +217,14 @@ class RevenueKPIsDashboard(http.Controller):
         start_date_delta = start_date - relativedelta(months=+1)
         end_date_delta = end_date - relativedelta(months=+1)
 
-        value_1 = self.compute_stat(stat_type, start_date_delta, end_date_delta, filters)
-        value_2 = self.compute_stat(stat_type, start_date, end_date, filters)
-
-        perc = 0 if value_1 == 0 else round(100*(value_2 - value_1)/float(value_1), 1)
+        last_month_value = self.compute_stat(stat_type, start_date_delta, end_date_delta, filters)
+        current_value = self.compute_stat(stat_type, start_date, end_date, filters)
+        perc = 100 if not last_month_value else round(100 * (current_value - last_month_value) / float(last_month_value), 1)
+        perc = 0 if not last_month_value and not current_value else perc
 
         result = {
-            'value_1': str(value_1),
-            'value_2': str(value_2),
+            'value_1': str(last_month_value),
+            'value_2': str(current_value),
             'perc': perc,
         }
         return result

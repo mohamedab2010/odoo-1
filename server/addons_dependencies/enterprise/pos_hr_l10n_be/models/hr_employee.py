@@ -45,7 +45,10 @@ class PosConfig(models.Model):
                 emp_list.append(self.env.user.name)
 
             if len(emp_list) > 0:
-                raise ValidationError(_(", ".join(str(emp) for emp in emp_list) + " must have an INSZ or BIS number."))
+                raise ValidationError(_(
+                    "%s must have an INSZ or BIS number.",
+                    ", ".join(str(emp) for emp in emp_list)
+                ))
 
     def open_session_cb(self):
         self._check_employee_insz_or_bis_number()

@@ -1,20 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
 
-<li
-    t-name="voip.switch_panel_top_button">
-    <a
-        href="#"
-        title="Display Dialing Panel">
-        <i
-            aria-label="Display Dialing Panel"
-            class="
-                fa
-                fa-fw
-                fa-phone"
-            role="img"/>
-    </a>
-</li>
+<t t-name="voip.SystrayItem" owl="1">
+    <div>
+        <a href="#" title="Display Dialing Panel" t-on-click.prevent="onClick">
+            <i aria-label="Display Dialing Panel" class="fa fa-fw fa-phone" role="img"/>
+        </a>
+    </div>
+</t>
 
 <!--
     @param {voip.dialingPanel} widget
@@ -40,7 +33,7 @@
             class="o_dial_searchbar">
             <input
                 class="o_dial_search_input"
-                placeholder="Search Phone Calls..."/>
+                placeholder="Search"/>
             <span
                 aria-label="Refresh the Panel"
                 class="fa fa-search"
@@ -135,6 +128,7 @@
             class="o_dial_keypad_input_div">
             <input
                 class="o_dial_keypad_input"
+                type="tel"
                 placeholder="Enter the number..."/>
             <div
                 aria-label="Backspace"
@@ -146,7 +140,7 @@
                 title="Backspace"/>
         </div>
         <div
-            class="
+            t-attrf-class="{{ widget._isMobileDevice ? 'o_hidden' : '' }}
                 clearfix
                 mt16
                 mb16
@@ -247,27 +241,6 @@
                     fa
                     fa-phone"/></button>
     </div>
-    <div
-        class="o_dial_incoming_buttons">
-        <button
-            aria-label="Take call"
-            class="
-                col-6
-                o_dial_accept_button"
-            title="Accept"><i
-                class="
-                    fa
-                    fa-phone"/></button>
-        <button
-            aria-label="Reject call"
-            class="
-                col-6
-                o_dial_reject_button"
-            title="Reject"><i
-                class="
-                    fa
-                    fa-phone"/></button>
-    </div>
 </div>
 
 <!--
@@ -277,33 +250,11 @@
   @param {string} title
 -->
 <t t-name="voip.DialingPanel.HeaderContent">
-    <i
-        class="
-            fa
-            fa-fw
-            fa-phone"
-        role="img"/>
-    <div
-        class="o_dial_text">
-            <t t-esc="title"/>
+    <i class="fa fa-fw fa-phone" role="img"/>
+    <div class="o_dial_text">
+        <t t-esc="title"/>
     </div>
-    <a
-        aria-label="Close"
-        class="
-            fa
-            fa-close
-            o_dial_window_close"
-        href="#"
-        title="Close"/>
-    <i
-        aria-label="Unfold"
-        class="
-            fa
-            fa-2x
-            fa-angle-up
-            o_dial_unfold fa_mt"
-        role="img"
-        title="Unfold"/>
+    <a aria-label="Close" class="fa fa-close o_dial_window_close" href="#" title="Close"/>
 </t>
 
 </templates>

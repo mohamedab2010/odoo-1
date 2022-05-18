@@ -73,13 +73,17 @@ class PatchedOfxParser(OfxParserClass):
         else:
             msec = datetime.timedelta(seconds=0)
 
+        # Some banks seem to return some OFX dates as YYYY-MM-DD; so we remove
+        # the '-' characters to support them as well
+        ofxDateTime = ofxDateTime.replace('-', '')
+
         try:
             local_date = datetime.datetime.strptime(
                 ofxDateTime[:14], '%Y%m%d%H%M%S'
             )
             return local_date + msec
         except:
-            if ofxDateTime[:8] == "00000000":
+            if not ofxDateTime or ofxDateTime[:8] == "00000000":
                 return None
 
             return datetime.datetime.strptime(
@@ -131,11 +135,11 @@ class AccountBankStatementImport(models.TransientModel):
                     partner_id = partner_bank.partner_id.id
                 vals_line = {
                     'date': transaction.date,
-                    'name': transaction.payee + (transaction.memo and ': ' + transaction.memo or ''),
+                    'payment_ref': transaction.payee + (transaction.memo and ': ' + transaction.memo or ''),
                     'ref': transaction.id,
-                    'amount': transaction.amount,
+                    'amount': float(transaction.amount),
                     'unique_import_id': transaction.id,
-                    'bank_account_id': bank_account_id,
+                    'partner_bank_id': bank_account_id,
                     'partner_id': partner_id,
                     'sequence': len(transactions) + 1,
                 }

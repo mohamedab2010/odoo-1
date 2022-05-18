@@ -4,6 +4,7 @@
         <field name="name">Corporate Revenue Tax Report</field>
         <field name='parent_id' ref='l10n_mn.account_reports_mn_statements_menu'/>
         <field name="tax_report" eval="1"/>
+        <field name="country_id" ref="base.mn"/>
     </record>
     <record id="tax_report_lineA" model="account.financial.html.report.line">
         <field name="code">LINEA</field>
@@ -18,7 +19,7 @@
         <field name="name">1. Нийт орлогын дүн  (1=2+...+6)</field>
         <field name="sequence" eval="1"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE2.balance + LINE3.balance + LINE4.balance + LINE5.balance + LINE6.balance</field>
+        <field name="formulas">LINE2 + LINE3 + LINE4 + LINE5 + LINE6</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -28,7 +29,7 @@
         <field name="sequence" eval="2"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag2'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line1"/>
         <field name="show_domain">foldable</field>
@@ -39,7 +40,7 @@
         <field name="name">1.2. Тусгай хувь хэмжээгээр татвар ногдох орлогын дүн (3)</field>
         <field name="sequence" eval="3"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE32.balance + LINE34.balance + LINE39.balance + LINE41.balance + LINE43.balance</field>
+        <field name="formulas">LINE32 + LINE34 + LINE39 + LINE41 + LINE43</field>
         <field name="parent_id" ref="tax_report_line1"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -48,7 +49,7 @@
         <field name="name">1.3. Хуулийн дагуу бусдад татвар суутгуулсан орлогын дүн (4)</field>
         <field name="sequence" eval="4"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE46.balance + LINE48.balance + LINE50.balance + LINE52.balance</field>
+        <field name="formulas">LINE46 + LINE48 + LINE50 + LINE52</field>
         <field name="parent_id" ref="tax_report_line1"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -58,7 +59,7 @@
         <field name="sequence" eval="5"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag5'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line1"/>
         <field name="show_domain">foldable</field>
@@ -69,7 +70,7 @@
         <field name="name">1.5. Нийтлэг хувь хэмжээгээр татвар ногдох орлогын дүн (6)</field>
         <field name="sequence" eval="6"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE7.balance + LINE8.balance + LINE9.balance + LINE10.balance + LINE11.balance + LINE12.balance + LINE13.balance + LINE14.balance + LINE15.balance + LINE16.balance + LINE17.balance</field>
+        <field name="formulas">LINE7 + LINE8 + LINE9 + LINE10 + LINE11 + LINE12 + LINE13 + LINE14 + LINE15 + LINE16 + LINE17</field>
         <field name="parent_id" ref="tax_report_line1"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -79,7 +80,7 @@
         <field name="sequence" eval="7"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag7'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -91,7 +92,7 @@
         <field name="sequence" eval="8"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag8'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -103,7 +104,7 @@
         <field name="sequence" eval="9"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag9'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -115,7 +116,7 @@
         <field name="sequence" eval="10"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag10'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -127,7 +128,7 @@
         <field name="sequence" eval="11"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag11'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -139,7 +140,7 @@
         <field name="sequence" eval="12"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag12'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -151,7 +152,7 @@
         <field name="sequence" eval="13"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag13'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -163,7 +164,7 @@
         <field name="sequence" eval="14"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag14'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -175,7 +176,7 @@
         <field name="sequence" eval="15"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag15'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -187,7 +188,7 @@
         <field name="sequence" eval="16"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag16'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -199,7 +200,7 @@
         <field name="sequence" eval="17"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag17'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_line6"/>
         <field name="show_domain">foldable</field>
@@ -211,7 +212,7 @@
         <field name="sequence" eval="18"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.user_type_id','=',ref('account.data_account_type_direct_costs'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -223,7 +224,7 @@
         <field name="sequence" eval="19"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.user_type_id','=',ref('account.data_account_type_expenses')),'|',('account_id.code','=like','70%'),('account_id.code','=like','71%')]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -235,7 +236,7 @@
         <field name="sequence" eval="20"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.user_type_id','=',ref('account.data_account_type_expenses')),'|','|',('account_id.code','=like','72%'),('account_id.code','=like','73%'),('account_id.code','=like','74%')]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -246,7 +247,7 @@
         <field name="name">5. Татварын өмнөх ашиг +, алдагдал - (21=1-18-19-20)</field>
         <field name="sequence" eval="21"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE1.balance - LINE18.balance - LINE19.balance - LINE20.balance</field>
+        <field name="formulas">LINE1 - LINE18 - LINE19 - LINE20</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -256,7 +257,7 @@
         <field name="sequence" eval="22"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag22'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -268,7 +269,7 @@
         <field name="sequence" eval="23"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag23'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -279,7 +280,7 @@
         <field name="name">8. Татвар ногдуулах орлогын дүн (24=21+22-23)</field>
         <field name="sequence" eval="24"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE21.balance + (LINE22.balance - LINE23.balance)</field>
+        <field name="formulas">LINE21 + (LINE22 - LINE23)</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -289,7 +290,7 @@
         <field name="sequence" eval="25"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag25'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -300,7 +301,7 @@
         <field name="name">10. Зохицуулагдсан татвар ногдуулах орлогын дүн (26=24+25)</field>
         <field name="sequence" eval="26"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE24.balance + LINE25.balance</field>
+        <field name="formulas">LINE24 + LINE25</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -310,7 +311,7 @@
         <field name="sequence" eval="27"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag27'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -321,7 +322,7 @@
         <field name="name">12. Нийтлэг хувь хэмжээгээр татвар ногдуулах орлогын дүн (28=26-27)</field>
         <field name="sequence" eval="28"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE26.balance - LINE27.balance</field>
+        <field name="formulas">LINE26 - LINE27</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -330,7 +331,7 @@
         <field name="name">13. Ногдуулсан татвар (29=28*10%)</field>
         <field name="sequence" eval="29"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE28.balance * 0.10</field>
+        <field name="formulas">LINE28 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -340,7 +341,7 @@
         <field name="sequence" eval="30"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag30'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="show_domain">foldable</field>
@@ -351,7 +352,7 @@
         <field name="name">15. НИЙТЛЭГ ХУВЬ ХЭМЖЭЭГЭЭР ТӨЛБӨЛ ЗОХИХ АЛБАН ТАТВАР (31=29-30)</field>
         <field name="sequence" eval="31"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE29.balance - LINE30.balance</field>
+        <field name="formulas">LINE29 - LINE30</field>
         <field name="parent_id" ref="tax_report_lineA"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -369,7 +370,7 @@
         <field name="sequence" eval="1"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag32'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -380,7 +381,7 @@
         <field name="name">Эротик хэвлэл, ном зохиол, бичлэг худалдсан, ашиглуулсан, тоглолт явуулсан үйлчилгээний орлогод ногдуулсан татвар (33=32*40%)</field>
         <field name="sequence" eval="2"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE32.balance * 0.40</field>
+        <field name="formulas">LINE32 * 0.40</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -390,7 +391,7 @@
         <field name="sequence" eval="3"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag34'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -402,7 +403,7 @@
         <field name="sequence" eval="4"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag35'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -414,7 +415,7 @@
         <field name="sequence" eval="5"/>
         <field name="level" eval="4"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag36'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -425,7 +426,7 @@
         <field name="name">Татвар ногдуулах орлого (37=34-35-36)</field>
         <field name="sequence" eval="6"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE34.balance - LINE35.balance - LINE36.balance</field>
+        <field name="formulas">LINE34 - LINE35 - LINE36</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -434,7 +435,7 @@
         <field name="name">Ногдуулсан татвар (38=37x40%)</field>
         <field name="sequence" eval="7"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE37.balance * 0.40</field>
+        <field name="formulas">LINE37 * 0.40</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -444,7 +445,7 @@
         <field name="sequence" eval="8"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=', ref('l10n_mn.tax_report_tag39'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -455,7 +456,7 @@
         <field name="name">Хүүгийн орлогод ногдуулсан татвар (40=39x10%)</field>
         <field name="sequence" eval="9"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE39.balance * 0.10</field>
+        <field name="formulas">LINE39 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -465,7 +466,7 @@
         <field name="sequence" eval="10"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=', ref('l10n_mn.tax_report_tag41'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -476,7 +477,7 @@
         <field name="name">Давхар татварын гэрээтэй гадаад улсад олсон ногдол ашиг, хүүгийн орлогод ногдох татвар (42=41 x  гэрээнд заасан хувь)</field>
         <field name="sequence" eval="11"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE41.balance * 0.10</field>
+        <field name="formulas">LINE41 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -486,7 +487,7 @@
         <field name="sequence" eval="12"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=', ref('l10n_mn.tax_report_tag43'))]"/>
-        <field name="formulas">balance = sum.balance</field>
+        <field name="formulas">sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="show_domain">foldable</field>
@@ -497,7 +498,7 @@
         <field name="name">Гадаад улсад олсон орлогод суутгасан татвар (44=43 * хуульд заасан хувь)</field>
         <field name="sequence" eval="13"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE43.balance * 0.10</field>
+        <field name="formulas">LINE43 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -506,7 +507,7 @@
         <field name="name">21. ТУСГАЙ ХУВЬ ХЭМЖЭЭГЭЭР ТӨЛБӨЛ ЗОХИХ АЛБАН ТАТВАРЫН ДҮН (45=33+38+40+42+44) </field>
         <field name="sequence" eval="14"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE33.balance + LINE38.balance + LINE40.balance + LINE42.balance + LINE44.balance</field>
+        <field name="formulas">LINE33 + LINE38 + LINE40 + LINE42 + LINE44</field>
         <field name="parent_id" ref="tax_report_lineB"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -524,7 +525,7 @@
         <field name="sequence" eval="1"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag46'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="show_domain">foldable</field>
@@ -535,7 +536,7 @@
         <field name="name">Ногдол ашгийн орлогод суутгуулсан татвар (47=46*10%)</field>
         <field name="sequence" eval="2"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE46.balance * 0.10</field>
+        <field name="formulas">LINE46 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -545,7 +546,7 @@
         <field name="sequence" eval="3"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag48'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="show_domain">foldable</field>
@@ -556,7 +557,7 @@
         <field name="name">Эрхийн шимтгэлийн орлогод суутгуулсан татвар (49=48*10%)</field>
         <field name="sequence" eval="4"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE48.balance * 0.10</field>
+        <field name="formulas">LINE48 * 0.10</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -566,7 +567,7 @@
         <field name="sequence" eval="5"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag50'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="show_domain">foldable</field>
@@ -577,7 +578,7 @@
         <field name="name">Эрх борлуулсны орлогод суутгуулсан татвар (51=50*30%)</field>
         <field name="sequence" eval="6"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE50.balance * 0.30</field>
+        <field name="formulas">LINE50 * 0.30</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -587,7 +588,7 @@
         <field name="sequence" eval="7"/>
         <field name="level" eval="3"/>
         <field name="domain" eval="[('account_id.tag_ids','=',ref('l10n_mn.tax_report_tag52'))]"/>
-        <field name="formulas">balance = -sum.balance</field>
+        <field name="formulas">-sum</field>
         <field name="groupby">account_id</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="show_domain">foldable</field>
@@ -598,7 +599,7 @@
         <field name="name">Үл хөдлөх эд хөрөнгө борлуулсны орлогод суутгуулсан татвар (53=52*2%)</field>
         <field name="sequence" eval="8"/>
         <field name="level" eval="4"/>
-        <field name="formulas">balance = LINE52.balance * 0.02</field>
+        <field name="formulas">LINE52 * 0.02</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -607,7 +608,7 @@
         <field name="name">26. ХУУЛИЙН ДАГУУ БУСДАД СУУТГУУЛСАН АЛБАН ТАТВАРЫН ДҮН (54=47+49+51+53)</field>
         <field name="sequence" eval="9"/>
         <field name="level" eval="3"/>
-        <field name="formulas">balance = LINE47.balance + LINE49.balance + LINE51.balance + LINE53.balance</field>
+        <field name="formulas">LINE47 + LINE49 + LINE51 + LINE53</field>
         <field name="parent_id" ref="tax_report_lineC"/>
         <field name="special_date_changer">strict_range</field>
     </record>
@@ -616,7 +617,7 @@
         <field name="name">23. НИЙТ ТӨЛБӨЛ ЗОХИХ ТАТВАРЫН ДҮН (55=31+45+54)</field>
         <field name="sequence" eval="10"/>
         <field name="level" eval="0"/>
-        <field name="formulas">balance = LINE31.balance + LINE45.balance + LINE54.balance</field>
+        <field name="formulas">LINE31 + LINE45 + LINE54</field>
         <field name="financial_report_id" ref="account_report_tax_report"/>
         <field name="special_date_changer">strict_range</field>
     </record>

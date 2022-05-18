@@ -20,13 +20,15 @@ StreamPostKanbanController.include({
 
         var postId = $target.data('postId');
         this._rpc({
-            model: 'social.stream.post',
-            method: 'get_twitter_comments',
-            args: [[postId]]
+            route: '/social_twitter/get_comments',
+            params: {
+                stream_post_id: postId
+            }
         }).then(function (result) {
             new StreamPostTwitterComments(
                 self,
                 {
+                    commentsCount: self.commentsCount,
                     postId: postId,
                     originalPost: $target.data(),
                     streamId: $target.data('streamId'),

@@ -8,7 +8,9 @@ from odoo.tools import float_repr
 class Providerdhl(models.Model):
     _inherit = 'delivery.carrier'
 
-    delivery_type = fields.Selection(selection_add=[('dhl', "DHL")])
+    delivery_type = fields.Selection(selection_add=[
+        ('dhl', "DHL")
+    ], ondelete={'dhl': lambda recs: recs.write({'delivery_type': 'fixed', 'fixed_price': 0})})
 
     dhl_SiteID = fields.Char(string="DHL SiteID", groups="base.group_system")
     dhl_password = fields.Char(string="DHL Password", groups="base.group_system")
@@ -21,7 +23,7 @@ class Providerdhl(models.Model):
                                                 ('K', 'Kilograms')],
                                                default='K',
                                                string="Package Weight Unit")
-    dhl_default_packaging_id = fields.Many2one('product.packaging', string='DHL Default Packaging Type')
+    dhl_default_package_type_id = fields.Many2one('stock.package.type', string='DHL Package Type')
     dhl_region_code = fields.Selection([('AP', 'Asia Pacific'),
                                         ('AM', 'America'),
                                         ('EU', 'Europe')],
@@ -99,19 +101,15 @@ class Providerdhl(models.Model):
 
     def _rate_shipment_vals(self, order=False, picking=False):
         if picking:
-            order = picking.sale_id
             warehouse_partner_id = picking.picking_type_id.warehouse_id.partner_id
-            currency_id = order.currency_id.name or picking.company_id.currency_id
+            currency_id = picking.sale_id.currency_id or picking.company_id.currency_id
             destination_partner_id = picking.partner_id
-            if order:
-                total_value = sum([line.product_id.lst_price * line.product_qty for line in order.order_line if not line.display_type])
-            else:
-                total_value = sum([line.product_id.lst_price * line.product_qty for line in picking.move_lines])
+            total_value = sum(sml.sale_price for sml in picking.move_line_ids)
         else:
             warehouse_partner_id = order.warehouse_id.partner_id
-            currency_id = order.currency_id.name or order.company_id.currency_id
-            total_value = sum([line.product_id.lst_price * line.product_qty for line in order.order_line if not line.display_type])
-            destination_partner_id = order.partner_id
+            currency_id = order.currency_id or order.company_id.currency_id
+            total_value = sum(line.price_reduce_taxinc * line.product_uom_qty for line in order.order_line.filtered(lambda l: l.product_id.type in ('consu', 'product') and not l.display_type))
+            destination_partner_id = order.partner_shipping_id
 
         rating_request = {}
         srm = DHLProvider(self.log_xml, request_type="rate", prod_environment=self.prod_environment)
@@ -128,8 +126,7 @@ class Providerdhl(models.Model):
         if picking:
             rating_request['BkgDetails'] = srm._set_dct_bkg_details_from_picking(picking)
         else:
-            total_weight = sum([line.product_qty * line.product_id.weight for line in order.order_line if not line.display_type])
-            rating_request['BkgDetails'] = srm._set_dct_bkg_details(total_weight, self, order.company_id.partner_id)
+            rating_request['BkgDetails'] = srm._set_dct_bkg_details(order._get_estimated_weight(), self, order.company_id.partner_id)
         rating_request['To'] = srm._set_dct_to(destination_partner_id)
         if self.dhl_dutiable:
             rating_request['Dutiable'] = srm._set_dct_dutiable(total_value, currency_id.name)
@@ -140,19 +137,42 @@ class Providerdhl(models.Model):
 
         available_product_code = []
         shipping_charge = False
-        for q in response.GetQuoteResponse.BkgDetails.QtdShp:
-            if q.GlobalProductCode == self.dhl_product_code and q.ShippingCharge:
-                shipping_charge = q.ShippingCharge
-                shipping_currency = q.CurrencyCode
-                break;
-            else:
-                available_product_code.append(q.GlobalProductCode)
+        qtd_shp = response.findall('GetQuoteResponse/BkgDetails/QtdShp')
+        if qtd_shp:
+            for q in qtd_shp:
+                charge = q.find('ShippingCharge').text
+                global_product_code = q.find('GlobalProductCode').text
+                if global_product_code == self.dhl_product_code and charge:
+                    shipping_charge = charge
+                    shipping_currency = q.find('CurrencyCode') or False
+                    shipping_currency = shipping_currency and shipping_currency.text
+                    break;
+                else:
+                    available_product_code.append(global_product_code)
+        else:
+            condition = response.find('GetQuoteResponse/Note/Condition')
+            if condition:
+                condition_code = condition.find('ConditionCode').text
+                if condition_code == '410301':
+                    return {
+                        'success': False,
+                        'price': 0.0,
+                        'error_message': "%s.\n%s" % (condition.find('ConditionData').text, _("Hint: The destination may not require the dutiable option.")),
+                        'warning_message': False,
+                    }
+                elif condition_code in ['420504', '420505', '420506']:
+                    return {
+                        'success': False,
+                        'price': 0.0,
+                        'error_message': "%s." % (condition.find('ConditionData').text),
+                        'warning_message': False,
+                    }
         if shipping_charge:
             if order:
                 order_currency = order.currency_id
             else:
                 order_currency = picking.sale_id.currency_id or picking.company_id.currency_id
-            if order_currency.name == shipping_currency:
+            if not shipping_currency or order_currency.name == shipping_currency:
                 price = float(shipping_charge)
             else:
                 quote_currency = self.env['res.currency'].search([('name', '=', shipping_currency)], limit=1)
@@ -165,7 +185,9 @@ class Providerdhl(models.Model):
         if available_product_code:
             return {'success': False,
                     'price': 0.0,
-                    'error_message': (_("There is no price available for this shipping, you should rather try with the DHL product %s") % available_product_code[0]),
+                    'error_message': _(
+                        "There is no price available for this shipping, you should rather try with the DHL product %s",
+                        available_product_code[0]),
                     'warning_message': False}
 
     def dhl_send_shipping(self, pickings):
@@ -175,26 +197,32 @@ class Providerdhl(models.Model):
             srm = DHLProvider(self.log_xml, request_type="ship", prod_environment=self.prod_environment)
             site_id = self.sudo().dhl_SiteID
             password = self.sudo().dhl_password
+            account_number = self.sudo().dhl_account_number
             shipment_request['Request'] = srm._set_request(site_id, password)
             shipment_request['RegionCode'] = srm._set_region_code(self.dhl_region_code)
-            shipment_request['PiecesEnabled'] = srm._set_pieces_enabled(True)
             shipment_request['RequestedPickupTime'] = srm._set_requested_pickup_time(True)
-            shipment_request['Billing'] = srm._set_billing(self.dhl_account_number, "S", self.dhl_duty_payment, self.dhl_dutiable)
+            shipment_request['Billing'] = srm._set_billing(account_number, "S", self.dhl_duty_payment, self.dhl_dutiable)
             shipment_request['Consignee'] = srm._set_consignee(picking.partner_id)
-            shipment_request['Shipper'] = srm._set_shipper(self.dhl_account_number, picking.company_id.partner_id, picking.picking_type_id.warehouse_id.partner_id)
+            shipment_request['Shipper'] = srm._set_shipper(account_number, picking.company_id.partner_id, picking.picking_type_id.warehouse_id.partner_id)
             total_value = sum([line.product_id.lst_price * line.product_uom_qty for line in picking.move_lines])
             currency_name = picking.sale_id.currency_id.name or picking.company_id.currency_id.name
             if self.dhl_dutiable:
-                shipment_request['Dutiable'] = srm._set_dutiable(total_value, currency_name)
+                incoterm = picking.sale_id.incoterm or self.env.company.incoterm_id
+                shipment_request['Dutiable'] = srm._set_dutiable(total_value, currency_name, incoterm)
             shipment_request['ShipmentDetails'] = srm._set_shipment_details(picking)
             shipment_request['LabelImageFormat'] = srm._set_label_image_format(self.dhl_label_image_format)
             shipment_request['Label'] = srm._set_label(self.dhl_label_template)
-            shipment_request['schemaVersion'] = 6.2
+            shipment_request['schemaVersion'] = 10.0
             shipment_request['LanguageCode'] = 'en'
             dhl_response = srm._process_shipment(shipment_request)
             traking_number = dhl_response.AirwayBillNumber
             logmessage = (_("Shipment created into DHL <br/> <b>Tracking Number : </b>%s") % (traking_number))
-            picking.message_post(body=logmessage, attachments=[('LabelDHL-%s.%s' % (traking_number, self.dhl_label_image_format), dhl_response.LabelImage[0].OutputImage)])
+            dhl_labels = [('LabelDHL-%s.%s' % (traking_number, self.dhl_label_image_format), dhl_response.LabelImage[0].OutputImage)]
+            if picking.sale_id:
+                for pick in picking.sale_id.picking_ids:
+                    pick.message_post(body=logmessage, attachments=dhl_labels)
+            else:
+                picking.message_post(body=logmessage, attachments=dhl_labels)
             shipping_data = {
                 'exact_price': 0,
                 'tracking_number': traking_number,
@@ -212,23 +240,24 @@ class Providerdhl(models.Model):
         srm = DHLProvider(self.log_xml, request_type="ship", prod_environment=self.prod_environment)
         site_id = self.sudo().dhl_SiteID
         password = self.sudo().dhl_password
+        account_number = self.sudo().dhl_account_number
         shipment_request['Request'] = srm._set_request(site_id, password)
         shipment_request['RegionCode'] = srm._set_region_code(self.dhl_region_code)
-        shipment_request['PiecesEnabled'] = srm._set_pieces_enabled(True)
         shipment_request['RequestedPickupTime'] = srm._set_requested_pickup_time(True)
-        shipment_request['Billing'] = srm._set_billing(self.dhl_account_number, "S", "S", self.dhl_dutiable)
+        shipment_request['Billing'] = srm._set_billing(account_number, "S", "S", self.dhl_dutiable)
         shipment_request['Consignee'] = srm._set_consignee(picking.picking_type_id.warehouse_id.partner_id)
-        shipment_request['Shipper'] = srm._set_shipper(self.dhl_account_number, picking.partner_id, picking.partner_id)
+        shipment_request['Shipper'] = srm._set_shipper(account_number, picking.partner_id, picking.partner_id)
         total_value = sum([line.product_id.lst_price * line.product_uom_qty for line in picking.move_lines])
         currency_name = picking.sale_id.currency_id.name or picking.company_id.currency_id.name
         if self.dhl_dutiable:
-            shipment_request['Dutiable'] = srm._set_dutiable(total_value, currency_name)
+            incoterm = picking.sale_id.incoterm or self.env.company.incoterm_id
+            shipment_request['Dutiable'] = srm._set_dutiable(total_value, currency_name, incoterm)
         shipment_request['ShipmentDetails'] = srm._set_shipment_details(picking)
         shipment_request['LabelImageFormat'] = srm._set_label_image_format(self.dhl_label_image_format)
         shipment_request['Label'] = srm._set_label(self.dhl_label_template)
         shipment_request['SpecialService'] = []
         shipment_request['SpecialService'].append(srm._set_return())
-        shipment_request['schemaVersion'] = 6.2
+        shipment_request['schemaVersion'] = 10.0
         shipment_request['LanguageCode'] = 'en'
         dhl_response = srm._process_shipment(shipment_request)
         traking_number = dhl_response.AirwayBillNumber
@@ -256,3 +285,14 @@ class Providerdhl(models.Model):
         else:
             weight = weight_uom_id._compute_quantity(weight, self.env.ref('uom.product_uom_kgm'), round=False)
         return float_repr(weight, 3)
+
+
+    def _dhl_convert_size(self, dimensions, unit):
+        size_uom_id = self.env['product.template']._get_length_uom_id_from_ir_config_parameter()
+        target_uom_unit = 'uom.product_uom_inch' if unit == 'I' else 'uom.product_uom_cm'
+
+        width = size_uom_id._compute_quantity(dimensions.width, self.env.ref(target_uom_unit), round=False)
+        height = size_uom_id._compute_quantity(dimensions.height, self.env.ref(target_uom_unit), round=False)
+        length = size_uom_id._compute_quantity(dimensions.packaging_length, self.env.ref(target_uom_unit), round=False)
+
+        return float_repr(width, 3), float_repr(height, 3), float_repr(length, 3)

@@ -12,7 +12,7 @@ class ReportExportWizard(models.TransientModel):
 
     def export_report(self):
         self.ensure_one()
-        if any([format.name == 'BOE' for format in self.export_format_ids]) and not self.l10n_es_reports_boe_wizard_model:
+        if any(format.name == 'BOE' for format in self.export_format_ids) and not self.l10n_es_reports_boe_wizard_model:
             report = self._get_report_obj()
             boe_action = report.print_boe(self.env.context.get('account_report_generation_options'))
 

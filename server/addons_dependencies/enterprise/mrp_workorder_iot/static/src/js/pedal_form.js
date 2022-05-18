@@ -4,6 +4,7 @@ odoo.define('mrp_workorder_iot.pedal_form', function(require) {
 var PDFViewerNoReload = require('mrp_workorder.PDFViewerNoReload');
 var FormController = require('web.FormController');
 var view_registry = require('web.view_registry');
+var DeviceProxy = require('iot.DeviceProxy');
 
 var TabletPDFViewer = PDFViewerNoReload.TabletPDFViewer;
 var PDFViewerNoReloadRenderer = PDFViewerNoReload.PDFViewerNoReloadRenderer;
@@ -72,6 +73,7 @@ var PedalController = FormController.extend({
     custom_events: _.extend({}, FormController.prototype.custom_events, {
         'pedal_status_button_clicked': '_onTakeOwnership',
     }),
+    device_proxies: [],
 
     /**
     * When it starts, it needs to check if the tab owns or can take ownership of the devices
@@ -86,11 +88,11 @@ var PedalController = FormController.extend({
             self.triggers = JSON.parse(state.data.boxes);
             var boxes = self.triggers;
             for (var box in boxes) {
-                var devices = [];
                 for (var device in boxes[box]) {
-                    devices.push(boxes[box][device][0]);
+                    var device_proxy = new DeviceProxy(self, {identifier: boxes[box][device][0], iot_ip: box});
+                    device_proxy.add_listener(self._onValueChange.bind(self));
+                    self.device_proxies.push(device_proxy);
                 }
-                self.call('iot_longpolling', 'addListener', box, devices, self._onValueChange.bind(self));
             }
             self.takeOwnerships();
         });
@@ -112,7 +114,7 @@ var PedalController = FormController.extend({
         } else {
             for (var box in boxes) {
                 for (var device in boxes[box]) {
-                    if ( data.device_id === boxes[box][device][0] && data.value.toUpperCase() === boxes[box][device][1].toUpperCase()){
+                    if ( data.device_identifier === boxes[box][device][0] && data.value.toUpperCase() === boxes[box][device][1].toUpperCase()){
                         this.$("button[barcode_trigger='" + boxes[box][device][2] + "']:visible").click();
                     }
                 }
@@ -127,19 +129,8 @@ var PedalController = FormController.extend({
     */
     takeOwnerships: function() {
         this.renderer.showPedalStatusButton(true);
-        var boxes = this.triggers;
-        for (var box in boxes) {
-            for (var device in boxes[box]) {
-                this.call(
-                    'iot_longpolling',
-                    'action',
-                    box,
-                    boxes[box][device][0],
-                    '',
-                    '',
-                    ''
-                );
-            }
+        for (var device in this.device_proxies) {
+            this.device_proxies[device].action({});
         }
     },
 

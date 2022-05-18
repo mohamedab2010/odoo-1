@@ -12,13 +12,11 @@ var qweb = core.qweb;
 var _t = core._t;
 
 var GridController = AbstractController.extend({
-    custom_events: _.extend({}, AbstractController.prototype.custom_events, {
+    custom_events: Object.assign({}, AbstractController.prototype.custom_events, {
+        'create_inline': '_addLine',
         'cell_edited': '_onCellEdited',
+        'open_cell_information': '_onOpenCellInformation',
     }),
-    events: {
-        'click .o_grid_cell_information': '_onClickCellInformation',
-        'focus .o_grid_input': '_onGridInputFocus',
-    },
 
     /**
      * @override
@@ -34,6 +32,8 @@ var GridController = AbstractController.extend({
         this.adjustment = params.adjustment;
         this.adjustName = params.adjustName;
         this.canCreate = params.activeActions.create;
+        this.createInline = params.createInline;
+        this.displayEmpty = params.displayEmpty;
         this.mutex = new concurrency.Mutex();
     },
 
@@ -43,24 +43,42 @@ var GridController = AbstractController.extend({
 
     /**
      * @override
-     * @param {jQueryElement} $node
+     * @param {jQuery} [$node]
      */
     renderButtons: function ($node) {
-        this.$buttons = $(qweb.render('grid.GridArrows', { widget: {
-            _ranges: this.ranges,
-            _buttons: this.navigationButtons,
-            allowCreate: this.canCreate,
-        },
+        this.$buttons = $(qweb.render('grid.GridArrows', {
+            widget: {
+                _ranges: this.ranges,
+                _buttons: this.navigationButtons,
+                allowCreate: this.canCreate,
+            },
             isMobile: config.device.isMobile
         }));
-        this.$buttons.appendTo($node);
-        this._updateButtons();
         this.$buttons.on('click', '.o_grid_button_add', this._onAddLine.bind(this));
         this.$buttons.on('click', '.grid_arrow_previous', this._onPaginationChange.bind(this, 'prev'));
         this.$buttons.on('click', '.grid_button_initial', this._onPaginationChange.bind(this, 'initial'));
         this.$buttons.on('click', '.grid_arrow_next', this._onPaginationChange.bind(this, 'next'));
         this.$buttons.on('click', '.grid_arrow_range', this._onRangeChange.bind(this));
         this.$buttons.on('click', '.grid_arrow_button', this._onButtonClicked.bind(this));
+        this.updateButtons();
+        if ($node) {
+            this.$buttons.appendTo($node);
+        }
+    },
+    /**
+     * @override
+     */
+    updateButtons: function () {
+        if (!this.$buttons) {
+            return;
+        }
+        const state = this.model.get();
+        this.$buttons.find('.o_grid_button_add').toggleClass('d-none', this.createInline && (!!state.data[0].rows.length || this.displayEmpty));
+        this.$buttons.find('.grid_arrow_previous').toggleClass('d-none', !state.data[0].prev);
+        this.$buttons.find('.grid_arrow_next').toggleClass('d-none', !state.data[0].next);
+        this.$buttons.find('.grid_button_initial').toggleClass('d-none', !state.data[0].initial);
+        this.$buttons.find('.grid_arrow_range').removeClass('active');
+        this.$buttons.find('.grid_arrow_range[data-name=' + this.currentRange + ']').addClass('active');
     },
 
     //--------------------------------------------------------------------------
@@ -68,80 +86,10 @@ var GridController = AbstractController.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * @private
-     * @param {Object} cell
-     * @param {number} newValue
-     * @returns {Promise}
-     */
-    _adjust: function (cell, newValue) {
-        var difference = newValue - cell.value;
-        // 1e-6 is probably an overkill, but that way milli-values are usable
-        if (Math.abs(difference) < 1e-6) {
-            // cell value was set to itself, don't hit the server
-            return Promise.resolve();
-        }
-        // convert row values to a domain, concat to action domain
-        var state = this.model.get();
-        var domain = this.model.domain.concat(cell.row.domain);
-
-        var self = this;
-        return this.mutex.exec(function () {
-            return self._rpc({
-                model: self.modelName,
-                method: self.adjustName,
-                args: [ // args for type=object
-                    [],
-                    domain,
-                    state.colField,
-                    cell.col.values[state.colField][0],
-                    state.cellField,
-                    difference
-                ],
-                context: self.model.getContext()
-            }).then(function () {
-                return self.model.reload();
-            }).then(function () {
-                var state = self.model.get();
-                return self.renderer.updateState(state, {});
-            }).then(function () {
-                self._updateButtons(state);
-            });
-        });
-    },
-    /**
-     * @override
-     * @private
-     * @returns {Promise}
-     */
-    _update: function () {
-        return this._super.apply(this, arguments)
-            .then(this._updateButtons.bind(this));
-    },
-    /**
+     * Open a form View to create a new entry in the grid
      * @private
      */
-    _updateButtons: function () {
-        if (this.$buttons) {
-            var state = this.model.get();
-            this.$buttons.find('.grid_arrow_previous').toggleClass('d-none', !state.prev);
-            this.$buttons.find('.grid_arrow_next').toggleClass('d-none', !state.next);
-            this.$buttons.find('.grid_button_initial').toggleClass('d-none', !state.initial);
-            this.$buttons.find('.grid_arrow_range').removeClass('active');
-            this.$buttons.find('.grid_arrow_range[data-name=' + this.currentRange + ']').addClass('active');
-        }
-    },
-
-    //--------------------------------------------------------------------------
-    // Handlers
-    //--------------------------------------------------------------------------
-
-    /**
-     * @private
-     * @param {MouseEvent} event
-     */
-    _onAddLine: function (event) {
-        event.preventDefault();
-
+    _addLine: function () {
         var context = this.model.getContext();
         var formContext = _.extend({}, context, {view_grid_add_line: true});
         // TODO: document quick_create_view (?) context key
@@ -158,25 +106,133 @@ var GridController = AbstractController.extend({
     },
     /**
      * @private
+     * @param {Object} cell
+     * @param {number} newValue
+     * @returns {Promise}
+     */
+    _adjust: function (cell, newValue) {
+        var difference = newValue - cell.value;
+        // 1e-6 is probably an overkill, but that way milli-values are usable
+        if (Math.abs(difference) < 1e-6) {
+            // cell value was set to itself, don't hit the server
+            return Promise.resolve();
+        }
+        // convert row values to a domain, concat to action domain
+        var state = this.model.get();
+        var domain = this.model.domain.concat(cell.row.domain);
+        // early rendering of the new value.
+        // FIXME: only the model should modify the state, so in master
+        // move the _adjust method in the model so that it can properly
+        // handle "pending" data
+        utils.into(state.data, cell.cell_path).value = newValue;
+
+        var self = this;
+        return this.mutex.exec(function () {
+            if (self.adjustment === 'action') {
+                const actionData = {
+                    type: self.adjustment,
+                    name: self.adjustName,
+                    context: self.model.getContext({
+                        grid_adjust: { // context for type=action
+                            row_domain: domain,
+                            column_field: state.colField,
+                            column_value: cell.col.values[state.colField][0],
+                            cell_field: state.cellField,
+                            change: difference,
+                        },
+                    }),
+                };
+                return self.trigger_up('execute_action', {
+                    action_data: actionData,
+                    env: {
+                        context: self.model.getContext(),
+                        model: self.modelName
+                    },
+                    on_success: async function () {
+                        let state = self.model.get();
+                        await self.model.reloadCell(cell, state.cellField, state.colField);
+                        state = self.model.get();
+                        await self.renderer.update(state);
+                        self.updateButtons(state);
+                    },
+                });
+            }
+            return self._rpc({
+                model: self.modelName,
+                method: self.adjustName,
+                args: [ // args for type=object
+                    [],
+                    domain,
+                    state.colField,
+                    cell.col.values[state.colField][0],
+                    state.cellField,
+                    difference
+                ],
+                context: self.model.getContext()
+            }).then(function () {
+                return self.model.reloadCell(cell, state.cellField, state.colField);
+            }).then(function () {
+                var state = self.model.get();
+                return self.renderer.update(state);
+            }).then(function () {
+                self.updateButtons(state);
+            });
+        });
+    },
+    /**
+     * @override
+     * @private
+     * @returns {Promise}
+     */
+    _update: function () {
+        return this._super.apply(this, arguments)
+            .then(this.updateButtons.bind(this));
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * @private
+     * @param {MouseEvent} event
+     */
+    _onAddLine: function (event) {
+        event.preventDefault();
+        this._addLine();
+    },
+
+    /**
+     * If something needs to be done when a new value has been set, it can be done here
+     * @param ev the event that triggered the update
+     */
+    _cellHasBeenUpdated(ev) {
+        // Currently overriden in timesheet_grid.timesheet_grid_controller
+    },
+
+    /**
+     * @private
      * @param {OdooEvent} e
      */
     _onCellEdited: function (event) {
         var state = this.model.get();
         this._adjust({
-            row: utils.into(state, event.data.row_path),
-            col: utils.into(state, event.data.col_path),
-            value: utils.into(state, event.data.cell_path).value,
+            row: utils.into(state.data, event.data.row_path),
+            col: utils.into(state.data, event.data.col_path),
+            value: utils.into(state.data, event.data.cell_path).value,
+            cell_path: event.data.cell_path,
         }, event.data.value)
-        .then(function () {
+        .then(() => {
             if (event.data.doneCallback !== undefined) {
                 event.data.doneCallback();
             }
+            this._cellHasBeenUpdated(event);
         })
         .guardedCatch(function () {
             if (event.data.doneCallback !== undefined) {
                 event.data.doneCallback();
             }
-        })
+        });
     },
     /**
      * @private
@@ -204,51 +260,47 @@ var GridController = AbstractController.extend({
     },
     /**
      * @private
-     * @param {MouseEvent} e
+     * @param {OwlEvent} ev
      */
-    _onClickCellInformation: function (e) {
+    _onOpenCellInformation: function (ev) {
         var self = this;
-        var $target = $(e.target);
-        var cell_path = $target.parent().attr('data-path').split('.');
+        var cell_path = ev.data.path.split('.');
         var row_path = cell_path.slice(0, -3).concat(['rows'], cell_path.slice(-2, -1));
         var state = this.model.get();
-        var cell = utils.into(state, cell_path);
-        var row = utils.into(state, row_path);
+        var cell = utils.into(state.data, cell_path);
+        var row = utils.into(state.data, row_path);
 
-        var groupFields = state.groupBy.slice(_.isArray(state) ? 1 : 0);
-        var label = _.map(groupFields, function (g) {
-            return row.values[g][1] || _t('Undefined');
-        }).join(': ');
-
+        var groupFields = state.groupBy.slice(state.isGrouped ? 1 : 0);
+        var label = _.filter(_.map(groupFields, function (g) {
+            return row.values[g][1];
+        }), function (g) {
+            return g;
+        }).join(' - ');
         // pass group by, section and col fields as default in context
         var cols_path = cell_path.slice(0, -3).concat(['cols'], cell_path.slice(-1));
-        var col = utils.into(state, cols_path);
+        var col = utils.into(state.data, cols_path);
         var column_value = col.values[state.colField][0];
-        if(!column_value)
-        {
+        if (!column_value) {
             column_value = false;
-        }
-        else if(!_.isNumber(column_value))
-        {
-            column_value = column_value.split("/")[0]
+        } else if (!_.isNumber(column_value)) {
+            column_value = column_value.split("/")[0];
         }
         var ctx = _.extend({}, this.context);
-
-        var sectionField = _.find(this.renderer.fields ,function(res) {
+        var sectionField = _.find(this.renderer.fields, function (res) {
             return self.model.sectionField === res.name;
         });
         if (this.model.sectionField && state.groupBy && state.groupBy[0] === this.model.sectionField) {
-            var value = state[parseInt(cols_path[0])].__label;
+            var value = state.data[parseInt(cols_path[0])].__label;
             ctx['default_' + this.model.sectionField] = _.isArray(value) ? value[0] : value;
         }
         _.each(groupFields, function (field) {
-            ctx['default_'+field] = row.values[field][0] || false;
+            ctx['default_' + field] = row.values[field][0] || false;
         });
 
-        ctx['default_'+state.colField] = column_value;
+        ctx['default_' + state.colField] = column_value;
 
-        ctx['create'] = !cell.readonly
-        ctx['edit'] = !cell.readonly
+        ctx['create'] = this.canCreate && !cell.readonly;
+        ctx['edit'] = this.activeActions.edit && !cell.readonly;
         this.do_action({
             type: 'ir.actions.act_window',
             name: label,
@@ -259,18 +311,8 @@ var GridController = AbstractController.extend({
             ],
             domain: cell.domain,
             context: ctx,
+            help: "<p class='o_view_nocontent_smiling_face'>No activities found</p>",
         });
-    },
-    /**
-     * @private
-     * @param {MouseEvent} e
-     */
-    _onGridInputFocus: function (e) {
-        var selection = window.getSelection();
-        var range = document.createRange();
-        range.selectNodeContents(e.target);
-        selection.removeAllRanges();
-        selection.addRange(range);
     },
     /**
      * @private
@@ -278,7 +320,7 @@ var GridController = AbstractController.extend({
      */
     _onPaginationChange: function (dir) {
         var state = this.model.get();
-        this.update({pagination: state[dir]});
+        this.update({pagination: state.data[0][dir]});
     },
     /**
      * @private
@@ -294,6 +336,7 @@ var GridController = AbstractController.extend({
             return;
         }
         this.currentRange = $target.attr('data-name');
+
         this.update({range: this.currentRange});
     },
 });

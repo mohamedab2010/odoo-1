@@ -5,54 +5,102 @@ from odoo import api, fields, models, _
 
 from odoo.exceptions import UserError
 
+
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    sdd_paying_mandate_id = fields.Many2one(comodel_name='sdd.mandate', help="Once this invoice has been paid with Direct Debit, contains the mandate that allowed the payment.", copy=False)
+    sdd_mandate_scheme = fields.Selection(related='sdd_mandate_id.sdd_scheme', readonly=True)
+    sdd_mandate_id = fields.Many2one(
+        comodel_name='sdd.mandate',
+        copy=False,
+        help="Once this invoice has been paid with Direct Debit, contains the mandate that allowed the payment.")
+    sdd_has_usable_mandate = fields.Boolean(compute='_compute_sdd_has_usable_mandate', search='_search_sdd_has_usable_mandate')
 
-    def _sdd_pay_with_mandate(self, mandate):
-        """ Uses the mandate passed in parameters to pay this invoice. This function
-        updates the state of the mandate accordingly if it was of type 'one-off',
-        changes the state of the invoice and generates the corresponding payment
-        object, setting its state to 'posted'.
+    def _post(self, soft=True):
+        # OVERRIDE
+        # Register SDD payments on mandates or trigger an error if no mandate is available.
+        for pay in self.payment_id:
+            if pay.payment_method_code == 'sdd':
+                usable_mandate = pay.get_usable_mandate()
+                if not usable_mandate:
+                    raise UserError(_(
+                        "Unable to post payment %(payment)r due to no usable mandate being available at date %(date)s for partner %(partner)r. Please create one before encoding a SEPA Direct Debit payment.",
+                        payment=pay.name,
+                        date=pay.date,
+                        partner=pay.partner_id.name,
+                    ))
+                pay.sdd_mandate_id = usable_mandate
+
+        return super()._post(soft)
+
+    @api.model
+    def _search_sdd_has_usable_mandate(self, operator, value):
+        """ Returns invoice ids for which a mandate exist that can be used to be paid,
+            as domain : [('id', 'in', '[4,24,89]')]
+            SQL is used to minimise footprint and is the same as :
+            res = self.search([]).filtered(lambda rec: rec.sdd_has_usable_mandate is True and not rec.is_outbound())
+            return [('id', domain_operator, [x['id'] for x in res])]
         """
-        if self.is_outbound():
-            raise UserError(_("You cannot do direct debit on a customer to pay a refund to him, or on a supplier to pay an invoice from him."))
 
-        date_upper_bound = mandate.end_date or self.invoice_date
-        if not(mandate.start_date <= self.invoice_date <= date_upper_bound):
-            raise UserError(_("You cannot pay an invoice with a mandate that does not cover the moment when it was issued."))
+        if (operator == '=' and value) or (operator == '!=' and not value):
+            domain_operator = 'in'
+        else:
+            domain_operator = 'not in'
 
-        payment_method = self.env.ref('account_sepa_direct_debit.payment_method_sdd')
-        payment_journal = mandate.payment_journal_id
-        PaymentObj = self.env['account.payment'].with_context(active_id=self.id, active_ids=self.ids)
+        query = '''
+        SELECT
+            move.id
+        FROM
+            sdd_mandate mandate
+        LEFT JOIN
+            account_move move ON move.company_id = mandate.company_id AND
+            move.commercial_partner_id = mandate.partner_id
+        WHERE
+            move.move_type IN ('out_invoice', 'in_refund') AND
+            mandate.state NOT IN ('draft', 'revoked') AND
+            mandate.start_date <= move.invoice_date AND
+            (mandate.end_date IS NULL OR mandate.end_date > move.invoice_date)
+        '''
 
-        #This code is only executed if the mandate may be used (thanks to the previous UserError)
-        payment = PaymentObj.create({
-            'invoice_ids': [(4, self.id, None)],
-            'journal_id': payment_journal.id,
-            'payment_method_id': payment_method.id,
-            'amount': self.amount_residual,
-            'currency_id': self.currency_id.id,
-            'payment_type': 'inbound',
-            'communication': self.ref or self.name,
-            'partner_type': 'customer' if self.type == 'out_invoice' else 'supplier',
-            'partner_id': mandate.partner_id.commercial_partner_id.id,
-            'payment_date': self.invoice_date_due or self.invoice_date
-        })
+        self._cr.execute(query)
 
-        payment.post()
-        return payment
+        return [('id', domain_operator, [x['id'] for x in self._cr.dictfetchall()])]
+
+    @api.depends('company_id', 'commercial_partner_id', 'invoice_date')
+    def _compute_sdd_has_usable_mandate(self):
+        for rec in self:
+            rec.sdd_has_usable_mandate = bool(rec._sdd_get_usable_mandate())
 
     def _sdd_get_usable_mandate(self):
         """ returns the first mandate found that can be used to pay this invoice,
         or none if there is no such mandate.
         """
-        return self.env['sdd.mandate']._sdd_get_usable_mandate(self.company_id.id, self.commercial_partner_id.id, self.invoice_date)
+        if self.move_type in ('out_invoice', 'in_refund'):
+            return self.env['sdd.mandate']._sdd_get_usable_mandate(self.company_id.id, self.commercial_partner_id.id, self.invoice_date)
+        else:
+            return None
 
     def _track_subtype(self, init_values):
         # OVERRIDE to log a different message when an invoice is paid using SDD.
         self.ensure_one()
-        if 'state' in init_values and self.state in ('in_payment', 'paid') and self.type == 'out_invoice' and self.sdd_paying_mandate_id:
+        if 'state' in init_values and self.state in ('in_payment', 'paid') and self.move_type == 'out_invoice' and self.sdd_mandate_id:
             return self.env.ref('account_sepa_direct_debit.sdd_mt_invoice_paid_with_mandate')
         return super(AccountMove, self)._track_subtype(init_values)
+
+
+class AccountMoveLine(models.Model):
+    _inherit = 'account.move.line'
+
+    def reconcile(self):
+        # OVERRIDE
+        # Copy the payment's mandate to the newly paid invoices.
+        res = super().reconcile()
+
+        for pay in self.payment_id:
+            if pay.sdd_mandate_id:
+                pay.move_id._get_reconciled_invoices().filtered(lambda m: m.sdd_mandate_id != pay.sdd_mandate_id).sdd_mandate_id = pay.sdd_mandate_id
+
+                if pay.sdd_mandate_id.one_off:
+                    pay.sdd_mandate_id.action_close_mandate()
+
+        return res

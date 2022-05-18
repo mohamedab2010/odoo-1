@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import api, fields, models
+from odoo import fields, models
 
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     ticket_count = fields.Integer("Tickets", compute='_compute_ticket_count')
+    sla_ids = fields.Many2many(
+        'helpdesk.sla', 'helpdesk_sla_res_partner_rel',
+        'res_partner_id', 'helpdesk_sla_id', string='SLA Policies')
 
     def _compute_ticket_count(self):
         # retrieve all children partners and prefetch 'parent_id' on them
-        all_partners = self.search([('id', 'child_of', self.ids)])
+        all_partners = self.with_context(active_test=False).search([('id', 'child_of', self.ids)])
         all_partners.read(['parent_id'])
 
         # group tickets by partner, and account for each partner in self
@@ -28,7 +31,7 @@ class ResPartner(models.Model):
                 partner = partner.parent_id
 
     def action_open_helpdesk_ticket(self):
-        action = self.env.ref('helpdesk.helpdesk_ticket_action_main_tree').read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("helpdesk.helpdesk_ticket_action_main_tree")
         action['context'] = {}
         action['domain'] = [('partner_id', 'child_of', self.ids)]
         return action

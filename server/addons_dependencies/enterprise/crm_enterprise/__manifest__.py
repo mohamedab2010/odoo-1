@@ -20,4 +20,9 @@ Contains advanced features for CRM such as new views
     'application': False,
     'auto_install': ['crm'],
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'crm_enterprise/static/**/*',
+        ],
+    }
 }

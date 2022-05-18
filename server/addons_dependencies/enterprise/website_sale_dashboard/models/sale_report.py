@@ -13,11 +13,11 @@ class SaleReport(models.Model):
         ('invoiced', 'Fully Invoiced'),
         ('to invoice', 'To Invoice'),
         ('no', 'Nothing to Invoice')
-        ], string="Invoice Status", readonly=True)
+    ], string="Invoice Status", readonly=True)
 
     def _query(self, with_clause='', fields={}, groupby='', from_clause=''):
         fields['is_abandoned_cart'] = """, s.date_order <= (timezone('utc', now()) - ((COALESCE(w.cart_abandoned_delay, '1.0') || ' hour')::INTERVAL))
-        AND s.website_id != NULL
+        AND s.website_id IS NOT NULL
         AND s.state = 'draft'
         AND s.partner_id != %s
         AS is_abandoned_cart""" % self.env.ref('base.public_partner').id

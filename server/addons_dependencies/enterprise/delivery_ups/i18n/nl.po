@@ -3,18 +3,16 @@
 # 	* delivery_ups
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Gunther Clauwaert <gclauwae@hotmail.com>, 2019
-# Erwin van der Ploeg <erwin@odooexperts.nl>, 2020
-# Yenthe Van Ginneken <yenthespam@gmail.com>, 2020
+# Martin Trigaux, 2021
+# Erwin van der Ploeg <erwin@odooexperts.nl>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.4+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:05+0000\n"
-"PO-Revision-Date: 2019-08-26 09:35+0000\n"
-"Last-Translator: Yenthe Van Ginneken <yenthespam@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-07-12 07:56+0000\n"
+"PO-Revision-Date: 2021-09-14 12:38+0000\n"
+"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2021\n"
 "Language-Team: Dutch (https://www.transifex.com/odoo/teams/41243/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -29,43 +27,53 @@ msgid ""
 "A shipment cannot have a KGS/IN or LBS/CM as its unit of measurements. "
 "Configure it from the delivery method."
 msgstr ""
+"Een zending kan geen KGS/IN of LBS/CM als meeteenheid hebben. Configureer "
+"het vanuit de verzendwijze."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid ""
-"Access License number is Invalid. Provide a valid number (Length sholuld be "
+"Access License number is Invalid. Provide a valid number (Length should be "
 "0-35 alphanumeric characters)"
 msgstr ""
-"Toegang licentienummer is ongeldig. Geef een geldig nummer in (lengte moest "
-"tussen de 0-35 alfanumerieke karakters zijn)"
+"Toegang licentienummer is ongeldig. Geef een geldig nummer op (lengte moet "
+"0-35 alfanumerieke tekens zijn)"
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Access License number is invalid for this delivery provider."
-msgstr ""
+msgstr "Toegang licentienummer is ongeldig voor deze bezorgprovider."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Access License number is invalid for this provider.Please re-license."
 msgstr ""
+"Toegang licentienummer is ongeldig voor deze provider. S.v.p. nieuwe "
+"licentie aanvragen."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Access License number is revoked contact UPS to get access."
 msgstr ""
+"Toegang licentienummer is ingetrokken, neem contact op met UPS om toegang te"
+" krijgen."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Authorization system is currently unavailable , try again later."
 msgstr ""
+"Het autorisatiesysteem is momenteel niet beschikbaar, probeer het later "
+"opnieuw."
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_bill_my_account
+#: model:ir.model.fields,field_description:delivery_ups.field_res_partner__bill_my_account
+#: model:ir.model.fields,field_description:delivery_ups.field_res_users__bill_my_account
 #: model:ir.model.fields,field_description:delivery_ups.field_sale_order__ups_bill_my_account
 msgid "Bill My Account"
 msgstr "Factureer mijn eigen account"
@@ -84,15 +92,9 @@ msgstr ""
 "opnieuw."
 
 #. module: delivery_ups
-#: model:ir.model.fields,field_description:delivery_ups.field_product_packaging__package_carrier_type
+#: model:ir.model.fields,field_description:delivery_ups.field_stock_package_type__package_carrier_type
 msgid "Carrier"
 msgstr "Vervoerder"
-
-#. module: delivery_ups
-#: model:ir.model.fields,field_description:delivery_ups.field_sale_order__ups_carrier_account
-#: model:ir.model.fields,field_description:delivery_ups.field_stock_picking__ups_carrier_account
-msgid "Carrier Account"
-msgstr "Vervoerder account"
 
 #. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__ups_cod_funds_code__8
@@ -115,6 +117,16 @@ msgid "Collect on Delivery"
 msgstr "Rembours"
 
 #. module: delivery_ups
+#: model:ir.model,name:delivery_ups.model_res_partner
+msgid "Contact"
+msgstr "Contact"
+
+#. module: delivery_ups
+#: model_terms:ir.ui.view,arch_db:delivery_ups.view_delivery_carrier_form_with_provider_ups
+msgid "Duties paid by"
+msgstr "Invoerrechten betaald door"
+
+#. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__ups_label_file_type__epl
 msgid "EPL"
 msgstr "EPL"
@@ -135,9 +147,13 @@ msgstr ""
 msgid ""
 "Exceeds Total Number of allowed pieces per World Wide Express Shipment."
 msgstr ""
+"Overschrijdt het totale aantal toegestane stuks per World Wide Express-"
+"verzending."
 
 #. module: delivery_ups
 #: model:ir.model.fields,help:delivery_ups.field_delivery_carrier__ups_bill_my_account
+#: model:ir.model.fields,help:delivery_ups.field_res_partner__bill_my_account
+#: model:ir.model.fields,help:delivery_ups.field_res_users__bill_my_account
 #: model:ir.model.fields,help:delivery_ups.field_sale_order__ups_bill_my_account
 msgid ""
 "If checked, ecommerce users will be prompted their UPS account number\n"
@@ -157,9 +173,29 @@ msgid "Kilograms"
 msgstr "Kilogram"
 
 #. module: delivery_ups
+#: model_terms:ir.ui.view,arch_db:delivery_ups.view_delivery_carrier_form_with_provider_ups
+msgid "Label Format"
+msgstr "Labelformaat"
+
+#. module: delivery_ups
+#: model_terms:ir.ui.view,arch_db:delivery_ups.view_delivery_carrier_form_with_provider_ups
+msgid "Options"
+msgstr "Opties"
+
+#. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__ups_label_file_type__gif
 msgid "PDF"
 msgstr "PDF"
+
+#. module: delivery_ups
+#: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_package_dimension_unit
+msgid "Package Size Unit"
+msgstr "Verpakkingsgrootte eenheid"
+
+#. module: delivery_ups
+#: model_terms:ir.ui.view,arch_db:delivery_ups.view_delivery_carrier_form_with_provider_ups
+msgid "Package Weight Unit"
+msgstr "Gewichtseenheid verpakking"
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -177,7 +213,7 @@ msgstr "Geef een geldige plaats op in het magazijnadres."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid Country in recipient's address."
-msgstr ""
+msgstr "Geef een geldig land op voor het adres van de ontvanger."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -189,31 +225,31 @@ msgstr "Geef een geldig land in voor het adres van het magazijn."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid State in the warehouse address."
-msgstr ""
+msgstr "Geef een geldige provincie op voor het magazijnadres."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid Zip in the warehouse address."
-msgstr ""
+msgstr "Geef een geldige postcode op voor het magazijnadres."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid city in the recipient address."
-msgstr ""
+msgstr "Voer een geldige stad in voor het adres van de ontvanger."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid city in the shipper's address."
-msgstr ""
+msgstr "Voer een geldige stad in voor het adres van de verzender."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid country in the shipper's address."
-msgstr "Gelieve een geldig land in te vullen voor de verzender zijn adres."
+msgstr "Geef een geldig land in voor de verzender zijn adres."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -222,19 +258,21 @@ msgid ""
 "Please provide a valid package type available for service and selected "
 "locations."
 msgstr ""
+"Geef een geldig pakkettype op dat beschikbaar is voor service en "
+"geselecteerde locaties."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid phone number for the recipient."
-msgstr ""
+msgstr "Voer een geldig telefoonnummer in voor de ontvanger."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid shipper Number/Carrier Account."
-msgstr ""
+msgstr "Voer een geldig verzendernummer / koeriersaccount in."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -242,19 +280,19 @@ msgstr ""
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid shipper number/Carrier Account."
-msgstr ""
+msgstr "Voer een geldig verzendernummer / koeriersaccount in."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid shipper phone number."
-msgstr ""
+msgstr "Voer een geldig telefoonnummer van de verzender in."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid state in the recipient address."
-msgstr ""
+msgstr "Voer een geldige provincie in voor het adres van de ontvanger."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -266,8 +304,7 @@ msgstr "Geef een geldige postcode in op de verzender zijn adres."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid street in shipper's address."
-msgstr ""
-"Gelieve een geldige straat in te geven voor het adres van de verzender."
+msgstr "Geef een geldige straat in voor het adres van de verzender."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -279,7 +316,7 @@ msgstr "Geef een geldige straat in op de ontvanger zijn adres."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid street in the warehouse address."
-msgstr ""
+msgstr "Voer een geldige straat in voor het magazijnadres."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -297,7 +334,7 @@ msgstr "Geef een geldige postcode in op de ontvanger zijn adres."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please provide a valid zip code in the shipper's address."
-msgstr ""
+msgstr "Voer een geldige postcode in voor het adres van de verzender."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -329,13 +366,13 @@ msgstr "Voorzie minimaal één item om te verzend aub."
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please set a valid country in the recipient address."
-msgstr ""
+msgstr "Voer een geldig land in voor het adres van de ontvanger."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Please set a valid country in the warehouse address."
-msgstr ""
+msgstr "Voer een geldig land in voor het magazijnadres."
 
 #. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__ups_package_weight_unit__lbs
@@ -343,22 +380,17 @@ msgid "Pounds"
 msgstr "Ponden"
 
 #. module: delivery_ups
-#: model:ir.model,name:delivery_ups.model_product_packaging
-msgid "Product Packaging"
-msgstr "Productverpakkingen"
-
-#. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Provided Access License Number not found in the UPS database"
-msgstr ""
+msgstr "Opgegeven toegang licentienummer niet gevonden in de UPS-database."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Provided Tracking Ref. Number is invalid."
-msgstr ""
+msgstr "Opgegeven tracking ref. nummer is ongeldig."
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__delivery_type
@@ -375,18 +407,22 @@ msgstr "Ontvanger"
 #, python-format
 msgid "Recipient Phone must be at least 10 alphanumeric characters."
 msgstr ""
+"Telefoonnummer van de ontvanger moet minimaal 10 alfanumerieke tekens "
+"bevatten."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Recipient PhoneExtension cannot exceed the length of 4."
 msgstr ""
+"De telefoonextensie van de ontvanger mag niet langer zijn dan 4 cijfers."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Recipient PhoneExtension must contain only numbers."
 msgstr ""
+"De extensie van het nummer van de ontvanger mag alleen cijfers bevatten."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/delivery_ups.py:0
@@ -421,8 +457,8 @@ msgstr "Afzender"
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/delivery_ups.py:0
 #, python-format
-msgid "Shipment N° %s has been cancelled"
-msgstr "Levering N° %s werd geannuleerd"
+msgid "Shipment #%s has been cancelled"
+msgstr "Levering #%s is geannuleerd."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/delivery_ups.py:0
@@ -453,17 +489,24 @@ msgstr "Nummer van verzender mag alleen alfanumerieke karakters bevatten."
 #, python-format
 msgid "Shipper phone extension cannot exceed the length of 4."
 msgstr ""
+"De telefoonextensie van de verzender mag niet langer zijn dan 4 cijfers."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Shipper phone extension must contain only numbers."
 msgstr ""
+"De extensie van het nummer van de verzender mag alleen cijfers bevatten."
 
 #. module: delivery_ups
 #: model:ir.model,name:delivery_ups.model_delivery_carrier
 msgid "Shipping Methods"
 msgstr "Verzendwijzes"
+
+#. module: delivery_ups
+#: model:ir.model,name:delivery_ups.model_stock_package_type
+msgid "Stock package type"
+msgstr "Verpakkingstype:"
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -478,7 +521,7 @@ msgid ""
 "The address of your company is missing or wrong.\n"
 "(Missing field(s) : %s)"
 msgstr ""
-"Het adres van uw bedrijf ontbreekt of is foutief.\n"
+"Het adres van je bedrijf ontbreekt of is foutief.\n"
 "(Mist veld(en): %s)"
 
 #. module: delivery_ups
@@ -488,7 +531,7 @@ msgid ""
 "The address of your warehouse is missing or wrong.\n"
 "(Missing field(s) : %s)"
 msgstr ""
-"Het adres van uw magazijn ontbreekt of is foutief.\n"
+"Het adres van je magazijn ontbreekt of is foutief.\n"
 "(Mist veld(en): %s)"
 
 #. module: delivery_ups
@@ -497,18 +540,18 @@ msgstr ""
 msgid ""
 "The delivery cannot be done because the weight of your product is missing."
 msgstr ""
-"De levering kan niet gedaan worden omdat het gewicht voor uw product "
+"De levering kan niet gedaan worden omdat het gewicht voor je product "
 "ontbreekt."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid ""
-"The estimated price cannot be computed because the weight of your product is"
-" missing."
+"The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n"
+" %s"
 msgstr ""
-"De geschatte prijs kan niet berekend worden omdat het gewicht op uw product "
-"ontbreekt."
+"De geschatte verzendkosten kunnen niet worden berekend omdat het gewicht "
+"ontbreekt voor de volgende product(en): %s"
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -545,6 +588,8 @@ msgid ""
 "The selected service is invalid from the requested warehouse, please choose "
 "another service."
 msgstr ""
+"De geselecteerde service is ongeldig voor het gevraagde magazijn, kies een "
+"andere service."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -563,6 +608,8 @@ msgid ""
 "The selected service is not possible from your warehouse to the recipient "
 "address, please choose another service."
 msgstr ""
+"De geselecteerde service is niet mogelijk vanuit je magazijn naar het adres "
+"van de ontvanger. Kies een andere service."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -577,6 +624,8 @@ msgid ""
 "This measurement system is not valid for the selected country. Please switch"
 " from LBS/IN to KGS/CM (or vice versa). Configure it from delivery method"
 msgstr ""
+"Dit meetsysteem is niet geldig voor het geselecteerde land. Schakel over van"
+" LBS/IN naar KGS/CM (of vice versa). Configureer het vanuit de verzendwijze."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -586,6 +635,8 @@ msgid ""
 " from LBS/IN to KGS/CM (or vice versa). Configure it from the delivery "
 "method."
 msgstr ""
+"Dit meetsysteem is niet geldig voor het geselecteerde land. Schakel over van"
+" LBS/IN naar KGS/CM (of vice versa). Configureer het vanuit de verzendwijze."
 
 #. module: delivery_ups
 #: model:ir.model.fields,help:delivery_ups.field_delivery_carrier__ups_cod
@@ -594,7 +645,7 @@ msgid ""
 "from your customer."
 msgstr ""
 "Deze waarde toevoegende dienst staat UPS toe om de betaling van de "
-"verzending direct bij u klant te innen."
+"verzending direct bij je klant te innen."
 
 #. module: delivery_ups
 #: model:ir.model.fields,help:delivery_ups.field_delivery_carrier__ups_saturday_delivery
@@ -602,23 +653,24 @@ msgid ""
 "This value added service will allow you to ship the package on saturday "
 "also."
 msgstr ""
-"Deze waarde toevoegende dienst staat u toe om ook op zaterdag te versturen."
-
-#. module: delivery_ups
-#: model:ir.model,name:delivery_ups.model_stock_picking
-msgid "Transfer"
-msgstr "Verplaatsing"
+"Deze waarde toevoegende dienst staat je toe om ook op zaterdag te versturen."
 
 #. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__delivery_type__ups
-#: model:ir.model.fields.selection,name:delivery_ups.selection__product_packaging__package_carrier_type__ups
+#: model:ir.model.fields.selection,name:delivery_ups.selection__stock_package_type__package_carrier_type__ups
 msgid "UPS"
 msgstr "UPS"
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_access_number
-msgid "UPS AccessLicenseNumber"
-msgstr "UPS toegang licentie nummer"
+msgid "UPS Access Key"
+msgstr "UPS-toegangssleutel"
+
+#. module: delivery_ups
+#: model:ir.model.fields,field_description:delivery_ups.field_res_partner__property_ups_carrier_account
+#: model:ir.model.fields,field_description:delivery_ups.field_res_users__property_ups_carrier_account
+msgid "UPS Account Number"
+msgstr "UPS rekeningnummer"
 
 #. module: delivery_ups
 #: model:delivery.carrier,name:delivery_ups.delivery_carrier_ups_be
@@ -633,14 +685,14 @@ msgid "UPS Configuration"
 msgstr "UPS configuratie"
 
 #. module: delivery_ups
-#: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_default_packaging_id
-msgid "UPS Default Packaging Type"
-msgstr "UPS standaard verpakkingstype"
-
-#. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_label_file_type
 msgid "UPS Label File Type"
 msgstr "UPS label bestand soort"
+
+#. module: delivery_ups
+#: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_default_package_type_id
+msgid "UPS Package Type"
+msgstr "UPS-pakkettype"
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_passwd
@@ -660,8 +712,6 @@ msgstr "UPS server niet gevonden"
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_default_service_type
-#: model:ir.model.fields,field_description:delivery_ups.field_sale_order__ups_service_type
-#: model:ir.model.fields,field_description:delivery_ups.field_stock_picking__ups_service_type
 msgid "UPS Service Type"
 msgstr "UPS dienst soort"
 
@@ -689,17 +739,28 @@ msgid "UPS Username"
 msgstr "UPS gebruikersnaam"
 
 #. module: delivery_ups
+#: model:ir.model.fields,field_description:delivery_ups.field_sale_order__partner_ups_carrier_account
+msgid "UPS account number"
+msgstr "UPS rekeningnummer"
+
+#. module: delivery_ups
+#: code:addons/delivery_ups/models/ups_request.py:0
+#, python-format
+msgid ""
+"UPS address lines can only contain a maximum of 35 characters. You can split"
+" the contacts addresses on multiple lines to try to avoid this limitation."
+msgstr ""
+"UPS-adresregels mogen maximaal 35 tekens bevatten. Je kunt de adressen van "
+"de contactpersonen op meerdere regels splitsen om deze beperking te "
+"vermijden."
+
+#. module: delivery_ups
 #: model:product.product,uom_name:delivery_ups.product_product_delivery_ups_be
 #: model:product.product,uom_name:delivery_ups.product_product_delivery_ups_us
 #: model:product.template,uom_name:delivery_ups.product_product_delivery_ups_be_product_template
 #: model:product.template,uom_name:delivery_ups.product_product_delivery_ups_us_product_template
 msgid "Units"
 msgstr "Stuks"
-
-#. module: delivery_ups
-#: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_package_dimension_unit
-msgid "Units for UPS Package Size"
-msgstr "Eenheden voor UPS verpakkingsgrootte"
 
 #. module: delivery_ups
 #: model:ir.model.fields,field_description:delivery_ups.field_delivery_carrier__ups_duty_payment
@@ -719,15 +780,12 @@ msgid "Username/Password is invalid for this delivery provider."
 msgstr "Gebruikersnaam/wachtwoord is foutief voor de huidige verzender."
 
 #. module: delivery_ups
-#: model_terms:ir.ui.view,arch_db:delivery_ups.view_delivery_carrier_form_with_provider_ups
-msgid "Value Added Services"
-msgstr "Waarde toegevoegde diensten"
-
-#. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
 #, python-format
 msgid "Warehouse Phone must be at least 10 alphanumeric characters."
 msgstr ""
+"Het telefoonnummer van het magazijn moet minimaal 10 alfanumerieke tekens "
+"bevatten."
 
 #. module: delivery_ups
 #: code:addons/delivery_ups/models/ups_request.py:0
@@ -740,6 +798,12 @@ msgstr "Telefoonnummer van het magazijn moet alleen cijfers bevatten."
 #, python-format
 msgid "Warehouse PhoneExtension cannot exceed the length of 4."
 msgstr "Magazijn telefoon extensie kan niet langer zijn dan 4."
+
+#. module: delivery_ups
+#: code:addons/delivery_ups/models/sale.py:0
+#, python-format
+msgid "You must enter an UPS account number."
+msgstr "Je moet een UPS-rekeningnummer invoeren."
 
 #. module: delivery_ups
 #: model:ir.model.fields.selection,name:delivery_ups.selection__delivery_carrier__ups_label_file_type__zpl

@@ -3,20 +3,21 @@
 # 	* social_facebook
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Mikko Salmela <salmemik@gmail.com>, 2019
-# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2019
-# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2019
-# Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2019
-# Jussi Heikkilä <jussi.heikkila@panimo.com>, 2019
+# Martin Trigaux, 2021
+# Mikko Salmela <salmemik@gmail.com>, 2021
+# Jarmo Kortetjärvi <jarmo.kortetjarvi@gmail.com>, 2021
+# Tuomo Aura <tuomo.aura@web-veistamo.fi>, 2021
+# Veikko Väätäjä <veikko.vaataja@gmail.com>, 2021
+# Tuomas Lyyra <tuomas.lyyra@legenda.fi>, 2021
+# Jussi Heikkilä <jussi.heikkila@panimo.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: Jussi Heikkilä <jussi.heikkila@panimo.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Jussi Heikkilä <jussi.heikkila@panimo.com>, 2021\n"
 "Language-Team: Finnish (https://www.transifex.com/odoo/teams/41243/fi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -45,6 +46,12 @@ msgid "Actual Facebook ID of the post"
 msgstr ""
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "An error occurred."
+msgstr ""
+
+#. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "App ID"
 msgstr ""
@@ -63,6 +70,13 @@ msgid "Author Image"
 msgstr ""
 
 #. module: social_facebook
+#: model:ir.model.fields,help:social_facebook.field_res_config_settings__facebook_use_own_account
+msgid ""
+"Check this if you want to use your personal Facebook Developer Account "
+"instead of the provided one."
+msgstr ""
+
+#. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_comments_count
 msgid "Comments"
 msgstr "Kommentit"
@@ -74,6 +88,7 @@ msgstr "Konfiguraatioasetukset"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__display_facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__display_facebook_preview
 msgid "Display Facebook Preview"
 msgstr ""
 
@@ -141,7 +156,25 @@ msgstr ""
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__facebook_preview
 msgid "Facebook Preview"
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token or it may have expired."
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token."
+msgstr ""
+
+#. module: social_facebook
+#: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_is_event_post
+msgid "Is event post"
 msgstr ""
 
 #. module: social_facebook
@@ -150,7 +183,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_likes_count
 #, python-format
 msgid "Likes"
-msgstr ""
+msgstr "Tykkäykset"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_media__media_type
@@ -170,6 +203,14 @@ msgstr ""
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
 msgid "Post Image"
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid ""
+"Post not found. It could be because the post has been deleted on the Social "
+"Platform."
 msgstr ""
 
 #. module: social_facebook
@@ -212,6 +253,11 @@ msgid "Social Post"
 msgstr ""
 
 #. module: social_facebook
+#: model:ir.model,name:social_facebook.model_social_post_template
+msgid "Social Post Template"
+msgstr ""
+
+#. module: social_facebook
 #: model:ir.model,name:social_facebook.model_social_stream
 msgid "Social Stream"
 msgstr "Sosiaalinen media"
@@ -220,6 +266,25 @@ msgstr "Sosiaalinen media"
 #: model:ir.model,name:social_facebook.model_social_stream_post
 msgid "Social Stream Post"
 msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "There is no page linked to this account"
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator. "
+msgstr ""
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "Unknown"
+msgstr "Tuntematon"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_res_config_settings__facebook_use_own_account
@@ -249,7 +314,16 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:social_facebook.social_stream_post_view_kanban
 #, python-format
 msgid "Views"
-msgstr "Näkymät"
+msgstr "Katselukerrat"
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_live_post.py:0
+#: code:addons/social_facebook/models/social_post.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
 
 #. module: social_facebook
 #: code:addons/social_facebook/models/social_media.py:0
@@ -258,8 +332,18 @@ msgid "You don't have an active subscription. Please buy one here: %s"
 msgstr ""
 
 #. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.social_stream_post_view_kanban
+msgid "added an event"
+msgstr ""
+
+#. module: social_facebook
 #. openerp-web
 #: code:addons/social_facebook/static/src/js/stream_post_facebook_comments.js:0
 #, python-format
 msgid "comment/reply"
+msgstr ""
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
+msgid "• <i class=\"fa fa-globe\"/>"
 msgstr ""

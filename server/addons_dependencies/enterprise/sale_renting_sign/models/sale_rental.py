@@ -28,7 +28,7 @@ class RentalOrder(models.Model):
 
     def action_view_sign(self):
         self.ensure_one()
-        action = self.env.ref("sign.sign_request_action").read()[0]
+        action = self.env["ir.actions.actions"]._for_xml_id("sign.sign_request_action")
         # action["context"] = {"create": False}
         if len(self.sign_request_ids) > 1:
             action["domain"] = [("sale_order_id", "=", self.id)]

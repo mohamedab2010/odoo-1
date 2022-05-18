@@ -28,4 +28,23 @@
     </field>
   </record>
 
+  <record id="rental_schedule_view_gantt_inherit_stock" model="ir.ui.view">
+    <field name="name">sale.rental.schedule.gantt</field>
+    <field name="model">sale.rental.schedule</field>
+    <field name="inherit_id" ref="sale_renting.rental_schedule_view_gantt"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='name']" position="after">
+        <field name="is_available"/>
+      </xpath>
+      <xpath expr="//gantt" position="attributes">
+        <attribute name="decoration-danger">late or not is_available</attribute>
+      </xpath>
+      <xpath expr="//gantt/templates//div[@t-name='gantt-popover']" position="inside">
+        <div t-if="!is_available" class="text-danger mt-2 mb-0">
+          Other rental(s) in conflict.
+        </div>
+      </xpath>
+    </field>
+  </record>
+
 </odoo>

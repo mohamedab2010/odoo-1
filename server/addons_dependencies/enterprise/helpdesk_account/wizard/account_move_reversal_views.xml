@@ -10,9 +10,10 @@
                 <xpath expr="//field[@name='move_type']" position="after">
                     <group>
                         <group>
+                            <field name="suitable_move_ids" invisible="1"/>
                             <field name="helpdesk_ticket_id" invisible="1"/>
                             <field name="helpdesk_sale_order_id" readonly="1" attrs="{'invisible': [('helpdesk_sale_order_id', '=', False)]}"/>
-                            <field name="move_id" string="Invoice to Refund" options="{'no_create_edit': True}"/>
+                            <field name="move_ids" string="Invoice to Refund" options="{'no_create_edit': True}" widget="many2many_tags" domain="[('id', 'in', suitable_move_ids)]"/>
                         </group>
                     </group>
                 </xpath>

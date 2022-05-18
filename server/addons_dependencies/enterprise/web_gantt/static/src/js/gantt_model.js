@@ -5,6 +5,7 @@ var AbstractModel = require('web.AbstractModel');
 var concurrency = require('web.concurrency');
 var core = require('web.core');
 var fieldUtils = require('web.field_utils');
+const { findWhere, groupBy } = require('web.utils');
 var session = require('web.session');
 
 var _t = core._t;
@@ -55,16 +56,36 @@ var GanttModel = AbstractModel.extend({
         return result.locale('en').format('YYYY-MM-DD HH:mm:ss');
     },
     /**
+     * Add or subtract value to a moment.
+     * If we are changing by a whole day or more, adjust the time if needed to keep
+     * the same local time, if the UTC offset has changed between the 2 dates
+     * (usually, because of daylight savings)
+     *
+     * @param {Moment} date
+     * @param {integer} offset
+     * @param {string} unit
+     */
+    dateAdd: function(date, offset, unit) {
+        var result = date.clone().add(offset, unit);
+        if(Math.abs(result.diff(date, 'hours')) >= 24) {
+            var tzOffsetDiff = result.clone().local().utcOffset() - date.clone().local().utcOffset();
+            if(tzOffsetDiff !== 0) {
+                result.subtract(tzOffsetDiff, 'minutes');
+            }
+        }
+        return result;
+    },
+    /**
      * @override
      * @param {string} [rowId]
      * @returns {Object} the whole gantt data if no rowId given, the given row's
      *   description otherwise
      */
-    get: function (rowId) {
+    __get: function (rowId) {
         if (rowId) {
             return this.allRows[rowId];
         } else {
-            return _.extend({}, this.ganttData);
+            return Object.assign({ isSample: this.isSampleModel }, this.ganttData);
         }
     },
     /**
@@ -99,13 +120,15 @@ var GanttModel = AbstractModel.extend({
      * @param {boolean} params.displayUnavailability
      * @param {Array[]} params.domain
      * @param {Object} params.fields
+     * @param {boolean} params.dynamicRange
      * @param {string[]} params.groupedBy
      * @param {Moment} params.initialDate
      * @param {string} params.modelName
      * @param {string} params.scale
      * @returns {Promise<any>}
      */
-    load: function (params) {
+    __load: async function (params) {
+        await this._super(...arguments);
         this.modelName = params.modelName;
         this.fields = params.fields;
         this.domain = params.domain;
@@ -116,17 +139,21 @@ var GanttModel = AbstractModel.extend({
         this.consolidationParams = params.consolidationParams;
         this.collapseFirstLevel = params.collapseFirstLevel;
         this.displayUnavailability = params.displayUnavailability;
+        this.SCALES = params.SCALES;
 
         this.defaultGroupBy = params.defaultGroupBy ? [params.defaultGroupBy] : [];
-        if (!params.groupedBy || !params.groupedBy.length) {
-            params.groupedBy = this.defaultGroupBy;
+        let groupedBy = params.groupedBy;
+        if (!groupedBy || !groupedBy.length) {
+            groupedBy = this.defaultGroupBy;
         }
+        groupedBy = this._filterDateInGroupedBy(groupedBy);
 
         this.ganttData = {
             dateStartField: params.dateStartField,
             dateStopField: params.dateStopField,
-            groupedBy: params.groupedBy,
+            groupedBy,
             fields: params.fields,
+            dynamicRange: params.dynamicRange,
         };
         this._setRange(params.initialDate, params.scale);
         return this._fetchData().then(function () {
@@ -145,7 +172,8 @@ var GanttModel = AbstractModel.extend({
      * @param {Moment} params.date
      * @returns {Promise<any>}
      */
-    reload: function (handle, params) {
+    __reload: async function (handle, params) {
+        await this._super(...arguments);
         if ('scale' in params) {
             this._setRange(this.ganttData.focusDate, params.scale);
         }
@@ -157,20 +185,20 @@ var GanttModel = AbstractModel.extend({
         }
         if ('groupBy' in params) {
             if (params.groupBy && params.groupBy.length) {
-                this.ganttData.groupedBy = params.groupBy.filter(
-                    groupedByField => {
-                        var fieldName = groupedByField.split(':')[0]
-                        return fieldName in this.fields && this.fields[fieldName].type.indexOf('date') === -1;
-                    }
-                );
+                this.ganttData.groupedBy = this._filterDateInGroupedBy(params.groupBy);
                 if(this.ganttData.groupedBy.length !== params.groupBy.length){
-                    this.do_warn(_t('Invalid group by'), _t('Grouping by date is not supported, ignoring it'));
+                    this.displayNotification({ message: _t('Grouping by date is not supported'), type: 'danger' });
                 }
             } else {
                 this.ganttData.groupedBy = this.defaultGroupBy;
             }
         }
-        return this._fetchData()
+        return this._fetchData().then(function () {
+            // The 'reload' function returns a promise which resolves with the
+            // handle to pass to the 'get' function to access the data. In this
+            // case, we don't want to pass any argument to 'get' (see its API).
+            return Promise.resolve();
+        });
     },
     /**
      * Create a copy of a task with defaults determined by schedule.
@@ -199,7 +227,7 @@ var GanttModel = AbstractModel.extend({
      * @param {boolean} isUTC
      * @returns {Promise}
      */
-    reschedule: function (ids, schedule, isUTC) {
+    reschedule: function (ids, schedule, isUTC, callback) {
         var self = this;
         if (!_.isArray(ids)) {
             ids = [ids];
@@ -211,6 +239,10 @@ var GanttModel = AbstractModel.extend({
                 method: 'write',
                 args: [ids, data],
                 context: self.context,
+            }).then((result) => {
+                if (callback) {
+                    callback(result);
+                }
             });
         });
     },
@@ -250,7 +282,7 @@ var GanttModel = AbstractModel.extend({
     _fetchData: function () {
         var self = this;
         var domain = this._getDomain();
-        var context = _.extend(this.context, {'group_by': this.ganttData.groupedBy});
+        var context = Object.assign({}, this.context, { group_by: this.ganttData.groupedBy });
 
         var groupsDef;
         if (this.ganttData.groupedBy.length) {
@@ -275,25 +307,21 @@ var GanttModel = AbstractModel.extend({
         });
 
         return this.dp.add(Promise.all([groupsDef, dataDef])).then(function (results) {
-            var groups = results[0];
+            const groups = results[0] || [];
+            groups.forEach((g) => (g.fromServer = true));
             var searchReadResult = results[1];
-            if (groups) {
-                _.each(groups, function (group) {
-                    group.id = _.uniqueId('group');
-                });
-            }
             var oldRows = self.allRows;
             self.allRows = {};
-            self.ganttData.groups = groups;
             self.ganttData.records = self._parseServerData(searchReadResult.records);
             self.ganttData.rows = self._generateRows({
                 groupedBy: self.ganttData.groupedBy,
                 groups: groups,
                 oldRows: oldRows,
+                parentPath: [],
                 records: self.ganttData.records,
             });
             var unavailabilityProm;
-            if (self.displayUnavailability) {
+            if (self.displayUnavailability && !self.isSampleModel) {
                 unavailabilityProm = self._fetchUnavailability();
             }
             return unavailabilityProm;
@@ -382,88 +410,114 @@ var GanttModel = AbstractModel.extend({
      * @param {string[]} params.groupedBy
      * @param {Object} params.oldRows previous version of this.allRows (prior to
      *   this reload), used to keep collapsed rows collapsed
-     * @param {string} [params.parentPath=''] persistent identifier of the
-     *   parent row (concatenation of the value of each ancestor group), used to
-     *   identify rows between two reloads, to restore their collapsed state
+     * @param {Object[]} params.parentPath used to determine the ancestors of a
+     *   row through their groupedBy field and value.
+     *   The stringification of this must give a unique identifier to the parent row.
      * @returns {Object[]}
      */
-    _generateRows: function (params) {
-        var self = this;
-        var groups = params.groups;
-        var groupedBy = params.groupedBy;
-        var rows;
-        if (!groupedBy.length) {
-            // When no groupby, all records are in a single row
-            var row = {
-                groupId: groups && groups.length && groups[0].id,
-                id: _.uniqueId('row'),
-                records: params.records,
+    _generateRows(params) {
+        const { groupedBy, groups, oldRows, parentPath, records } = params;
+        const groupLevel = this.ganttData.groupedBy.length - groupedBy.length;
+        if (!groupedBy.length || !groups.length) {
+            const row = {
+                groupLevel,
+                id: JSON.stringify([...parentPath, {}]),
+                isGroup: false,
+                name: "",
+                records,
             };
-            rows = [row];
             this.allRows[row.id] = row;
-        } else {
-            // Some groups might be empty (thanks to expand_groups), so we can't
-            // simply group the data, we need to keep all returned groups
-            var groupedByField = groupedBy[0];
-            var currentLevelGroups = _.groupBy(groups, groupedByField);
-            rows = Object.keys(currentLevelGroups).map(function (key) {
-                var subGroups = currentLevelGroups[key];
-                var groupRecords = _.filter(params.records, function (record) {
-                    return _.isEqual(record[groupedByField], subGroups[0][groupedByField]);
-                });
+            return [row];
+        }
 
-                // For empty groups, we can't look at the record to get the
-                // formatted value of the field, we have to trust expand_groups
-                var value;
-                if (groupRecords.length) {
-                    value = groupRecords[0][groupedByField];
-                } else {
-                    value = subGroups[0][groupedByField];
-                }
-
-                var path = (params.parentPath || '') + JSON.stringify(value);
-                var minNbGroups = self.collapseFirstLevel ? 0 : 1;
-                var isGroup = groupedBy.length > minNbGroups;
-                var row = {
-                    name: self._getFieldFormattedValue(value, self.fields[groupedByField]),
-                    groupId: subGroups[0].id,
-                    groupedBy: groupedBy,
-                    groupedByField: groupedByField,
-                    id: _.uniqueId('row'),
-                    resId: _.isArray(value) ? value[0] : value,
-                    isGroup: isGroup,
-                    isOpen: !_.findWhere(params.oldRows, {path: path, isOpen: false}),
-                    path: path,
-                    records: groupRecords,
-                };
-
-                // Generate sub groups
-                if (isGroup) {
-                    row.rows = self._generateRows({
-                        groupedBy: groupedBy.slice(1),
-                        groups: subGroups,
-                        oldRows: params.oldRows,
-                        parentPath: row.path + '/',
-                        records: groupRecords,
-                    });
-                    row.childrenRowIds = [];
-                    row.rows.forEach(function (subRow) {
-                        row.childrenRowIds.push(subRow.id);
-                        row.childrenRowIds = row.childrenRowIds.concat(subRow.childrenRowIds || []);
-                    });
-                }
-
-                self.allRows[row.id] = row;
-
-                return row;
-            });
-            if (!rows.length) {
-                // we want to display an empty row in this case
-                rows = [{
-                    groups: [],
-                    records: [],
-                }];
+        const rows = [];
+        // Some groups might be empty (thanks to expand_groups), so we can't
+        // simply group the data, we need to keep all returned groups
+        const groupedByField = groupedBy[0];
+        const currentLevelGroups = groupBy(groups, group => {
+            if (group[groupedByField] === undefined) {
+                // Here we change undefined value to false as:
+                // 1/ we want to group together:
+                //    - groups having an undefined value for groupedByField
+                //    - groups having false value for groupedByField
+                // 2/ we want to be sure that stringification keeps
+                //    the groupedByField because of:
+                //      JSON.stringify({ key: undefined }) === "{}"
+                //      (see id construction below)
+                group[groupedByField] = false;
             }
+            return group[groupedByField];
+        });
+        const isM2MGrouped = this.ganttData.fields[groupedByField].type === "many2many";
+        let groupedRecords;
+        if (isM2MGrouped) {
+            groupedRecords = {};
+            for (const [key, currentGroup] of Object.entries(currentLevelGroups)) {
+                groupedRecords[key] = [];
+                const value = currentGroup[0][groupedByField];
+                for (const r of records || []) {
+                    if (
+                        !value && r[groupedByField].length === 0 ||
+                        value && r[groupedByField].includes(value[0])
+                    ) {
+                        groupedRecords[key].push(r)
+                    }
+                }
+            }
+        } else {
+            groupedRecords = groupBy(records || [], groupedByField);
+        }
+
+        for (const key in currentLevelGroups) {
+            const subGroups = currentLevelGroups[key];
+            const groupRecords = groupedRecords[key] || [];
+            // For empty groups (or when groupedByField is a m2m), we can't look at the record to get the
+            // formatted value of the field, we have to trust expand_groups.
+            let value;
+            if (groupRecords && groupRecords.length && !isM2MGrouped) {
+                value = groupRecords[0][groupedByField];
+            } else {
+                value = subGroups[0][groupedByField];
+            }
+            const part = {};
+            part[groupedByField] = value;
+            const path = [...parentPath, part];
+            const id = JSON.stringify(path);
+            const resId = Array.isArray(value) ? value[0] : value;
+            const minNbGroups = this.collapseFirstLevel ? 0 : 1;
+            const isGroup = groupedBy.length > minNbGroups;
+            const fromServer = subGroups.some((g) => g.fromServer);
+            const row = {
+                name: this._getRowName(groupedByField, value),
+                groupedBy,
+                groupedByField,
+                groupLevel,
+                id,
+                resId,
+                isGroup,
+                fromServer,
+                isOpen: !findWhere(oldRows, { id: JSON.stringify(parentPath), isOpen: false }),
+                records: groupRecords,
+            };
+
+            if (isGroup) {
+                row.rows = this._generateRows({
+                    ...params,
+                    groupedBy: groupedBy.slice(1),
+                    groups: subGroups,
+                    oldRows,
+                    parentPath: path,
+                    records: groupRecords,
+                });
+                row.childrenRowIds = [];
+                row.rows.forEach(function (subRow) {
+                    row.childrenRowIds.push(subRow.id);
+                    row.childrenRowIds = row.childrenRowIds.concat(subRow.childrenRowIds || []);
+                });
+            }
+
+            rows.push(row);
+            this.allRows[row.id] = row;
         }
         return rows;
     },
@@ -521,8 +575,28 @@ var GanttModel = AbstractModel.extend({
         if (field.type === 'boolean') {
             options = {forceString: true};
         }
-        var formattedValue = fieldUtils.format[field.type](value, field, options);
-        return formattedValue || _.str.sprintf(_t('Undefined %s'), field.string);
+        let label;
+        if (field.type === "many2many") {
+            label = Array.isArray(value) ? value[1] : value;
+        } else {
+            label = fieldUtils.format[field.type](value, field, options);
+        }
+        return label || _.str.sprintf(_t('Undefined %s'), field.string);
+    },
+    /**
+     * @param {string} groupedByField
+     * @param {*} value
+     * @returns {string}
+     */
+    _getRowName(groupedByField, value) {
+        const field = this.fields[groupedByField];
+        return this._getFieldFormattedValue(value, field);
+    },
+    /**
+     * @override
+     */
+    _isEmpty() {
+        return !this.ganttData.records.length;
     },
     /**
      * Parse in place the server values (and in particular, convert datetime
@@ -553,8 +627,24 @@ var GanttModel = AbstractModel.extend({
     _setRange: function (focusDate, scale) {
         this.ganttData.scale = scale;
         this.ganttData.focusDate = focusDate;
-        this.ganttData.startDate = focusDate.clone().startOf(scale);
-        this.ganttData.stopDate = focusDate.clone().endOf(scale);
+        if (this.ganttData.dynamicRange) {
+            this.ganttData.startDate = focusDate.clone().startOf(this.SCALES[scale].interval);
+            this.ganttData.stopDate = this.ganttData.startDate.clone().add(1, scale);
+        } else {
+            this.ganttData.startDate = focusDate.clone().startOf(scale);
+            this.ganttData.stopDate = focusDate.clone().endOf(scale);
+        }
+    },
+    /**
+     * Remove date in groupedBy field
+     */
+    _filterDateInGroupedBy(groupedBy) {
+        return groupedBy.filter(
+            groupedByField => {
+                var fieldName = groupedByField.split(':')[0];
+                return fieldName in this.fields && this.fields[fieldName].type.indexOf('date') === -1;
+            }
+        );
     },
 });
 

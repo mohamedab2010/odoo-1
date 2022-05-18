@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import models, fields, api, _
+from odoo import models, api, _
 
 
 class AccountJournal(models.Model):
     _inherit = "account.journal"
 
     def _default_inbound_payment_methods(self):
-        vals = super(AccountJournal, self)._default_inbound_payment_methods()
-        return vals + self.env.ref('account_batch_payment.account_payment_method_batch_deposit')
+        res = super()._default_inbound_payment_methods()
+        if self._is_payment_method_available('batch_payment'):
+            res |= self.env.ref('account_batch_payment.account_payment_method_batch_deposit')
+        return res
 
     @api.model
     def _create_batch_payment_outbound_sequence(self):
@@ -43,14 +45,6 @@ class AccountJournal(models.Model):
             'prefix': 'BATCH/IN/%(year)s/',
             #by default, share the sequence for all companies
             'company_id': False,
-        })
-
-    @api.model
-    def _enable_batch_deposit_on_bank_journals(self):
-        """ Enables batch deposit payment method on bank journals. Called upon module installation via data file."""
-        batch_deposit = self.env.ref('account_batch_payment.account_payment_method_batch_deposit')
-        self.search([('type', '=', 'bank')]).write({
-                'inbound_payment_method_ids': [(4, batch_deposit.id, None)],
         })
 
     def open_action_batch_payment(self):

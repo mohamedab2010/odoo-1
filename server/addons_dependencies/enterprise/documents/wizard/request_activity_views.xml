@@ -9,19 +9,19 @@
             <form>
                 <sheet>
                     <div class="oe_title">
-                        <label for="name" class="oe_edit_only"/>
-                        <h1><field name="name" required="1" placeholder="E.g. Missing Expense"/></h1>
+                        <label for="name" string="Document Name"/>
+                        <h1><field name="name" required="1" placeholder="e.g. Missing Expense"/></h1>
                     </div>
                     <group>
                         <group>
-                            <field name="owner_id" required="1"/>
-                            <field name="partner_id"/>
+                            <field name="owner_id" string="Request To" required="1"/>
+                            <field name="partner_id" groups="base.group_no_one"/>
                             <label for="activity_date_deadline_range"/>
                             <div class="o_row">
                                 <field name="activity_date_deadline_range"/>
-                                <field name="activity_date_deadline_range_type"/>
+                                <field name="activity_date_deadline_range_type" required="1"/>
                             </div>
-                            <field name="activity_type_id"/>
+                            <field name="activity_type_id" groups="base.group_no_one"/>
                             <field name="res_model" readonly="1" groups="base.group_no_one"/>
                             <field name="res_id" readonly="1" groups="base.group_no_one"/>
                         </group>
@@ -33,8 +33,8 @@
                     <label for="activity_note"/>
                     <field name="activity_note" widget="html"/>
                     <footer>
-                        <button name="request_document" type="object" string="Request" class="btn btn-primary"/>
-                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                        <button name="request_document" type="object" string="Request" class="btn btn-primary" data-hotkey="q"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z"/>
                     </footer>
                 </sheet>
             </form>

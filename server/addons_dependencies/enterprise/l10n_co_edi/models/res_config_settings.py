@@ -1,5 +1,5 @@
 # coding: utf-8
-from odoo import api, fields, models, _
+from odoo import fields, models
 
 
 class ResConfigSettings(models.TransientModel):
@@ -10,7 +10,7 @@ class ResConfigSettings(models.TransientModel):
     l10n_co_edi_password = fields.Char(related='company_id.l10n_co_edi_password', readonly=False,
                                        string='Password')
     l10n_co_edi_company = fields.Char(related='company_id.l10n_co_edi_company', readonly=False,
-                                       string='Company ID')
+                                      string='Company ID')
     l10n_co_edi_account = fields.Char(related='company_id.l10n_co_edi_account', readonly=False,
                                       string='Account ID')
     l10n_co_edi_test_mode = fields.Boolean(related='company_id.l10n_co_edi_test_mode', readonly=False,
@@ -29,3 +29,5 @@ class ResConfigSettings(models.TransientModel):
                                                          string='Actividad Económica')
     l10n_co_edi_header_bank_information = fields.Text(related='company_id.l10n_co_edi_header_bank_information', readonly=False,
                                                       string='Bank Information')
+    l10n_co_edi_template_code = fields.Selection(string="Colombia Template Code",
+                                                 readonly=False, related="company_id.l10n_co_edi_template_code")

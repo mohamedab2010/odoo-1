@@ -3,6 +3,7 @@
 
 from odoo import http
 from odoo.http import request
+from odoo.tools import is_html_empty
 
 
 class WebsiteHelpdesk(http.Controller):
@@ -10,7 +11,7 @@ class WebsiteHelpdesk(http.Controller):
     def get_helpdesk_team_data(self, team, search=None):
         return {'team': team}
 
-    @http.route(['/helpdesk/', '/helpdesk/<model("helpdesk.team"):team>'], type='http', auth="public", website=True)
+    @http.route(['/helpdesk', '/helpdesk/<model("helpdesk.team"):team>'], type='http', auth="public", website=True, sitemap=True)
     def website_helpdesk_teams(self, team=None, **kwargs):
         search = kwargs.get('search')
         # For breadcrumb index: get all team
@@ -22,4 +23,5 @@ class WebsiteHelpdesk(http.Controller):
         result = self.get_helpdesk_team_data(team or teams[0], search=search)
         # For breadcrumb index: get all team
         result['teams'] = teams
+        result['is_html_empty'] = is_html_empty
         return request.render("website_helpdesk.team", result)

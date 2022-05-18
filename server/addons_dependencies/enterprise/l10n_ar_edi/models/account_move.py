@@ -2,9 +2,13 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError, RedirectWarning
 from odoo.tools.float_utils import float_repr, float_round
+from odoo.tools import html2plaintext, plaintext2html
 from datetime import datetime
 from . import afip_errors
+import re
 import logging
+import base64
+import json
 
 
 _logger = logging.getLogger(__name__)
@@ -18,7 +22,7 @@ class AccountMove(models.Model):
 
     l10n_ar_afip_auth_mode = fields.Selection([('CAE', 'CAE'), ('CAI', 'CAI'), ('CAEA', 'CAEA')],
         string='AFIP Authorization Mode', copy=False, readonly=True, states={'draft': [('readonly', False)]},
-        help="This is the type of AFIP Authorization, depending of the way that the invoice is created"
+        help="This is the type of AFIP Authorization, depending on the way that the invoice is created"
         " the mode will change:\n\n"
         " * CAE (Electronic Authorization Code): Means that is an electronic invoice. If you validate a customer invoice"
         " this field will be autofill with CAE option. Also, if you trying to verify in AFIP an electronic vendor bill"
@@ -32,10 +36,8 @@ class AccountMove(models.Model):
     l10n_ar_afip_auth_code = fields.Char('Authorization Code', copy=False, readonly=True, size=24, states={'draft': [('readonly', False)]})
     l10n_ar_afip_auth_code_due = fields.Date(' Authorization Due date', copy=False, readonly=True, states={'draft': [('readonly', False)]},
         help="The Due Date of the Invoice given by AFIP")
-    l10n_ar_afip_barcode = fields.Char(compute='_compute_l10n_ar_afip_barcode', string='AFIP Barcode',
-        help='This barcode is included in the invoice report and is built using the CAE returned by the AFIP when the'
-        ' invoice has been validated. This barcode is mandatory by the AFIP in the electronic invoices when this ones'
-        ' are printed')
+    l10n_ar_afip_qr_code = fields.Char(compute='_compute_l10n_ar_afip_qr_code', string='AFIP QR Code',
+        help='This QR code is mandatory by the AFIP in the electronic invoices when this ones are printed.')
 
     # electronic invoice fields
     l10n_ar_afip_xml_request = fields.Text(string='AFIP XML Request', copy=False, readonly=True, groups="base.group_system")
@@ -48,30 +50,73 @@ class AccountMove(models.Model):
     l10n_ar_afip_verification_type = fields.Selection(
         [('not_available', 'Not Available'), ('available', 'Available'), ('required', 'Required')],
         compute='_compute_l10n_ar_afip_verification_type')
-    l10n_ar_afip_verification_result = fields.Selection([('A', 'Approved'), ('O', 'Observed'), ('R', 'Rejected')], string='AFIP Verification result', copy=False,
-        readonly=True)
+    l10n_ar_afip_verification_result = fields.Selection([('A', 'Approved'), ('O', 'Observed'), ('R', 'Rejected')],
+        string='AFIP Verification result', copy=False, readonly=True)
 
-    l10n_ar_afip_fce_is_cancellation = fields.Boolean(string='FCE: Is Cancellation?', readonly=True, states={'draft': [('readonly', False)]}, copy=False,
-        help='When informing a MiPyMEs (FCE) debit/credit notes in AFIP it is require to sent information about if the'
+    # FCE related fields
+    l10n_ar_afip_fce_is_cancellation = fields.Boolean(string='FCE: Is Cancellation?', readonly=True, states={'draft': [('readonly', False)]},
+        copy=False, help='When informing a MiPyMEs (FCE) debit/credit notes in AFIP it is require to sent information about if the'
         ' original document has been explicitly rejected by the buyer. More information here'
         ' http://www.afip.gob.ar/facturadecreditoelectronica/preguntasFrecuentes/emisor-factura.asp')
+    l10n_ar_fce_transmission_type = fields.Selection(
+        [('SCA', 'SCA - TRANSFERENCIA AL SISTEMA DE CIRCULACION ABIERTA'), ('ADC', 'ADC - AGENTE DE DEPOSITO COLECTIVO')],
+        string='FCE: Transmission Option', compute="_compute_l10n_ar_fce_transmission_type", store=True, states={'draft': [('readonly', False)]},
+        help="This field only need to be set when you are reporting a MiPyME FCE documents. Default value can be set in the Accouting Settings")
 
     # Compute methods
 
+    @api.depends('l10n_latam_document_type_id')
+    def _compute_l10n_ar_fce_transmission_type(self):
+        """ Automatically set the default value on the l10n_ar_fce_transmission_type field if the invoice is a mipyme
+        one with the default value set in the company """
+        mipyme_fce_docs = self.filtered(lambda x: x._is_mipyme_fce() or x._is_mipyme_fce_refund())
+        for rec in mipyme_fce_docs:
+            rec.l10n_ar_fce_transmission_type = rec.company_id.l10n_ar_fce_transmission_type
+        remaining = self - mipyme_fce_docs
+        remaining.l10n_ar_fce_transmission_type = False
+
     @api.depends('l10n_ar_afip_auth_code')
-    def _compute_l10n_ar_afip_barcode(self):
-        """ Method that generates the barcode with the electronic invoice info """
-        for rec in self:
-            barcode = False
-            if rec.l10n_ar_afip_auth_code:
-                cae_due = rec.l10n_ar_afip_auth_code_due.strftime('%Y%m%d')
-                barcode = ''.join([str(rec.company_id.partner_id.l10n_ar_vat), "%03d" % int(rec.l10n_latam_document_type_id.code),
-                                   "%05d" % rec.journal_id.l10n_ar_afip_pos_number, rec.l10n_ar_afip_auth_code, cae_due])
-            rec.l10n_ar_afip_barcode = barcode
+    def _compute_l10n_ar_afip_qr_code(self):
+        """ Method that generates the QR code with the electronic invoice info taking into account RG 4291 """
+        with_qr_code = self.filtered(lambda x: x.l10n_ar_afip_auth_mode in ['CAE', 'CAEA'] and x.l10n_ar_afip_auth_code)
+        for rec in with_qr_code:
+            data = {
+                'ver': 1,
+                'fecha': str(rec.invoice_date),
+                'cuit': int(rec.company_id.partner_id.l10n_ar_vat),
+                'ptoVta': rec.journal_id.l10n_ar_afip_pos_number,
+                'tipoCmp': int(rec.l10n_latam_document_type_id.code),
+                'nroCmp': int(self._l10n_ar_get_document_number_parts(
+                    rec.l10n_latam_document_number, rec.l10n_latam_document_type_id.code)['invoice_number']),
+                'importe': float_round(rec.amount_total, precision_digits=2, rounding_method='DOWN'),
+                'moneda': rec.currency_id.l10n_ar_afip_code,
+                'ctz': float_round(rec.l10n_ar_currency_rate, precision_digits=6, rounding_method='DOWN'),
+                'tipoCodAut': 'E' if rec.l10n_ar_afip_auth_mode == 'CAE' else 'A',
+                'codAut': int(rec.l10n_ar_afip_auth_code),
+            }
+
+            commercial_partner_id = rec.commercial_partner_id
+            if commercial_partner_id.country_id and commercial_partner_id.country_id.code != 'AR':
+                nro_doc_rec = int(
+                    commercial_partner_id.country_id.l10n_ar_legal_entity_vat
+                    if commercial_partner_id.is_company else commercial_partner_id.country_id.l10n_ar_natural_vat)
+            else:
+                nro_doc_rec = commercial_partner_id._get_id_number_sanitize() or False
+
+            if nro_doc_rec:
+                data.update({'nroDocRec': nro_doc_rec})
+            if commercial_partner_id.l10n_latam_identification_type_id:
+                data.update({'tipoDocRec': int(rec._get_partner_code_id(commercial_partner_id))})
+            # For more info go to https://www.afip.gob.ar/fe/qr/especificaciones.asp
+            rec.l10n_ar_afip_qr_code = 'https://www.afip.gob.ar/fe/qr/?p=%s' % base64.b64encode(json.dumps(
+                data).encode()).decode('ascii')
+
+        remaining = self - with_qr_code
+        remaining.l10n_ar_afip_qr_code = False
 
     @api.depends('l10n_latam_document_type_id', 'company_id')
     def _compute_l10n_ar_afip_verification_type(self):
-        """ Method that generates the barcode with the electronic invoice info """
+        """ Method that tell us if the invoice/vendor bill can be verified in AFIP """
         verify_codes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "15", "19", "20", "21",
                         "49", "51", "52", "53", "54", "60", "61", "63", "64"]
         available_to_verify = self.filtered(
@@ -82,12 +127,16 @@ class AccountMove(models.Model):
         remaining.l10n_ar_afip_verification_type = 'not_available'
 
     # Buttons
+    def _is_dummy_afip_validation(self):
+        self.ensure_one()
+        return self.company_id._get_environment_type() == 'testing' and \
+            not self.company_id.sudo().l10n_ar_afip_ws_crt or not self.company_id.sudo().l10n_ar_afip_ws_key
 
-    def post(self):
+    def _post(self, soft=True):
         """ After validate the invoice we then validate in AFIP. The last thing we do is request the cae because if an
         error occurs after CAE requested, the invoice has been already validated on AFIP """
-        ar_invoices = self.filtered(lambda x: x.is_invoice() and x.company_id.country_id == self.env.ref('base.ar'))
-        sale_ar_invoices = ar_invoices.filtered(lambda x: x.type in ['out_invoice', 'out_refund'])
+        ar_invoices = self.filtered(lambda x: x.is_invoice() and x.company_id.account_fiscal_country_id.code == "AR")
+        sale_ar_invoices = ar_invoices.filtered(lambda x: x.move_type in ['out_invoice', 'out_refund'])
         sale_ar_edi_invoices = sale_ar_invoices.filtered(lambda x: x.journal_id.l10n_ar_afip_ws)
 
         # Verify only Vendor bills (only when verification is configured as 'required')
@@ -99,20 +148,18 @@ class AccountMove(models.Model):
 
             # If we are on testing environment and we don't have certificates we validate only locally.
             # This is useful when duplicating the production database for training purpose or others
-            if inv.company_id._get_environment_type() == 'testing' and \
-               (not inv.company_id.sudo().l10n_ar_afip_ws_crt or not inv.company_id.sudo().l10n_ar_afip_ws_key):
+            if inv._is_dummy_afip_validation() and not inv.l10n_ar_afip_auth_code:
                 inv._dummy_afip_validation()
-                super(AccountMove, inv).post()
-                validated += inv
+                validated += super(AccountMove, inv)._post(soft=soft)
                 continue
 
-            client, auth, transport = self.company_id._l10n_ar_get_connection(inv.journal_id.l10n_ar_afip_ws)._get_client(return_transport=True)
-            super(AccountMove, inv).post()
+            client, auth, transport = inv.company_id._l10n_ar_get_connection(inv.journal_id.l10n_ar_afip_ws)._get_client(return_transport=True)
+            validated += super(AccountMove, inv)._post(soft=soft)
             return_info = inv._l10n_ar_do_afip_ws_request_cae(client, auth, transport)
             if return_info:
                 error_invoice = inv
+                validated -= inv
                 break
-            validated += inv
 
             # If we get CAE from AFIP then we make commit because we need to save the information returned by AFIP
             # in Odoo for consistency, this way if an error ocurrs later in another invoice we will have the ones
@@ -121,19 +168,34 @@ class AccountMove(models.Model):
                 self._cr.commit()
 
         if error_invoice:
-            msg = _('We couldn\'t validate the invoice "%s" (Draft Invoice *%s) in AFIP. This is what we get:\n%s') % (inv.partner_id.name, inv.id, return_info)
+            if error_invoice.exists():
+                msg = _('We couldn\'t validate the invoice "%s" (Draft Invoice *%s) in AFIP') % (
+                    error_invoice.partner_id.name, error_invoice.id)
+            else:
+                msg = _('We couldn\'t validate the invoice in AFIP.')
+            msg += _('This is what we get:\n%s\n\nPlease make the required corrections and try again') % (return_info)
+
             # if we've already validate any invoice, we've commit and we want to inform which invoices were validated
             # which one were not and the detail of the error we get. This ins neccesary because is not usual to have a
             # raise with changes commited on databases
             if validated:
                 unprocess = self - validated - error_invoice
-                msg = _('Some invoices where validated in AFIP but as we have an error with one invoice the batch validation was stopped\n'
-                        '\n* These invoices were validated:\n   * %s\n' % ('\n   * '.join(validated.mapped('name'))) +
-                        '\n* These invoices weren\'t validated:\n%s\n' % ('\n'.join(['   * %s: "%s" amount %s' % (
-                            item.display_name, item.partner_id.name, item.amount_total_signed) for item in unprocess])) + '\n\n\n' + msg)
+                msg = _(
+                    """Some invoices where validated in AFIP but as we have an error with one invoice the batch validation was stopped
+
+* These invoices were validated:
+%(validate_invoices)s
+* These invoices weren\'t validated:
+%(invalide_invoices)s
+""",
+                    validate_invoices="\n   * ".join(validated.mapped('name')),
+                    invalide_invoices="\n   * ".join([
+                        _("%s: %r amount %s", item.display_name, item.partner_id.name, item.amount_total_signed) for item in unprocess
+                    ])
+                )
             raise UserError(msg)
 
-        return super(AccountMove, self - sale_ar_edi_invoices).post()
+        return validated + super(AccountMove, self - sale_ar_edi_invoices)._post(soft=soft)
 
     def l10n_ar_verify_on_afip(self):
         """ This method let us to connect to AFIP using WSCDC webservice to verify if a vendor bill is valid on AFIP """
@@ -143,11 +205,11 @@ class AccountMove(models.Model):
 
             # get Issuer and Receptor depending on the document type
             issuer, receptor = (inv.commercial_partner_id, inv.company_id.partner_id) \
-                if inv.type in ['in_invoice', 'in_refund'] else (inv.company_id.partner_id, inv.commercial_partner_id)
+                if inv.move_type in ['in_invoice', 'in_refund'] else (inv.company_id.partner_id, inv.commercial_partner_id)
             issuer_vat = issuer.ensure_vat()
 
             receptor_identification_code = receptor.l10n_latam_identification_type_id.l10n_ar_afip_code or '99'
-            receptor_id_number = (receptor_identification_code and receptor.vat or "0")
+            receptor_id_number = (receptor_identification_code and str(receptor._get_id_number_sanitize()))
 
             if inv.l10n_latam_document_type_id.l10n_ar_letter in ['A', 'M'] and receptor_identification_code != '80' or not receptor_id_number:
                 raise UserError(_('For type A and M documents the receiver identification is mandatory and should be VAT'))
@@ -175,7 +237,7 @@ class AccountMove(models.Model):
                 'DocNroReceptor': receptor_id_number})
             inv.write({'l10n_ar_afip_verification_result': response.Resultado})
             if response.Observaciones or response.Errors:
-                inv.message_post(body=_('AFIP authorization verification result: %s%s' % (response.Observaciones, response.Errors)))
+                inv.message_post(body=_('AFIP authorization verification result: %s%s', response.Observaciones, response.Errors))
 
     # Main methods
 
@@ -268,7 +330,6 @@ class AccountMove(models.Model):
                     return_codes += [str(response.BFEErr.ErrCode)]
                 if response.BFEEvents.EventCode != 0 or response.BFEEvents.EventMsg:
                     events = '\n* Code %s: %s' % (response.BFEEvents.EventCode, response.BFEEvents.EventMsg)
-                    return_codes += [str(response.BFEEvents.EventCode)]
                 if result.Obs:
                     obs = result.Obs
                     return_codes += [result.Obs]
@@ -286,11 +347,21 @@ class AccountMove(models.Model):
             afip_result = values.get('l10n_ar_afip_result')
             xml_response, xml_request = transport.xml_response, transport.xml_request
             if afip_result not in ['A', 'O']:
+                if not self.env.context.get('l10n_ar_invoice_skip_commit'):
+                    self.env.cr.rollback()
+                if inv.exists():
+                    # Only save the xml_request/xml_response fields if the invoice exists.
+                    # It is possible that the invoice will rollback as well e.g. when it is automatically created:
+                    #   * creating credit note with full reconcile option
+                    #   * creating/validating an invoice from subscription/sales
+                    inv.sudo().write({'l10n_ar_afip_xml_request': xml_request, 'l10n_ar_afip_xml_response': xml_response})
+                if not self.env.context.get('l10n_ar_invoice_skip_commit'):
+                    self.env.cr.commit()
                 return return_info
             values.update(l10n_ar_afip_xml_request=xml_request, l10n_ar_afip_xml_response=xml_response)
             inv.sudo().write(values)
             if return_info:
-                inv.message_post(body='<p><b>' + _('AFIP Messages') + '</b></p><p><i>%s</i></p>' % (return_info))
+                inv.message_post(body='<p><b>' + _('AFIP Messages') + '</b></p>' + (plaintext2html(return_info, 'em')))
 
     # Helpers
 
@@ -312,8 +383,8 @@ class AccountMove(models.Model):
         with the post of the bill, if not then will raise an expection that will stop the post.
         """
         verification_missing = self.filtered(
-            lambda x: x.type in ['in_invoice', 'in_refund'] and x.l10n_ar_afip_verification_type == 'required' and
-            x.l10n_latam_document_type_id.country_id == self.env.ref('base.ar') and
+            lambda x: x.move_type in ['in_invoice', 'in_refund'] and x.l10n_ar_afip_verification_type == 'required' and
+            x.l10n_latam_document_type_id.country_id.code == "AR" and
             x.l10n_ar_afip_verification_result not in ['A', 'O'])
         try:
             verification_missing.l10n_ar_verify_on_afip()
@@ -325,30 +396,6 @@ class AccountMove(models.Model):
             text = 'these vendor bills' if len(still_missing) > 1 else 'this vendor bill'
             raise UserError(_('We can not post %s in Odoo because the AFIP verification fail: %s\nPlease verify in AFIP manually'
                               ' and review the bill chatter for more information') % (text, '\n * '.join(still_missing.mapped('display_name'))))
-
-    def _l10n_ar_get_amounts(self):
-        """ Method used to prepare data to present amounts and taxes related amounts when creating an
-        electronic invoice for argentinian. Only take into account the argentinian taxes """
-        self.ensure_one()
-        tax_lines = self.line_ids.filtered('tax_line_id')
-        vat_taxes = tax_lines.filtered(lambda r: r.tax_line_id.tax_group_id.l10n_ar_vat_afip_code)
-
-        vat_taxable = self.env['account.move.line']
-        for line in self.invoice_line_ids:
-            if any(tax.tax_group_id.l10n_ar_vat_afip_code and tax.tax_group_id.l10n_ar_vat_afip_code not in ['0', '1', '2'] for tax in line.tax_ids):
-                vat_taxable |= line
-
-        return {'vat_amount': sum(vat_taxes.mapped('price_subtotal')),
-                # For invoices of letter C should not pass VAT
-                'vat_taxable_amount': sum(vat_taxable.mapped('price_subtotal'))
-                if self.l10n_latam_document_type_id.l10n_ar_letter != 'C' else self.amount_untaxed,
-                'vat_exempt_base_amount': sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(lambda y: y.tax_group_id.l10n_ar_vat_afip_code == '2')).mapped('price_subtotal')),
-                'vat_untaxed_base_amount': sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(lambda y: y.tax_group_id.l10n_ar_vat_afip_code == '1')).mapped('price_subtotal')),
-                'other_taxes_amount': sum((tax_lines - vat_taxes).mapped('price_subtotal')),
-                'iibb_perc_amount': sum(tax_lines.filtered(lambda r: r.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code == '07').mapped('price_subtotal')),
-                'mun_perc_amount': sum(tax_lines.filtered(lambda r: r.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code == '08').mapped('price_subtotal')),
-                'intern_tax_amount': sum(tax_lines.filtered(lambda r: r.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code == '04').mapped('price_subtotal')),
-                'other_perc_amount': sum(tax_lines.filtered(lambda r: r.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code == '09').mapped('price_subtotal'))}
 
     def _is_mipyme_fce(self):
         """ True of False if the invoice is a mipyme document """
@@ -391,32 +438,14 @@ class AccountMove(models.Model):
         res = []
         not_vat_taxes = self.line_ids.filtered(lambda x: x.tax_line_id and x.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code)
         for tribute in not_vat_taxes:
-            base_imp = sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(lambda y: y.tax_group_id.l10n_ar_tribute_afip_code == tribute.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code)).mapped('price_subtotal'))
+            base_imp = sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(
+                lambda y: y.tax_group_id.l10n_ar_tribute_afip_code == tribute.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code)).mapped(
+                    'price_subtotal'))
             res.append({'Id': tribute.tax_line_id.tax_group_id.l10n_ar_tribute_afip_code,
                         'Alic': 0,
                         'Desc': tribute.tax_line_id.tax_group_id.name,
                         'BaseImp': float_repr(base_imp, precision_digits=2),
                         'Importe': float_repr(tribute.price_subtotal, precision_digits=2)})
-        return res if res else None
-
-    def _get_vat(self):
-        """ Applies on wsfe web service """
-        res = []
-        vat_taxable = self.env['account.move.line']
-        for line in self.line_ids:
-            if any(tax.tax_group_id.l10n_ar_vat_afip_code and tax.tax_group_id.l10n_ar_vat_afip_code not in ['0', '1', '2'] for tax in line.tax_line_id) and line.price_subtotal:
-                vat_taxable |= line
-        for vat in vat_taxable:
-            base_imp = sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(lambda y: y.tax_group_id.l10n_ar_vat_afip_code == vat.tax_line_id.tax_group_id.l10n_ar_vat_afip_code)).mapped('price_subtotal'))
-            res += [{'Id': vat.tax_line_id.tax_group_id.l10n_ar_vat_afip_code,
-                     'BaseImp': float_repr(base_imp, precision_digits=2),
-                     'Importe': float_repr(vat.price_subtotal, precision_digits=2)}]
-
-        # Report vat 0%
-        vat_base_0 = sum(self.invoice_line_ids.filtered(lambda x: x.tax_ids.filtered(lambda y: y.tax_group_id.l10n_ar_vat_afip_code == '3')).mapped('price_subtotal'))
-        if vat_base_0:
-            res += [{'Id': '3', 'BaseImp': float_repr(vat_base_0, precision_digits=2), 'Importe': float_repr(0.0, precision_digits=2)}]
-
         return res if res else None
 
     def _get_related_invoice_data(self):
@@ -426,10 +455,16 @@ class AccountMove(models.Model):
         related_inv = self._found_related_invoice()
         afip_ws = self.journal_id.l10n_ar_afip_ws
 
-        if not related_inv or self.journal_id.l10n_ar_afip_ws == 'wsbfe':
+        if not related_inv:
+            return res
+
+        # WSBFE_1035 We should only send CbtesAsoc if the invoice to validate has any of the next doc type codes
+        if afip_ws == 'wsbfe' and \
+           int(self.l10n_latam_document_type_id.code) not in [1, 2, 3, 6, 7, 8, 91, 201, 202, 203, 206, 207, 208]:
             return res
 
         wskey = {'wsfe': {'type': 'Tipo', 'pos_number': 'PtoVta', 'number': 'Nro', 'cuit': 'Cuit', 'date': 'CbteFch'},
+                 'wsbfe': {'type': 'Tipo_cbte', 'pos_number': 'Punto_vta', 'number': 'Cbte_nro', 'cuit': 'Cuit', 'date': 'Fecha_cbte'},
                  'wsfex': {'type': 'Cbte_tipo', 'pos_number': 'Cbte_punto_vta', 'number': 'Cbte_nro', 'cuit': 'Cbte_cuit'}}
 
         res.update({wskey[afip_ws]['type']: related_inv.l10n_latam_document_type_id.code,
@@ -439,7 +474,7 @@ class AccountMove(models.Model):
 
         # WSFE_10151 send cuit of the issuer if type mipyme refund
         if self._is_mipyme_fce_refund() or afip_ws == 'wsfex':
-            res.update({wskey[afip_ws]['cuit']: int(related_inv.company_id.vat)})
+            res.update({wskey[afip_ws]['cuit']: related_inv.company_id.partner_id._get_id_number_sanitize()})
 
         # WSFE_10158 send orignal invoice date on an mipyme document
         if afip_ws == 'wsfe' and (self._is_mipyme_fce() or self._is_mipyme_fce_refund()):
@@ -452,11 +487,11 @@ class AccountMove(models.Model):
         self.ensure_one()
         details = []
         afip_ws = self.journal_id.l10n_ar_afip_ws
-        for line in self.invoice_line_ids:
+        for line in self.invoice_line_ids.filtered(lambda x: x.display_type not in ('line_section', 'line_note')):
 
             # Unit of measure of the product if it sale in a unit of measures different from has been purchase
             if not line.product_uom_id.l10n_ar_afip_code:
-                raise UserError(_('No AFIP code in %s UOM' % (line.product_uom_id.name)))
+                raise UserError(_('No AFIP code in %s UOM', line.product_uom_id.name))
 
             values = {'Pro_ds': line.name,
                      'Pro_qty': line.quantity,
@@ -469,10 +504,11 @@ class AccountMove(models.Model):
 
             if afip_ws == 'wsbfe':
                 if not line.product_id.uom_id.l10n_ar_afip_code:
-                    raise UserError(_('No AFIP code in %s UOM' % (line.product_id.uom_id.name)))
+                    raise UserError(_('No AFIP code in %s UOM', line.product_id.uom_id.name))
 
                 vat_tax = line.tax_ids.filtered(lambda x: x.tax_group_id.l10n_ar_vat_afip_code)
-                vat_taxes_amounts = vat_tax.compute_all(line.price_unit, self.currency_id, line.quantity, product=line.product_id, partner=self.partner_id)
+                vat_taxes_amounts = vat_tax.with_context(force_sign=line.move_id._get_tax_force_sign()).compute_all(
+                    line.price_unit, self.currency_id, line.quantity, product=line.product_id, partner=self.partner_id)
 
                 line.product_id.product_tmpl_id._check_l10n_ar_ncm_code()
                 values.update({'Pro_codigo_ncm': line.product_id.l10n_ar_ncm_code or '',
@@ -490,11 +526,15 @@ class AccountMove(models.Model):
     def _get_optionals_data(self):
         optionals = []
         # We add CBU to electronic credit invoice
-        if self._is_mipyme_fce() and self.invoice_partner_bank_id.acc_type == 'cbu':
-            optionals.append({'Id': 2101, 'Valor': self.invoice_partner_bank_id.acc_number})
+        if self._is_mipyme_fce() and self.partner_bank_id.acc_type == 'cbu':
+            optionals.append({'Id': 2101, 'Valor': self.partner_bank_id.acc_number})
         # We add FCE Is cancellation value only for refund documents
         if self._is_mipyme_fce_refund():
             optionals.append({'Id': 22, 'Valor': self.l10n_ar_afip_fce_is_cancellation and 'S' or 'N'})
+
+        transmission_type = self.l10n_ar_fce_transmission_type
+        if self._is_mipyme_fce() and transmission_type:
+            optionals.append({'Id': 27, 'Valor': transmission_type})
         return optionals
 
     def _get_partner_code_id(self, partner):
@@ -542,13 +582,20 @@ class AccountMove(models.Model):
     def wsfe_get_cae_request(self, client=None):
         self.ensure_one()
         partner_id_code = self._get_partner_code_id(self.commercial_partner_id)
-        invoice_number = self._l10n_ar_get_document_number_parts(self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number']
+        invoice_number = self._l10n_ar_get_document_number_parts(
+            self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number']
         amounts = self._l10n_ar_get_amounts()
         due_payment_date = self._due_payment_date()
         service_start, service_end = self._service_dates()
 
         related_invoices = self._get_related_invoice_data()
         vat_items = self._get_vat()
+        for item in vat_items:
+            if 'BaseImp' in item and 'Importe' in item:
+                item['BaseImp'] = float_repr(item['BaseImp'], precision_digits=2)
+                item['Importe'] = float_repr(item['Importe'], precision_digits=2)
+        vat = partner_id_code and self.commercial_partner_id._get_id_number_sanitize()
+
         tributes = self._get_tributes()
         optionals = self._get_optionals_data()
 
@@ -562,7 +609,7 @@ class AccountMove(models.Model):
                'FeDetReq': [{'FECAEDetRequest': {
                    'Concepto': int(self.l10n_ar_afip_concept),
                    'DocTipo': partner_id_code or 0,
-                   'DocNro': partner_id_code and int(self.commercial_partner_id.vat) or 0,
+                   'DocNro': vat and int(vat) or 0,
                    'CbteDesde': invoice_number,
                    'CbteHasta': invoice_number,
                    'CbteFch': self.invoice_date.strftime(WS_DATE_FORMAT['wsfe']),
@@ -571,7 +618,7 @@ class AccountMove(models.Model):
                    'ImpTotConc': float_repr(amounts['vat_untaxed_base_amount'], precision_digits=2),  # Not Taxed VAT
                    'ImpNeto': float_repr(amounts['vat_taxable_amount'], precision_digits=2),
                    'ImpOpEx': float_repr(amounts['vat_exempt_base_amount'], precision_digits=2),
-                   'ImpTrib': float_repr(amounts['other_taxes_amount'], precision_digits=2),
+                   'ImpTrib': float_repr(amounts['not_vat_taxes_amount'], precision_digits=2),
                    'ImpIVA': float_repr(amounts['vat_amount'], precision_digits=2),
 
                    # Service dates are only informed when AFIP Concept is (2,3)
@@ -590,12 +637,14 @@ class AccountMove(models.Model):
     @api.model
     def wsfex_get_cae_request(self, last_id, client):
         if not self.commercial_partner_id.country_id:
-            raise UserError(_('For WS "%s" country is required on partner' % (self.journal_id.l10n_ar_afip_ws)))
+            raise UserError(_('For WS "%s" country is required on partner', self.journal_id.l10n_ar_afip_ws))
         elif not self.commercial_partner_id.country_id.code:
-            raise UserError(_('For WS "%s" country code is mandatory country: %s' % (self.journal_id.l10n_ar_afip_ws, self.commercial_partner_id.country_id.name)))
+            raise UserError(_('For WS "%s" country code is mandatory country: %s', self.journal_id.l10n_ar_afip_ws,
+                            self.commercial_partner_id.country_id.name))
         elif not self.commercial_partner_id.country_id.l10n_ar_afip_code:
             hint_msg = afip_errors._hint_msg('country_afip_code', self.journal_id.l10n_ar_afip_ws)
-            msg = _('For "%s" WS the afip code country is mandatory: %s' % (self.journal_id.l10n_ar_afip_ws, self.commercial_partner_id.country_id.name))
+            msg = _('For "%s" WS the afip code country is mandatory: %s', self.journal_id.l10n_ar_afip_ws,
+                    self.commercial_partner_id.country_id.name)
             if hint_msg:
                 msg += '\n\n' + hint_msg
             raise RedirectWarning(msg, self.env.ref('l10n_ar_edi.action_help_afip').id, _('Go to AFIP page'))
@@ -613,19 +662,22 @@ class AccountMove(models.Model):
                'Fecha_cbte': self.invoice_date.strftime(WS_DATE_FORMAT['wsfex']),
                'Cbte_Tipo': self.l10n_latam_document_type_id.code,
                'Punto_vta': self.journal_id.l10n_ar_afip_pos_number,
-               'Cbte_nro': self._l10n_ar_get_document_number_parts(self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number'],
+               'Cbte_nro': self._l10n_ar_get_document_number_parts(
+                   self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number'],
                'Tipo_expo': int(self.l10n_ar_afip_concept),
                'permisos': None,
                'Dst_cmp': self.commercial_partner_id.country_id.l10n_ar_afip_code,
                'Cliente': self.commercial_partner_id.name,
-               'Domicilio_cliente': " - ".join([self.commercial_partner_id.name or '', self.commercial_partner_id.street or '', self.commercial_partner_id.street2 or '', self.commercial_partner_id.zip or '', self.commercial_partner_id.city or '']),
+               'Domicilio_cliente': " - ".join([
+                   self.commercial_partner_id.name or '', self.commercial_partner_id.street or '',
+                   self.commercial_partner_id.street2 or '', self.commercial_partner_id.zip or '', self.commercial_partner_id.city or '']),
                'Id_impositivo': self.commercial_partner_id.vat or "",
                'Cuit_pais_cliente': vat_country or 0,
                'Moneda_Id': self.currency_id.l10n_ar_afip_code,
                'Moneda_ctz': float_repr(self.l10n_ar_currency_rate, precision_digits=6),
                'Obs_comerciales': self.invoice_payment_term_id.name if self.invoice_payment_term_id else None,
                'Imp_total': float_repr(self.amount_total, precision_digits=2),
-               'Obs': self.narration,
+               'Obs': html2plaintext(self.narration),
                'Forma_pago': self.invoice_payment_term_id.name if self.invoice_payment_term_id else None,
                'Idioma_cbte': 1,  # invoice language: spanish / español
                'Incoterms': self.invoice_incoterm_id.code if self.invoice_incoterm_id else None,
@@ -651,32 +703,56 @@ class AccountMove(models.Model):
     def wsbfe_get_cae_request(self, last_id, client=None):
         partner_id_code = self._get_partner_code_id(self.commercial_partner_id)
         amounts = self._l10n_ar_get_amounts()
+        related_invoices = self._get_related_invoice_data()
         ArrayOfItem = client.get_type('ns0:ArrayOfItem')
+        ArrayOfCbteAsoc = client.get_type('ns0:ArrayOfCbteAsoc')
+        vat = partner_id_code and self.commercial_partner_id._get_id_number_sanitize()
         res = {'Id': last_id,
                'Tipo_doc': int(partner_id_code) or 0,
-               'Nro_doc': int(partner_id_code) and int(self.commercial_partner_id.vat) or 0,
+               'Nro_doc': vat and int(vat) or 0,
                'Zona': 1,  # National (the only one returned by AFIP)
                'Tipo_cbte': int(self.l10n_latam_document_type_id.code),
                'Punto_vta': int(self.journal_id.l10n_ar_afip_pos_number),
-               'Cbte_nro': self._l10n_ar_get_document_number_parts(self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number'],
+               'Cbte_nro': self._l10n_ar_get_document_number_parts(
+                   self.l10n_latam_document_number, self.l10n_latam_document_type_id.code)['invoice_number'],
                'Imp_total': float_round(self.amount_total, precision_digits=2),
                'Imp_tot_conc': float_round(amounts['vat_untaxed_base_amount'], precision_digits=2),  # Not Taxed VAT
                'Imp_neto': float_round(amounts['vat_taxable_amount'], precision_digits=2),
-               'Impto_liq': 0.0,
-               'Impto_liq_rni': 0.0,
+               'Impto_liq': amounts['vat_amount'],
+               'Impto_liq_rni': 0.0,  # "no categorizado / responsable no inscripto " figure is not used anymore
                'Imp_op_ex': float_round(amounts['vat_exempt_base_amount'], precision_digits=2),
-               'Imp_perc': amounts['other_perc_amount'],
+               'Imp_perc': amounts['vat_perc_amount'] + amounts['profits_perc_amount'] + amounts['other_perc_amount'],
                'Imp_iibb': amounts['iibb_perc_amount'],
                'Imp_perc_mun': amounts['mun_perc_amount'],
-               'Imp_internos': amounts['intern_tax_amount'],
+               'Imp_internos': amounts['intern_tax_amount'] + amounts['other_taxes_amount'],
                'Imp_moneda_Id': self.currency_id.l10n_ar_afip_code,
                'Imp_moneda_ctz': float_repr(self.l10n_ar_currency_rate, precision_digits=6),
                'Fecha_cbte': self.invoice_date.strftime(WS_DATE_FORMAT['wsbfe']),
+               'CbtesAsoc': ArrayOfCbteAsoc([related_invoices]) if related_invoices else None,
                'Items': ArrayOfItem(self._get_line_details())}
         if self.l10n_latam_document_type_id.code in ['201', '206']:  # WS4900
             res.update({'Fecha_vto_pago': self._due_payment_date().strftime(WS_DATE_FORMAT['wsbfe'])})
-            optionals = self._get_optionals_data()
-            if optionals:
-                ArrayOfOpcional = client.get_type('ns0:ArrayOfOpcional')
-                res.update({'Opcionales': ArrayOfOpcional(optionals)})
+
+        optionals = self._get_optionals_data()
+        if optionals:
+            ArrayOfOpcional = client.get_type('ns0:ArrayOfOpcional')
+            res.update({'Opcionales': ArrayOfOpcional(optionals)})
+        return res
+
+    def _is_argentina_electronic_invoice(self):
+        return bool(self.journal_id.l10n_latam_use_documents and self.env.company.account_fiscal_country_id.code == "AR" and self.journal_id.l10n_ar_afip_ws)
+
+    def _get_last_sequence_from_afip(self):
+        """ This method is called to return the highest number for electronic invoices, it will try to connect to AFIP
+            only if it is necessary (when we are validating the invoice and need to set the document number)"""
+        last_number = 0 if self._is_dummy_afip_validation() or self.l10n_latam_document_number \
+            else self.journal_id._l10n_ar_get_afip_last_invoice_number(self.l10n_latam_document_type_id)
+        return "%s %05d-%08d" % (self.l10n_latam_document_type_id.doc_code_prefix, self.journal_id.l10n_ar_afip_pos_number, last_number)
+
+    def _get_last_sequence(self, relaxed=False, with_prefix=None):
+        """ For argentina electronic invoice, if there is not sequence already then consult the last number from AFIP
+        @return: string with the sequence, something like 'FA-A 00001-00000011' """
+        res = super()._get_last_sequence(relaxed=relaxed, with_prefix=with_prefix)
+        if not res and self._is_argentina_electronic_invoice() and self.l10n_latam_document_type_id:
+            res = self._get_last_sequence_from_afip()
         return res

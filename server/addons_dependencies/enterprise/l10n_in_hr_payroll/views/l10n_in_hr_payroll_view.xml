@@ -5,22 +5,18 @@
             <field name="model">hr.contract</field>
             <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
             <field name="arch" type="xml">
-            <data>
-                 <xpath expr="//group[@name='duration_group']" position="after">
-                    <group col="2" colspan="2" name="right_column">
-                        <separator colspan="2" string="Allowance"/>
-                            <field name="driver_salay"/>
-                            <field name="house_rent_allowance_metro_nonmetro"/>
-                            <field name="supplementary_allowance"/>
+                <xpath expr="//group[@name='salary_info']" position="inside">
+                    <group string="Allowance" attrs="{'invisible': [('country_code', '!=', 'IN')]}">
+                        <field name="driver_salay"/>
+                        <field name="house_rent_allowance_metro_nonmetro"/>
+                        <field name="supplementary_allowance"/>
                     </group>
-                    <group col="2" colspan="2" name="right_column">
-                        <separator colspan="2" string="Deduction"/>
-                            <field name="tds"/>
-                            <field name="voluntary_provident_fund"/>
-                            <field name="medical_insurance"/>
+                    <group string="Deduction" attrs="{'invisible': [('country_code', '!=', 'IN')]}">
+                        <field name="tds"/>
+                        <field name="voluntary_provident_fund"/>
+                        <field name="medical_insurance"/>
                     </group>
-                 </xpath>
-            </data>
+                </xpath>
             </field>
         </record>
 
@@ -32,10 +28,11 @@
             <data>
                 <xpath expr="//field[@name='credit_note']" position="after">
                     <newline/>
-                    <field name="available_advice"/>
+                    <field name="available_advice" attrs="{'invisible': [('country_code', '!=', 'IN')]}"/>
                 </xpath>
                  <xpath expr="//button[@name='action_draft']" position="after">
-                    <button name="create_advice" string="Create Advice" type="object" states="close" />
+                    <button name="create_advice" string="Create Advice" type="object" states="close"
+                        attrs="{'invisible': [('country_code', '!=', 'IN')]}"/>
                  </xpath>
             </data>
             </field>
@@ -87,17 +84,15 @@
                     </header>
                     <sheet>
                         <group>
-                            <label for="Name" class="oe_edit_only" string="Name"/>
-                            <h2><field name="name"/></h2>
-                            <label for="date" class="oe_edit_only"/>
-                            <div><field name="date"/></div>
+                            <h2><field name="name" placeholder="Name"/></h2>
+                            <div><field name="date" placeholder="Date"/></div>
                             <group colspan="3" col="6">
                                 <field name="bank_id"/>
                                 <field name="number"/>
                             </group>
                         </group>
                         <notebook colspan="4">
-                            <page string="Payment Lines">
+                            <page string="Payment Lines" name="payment_lines">
                                 <field name="line_ids" colspan="4" nolabel="1">
                                     <tree string="Payment Lines" editable="bottom">
                                         <field name="employee_id"/>
@@ -109,7 +104,7 @@
                                     </tree>
                                 </field>
                             </page>
-                            <page string="Other Information">
+                            <page string="Other Information" name="other_info">
                                 <group colspan="4" col="6">
                                 <field name="company_id"
                                 groups="base.group_multi_company" options="{'no_create': True}"/>
@@ -165,7 +160,7 @@
         <menuitem
             action="action_view_hr_bank_advice_tree"
             id="hr_menu_payment_advice"
-            parent="hr_payroll.menu_hr_payroll_root"
+            parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
         />
 
         <record id="view_advice_line_form" model="ir.ui.view">
@@ -174,8 +169,7 @@
             <field name="arch" type="xml">
                 <form string="Advice Lines">
                     <sheet>
-                    <label for="advice_id" class="oe_edit_only"/>
-                    <h1><field name="advice_id"/></h1>
+                        <h1><field name="advice_id" placeholder="Bank Advice"/></h1>
                         <group>
                             <field name="employee_id" />
                             <field name="name" />
@@ -196,7 +190,7 @@
             <field name="arch" type="xml">
             <data>
                  <xpath expr="//notebook" position="inside">
-                    <page name="indian_payroll" string="Indian Payroll">
+                    <page name="indian_payroll" string="Indian Payroll" attrs="{'invisible': [('country_code', '!=', 'IN')]}">
                         <group>
                             <field name="dearness_allowance"/>
                         </group>
@@ -208,11 +202,12 @@
 
         <!--  Shortcuts -->
 
-        <act_window name="Payslips"
-            domain="[('advice_id', '=', active_id)]"
-            res_model="hr.payslip"
-            binding_model="hr.payroll.advice" binding_views="form"
-            view_id ="hr_payroll.view_hr_payslip_tree"
-            id="act_hr_emp_payslip_list"
-         />
+        <record id="act_hr_emp_payslip_list" model="ir.actions.act_window">
+            <field name="name">Payslips</field>
+            <field name="res_model">hr.payslip</field>
+            <field name="view_id" ref="hr_payroll.view_hr_payslip_tree"/>
+            <field name="domain">[('advice_id', '=', active_id)]</field>
+            <field name="binding_model_id" ref="model_hr_payroll_advice"/>
+            <field name="binding_view_types">form</field>
+        </record>
 </odoo>

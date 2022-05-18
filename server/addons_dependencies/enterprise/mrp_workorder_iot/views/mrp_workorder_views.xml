@@ -33,7 +33,7 @@
         <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="IoT Triggers">
+                <page string="IoT Triggers" name="iot_triggers">
                     <field name="trigger_ids">
                         <tree editable="top">
                             <field name="sequence" widget="handle"/>
@@ -53,7 +53,7 @@
         <field name="inherit_id" ref="iot.iot_device_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="inside">
-                <page string="IoT Triggers" attrs="{'invisible': [('type', '!=', 'device')]}">
+                <page string="IoT Triggers" name="iot_triggers" attrs="{'invisible': [('type', '!=', 'keyboard')]}">
                     <field name="trigger_ids">
                         <tree>
                             <field name="workcenter_id"/>
@@ -65,11 +65,4 @@
             </xpath>
         </field>
     </record>
-
-    <!-- JS stuff -->
-    <template id="assets_backend" inherit_id="web.assets_backend" name="MRP Workorder IoT assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/mrp_workorder_iot/static/src/js/pedal_form.js"></script>
-        </xpath>
-    </template>
 </odoo>

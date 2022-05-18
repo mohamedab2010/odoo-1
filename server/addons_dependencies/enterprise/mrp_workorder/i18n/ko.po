@@ -3,18 +3,18 @@
 # 	* mrp_workorder
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Link Up링크업 <linkup.way@gmail.com>, 2019
-# Linkup <link-up@naver.com>, 2019
-# JH CHOI <hwangtog@gmail.com>, 2020
+# Martin Trigaux, 2021
+# Link Up링크업 <linkup.way@gmail.com>, 2021
+# Linkup <link-up@naver.com>, 2021
+# JH CHOI <hwangtog@gmail.com>, 2021
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server 15.0+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-09-30 09:47+0000\n"
-"PO-Revision-Date: 2019-08-26 09:37+0000\n"
-"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2020\n"
+"POT-Creation-Date: 2021-11-16 13:43+0000\n"
+"PO-Revision-Date: 2021-09-14 12:41+0000\n"
+"Last-Translator: JH CHOI <hwangtog@gmail.com>, 2021\n"
 "Language-Team: Korean (https://www.transifex.com/odoo/teams/41243/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -23,9 +23,46 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #. module: mrp_workorder
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
+msgid ""
+"<i class=\"fa fa-clock-o\" attrs=\"{'invisible': [('is_user_working', '=', False)]}\" title=\"User is working\"/>\n"
+"                                <i class=\"fa fa-clock-o text-warning\" attrs=\"{'invisible': [('is_user_working', '=', True)]}\" title=\"User is not working\"/>"
+msgstr ""
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.res_config_settings_view_form
 msgid "<i class=\"fa fa-print\"/> Print barcode commands"
 msgstr "<i class=\"fa fa-print\"/> 바코드 명령 인쇄"
+
+#. module: mrp_workorder
+#: code:addons/mrp_workorder/models/mrp_workorder.py:0
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_mrp_workorder_additional_product_wizard
+#, python-format
+msgid "Add By-Product"
+msgstr ""
+
+#. module: mrp_workorder
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet_menu
+msgid "Add By-product"
+msgstr ""
+
+#. module: mrp_workorder
+#: code:addons/mrp_workorder/models/mrp_workorder.py:0
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet_menu
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_mrp_workorder_additional_product_wizard
+#, python-format
+msgid "Add Component"
+msgstr ""
+
+#. module: mrp_workorder
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_mrp_workorder_additional_product_wizard
+msgid "Add product"
+msgstr "상품 추가"
+
+#. module: mrp_workorder
+#: model:ir.model,name:mrp_workorder.model_mrp_workorder_additional_product
+msgid "Additional Product"
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__allow_producing_quantity_change
@@ -45,19 +82,40 @@ msgid "And barcode"
 msgstr "그리고 바코드"
 
 #. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_line__check_ids
-msgid "Associated step"
-msgstr "관련된 단계"
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_routing_steps_search
+msgid "Archived"
+msgstr "보관됨"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_production_tree_view_planning
 msgid "Availability"
-msgstr "사용 가능성"
+msgstr "가용성"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder___barcode_scanned
+msgid "Barcode Scanned"
+msgstr "바코드 스캔됨"
+
+#. module: mrp_workorder
+#: model:ir.model,name:mrp_workorder.model_mrp_bom
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__bom_id
+msgid "Bill of Material"
+msgstr "재료 명세서"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet_menu
 msgid "Block"
-msgstr "차단"
+msgstr "블록"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__bom_product_ids
+msgid "Bom Product"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields.selection,name:mrp_workorder.selection__mrp_workorder_additional_product__type__byproduct
+msgid "By-Product"
+msgstr ""
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -70,23 +128,41 @@ msgid "CONTINUE CONSUMPTION"
 msgstr "계속 소비"
 
 #. module: mrp_workorder
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
+msgid "CONTINUE PRODUCTION"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__product_uom_category_id
+msgid "Category"
+msgstr "카테고리"
+
+#. module: mrp_workorder
 #: model:ir.model,name:mrp_workorder.model_change_production_qty
 msgid "Change Production Qty"
 msgstr "생산 수량 변경"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__check_ids
+#: model:ir.model.fields,field_description:mrp_workorder.field_stock_move_line__quality_check_ids
 msgid "Check"
 msgstr "확인"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_production__check_ids
 msgid "Checks"
-msgstr "확인"
+msgstr "검사"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__company_id
+msgid "Company"
+msgstr "회사"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__component_id
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__component_id
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__component_ids
+#: model:ir.model.fields.selection,name:mrp_workorder.selection__mrp_workorder_additional_product__type__component
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Component"
 msgstr "부품"
@@ -99,11 +175,6 @@ msgstr "해야하는 부품 수량"
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__component_uom_id
 msgid "Component UoM"
-msgstr "부품 단위"
-
-#. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__component_uom_id
-msgid "Component Uom"
 msgstr "부품 단위"
 
 #. module: mrp_workorder
@@ -122,6 +193,23 @@ msgid "Control Date"
 msgstr "제어 날짜"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder_additional_product__product_uom_category_id
+msgid ""
+"Conversion between Units of Measure can only occur if they belong to the "
+"same category. The conversion will be made based on the ratios."
+msgstr "단위 사이의 변환은 동일 카테고리에서만 가능합니다. 변환은 비율에 따라 이루어집니다."
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__create_uid
+msgid "Created by"
+msgstr "작성자"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__create_date
+msgid "Created on"
+msgstr "작성일자"
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Creates a new serial/lot number"
 msgstr "새 로트/일련 번호 만들기"
@@ -135,12 +223,22 @@ msgstr "현재 품질 검사"
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_inherit_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Date"
-msgstr "날짜"
+msgstr "일자"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,help:mrp_workorder.field_quality_point__test_type_id
 msgid "Defines the type of the quality control point."
 msgstr "품질 관리점의 유형을 정의합니다."
+
+#. module: mrp_workorder
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_mrp_workorder_additional_product_wizard
+msgid "Discard"
+msgstr "작성 취소"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__display_name
+msgid "Display Name"
+msgstr "표시명"
 
 #. module: mrp_workorder
 #: model:ir.model.fields.selection,name:mrp_workorder.selection__quality_point__worksheet__noupdate
@@ -151,7 +249,6 @@ msgstr "페이지 업데이트 안 함"
 #: code:addons/mrp_workorder/models/quality.py:0
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__qty_done
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__qty_done
-#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_inherit_workorder
 #, python-format
 msgid "Done"
 msgstr "완료"
@@ -159,9 +256,10 @@ msgstr "완료"
 #. module: mrp_workorder
 #. openerp-web
 #: code:addons/mrp_workorder/static/src/xml/mrp_workorder_barcode.xml:0
+#: code:addons/mrp_workorder/static/src/xml/mrp_workorder_barcode.xml:0
 #, python-format
 msgid "Download"
-msgstr "내려받기"
+msgstr "다운로드"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -170,13 +268,19 @@ msgstr "드롭다운 메뉴"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder__component_tracking
+#: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder_additional_product__product_tracking
 msgid "Ensure the traceability of a storable product in your warehouse."
-msgstr "창고에 보관 가능한 제품의 추적성을 확인하십시오."
+msgstr "창고에 보관 가능한 품목의 추적성을 확인하십시오."
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Finish steps"
 msgstr "완료 단계"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__finished_lot_id
+msgid "Finished Lot/Serial"
+msgstr ""
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_inherit_workorder
@@ -189,11 +293,6 @@ msgid "Finished Product Check"
 msgstr "완제품 검사"
 
 #. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__finished_lot_id
-msgid "Finished Product Lot"
-msgstr "완제품 로트"
-
-#. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__finished_product_sequence
 msgid "Finished Product Sequence Number"
 msgstr "완제품 순서 번호"
@@ -202,6 +301,32 @@ msgstr "완제품 순서 번호"
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_inherit_workorder
 msgid "Finished Steps"
 msgstr "완료된 단계"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__id
+msgid "ID"
+msgstr "ID"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_quality_point__bom_active
+msgid ""
+"If the active field is set to False, it will allow you to hide the bills of "
+"material without removing it."
+msgstr "사용중인 필드를 아니오로 설정하면 제거하지 않고 재료 명세서를 숨길 수 있습니다."
+
+#. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder__move_line_id
+#: model:ir.model.fields,help:mrp_workorder.field_quality_check__move_line_id
+msgid ""
+"In case of Quality Check by Lot/SN, Move Line on which the Quality Check "
+"applies"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder__move_line_ids
+msgid ""
+"Inventory moves for which you must scan a lot number at this work order"
+msgstr "이 작업 지시에서 로트 번호를 검색해야 하는 재고 이동"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__component_tracking
@@ -229,9 +354,29 @@ msgid "Is Last lot"
 msgstr "마지막 로트 여부"
 
 #. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__lot_id
-msgid "Lot"
-msgstr "로트"
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__is_first_started_wo
+msgid "Is The first Work Order"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__is_workorder_step
+msgid "Is Workorder Step"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product____last_update
+msgid "Last Modified on"
+msgstr "최근 수정일"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__write_uid
+msgid "Last Updated by"
+msgstr "최근 갱신한 사람"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__write_date
+msgid "Last Updated on"
+msgstr "최근 갱신 일자"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -244,6 +389,11 @@ msgid "Lot Number:"
 msgstr "로트 번호 :"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__lot_id
+msgid "Lot/Serial"
+msgstr "LOT/일련번호"
+
+#. module: mrp_workorder
 #: model:res.groups,name:mrp_workorder.group_mrp_wo_tablet_timer
 msgid "Manage Work Order timer on Tablet View"
 msgstr "태블릿 화면에서 작업 지시 타이머 관리"
@@ -251,7 +401,7 @@ msgstr "태블릿 화면에서 작업 지시 타이머 관리"
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_production_tree_view_planning
 msgid "Manufacturing Orders"
-msgstr "제조 주문서"
+msgstr "제조 주문"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -270,9 +420,29 @@ msgid "Menu"
 msgstr "메뉴"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__move_line_ids
+msgid "Moves to Track"
+msgstr "트랙으로 이동"
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Next"
 msgstr "다음"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__next_check_id
+msgid "Next Check"
+msgstr ""
+
+#. module: mrp_workorder
+#: model_terms:ir.actions.act_window,help:mrp_workorder.action_mrp_workorder_show_steps
+msgid "No manufacturing steps defined yet!"
+msgstr ""
+
+#. module: mrp_workorder
+#: model_terms:ir.actions.act_window,help:mrp_workorder.mrp_workorder_action_tablet
+msgid "No work orders to do!"
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__note
@@ -292,19 +462,14 @@ msgid "Operator"
 msgstr "운영자"
 
 #. module: mrp_workorder
+#: model:ir.ui.menu,name:mrp_workorder.menu_mrp_dashboard
+msgid "Overview"
+msgstr "입출고 현황"
+
+#. module: mrp_workorder
 #: model:ir.model.fields.selection,name:mrp_workorder.selection__quality_point__test_report_type__pdf
 msgid "PDF"
 msgstr "PDF"
-
-#. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__parent_id
-msgid "Parent Quality Check"
-msgstr "상위 품질 검사"
-
-#. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__routing_id
-msgid "Parent Routing"
-msgstr "상위 경로"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -315,11 +480,6 @@ msgstr "일시 정지"
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__picture
 msgid "Picture"
 msgstr "사진"
-
-#. module: mrp_workorder
-#: model_terms:ir.actions.act_window,help:mrp_workorder.mrp_workorder_action_tablet
-msgid "Plan some work orders from your manufacturing orders."
-msgstr "제조 주문서에서 작업 지시서를 계획합니다."
 
 #. module: mrp_workorder
 #: model:ir.ui.menu,name:mrp_workorder.menu_mrp_workorder_production
@@ -335,10 +495,8 @@ msgstr "작업장별 계획"
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
 #, python-format
-msgid ""
-"Please ensure the quantity to produce is nonnegative and does not exceed the"
-" remaining quantity."
-msgstr "생산할 수량은 음수가 아니며 잔여 수량을 초과하지 않도록 하십시오."
+msgid "Please ensure the quantity to produce is greater than 0."
+msgstr ""
 
 #. module: mrp_workorder
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
@@ -355,6 +513,22 @@ msgstr "양수를 입력하십시오."
 #. module: mrp_workorder
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
 #, python-format
+msgid ""
+"Please go in the Operations tab and perform the following work orders and "
+"their quality checks:\n"
+msgstr ""
+
+#. module: mrp_workorder
+#: code:addons/mrp_workorder/models/mrp_workorder.py:0
+#, python-format
+msgid ""
+"Please set the quantity you are currently producing. It should be different "
+"from zero."
+msgstr "현재 생산중인 수량을 설정하십시오. 그것은 0이 아니어야 합니다."
+
+#. module: mrp_workorder
+#: code:addons/mrp_workorder/models/mrp_workorder.py:0
+#, python-format
 msgid "Please upload a picture."
 msgstr "사진을 업로드하십시오."
 
@@ -364,19 +538,34 @@ msgid "Previous"
 msgstr "이전"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__previous_check_id
+msgid "Previous Check"
+msgstr ""
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Print Labels"
 msgstr "꼬리표 인쇄"
 
 #. module: mrp_workorder
-#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_inherit_workorder
-msgid "Process"
-msgstr "처리"
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__product_id
+msgid "Product"
+msgstr "품목"
+
+#. module: mrp_workorder
+#: model:ir.model,name:mrp_workorder.model_stock_move_line
+msgid "Product Moves (Stock Move Line)"
+msgstr "품목 이동 (재고 이동 상세)"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__component_id
 msgid "Product To Register"
 msgstr "등록할 상품"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__product_uom_id
+msgid "Product Uom"
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model,name:mrp_workorder.model_mrp_production
@@ -389,6 +578,11 @@ msgstr "생산 주문"
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Production Workcenter"
 msgstr "생산 작업장"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__product_ids
+msgid "Products"
+msgstr "품목"
 
 #. module: mrp_workorder
 #: model:ir.model,name:mrp_workorder.model_quality_alert
@@ -427,9 +621,20 @@ msgid "Quality Control Test Type"
 msgstr "품질 관리 테스트 유형"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_routing_workcenter__quality_point_ids
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__quality_point_ids
+msgid "Quality Point"
+msgstr "품질 검사점"
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.view_routing_steps_search
 msgid "Quality Point Steps"
 msgstr "품질 관리점 단계"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_quality_point__product_ids
+msgid "Quality Point will apply to every selected Products."
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__quality_state
@@ -437,8 +642,10 @@ msgid "Quality State"
 msgstr "품질 상태"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__product_qty
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_production_tree_view_planning
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
+#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_mrp_workorder_additional_product_wizard
 msgid "Quantity"
 msgstr "수량"
 
@@ -446,6 +653,17 @@ msgstr "수량"
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Record production"
 msgstr "생산 기록"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__additional
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__additional
+msgid "Register additional product"
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__bom_active
+msgid "Related Bill of Material Active"
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__component_remaining_qty
@@ -468,19 +686,9 @@ msgid "Result"
 msgstr "결과"
 
 #. module: mrp_workorder
-#: model_terms:ir.ui.view,arch_db:mrp_workorder.view_routing_steps_search
-msgid "Routing"
-msgstr "절차"
-
-#. module: mrp_workorder
-#: model:ir.model,name:mrp_workorder.model_mrp_routing
-msgid "Routings"
-msgstr "절차"
-
-#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet_menu
 msgid "Scrap"
-msgstr "고철"
+msgstr "폐기"
 
 #. module: mrp_workorder
 #: model:ir.model.fields.selection,name:mrp_workorder.selection__quality_point__worksheet__scroll
@@ -490,7 +698,7 @@ msgstr "특정 페이지로 스크롤"
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Serial Number"
-msgstr "일련 번호"
+msgstr "일련번호"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -518,14 +726,9 @@ msgid "Skipped Check"
 msgstr "검사 건너뜀"
 
 #. module: mrp_workorder
-#: model_terms:ir.actions.act_window,help:mrp_workorder.mrp_workorder_action_tablet
-msgid "Start a new work order"
-msgstr "신규 작업 지시 시작"
-
-#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "Status"
-msgstr "단계"
+msgstr "상태"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__quality_state_for_summary
@@ -539,9 +742,23 @@ msgstr "단계"
 
 #. module: mrp_workorder
 #: model:ir.actions.act_window,name:mrp_workorder.action_mrp_workorder_show_steps
-#: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_routing_view_form_inherit_quality
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_routing_workcenter__quality_point_count
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__quality_point_count
 msgid "Steps"
 msgstr "단계"
+
+#. module: mrp_workorder
+#: model:ir.model,name:mrp_workorder.model_stock_move
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__move_id
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__move_id
+msgid "Stock Move"
+msgstr "재고 이동"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__move_line_id
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__move_line_id
+msgid "Stock Move Line"
+msgstr ""
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__test_type
@@ -555,14 +772,9 @@ msgid "Test Type"
 msgstr "테스트 유형"
 
 #. module: mrp_workorder
-#: model:ir.model.fields,help:mrp_workorder.field_quality_point__routing_id
-msgid ""
-"The routing contains all the Work Centers used and for how long. This will "
-"create work orders afterwards which alters the execution of the "
-"manufacturing order."
+#: model:ir.model.fields,help:mrp_workorder.field_quality_point__bom_id
+msgid "The Bill of Material this operation is linked to"
 msgstr ""
-"작업 절차에는 사용된 모든 작업장과 얼마나 오랫동안 사용되었는지가 포함됩니다. 이것은 나중에 제조 주문의 실행을 바꾸는 작업 지시서를 "
-"만들어낼 것이다."
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_res_config_settings__group_mrp_wo_tablet_timer
@@ -586,9 +798,14 @@ msgid "Total Qty"
 msgstr "총 수량"
 
 #. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__code
-msgid "Type of Operation"
-msgstr "운영 유형"
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__product_tracking
+msgid "Tracking"
+msgstr "추적"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__type
+msgid "Type"
+msgstr "유형"
 
 #. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
@@ -607,9 +824,34 @@ msgid "Unplan orders"
 msgstr "미계획 지시서"
 
 #. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__component_uom_id
+msgid "UoM"
+msgstr "단위"
+
+#. module: mrp_workorder
+#: model_terms:ir.actions.act_window,help:mrp_workorder.action_mrp_workorder_show_steps
+msgid ""
+"Use steps to show instructions on a worksheet to operators, or trigger "
+"quality checks at specific steps of the work order."
+msgstr ""
+
+#. module: mrp_workorder
+#: model_terms:ir.actions.act_window,help:mrp_workorder.mrp_workorder_action_tablet
+msgid ""
+"Use the table work center control panel to register operations in the shop floor directly.\n"
+"            The tablet provides worksheets for your workers and allow them to scrap products, track time,\n"
+"            launch a maintenance request, perform quality tests, etc."
+msgstr ""
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet
 msgid "VALIDATE"
 msgstr "승인"
+
+#. module: mrp_workorder
+#: model:ir.model.fields,help:mrp_workorder.field_mrp_workorder___barcode_scanned
+msgid "Value of the last barcode scanned."
+msgstr "스캔된 마지막 바코드의 값."
 
 #. module: mrp_workorder
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
@@ -624,6 +866,11 @@ msgstr "경고"
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.quality_alert_view_search_inherit_mrp_workorder
 msgid "Work Center"
 msgstr "작업장"
+
+#. module: mrp_workorder
+#: model:ir.model,name:mrp_workorder.model_mrp_routing_workcenter
+msgid "Work Center Usage"
+msgstr "작업장 사용율"
 
 #. module: mrp_workorder
 #: model:ir.model,name:mrp_workorder.model_mrp_workorder
@@ -648,20 +895,21 @@ msgid "Work orders"
 msgstr "작업 지시서"
 
 #. module: mrp_workorder
+#: model_terms:ir.actions.act_window,help:mrp_workorder.mrp_workorder_action_tablet
+msgid ""
+"Work orders are operations to do as part of a manufacturing order.\n"
+"            Operations are defined in the bill of materials or added in the manufacturing order directly."
+msgstr ""
+
+#. module: mrp_workorder
+#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder_additional_product__workorder_id
+msgid "Workorder"
+msgstr "작업지시"
+
+#. module: mrp_workorder
 #: model_terms:ir.ui.view,arch_db:mrp_workorder.mrp_workorder_view_form_tablet_menu
 msgid "Workorder Actions"
 msgstr "작업 지시서 동작"
-
-#. module: mrp_workorder
-#: model:ir.model.fields,field_description:mrp_workorder.field_mrp_workorder__workorder_line_id
-#: model:ir.model.fields,field_description:mrp_workorder.field_quality_check__workorder_line_id
-msgid "Workorder Line"
-msgstr "작업 지시 명세"
-
-#. module: mrp_workorder
-#: model:ir.model,name:mrp_workorder.model_mrp_workorder_line
-msgid "Workorder move line"
-msgstr "작업 지시 이동 명세"
 
 #. module: mrp_workorder
 #: model:ir.model.fields,field_description:mrp_workorder.field_quality_point__worksheet
@@ -705,16 +953,8 @@ msgstr "최종 제품에 대한 로트/일련 번호를 설정하지 않았습�
 #. module: mrp_workorder
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0
 #, python-format
-msgid ""
-"You should consume the quantity of %s defined in the BoM. If you want to "
-"consume more or less components, change the consumption setting on the BoM."
-msgstr "BoM에 정의된 %s의 양을 소비해야 합니다. 부품을 더 많이 또는 더 적게 사용하려면 BoM에서 소비 설정을 변경합니다."
-
-#. module: mrp_workorder
-#: code:addons/mrp_workorder/models/mrp_workorder.py:0
-#, python-format
-msgid "You should provide a lot for the final product"
-msgstr "최종 제품에는 로트를 제공해야 합니다."
+msgid "You should provide a lot/serial number for the final product"
+msgstr ""
 
 #. module: mrp_workorder
 #: code:addons/mrp_workorder/models/mrp_workorder.py:0

@@ -1,428 +1,964 @@
-odoo.define('web_mobile.tests', function (require) {
-"use strict";
+odoo.define("web_mobile.tests", function (require) {
+    "use strict";
 
-const Dialog = require('web.Dialog');
-const dom = require('web.dom');
-const FormView = require('web.FormView');
-const KanbanView = require('web.KanbanView');
-const testUtils = require('web.test_utils');
-const Widget = require('web.Widget');
+    const Dialog = require("web.Dialog");
+    const dom = require("web.dom");
+    const FormView = require("web.FormView");
+    const OwlDialog = require("web.OwlDialog");
+    const Popover = require("web.Popover");
+    const session = require("web.session");
+    const makeTestEnvironment = require("web.test_env");
+    const testUtils = require("web.test_utils");
+    const Widget = require("web.Widget");
 
-const mobileMixins = require('web_mobile.mixins');
-const mobile = require('web_mobile.rpc');
+    const { useBackButton } = require("web_mobile.hooks");
+    const {
+        BackButtonEventMixin,
+        UpdateDeviceAccountControllerMixin,
+    } = require("web_mobile.mixins");
+    const mobile = require("web_mobile.core");
+    const UserPreferencesFormView = require("web_mobile.UserPreferencesFormView");
+    const { base64ToBlob } = require("web_mobile.testUtils");
 
-const {createParent, createView} = testUtils;
+    const { createWebClient, doAction } = require('@web/../tests/webclient/helpers');
 
-QUnit.module('web_mobile', {
-    beforeEach: function () {
-        this.data = {
-            partner: {
-                fields: {
-                    name: {string: "name", type: "char"},
-                    image_1920: {},
-                    parent_id: {string: "Parent", type: "many2one", relation: 'partner'},
-                    sibling_ids: {string: "Sibling", type: "many2many", relation: 'partner'},
-                    phone: {},
-                    mobile: {},
-                    email: {},
-                    street: {},
-                    street2: {},
-                    city: {},
-                    state_id: {},
-                    zip: {},
-                    country_id: {},
-                    website: {},
-                    function: {},
-                    title: {},
-                },
-                records: [{
-                    id: 1,
-                    name: 'coucou1',
-                }, {
-                    id: 2,
-                    name: 'coucou2',
-                }, {
-                    id: 11,
-                    name: 'coucou3',
-                    image_1920: 'image',
-                    parent_id: 1,
-                    phone: 'phone',
-                    mobile: 'mobile',
-                    email: 'email',
-                    street: 'street',
-                    street2: 'street2',
-                    city: 'city',
-                    state_id: 'state_id',
-                    zip: 'zip',
-                    country_id: 'country_id',
-                    website: 'website',
-                    function: 'function',
-                    title: 'title',
-                }],
+    const { Component, tags, useState } = owl;
+    const { xml } = tags;
+
+    const { createParent, createView, mock } = testUtils;
+
+    const MY_IMAGE =
+        "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
+    const BASE64_SVG_IMAGE =
+        "PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNzUnIGhlaWdodD0nMTAwJyBmaWxsPScjMDAwJz48cG9seWdvbiBwb2ludHM9JzAsMCAxMDAsMCA1MCw1MCcvPjwvc3ZnPg==";
+    const BASE64_PNG_HEADER = "iVBORw0KGg";
+
+    QUnit.module(
+        "web_mobile",
+        {
+            beforeEach: function () {
+                this.data = {
+                    partner: {
+                        fields: {
+                            name: { string: "name", type: "char" },
+                            avatar_1920: {},
+                            parent_id: { string: "Parent", type: "many2one", relation: "partner" },
+                            sibling_ids: {
+                                string: "Sibling",
+                                type: "many2many",
+                                relation: "partner",
+                            },
+                            phone: {},
+                            mobile: {},
+                            email: {},
+                            street: {},
+                            street2: {},
+                            city: {},
+                            state_id: {},
+                            zip: {},
+                            country_id: {},
+                            website: {},
+                            function: {},
+                            title: {},
+                            date: { string: "A date", type: "date" },
+                            datetime: { string: "A datetime", type: "datetime" },
+                        },
+                        records: [
+                            {
+                                id: 1,
+                                name: "coucou1",
+                            },
+                            {
+                                id: 2,
+                                name: "coucou2",
+                            },
+                            {
+                                id: 11,
+                                name: "coucou3",
+                                avatar_1920: "image",
+                                parent_id: 1,
+                                phone: "phone",
+                                mobile: "mobile",
+                                email: "email",
+                                street: "street",
+                                street2: "street2",
+                                city: "city",
+                                state_id: "state_id",
+                                zip: "zip",
+                                country_id: "country_id",
+                                website: "website",
+                                function: "function",
+                                title: "title",
+                            },
+                        ],
+                    },
+                    users: {
+                        fields: {
+                            name: { string: "name", type: "char" },
+                        },
+                        records: [],
+                    },
+                };
             },
-        };
-    },
-}, function () {
+        },
+        function () {
+            QUnit.module("core", function () {
+                QUnit.test("BackButtonManager", async function (assert) {
+                    assert.expect(13);
 
-    QUnit.test("contact sync in a non-mobile environment", async function (assert) {
-        assert.expect(2);
+                    mock.patch(mobile.methods, {
+                        overrideBackButton({ enabled }) {
+                            assert.step(`overrideBackButton: ${enabled}`);
+                        },
+                    });
 
-        let rpcCount = 0;
+                    const { BackButtonManager, BackButtonListenerError } = mobile;
+                    const manager = new BackButtonManager();
+                    const DummyWidget = Widget.extend({
+                        _onBackButton(ev) {
+                            assert.step(`${ev.type} event`);
+                        },
+                    });
+                    const dummy = new DummyWidget();
 
-        const form = await createView({
-            View: FormView,
-            arch: '<form>' +
-                    '<sheet>' +
-                        '<div name="button_box">' +
-                            '<contactsync> </contactsync>' +
-                        '</div>' +
-                        '<field name="name"/>' +
-                    '</sheet>' +
-                  '</form>',
-            data: this.data,
-            model: 'partner',
-            mockRPC: function () {
-                rpcCount++;
-                return this._super.apply(this, arguments);
-            },
-            res_id: 11,
-        });
+                    manager.addListener(dummy, dummy._onBackButton);
+                    assert.verifySteps(["overrideBackButton: true"]);
 
-        const $button = form.$('button.oe_stat_button[widget="contact_sync"]');
+                    // simulate 'backbutton' event triggered by the app
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    assert.verifySteps(["backbutton event"]);
 
-        assert.strictEqual($button.length, 0, "the tag should not be visible in a non-mobile environment");
-        assert.strictEqual(rpcCount, 1, "no extra rpc should be done by the widget (only the one from the view)");
+                    manager.removeListener(dummy);
+                    assert.verifySteps(["overrideBackButton: false"]);
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    assert.verifySteps([], "shouldn't trigger any handler");
 
-        form.destroy();
-    });
+                    manager.addListener(dummy, dummy._onBackButton);
+                    assert.throws(
+                        () => {
+                            manager.addListener(dummy, dummy._onBackButton);
+                        },
+                        BackButtonListenerError,
+                        "should raise an error if adding a listener twice"
+                    );
+                    assert.verifySteps(["overrideBackButton: true"]);
 
-    QUnit.test("contact sync in a mobile environment", async function (assert) {
-        assert.expect(5);
+                    manager.removeListener(dummy);
+                    assert.throws(
+                        () => {
+                            manager.removeListener(dummy);
+                        },
+                        BackButtonListenerError,
+                        "should raise an error if removing a non-registered listener"
+                    );
+                    assert.verifySteps(["overrideBackButton: false"]);
 
+                    dummy.destroy();
+                    mock.unpatch(mobile.methods);
+                });
+            });
 
-        const __addContact = mobile.methods.addContact;
-        let addContactRecord;
-        // override addContact to simulate a mobile environment
-        mobile.methods.addContact = function (r) {
-            addContactRecord = r;
-        };
+            QUnit.module("BackButtonEventMixin");
 
-        let rpcDone;
-        let rpcCount = 0;
+            QUnit.test("widget should receive a backbutton event", async function (assert) {
+                assert.expect(5);
 
-        const form = await createView({
-            View: FormView,
-            arch:
-                '<form>' +
-                    '<sheet>' +
-                        '<div name="button_box">' +
-                            '<contactsync> </contactsync>' +
-                        '</div>' +
-                        '<field name="name"/>' +
-                    '</sheet>' +
-                '</form>',
-            data: this.data,
-            model: 'partner',
-            mockRPC: function (route, args) {
-                if (args.method === "read" && args.args[0] === 11 && _.contains(args.args[1], 'phone')) {
-                    rpcDone = true;
+                const __overrideBackButton = mobile.methods.overrideBackButton;
+                mobile.methods.overrideBackButton = function ({ enabled }) {
+                    assert.step(`overrideBackButton: ${enabled}`);
+                };
+
+                const DummyWidget = Widget.extend(BackButtonEventMixin, {
+                    _onBackButton(ev) {
+                        assert.step(`${ev.type} event`);
+                    },
+                });
+                const backButtonEvent = new Event("backbutton");
+                const dummy = new DummyWidget();
+                dummy.appendTo($("<div>"));
+
+                // simulate 'backbutton' event triggered by the app
+                document.dispatchEvent(backButtonEvent);
+                // waiting nextTick to match testUtils.dom.triggerEvents() behavior
+                await testUtils.nextTick();
+
+                assert.verifySteps([], "shouldn't have register handle before attached to the DOM");
+
+                dom.append($("qunit-fixture"), dummy.$el, {
+                    in_DOM: true,
+                    callbacks: [{ widget: dummy }],
+                });
+
+                // simulate 'backbutton' event triggered by the app
+                document.dispatchEvent(backButtonEvent);
+                await testUtils.nextTick();
+
+                dom.detach([{ widget: dummy }]);
+
+                assert.verifySteps(
+                    ["overrideBackButton: true", "backbutton event", "overrideBackButton: false"],
+                    "should have enabled/disabled the back-button override"
+                );
+
+                dummy.destroy();
+                mobile.methods.overrideBackButton = __overrideBackButton;
+            });
+
+            QUnit.test(
+                "multiple widgets should receive backbutton events in the right order",
+                async function (assert) {
+                    assert.expect(6);
+
+                    const __overrideBackButton = mobile.methods.overrideBackButton;
+                    mobile.methods.overrideBackButton = function ({ enabled }) {
+                        assert.step(`overrideBackButton: ${enabled}`);
+                    };
+
+                    const DummyWidget = Widget.extend(BackButtonEventMixin, {
+                        init(parent, { name }) {
+                            this._super.apply(this, arguments);
+                            this.name = name;
+                        },
+                        _onBackButton(ev) {
+                            assert.step(`${this.name}: ${ev.type} event`);
+                            dom.detach([{ widget: this }]);
+                        },
+                    });
+                    const backButtonEvent = new Event("backbutton");
+                    const dummy1 = new DummyWidget(null, { name: "dummy1" });
+                    dom.append($("qunit-fixture"), dummy1.$el, {
+                        in_DOM: true,
+                        callbacks: [{ widget: dummy1 }],
+                    });
+
+                    const dummy2 = new DummyWidget(null, { name: "dummy2" });
+                    dom.append($("qunit-fixture"), dummy2.$el, {
+                        in_DOM: true,
+                        callbacks: [{ widget: dummy2 }],
+                    });
+
+                    const dummy3 = new DummyWidget(null, { name: "dummy3" });
+                    dom.append($("qunit-fixture"), dummy3.$el, {
+                        in_DOM: true,
+                        callbacks: [{ widget: dummy3 }],
+                    });
+
+                    // simulate 'backbutton' events triggered by the app
+                    document.dispatchEvent(backButtonEvent);
+                    // waiting nextTick to match testUtils.dom.triggerEvents() behavior
+                    await testUtils.nextTick();
+                    document.dispatchEvent(backButtonEvent);
+                    await testUtils.nextTick();
+                    document.dispatchEvent(backButtonEvent);
+                    await testUtils.nextTick();
+
+                    assert.verifySteps([
+                        "overrideBackButton: true",
+                        "dummy3: backbutton event",
+                        "dummy2: backbutton event",
+                        "dummy1: backbutton event",
+                        "overrideBackButton: false",
+                    ]);
+
+                    dummy1.destroy();
+                    dummy2.destroy();
+                    dummy3.destroy();
+                    mobile.methods.overrideBackButton = __overrideBackButton;
                 }
-                rpcCount++;
-                return this._super(route, args);
-            },
-            res_id: 11,
-        });
+            );
 
-        const $button = form.$('button.oe_stat_button[widget="contact_sync"]');
+            QUnit.module("useBackButton");
 
-        assert.strictEqual($button.length, 1, "the tag should be visible in a mobile environment");
-        assert.strictEqual(rpcCount, 1, "no extra rpc should be done by the widget (only the one from the view)");
+            QUnit.test("component should receive a backbutton event", async function (assert) {
+                assert.expect(5);
 
-        await testUtils.dom.click($button);
+                mock.patch(mobile.methods, {
+                    overrideBackButton({ enabled }) {
+                        assert.step(`overrideBackButton: ${enabled}`);
+                    },
+                });
 
-        assert.strictEqual(rpcCount, 2, "an extra rpc should be done on click");
-        assert.ok(rpcDone, "a read rpc should have been done");
-        assert.deepEqual(addContactRecord, {
-            city: "city",
-            country_id: "country_id",
-            email: "email",
-            function: "function",
-            id: 11,
-            image_1920: "image",
-            mobile: "mobile",
-            name: "coucou3",
-            parent_id: [
-                1,
-                "coucou1",
-            ],
-            phone: "phone",
-            state_id: "state_id",
-            street: "street",
-            street2: "street2",
-            title: "title",
-            website: "website",
-            zip: "zip"
-        }, "all data should be correctly passed");
+                class DummyComponent extends Component {
+                    constructor() {
+                        super();
+                        this._backButtonHandler = useBackButton(this._onBackButton);
+                    }
 
-        mobile.methods.addContact = __addContact;
+                    _onBackButton(ev) {
+                        assert.step(`${ev.type} event`);
+                    }
+                }
+                DummyComponent.template = xml`<div/>`;
 
-        form.destroy();
-    });
+                const dummy = new DummyComponent();
 
-    QUnit.test('autofocus quick create form', async function (assert) {
-        assert.expect(2);
+                await dummy.mount(document.createDocumentFragment());
+                // simulate 'backbutton' event triggered by the app
+                await testUtils.dom.triggerEvent(document, "backbutton");
+                assert.verifySteps([], "shouldn't have register handle before attached to the DOM");
+                dummy.unmount();
 
-        const kanban = await createView({
-            View: KanbanView,
-            model: 'partner',
-            data: this.data,
-            arch: '<kanban on_create="quick_create">' +
-                    '<templates><t t-name="kanban-box">' +
-                        '<div><field name="name"/></div>' +
-                    '</t></templates>' +
-                '</kanban>',
-            groupBy: ['parent_id'],
-        });
+                await dummy.mount(document.getElementById("qunit-fixture"));
+                // simulate 'backbutton' event triggered by the app
+                await testUtils.dom.triggerEvent(document, "backbutton");
+                dummy.unmount();
+                assert.verifySteps(
+                    ["overrideBackButton: true", "backbutton event", "overrideBackButton: false"],
+                    "should have enabled/disabled the back-button override"
+                );
 
-        // quick create in first column
-        await testUtils.dom.click(kanban.$buttons.find('.o-kanban-button-new'));
-        assert.ok(kanban.$('.o_kanban_group:nth(0) > div:nth(1)').hasClass('o_kanban_quick_create'),
-            "clicking on create should open the quick_create in the first column");
-        assert.strictEqual(document.activeElement, kanban.$('.o_kanban_quick_create .o_input:first')[0],
-            "the first input field should get the focus when the quick_create is opened");
+                dummy.destroy();
+                mock.unpatch(mobile.methods);
+            });
 
-        kanban.destroy();
-    });
+            QUnit.test(
+                "multiple components should receive backbutton events in the right order",
+                async function (assert) {
+                    assert.expect(6);
 
-    QUnit.test("control panel appears at top on scroll event", async function (assert) {
-        assert.expect(11);
+                    mock.patch(mobile.methods, {
+                        overrideBackButton({ enabled }) {
+                            assert.step(`overrideBackButton: ${enabled}`);
+                        },
+                    });
 
-        const Q_UNIT_FIXTURE_SELECTOR = '#qunit-fixture';
-        const MOBILE_STICK_CLASS = 'o_mobile_sticky';
-        const MAX_HEIGHT = 400;
-        const MIDLE_HEIGHT = 200;
-        const DELTA_TEST = 20;
-        const scrollEvent = new UIEvent('scroll');
+                    class DummyComponent extends Component {
+                        constructor() {
+                            super(...arguments);
+                            this._backButtonHandler = useBackButton(this._onBackButton);
+                        }
 
-        function scrollAtHeight(height) {
-            window.scrollTo(0, height);
-            document.dispatchEvent(scrollEvent);
-        }
+                        _onBackButton(ev) {
+                            assert.step(`${this.props.name}: ${ev.type} event`);
+                            this.unmount();
+                        }
+                    }
+                    DummyComponent.template = xml`<div/>`;
 
-        const form = await createView({
-            View: FormView,
-            arch:
-                '<form>' +
-                    '<sheet>' +
-                        '<div style="height: 1000px"></div>' +
-                    '</sheet>' +
-                '</form>',
-            data: this.data,
-            model: 'partner',
-            res_id: 11,
-        });
+                    const fixture = document.getElementById("qunit-fixture");
 
-        const controlPanelElement = document.querySelector('.o_cp_controller');
-        const controlPanelHeight = controlPanelElement.clientHeight;
+                    const dummy1 = new DummyComponent(null, { name: "dummy1" });
+                    await dummy1.mount(fixture);
 
-        // Force viewport to have a scrollbar
-        document.querySelector(Q_UNIT_FIXTURE_SELECTOR).style.position = 'initial';
+                    const dummy2 = new DummyComponent(null, { name: "dummy2" });
+                    await dummy2.mount(fixture);
 
-        assert.strictEqual(controlPanelElement.style.top, '0px',
-            'Top must be 0px (start position)');
-        assert.notOk(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must not have class o_mobile_sticky (start position)');
+                    const dummy3 = new DummyComponent(null, { name: "dummy3" });
+                    await dummy3.mount(fixture);
 
-        scrollAtHeight(MAX_HEIGHT);
+                    // simulate 'backbutton' events triggered by the app
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    await testUtils.dom.triggerEvent(document, "backbutton");
 
-        const valueExpected = -controlPanelHeight;
-        assert.strictEqual(controlPanelElement.style.top, valueExpected + 'px',
-            'Top must be ' + valueExpected + 'px (after scroll to MAX_HEIGHT)');
-        assert.ok(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must have class o_mobile_sticky (after scroll to MAX_HEIGHT)');
+                    assert.verifySteps([
+                        "overrideBackButton: true",
+                        "dummy3: backbutton event",
+                        "dummy2: backbutton event",
+                        "dummy1: backbutton event",
+                        "overrideBackButton: false",
+                    ]);
 
-        scrollAtHeight(MAX_HEIGHT - DELTA_TEST);
+                    dummy1.destroy();
+                    dummy2.destroy();
+                    dummy3.destroy();
+                    mock.unpatch(mobile.methods);
+                }
+            );
 
-        const valueExpectedWithDelta = -(controlPanelHeight - DELTA_TEST);
-        assert.strictEqual(controlPanelElement.style.top, valueExpectedWithDelta + 'px',
-            'Top must be ' + valueExpectedWithDelta + 'px (after scroll to MAX_HEIGHT - DELTA_TEST)');
-        assert.ok(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must have class o_mobile_sticky (after scroll to MAX_HEIGHT - DELTA_TEST)');
+            QUnit.test(
+                "component should receive a backbutton event: custom activation",
+                async function (assert) {
+                    assert.expect(10);
 
-        scrollAtHeight(MIDLE_HEIGHT);
+                    mock.patch(mobile.methods, {
+                        overrideBackButton({ enabled }) {
+                            assert.step(`overrideBackButton: ${enabled}`);
+                        },
+                    });
 
-        assert.strictEqual(controlPanelElement.style.top, '0px',
-            'Top must be 0px (after scroll to MIDLE_HEIGHT)');
-        assert.ok(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must have class o_mobile_sticky (after scroll to MIDLE_HEIGHT)');
+                    class DummyComponent extends Component {
+                        constructor() {
+                            super();
+                            this._backButtonHandler = useBackButton(
+                                this._onBackButton,
+                                this.shouldActivateBackButton.bind(this)
+                            );
+                            this.state = useState({
+                                show: false,
+                            });
+                        }
 
-        scrollAtHeight(MAX_HEIGHT);
+                        toggle() {
+                            this.state.show = !this.state.show;
+                        }
 
-        assert.strictEqual(controlPanelElement.style.top, (-controlPanelHeight) + 'px',
-            'Top must be ' + (-controlPanelHeight) + 'px (after scroll to MAX_HEIGHT again)');
-        assert.ok(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must have class o_mobile_sticky (after scroll to MAX_HEIGHT again)');
+                        shouldActivateBackButton() {
+                            return this.state.show;
+                        }
 
-        scrollAtHeight(0);
+                        _onBackButton(ev) {
+                            assert.step(`${ev.type} event`);
+                        }
+                    }
+                    DummyComponent.template = xml`<button t-esc="state.show" t-on-click="toggle"/>`;
 
-        assert.notOk(controlPanelElement.classList.contains(MOBILE_STICK_CLASS),
-            'Must not have class o_mobile_sticky (after return to start position)');
+                    const dummy = new DummyComponent();
 
-        form.destroy();
+                    await dummy.mount(document.getElementById("qunit-fixture"));
+                    assert.verifySteps([], "shouldn't have enabled backbutton mount");
+                    await testUtils.dom.click(dummy.el);
+                    // simulate 'backbutton' event triggered by the app
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    await testUtils.dom.click(dummy.el);
+                    assert.verifySteps(
+                        [
+                            "overrideBackButton: true",
+                            "backbutton event",
+                            "overrideBackButton: false",
+                        ],
+                        "should have enabled/disabled the back-button override"
+                    );
+                    dummy.unmount();
 
-        // Reset viewport position attribute
-        document.querySelector(Q_UNIT_FIXTURE_SELECTOR).style.position = '';
-    });
+                    // enabled at mount
+                    dummy.state.show = true;
+                    await dummy.mount(document.getElementById("qunit-fixture"));
+                    assert.verifySteps(
+                        ["overrideBackButton: true"],
+                        "shouldn have enabled backbutton at mount"
+                    );
+                    // simulate 'backbutton' event triggered by the app
+                    await testUtils.dom.triggerEvent(document, "backbutton");
+                    // unmounting without disabling first
+                    dummy.unmount();
+                    assert.verifySteps(
+                        ["backbutton event", "overrideBackButton: false"],
+                        "should have disabled the back-button override during unmount"
+                    );
 
-    QUnit.module('BackButtonEventMixin');
+                    dummy.destroy();
+                    mock.unpatch(mobile.methods);
+                }
+            );
 
-    QUnit.test('widget should receive a backbutton event', async function (assert) {
-        assert.expect(5);
+            QUnit.module("Dialog");
 
-        const __overrideBackButton = mobile.methods.overrideBackButton;
-        mobile.methods.overrideBackButton = function ({enabled}) {
-            assert.step(`overrideBackButton: ${enabled}`);
-        };
+            QUnit.test("dialog is closable with backbutton event", async function (assert) {
+                assert.expect(7);
 
-        const DummyWidget = Widget.extend(mobileMixins.BackButtonEventMixin, {
-            _onBackButton(ev) {
-                assert.step(`${ev.type} event`);
-            },
-        });
-        const backButtonEvent = new Event('backbutton');
-        const dummy = new DummyWidget();
-        dummy.appendTo($('<div>'));
+                const __overrideBackButton = mobile.methods.overrideBackButton;
+                mobile.methods.overrideBackButton = function ({ enabled }) {
+                    assert.step(`overrideBackButton: ${enabled}`);
+                };
 
-        // simulate 'backbutton' event triggered by the app
-        document.dispatchEvent(backButtonEvent);
-        // waiting nextTick to match testUtils.dom.triggerEvents() behavior
-        await testUtils.nextTick();
+                testUtils.mock.patch(Dialog, {
+                    close: function () {
+                        assert.step("close");
+                        return this._super.apply(this, arguments);
+                    },
+                });
 
-        assert.verifySteps([], "shouldn't have register handle before attached to the DOM");
-
-        dom.append($('qunit-fixtures'), dummy.$el, {in_DOM: true, callbacks: [{widget: dummy}]});
-
-        // simulate 'backbutton' event triggered by the app
-        document.dispatchEvent(backButtonEvent);
-        await testUtils.nextTick();
-
-        dom.detach([{widget: dummy}]);
-
-        assert.verifySteps([
-            'overrideBackButton: true',
-            'backbutton event',
-            'overrideBackButton: false',
-        ], "should have enabled/disabled the back-button override");
-
-        dummy.destroy();
-        mobile.methods.overrideBackButton = __overrideBackButton;
-    });
-
-    QUnit.test('multiple widgets should receive backbutton events in the right order', async function (assert) {
-        assert.expect(6);
-
-        const __overrideBackButton = mobile.methods.overrideBackButton;
-        mobile.methods.overrideBackButton = function ({enabled}) {
-            assert.step(`overrideBackButton: ${enabled}`);
-        };
-
-        const DummyWidget = Widget.extend(mobileMixins.BackButtonEventMixin, {
-            init(parent, {name}) {
-                this._super.apply(this, arguments);
-                this.name = name;
-            },
-            _onBackButton(ev) {
-                assert.step(`${this.name}: ${ev.type} event`);
-                dom.detach([{widget: this}]);
-            },
-        });
-        const backButtonEvent = new Event('backbutton');
-        const dummy1 = new DummyWidget(null, {name: 'dummy1'});
-        dom.append($('qunit-fixtures'), dummy1.$el, {in_DOM: true, callbacks: [{widget: dummy1}]});
-
-        const dummy2 = new DummyWidget(null, {name: 'dummy2'});
-        dom.append($('qunit-fixtures'), dummy2.$el, {in_DOM: true, callbacks: [{widget: dummy2}]});
-
-        const dummy3 = new DummyWidget(null, {name: 'dummy3'});
-        dom.append($('qunit-fixtures'), dummy3.$el, {in_DOM: true, callbacks: [{widget: dummy3}]});
-
-        // simulate 'backbutton' events triggered by the app
-        document.dispatchEvent(backButtonEvent);
-        // waiting nextTick to match testUtils.dom.triggerEvents() behavior
-        await testUtils.nextTick();
-        document.dispatchEvent(backButtonEvent);
-        await testUtils.nextTick();
-        document.dispatchEvent(backButtonEvent);
-        await testUtils.nextTick();
-
-        assert.verifySteps([
-            'overrideBackButton: true',
-            'dummy3: backbutton event',
-            'dummy2: backbutton event',
-            'dummy1: backbutton event',
-            'overrideBackButton: false',
-        ]);
-
-        dummy1.destroy();
-        dummy2.destroy();
-        dummy3.destroy();
-        mobile.methods.overrideBackButton = __overrideBackButton;
-    });
-
-    QUnit.module('Dialog');
-
-    QUnit.test('dialog is closable with backbutton event', async function (assert) {
-        assert.expect(5);
-
-        const __overrideBackButton = mobile.methods.overrideBackButton;
-        mobile.methods.overrideBackButton = function () {};
-
-        testUtils.mock.patch(Dialog, {
-            close: function () {
-                assert.step("close");
-                return this._super.apply(this, arguments);
-            },
-        });
-
-        const parent = createParent({
-            data: this.data,
-            archs: {
-                'partner,false,form': `
+                const parent = await createParent({
+                    data: this.data,
+                    archs: {
+                        "partner,false,form": `
                     <form>
                         <sheet>
                             <field name="name"/>
                         </sheet>
                    </form>
                 `,
-            },
-        });
+                    },
+                });
 
-        const backButtonEvent = new Event('backbutton');
-        const dialog = new Dialog(parent, {
-            res_model: 'partner',
-            res_id: 1,
-        }).open();
-        await dialog.opened().then(() => {
-            assert.step('opened');
-        });
-        assert.containsOnce(document.body, '.modal', "should have a modal");
+                const backButtonEvent = new Event("backbutton");
+                const dialog = new Dialog(parent, {
+                    res_model: "partner",
+                    res_id: 1,
+                }).open();
+                await dialog.opened().then(() => {
+                    assert.step("opened");
+                });
+                assert.containsOnce(document.body, ".modal", "should have a modal");
 
-        // simulate 'backbutton' event triggered by the app waiting
-        document.dispatchEvent(backButtonEvent);
-        // nextTick to match testUtils.dom.triggerEvents() behavior
-        await testUtils.nextTick();
+                // simulate 'backbutton' event triggered by the app waiting
+                document.dispatchEvent(backButtonEvent);
+                // nextTick to match testUtils.dom.triggerEvents() behavior
+                await testUtils.nextTick();
 
-        // The goal of this assert is to check that our event called the
-        // opened/close methods on Dialog.
-        assert.verifySteps([
-            'opened',
-            'close',
-        ], "should have open/close dialog");
-        assert.containsNone(document.body, '.modal', "modal should be closed");
+                // The goal of this assert is to check that our event called the
+                // opened/close methods on Dialog.
+                assert.verifySteps(
+                    ["overrideBackButton: true", "opened", "close", "overrideBackButton: false"],
+                    "should have open/close dialog"
+                );
+                assert.containsNone(document.body, ".modal", "modal should be closed");
 
-        parent.destroy();
-        testUtils.mock.unpatch(Dialog);
-        mobile.methods.overrideBackButton = __overrideBackButton;
-    });
-});
+                parent.destroy();
+                testUtils.mock.unpatch(Dialog);
+                mobile.methods.overrideBackButton = __overrideBackButton;
+            });
+
+            QUnit.module("OwlDialog");
+
+            QUnit.test("dialog is closable with backbutton event", async function (assert) {
+                assert.expect(7);
+
+                mock.patch(mobile.methods, {
+                    overrideBackButton({ enabled }) {
+                        assert.step(`overrideBackButton: ${enabled}`);
+                    },
+                });
+
+                class Parent extends Component {
+                    constructor() {
+                        super(...arguments);
+                        this.state = useState({ display: true });
+                    }
+                    _onDialogClosed() {
+                        this.state.display = false;
+                        assert.step("dialog_closed");
+                    }
+                }
+
+                Parent.components = { OwlDialog };
+                Parent.env = makeTestEnvironment();
+                Parent.template = xml`
+            <div>
+                <OwlDialog
+                    t-if="state.display"
+                    t-on-dialog-closed="_onDialogClosed">
+                    Some content
+                </OwlDialog>
+            </div>`;
+
+                const parent = new Parent();
+                await parent.mount(testUtils.prepareTarget());
+
+                assert.containsOnce(document.body, ".o_dialog");
+                assert.verifySteps(["overrideBackButton: true"]);
+                // simulate 'backbutton' event triggered by the app
+                await testUtils.dom.triggerEvent(document, "backbutton");
+                assert.verifySteps(["dialog_closed", "overrideBackButton: false"]);
+                assert.containsNone(document.body, ".o_dialog", "should have been closed");
+
+                parent.destroy();
+                mock.unpatch(mobile.methods);
+            });
+
+            QUnit.module("Popover");
+
+            QUnit.test("popover is closable with backbutton event", async function (assert) {
+                assert.expect(7);
+
+                mock.patch(mobile.methods, {
+                    overrideBackButton({ enabled }) {
+                        assert.step(`overrideBackButton: ${enabled}`);
+                    },
+                });
+
+                class Parent extends Component {}
+
+                Parent.components = { Popover };
+                Parent.env = makeTestEnvironment();
+                Parent.template = xml`
+            <div>
+                <Popover>
+                    <t t-set="opened">
+                        Some content
+                    </t>
+                    <button id="target">
+                        Show me
+                    </button>
+                </Popover>
+            </div>`;
+
+                const parent = new Parent();
+                await parent.mount(testUtils.prepareTarget());
+
+                assert.containsNone(document.body, ".o_popover");
+                await testUtils.dom.click(document.querySelector("#target"));
+                assert.containsOnce(document.body, ".o_popover");
+                assert.verifySteps(["overrideBackButton: true"]);
+                // simulate 'backbutton' event triggered by the app
+                await testUtils.dom.triggerEvent(document, "backbutton");
+                assert.verifySteps(["overrideBackButton: false"]);
+                assert.containsNone(document.body, ".o_popover", "should have been closed");
+
+                parent.destroy();
+                mock.unpatch(mobile.methods);
+            });
+
+            QUnit.module("ControlPanel");
+
+            QUnit.test("mobile search: close with backbutton event", async function (assert) {
+                assert.expect(7);
+
+                mock.patch(mobile.methods, {
+                    overrideBackButton({ enabled }) {
+                        assert.step(`overrideBackButton: ${enabled}`);
+                    },
+                });
+
+                const actions = {
+                    1: {
+                        id: 1,
+                        name: "Yes",
+                        res_model: "partner",
+                        type: "ir.actions.act_window",
+                        views: [[false, "list"]],
+                    },
+                };
+
+                const views = {
+                    "partner,false,list": '<tree><field name="foo"/></tree>',
+                    "partner,false,search": `
+                <search>
+                    <filter string="Active" name="my_projects" domain="[('boolean_field', '=', True)]"/>
+                    <field name="foo" string="Foo"/>
+                </search>`,
+                };
+
+                const models = {
+                    partner: {
+                        fields: {
+                            foo: { string: "Foo", type: "char" },
+                            boolean_field: { string: "I am a boolean", type: "boolean" },
+                        },
+                        records: [{ id: 1, display_name: "First record", foo: "yop" }],
+                    },
+                };
+                const serverData = {actions, models, views};
+
+                const webClient = await createWebClient({ serverData });
+
+                await doAction(webClient, 1);
+
+                assert.containsNone(document.body, ".o_mobile_search");
+
+                // open the search view
+                await testUtils.dom.click(
+                    webClient.el.querySelector("button.o_enable_searchview")
+                );
+                // open it in full screen
+                await testUtils.dom.click(
+                    webClient.el.querySelector(".o_toggle_searchview_full")
+                );
+
+                assert.containsOnce(document.body, ".o_mobile_search");
+                assert.verifySteps(["overrideBackButton: true"]);
+
+                // simulate 'backbutton' event triggered by the app
+                await testUtils.dom.triggerEvent(document, "backbutton");
+                assert.containsNone(document.body, ".o_mobile_search");
+                assert.verifySteps(["overrideBackButton: false"]);
+
+                mock.unpatch(mobile.methods);
+            });
+
+            QUnit.module("UpdateDeviceAccountControllerMixin");
+
+            QUnit.test(
+                "controller should call native updateAccount method when saving record",
+                async function (assert) {
+                    assert.expect(4);
+
+                    const __updateAccount = mobile.methods.updateAccount;
+                    mobile.methods.updateAccount = function (options) {
+                        const { avatar, name, username } = options;
+                        assert.ok("should call updateAccount");
+                        assert.ok(avatar.startsWith(BASE64_PNG_HEADER), "should have a PNG base64 encoded avatar");
+                        assert.strictEqual(name, "Marc Demo");
+                        assert.strictEqual(username, "demo");
+                        return Promise.resolve();
+                    };
+
+                    testUtils.mock.patch(session, {
+                        url(path) {
+                            if (path === '/web/image') {
+                                return `data:image/png;base64,${MY_IMAGE}`;
+                            }
+                            return this._super(...arguments);
+                        },
+                    });
+
+                    const DummyView = FormView.extend({
+                        config: Object.assign({}, FormView.prototype.config, {
+                            Controller: FormView.prototype.config.Controller.extend(
+                                UpdateDeviceAccountControllerMixin
+                            ),
+                        }),
+                    });
+
+                    const dummy = await createView({
+                        View: DummyView,
+                        model: "partner",
+                        data: this.data,
+                        arch: `
+                <form>
+                    <sheet>
+                        <field name="name"/>
+                    </sheet>
+                </form>`,
+                        viewOptions: {
+                            mode: "edit",
+                        },
+                        session: {
+                            username: "demo",
+                            name: "Marc Demo",
+                        },
+                    });
+
+                    await testUtils.form.clickSave(dummy);
+                    await dummy.savingDef;
+
+                    dummy.destroy();
+                    testUtils.mock.unpatch(session);
+                    mobile.methods.updateAccount = __updateAccount;
+                }
+            );
+
+            QUnit.test(
+                "controller should call native updateAccount method with SVG avatar when saving record",
+                async function (assert) {
+                    assert.expect(4);
+
+                    const __updateAccount = mobile.methods.updateAccount;
+                    mobile.methods.updateAccount = function (options) {
+                        const { avatar, name, username } = options;
+                        assert.ok("should call updateAccount");
+                        assert.ok(avatar.startsWith(BASE64_PNG_HEADER), "should have a PNG base64 encoded avatar");
+                        assert.strictEqual(name, "Marc Demo");
+                        assert.strictEqual(username, "demo");
+                        return Promise.resolve();
+                    };
+
+                    testUtils.mock.patch(session, {
+                        url(path) {
+                            if (path === '/web/image') {
+                                return `data:image/svg+xml;base64,${BASE64_SVG_IMAGE}`;
+                            }
+                            return this._super(...arguments);
+                        },
+                    });
+
+                    const DummyView = FormView.extend({
+                        config: Object.assign({}, FormView.prototype.config, {
+                            Controller: FormView.prototype.config.Controller.extend(
+                                UpdateDeviceAccountControllerMixin
+                            ),
+                        }),
+                    });
+
+                    const dummy = await createView({
+                        View: DummyView,
+                        model: "partner",
+                        data: this.data,
+                        arch: `
+                <form>
+                    <sheet>
+                        <field name="name"/>
+                    </sheet>
+                </form>`,
+                        viewOptions: {
+                            mode: "edit",
+                        },
+                        session: {
+                            username: "demo",
+                            name: "Marc Demo",
+                        },
+                    });
+
+                    await testUtils.form.clickSave(dummy);
+                    await dummy.savingDef;
+
+                    dummy.destroy();
+                    testUtils.mock.unpatch(session);
+                    mobile.methods.updateAccount = __updateAccount;
+                }
+            );
+
+            QUnit.test(
+                "UserPreferencesFormView should call native updateAccount method when saving record",
+                async function (assert) {
+                    assert.expect(4);
+
+                    const __updateAccount = mobile.methods.updateAccount;
+                    mobile.methods.updateAccount = function (options) {
+                        const { avatar, name, username } = options;
+                        assert.ok("should call updateAccount");
+                        assert.ok(avatar.startsWith(BASE64_PNG_HEADER), "should have a PNG base64 encoded avatar");
+                        assert.strictEqual(name, "Marc Demo");
+                        assert.strictEqual(username, "demo");
+                        return Promise.resolve();
+                    };
+
+                    testUtils.mock.patch(session, {
+                        url(path) {
+                            if (path === '/web/image') {
+                                return `data:image/png;base64,${MY_IMAGE}`;
+                            }
+                            return this._super(...arguments);
+                        },
+                    });
+
+                    const view = await createView({
+                        View: UserPreferencesFormView,
+                        model: "users",
+                        data: this.data,
+                        arch: `
+                <form>
+                    <sheet>
+                        <field name="name"/>
+                    </sheet>
+                </form>`,
+                        viewOptions: {
+                            mode: "edit",
+                        },
+                        session: {
+                            username: "demo",
+                            name: "Marc Demo",
+                        },
+                    });
+
+                    await testUtils.form.clickSave(view);
+                    await view.savingDef;
+
+                    view.destroy();
+                    testUtils.mock.unpatch(session);
+                    mobile.methods.updateAccount = __updateAccount;
+                }
+            );
+
+            QUnit.module("FieldDate");
+
+            QUnit.test("date field: toggle datepicker", async function (assert) {
+                assert.expect(8);
+
+                mock.patch(mobile.methods, {
+                    requestDateTimePicker({ value, type }) {
+                        assert.step("requestDateTimePicker");
+                        assert.strictEqual(false, value, "field shouldn't have an initial value");
+                        assert.strictEqual("date", type, "datepicker's mode should be 'date'");
+                        return Promise.resolve({ data: "2020-01-12" });
+                    },
+                });
+
+                const form = await createView({
+                    View: FormView,
+                    model: "partner",
+                    data: this.data,
+                    arch: '<form><field name="date"/><field name="name"/></form>',
+                    translateParameters: {
+                        // Avoid issues due to localization formats
+                        date_format: "%m/%d/%Y",
+                    },
+                });
+
+                assert.containsNone(
+                    document.body,
+                    ".bootstrap-datetimepicker-widget",
+                    "datepicker shouldn't be present initially"
+                );
+
+                await testUtils.dom.openDatepicker(form.$(".o_datepicker"));
+
+                assert.containsNone(
+                    document.body,
+                    ".bootstrap-datetimepicker-widget",
+                    "datepicker shouldn't be opened"
+                );
+                assert.verifySteps(
+                    ["requestDateTimePicker"],
+                    "native datepicker should have been called"
+                );
+                // ensure focus has been restored to the date field
+                form.$(".o_datepicker_input").focus();
+                assert.strictEqual(
+                    form.$(".o_datepicker_input").val(),
+                    "01/12/2020",
+                    "should be properly formatted"
+                );
+
+                // focus another field
+                await testUtils.dom.click(form.$(".o_field_widget[name=name]").focus());
+                assert.strictEqual(
+                    form.$(".o_datepicker_input").val(),
+                    "01/12/2020",
+                    "shouldn't have changed after loosing focus"
+                );
+
+                form.destroy();
+                mock.unpatch(mobile.methods);
+            });
+
+            QUnit.module("FieldDateTime");
+
+            QUnit.test("datetime field: toggle datepicker", async function (assert) {
+                assert.expect(8);
+
+                mock.patch(mobile.methods, {
+                    requestDateTimePicker({ value, type }) {
+                        assert.step("requestDateTimePicker");
+                        assert.strictEqual(false, value, "field shouldn't have an initial value");
+                        assert.strictEqual(
+                            "datetime",
+                            type,
+                            "datepicker's mode should be 'datetime'"
+                        );
+                        return Promise.resolve({ data: "2020-01-12 12:00:00" });
+                    },
+                });
+
+                const form = await createView({
+                    View: FormView,
+                    model: "partner",
+                    data: this.data,
+                    arch: '<form><field name="datetime"/><field name="name"/></form>',
+                    translateParameters: {
+                        // Avoid issues due to localization formats
+                        date_format: "%m/%d/%Y",
+                        time_format: "%H:%M:%S",
+                    },
+                });
+
+                assert.containsNone(
+                    document.body,
+                    ".bootstrap-datetimepicker-widget",
+                    "datepicker shouldn't be present initially"
+                );
+
+                await testUtils.dom.openDatepicker(form.$(".o_datepicker"));
+
+                assert.containsNone(
+                    document.body,
+                    ".bootstrap-datetimepicker-widget",
+                    "datepicker shouldn't be opened"
+                );
+                assert.verifySteps(
+                    ["requestDateTimePicker"],
+                    "native datepicker should have been called"
+                );
+                // ensure focus has been restored to the datetime field
+                form.$(".o_datepicker_input").focus();
+                assert.strictEqual(
+                    form.$(".o_datepicker_input").val(),
+                    "01/12/2020 12:00:00",
+                    "should be properly formatted"
+                );
+
+                // focus another field
+                await testUtils.dom.click(form.$(".o_field_widget[name=name]").focus());
+                assert.strictEqual(
+                    form.$(".o_datepicker_input").val(),
+                    "01/12/2020 12:00:00",
+                    "shouldn't have changed after loosing focus"
+                );
+
+                form.destroy();
+                mock.unpatch(mobile.methods);
+            });
+        }
+    );
 });

@@ -24,6 +24,4 @@ class ResPartner(models.Model):
 
     @api.onchange('grade_id')
     def _onchange_grade_id(self):
-        res = super(ResPartner, self)._onchange_grade_id()
         self.commission_plan_id = self._default_commission_plan()
-        return res

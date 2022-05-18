@@ -4,7 +4,7 @@
 
 {
     'name': 'Quality Steps with IoT',
-    'category': 'Tools',
+    'category': 'Manufacturing/Internet of Things (IoT)',
     'summary': 'Quality steps and IoT devices',
     'description': """
 This module provides the link between quality steps and IoT devices. 
@@ -15,4 +15,9 @@ This module provides the link between quality steps and IoT devices.
     ],
     'auto_install': True,
     'license': 'OEEL-1',
+    'assets': {
+        'web.assets_backend': [
+            'quality_iot/static/**/*',
+        ],
+    }
 }

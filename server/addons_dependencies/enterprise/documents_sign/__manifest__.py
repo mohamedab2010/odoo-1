@@ -4,7 +4,7 @@
 {
     'name': 'Documents - Signatures',
     'version': '1.0',
-    'category': 'Operations/Documents',
+    'category': 'Productivity/Documents',
     'summary': 'Signature templates from Documents',
     'description': """
 Add the ability to create signatures from the document module.

@@ -24,12 +24,13 @@ class ReportL10nNLIntrastat(models.AbstractModel):
     def _get_report_name(self):
         return _('Intrastat (ICP)')
 
-    @api.model
-    def _get_lines(self, options, line_id=None):
-        lines = []
+    def _get_lines_query_params(self, options):
+        # This method was created to be overridden when the intrastat module is installed.
+        # Note that if you made a change in this method, you probably will need to make a change
+        # also in l10n_nl_intrastat/l10n_nl_report_intrastat.py
         company_id = self.env.company
 
-        country_ids = (self.env.ref('base.europe').country_ids - company_id.country_id).ids
+        country_ids = (self.env.ref('base.europe').country_ids - company_id.account_fiscal_country_id).ids
 
         query = """
             SELECT l.partner_id, p.name, p.vat, c.code,
@@ -38,12 +39,12 @@ class ReportL10nNLIntrastat(models.AbstractModel):
             FROM account_move_line l
             LEFT JOIN res_partner p ON l.partner_id = p.id
             LEFT JOIN res_country c ON p.country_id = c.id
-            LEFT JOIN account_move_line_account_tax_rel amlt ON l.id = amlt.account_move_line_id
             LEFT JOIN account_account_tag_account_move_line_rel line_tag on line_tag.account_move_line_id = l.id
             LEFT JOIN product_product product on product.id = l.product_id
             LEFT JOIN product_template product_t on product.product_tmpl_id = product_t.id
             WHERE line_tag.account_account_tag_id IN %(product_service_tags)s
             AND c.id IN %(country_ids)s
+            AND l.parent_state = 'posted'
             AND l.date >= %(date_from)s
             AND l.date <= %(date_to)s
             AND l.company_id IN %(company_ids)s
@@ -56,11 +57,20 @@ class ReportL10nNLIntrastat(models.AbstractModel):
         params = {
             'product_service_tags': tuple(self.env.ref('l10n_nl.tax_report_rub_3b').tag_ids.ids),
             'country_ids': tuple(country_ids),
-            'date_from': self._context['date_from'],
-            'date_to': self._context['date_to'],
-            'company_ids': tuple(self._context.get('company_ids')),
+            'date_from': options['date']['date_from'],
+            'date_to': options['date']['date_to'],
+            'company_ids': tuple(self.env.companies.ids),
         }
-        self.env.cr.execute(query, params)
+
+        return {'query': query,
+                'params': params,
+                }
+
+    @api.model
+    def _get_lines(self, options, line_id=None):
+        lines = []
+        query_params = self._get_lines_query_params(options)
+        self.env.cr.execute(query_params['query'], query_params['params'])
 
         # Add lines
         total = 0

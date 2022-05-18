@@ -15,9 +15,10 @@ COLORS_BY_STATE = {
 class HrAppraisalReport(models.Model):
     _name = "hr.appraisal.report"
     _description = "Appraisal Statistics"
+    _order = 'create_date desc'
     _auto = False
-    _rec_name = 'employee_id'
 
+    name = fields.Char(related='employee_id.name')
     create_date = fields.Date(string='Create Date', readonly=True)
     department_id = fields.Many2one('hr.department', string='Department', readonly=True)
     deadline = fields.Date(string="Deadline", readonly=True)
@@ -35,8 +36,6 @@ class HrAppraisalReport(models.Model):
         for record in self:
             record.color = COLORS_BY_STATE[record.state]
 
-    _order = 'create_date desc'
-
     def init(self):
         tools.drop_view_if_exists(self.env.cr, 'hr_appraisal_report')
         self.env.cr.execute("""
@@ -47,17 +46,17 @@ class HrAppraisalReport(models.Model):
                      a.employee_id,
                      e.department_id as department_id,
                      a.date_close as deadline,
-                     a.date_final_interview as final_interview,
+                     CASE WHEN min(ce.start) >= NOW() AT TIME ZONE 'UTC' THEN min(ce.start) ELSE max(ce.start) END AS final_interview,
                      a.state
                      from hr_appraisal a
                         left join hr_employee e on (e.id=a.employee_id)
+                        LEFT OUTER JOIN calendar_event ce ON ce.res_id = a.id AND ce.res_model = 'hr.appraisal'
                  GROUP BY
                      a.id,
                      a.create_date,
                      a.state,
                      a.employee_id,
                      a.date_close,
-                     a.date_final_interview,
                      e.department_id
                 )
             """)

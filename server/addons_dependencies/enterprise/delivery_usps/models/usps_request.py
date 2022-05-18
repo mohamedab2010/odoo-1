@@ -43,7 +43,7 @@ class USPSRequest():
 
         res = [field for field in shipper_required_field if not shipper[field]]
         if res:
-            return _("The address of your company is missing or wrong (Missing field(s) :  \n %s)") % ", ".join(res).replace("_id", "")
+            return _("The address of your company is missing or wrong (Missing field(s) :  \n %s)", ", ".join(res).replace("_id", ""))
         if shipper.country_id.code != 'US':
             return _("Please set country U.S.A in your company address, Service is only available for U.S.A")
         if not ZIP_ZIP4.match(shipper.zip):
@@ -52,7 +52,7 @@ class USPSRequest():
             return _("Company phone number is invalid. Please insert a US phone number.")
         res = [field for field in recipient_required_field if not recipient[field]]
         if res:
-            return _("The recipient address is missing or wrong (Missing field(s) :  \n %s)") % ", ".join(res).replace("_id", "")
+            return _("The recipient address is missing or wrong (Missing field(s) :  \n %s)", ", ".join(res).replace("_id", ""))
         if delivery_nature == 'domestic' and not ZIP_ZIP4.match(recipient.zip):
             return _("Please enter a valid ZIP code in recipient address")
         if recipient.country_id.code == "US" and delivery_nature == 'international':
@@ -62,9 +62,10 @@ class USPSRequest():
         if order:
             if not order.order_line:
                 return _("Please provide at least one item to ship.")
-            for line in order.order_line.filtered(lambda line: not line.product_id.weight and not line.is_delivery and line.product_id.type not in ['service', 'digital'] and not line.display_type):
-                return _('The estimated price cannot be computed because the weight of your product is missing.')
-            tot_weight = sum([(line.product_id.weight * line.product_qty) for line in order.order_line if not line.display_type]) or 0
+            error_lines = order.order_line.filtered(lambda line: not line.product_id.weight and not line.is_delivery and line.product_id.type != 'service' and not line.display_type)
+            if error_lines:
+                return _("The estimated shipping price cannot be computed because the weight is missing for the following product(s): \n %s") % ", ".join(error_lines.product_id.mapped('name'))
+            tot_weight = order._get_estimated_weight()
             weight_uom_id = order.env['product.template']._get_weight_uom_id_from_ir_config_parameter()
             weight_in_pounds = weight_uom_id._compute_quantity(tot_weight, order.env.ref('uom.product_uom_lb'))
             if weight_in_pounds > 4 and order.carrier_id.usps_service == 'First Class':     # max weight of FirstClass Service
@@ -77,7 +78,7 @@ class USPSRequest():
 
     def _usps_request_data(self, carrier, order):
         currency = carrier.env['res.currency'].search([('name', '=', 'USD')], limit=1)  # USPS Works in USDollars
-        tot_weight = sum([(line.product_id.weight * line.product_qty) for line in order.order_line if not line.display_type]) or 0.0
+        tot_weight = order._get_estimated_weight()
         total_weight = carrier._usps_convert_weight(tot_weight)
         total_value = sum([(line.price_unit * line.product_uom_qty) for line in order.order_line.filtered(lambda line: not line.is_delivery and not line.display_type)]) or 0.0
 
@@ -114,14 +115,14 @@ class USPSRequest():
         }
 
         # Shipping to Canada requires additional information
-        if order.partner_shipping_id.country_id == order.env.ref('base.ca'):
+        if order.partner_shipping_id.country_id.code == "CA":
             rate_detail.update(OriginZip=order.warehouse_id.partner_id.zip)
 
         return rate_detail
 
     def usps_rate_request(self, order, carrier):
         request_detail = self._usps_request_data(carrier, order)
-        request_text = carrier.env['ir.qweb'].render('delivery_usps.usps_price_request', request_detail)
+        request_text = carrier.env['ir.qweb']._render('delivery_usps.usps_price_request', request_detail)
         dict_response = {'price': 0.0, 'currency_code': "USD"}
         api = 'RateV4' if carrier.usps_delivery_nature == 'domestic' else 'IntlRateV2'
 
@@ -156,7 +157,7 @@ class USPSRequest():
                 if carrier.usps_service in service.findall("SvcDescription")[0].text:
                     postages_prices += [float(service.findall("Postage")[0].text)]
             if not postages_prices:
-                dict_response['error_message'] = _("The selected USPS service (%s) cannot be used to deliver this package.") % carrier.usps_service
+                dict_response['error_message'] = _("The selected USPS service (%s) cannot be used to deliver this package.", carrier.usps_service)
                 return dict_response
             else:
                 dict_response['price'] = min(postages_prices)
@@ -197,8 +198,8 @@ class USPSRequest():
             gross_weight = carrier._usps_convert_weight(picking.shipping_weight)
             weight_in_ounces = 16 * gross_weight['pound'] + gross_weight['ounce']
         else:
-            gross_weight = carrier._usps_convert_weight(picking.weight)
-            weight_in_ounces = picking.weight * 35.274
+            gross_weight = carrier._usps_convert_weight(picking._get_estimated_weight())
+            weight_in_ounces = picking._get_estimated_weight() * 35.274
         shipping_detail = {
             'api': api,
             'ID': carrier.sudo().usps_username,
@@ -254,7 +255,7 @@ class USPSRequest():
 
     def usps_request(self, picking, delivery_nature, service, is_return=False):
         ship_detail = self._usps_shipping_data(picking, is_return)
-        request_text = picking.env['ir.qweb'].render('delivery_usps.usps_shipping_common', ship_detail)
+        request_text = picking.env['ir.qweb']._render('delivery_usps.usps_shipping_common', ship_detail)
         api = self._api_url(delivery_nature, service)
         dict_response = {'tracking_number': 0.0, 'price': 0.0, 'currency': "USD"}
         try:
@@ -290,7 +291,7 @@ class USPSRequest():
 
     def cancel_shipment(self, picking, account_validated):
         cancel_detail = self._usps_cancel_shipping_data(picking)
-        request_text = picking.env["ir.qweb"].render('delivery_usps.usps_cancel_request', cancel_detail)
+        request_text = picking.env["ir.qweb"]._render('delivery_usps.usps_cancel_request', cancel_detail)
         dict_response = {'ShipmentDeleted': False, 'error_found': False}
         # If the account isn't validated by USPS you can't use cancelling methods. It returns an authentication error.
         if not account_validated:

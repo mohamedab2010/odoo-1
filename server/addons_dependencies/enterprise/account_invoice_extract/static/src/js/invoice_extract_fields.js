@@ -1,12 +1,13 @@
-odoo.define('account_invoice_extract.Fields', function (require) {
-"use strict";
+/** @odoo-module **/
 
-var InvoiceExtractField = require('account_invoice_extract.Field');
+import { _t } from 'web.core';
 
-var Class = require('web.Class');
-var Mixins = require('web.mixins');
-var ServicesMixin = require('web.ServicesMixin');
-var session = require('web.session');
+import InvoiceExtractField from '@account_invoice_extract/js/invoice_extract_field';
+
+import Class from 'web.Class';
+import Mixins from 'web.mixins';
+import ServicesMixin from 'web.ServicesMixin';
+import session from 'web.session';
 
 /**
  * This class groups the fields that are supported by the OCR. Also, it manages
@@ -26,22 +27,21 @@ var InvoiceExtractFields = Class.extend(Mixins.EventDispatcherMixin, ServicesMix
         Mixins.EventDispatcherMixin.init.call(this, arguments);
         this.setParent(parent);
 
-        var vendor_text = 'Vendor';
-        if (is_customer_invoice) {
-            vendor_text = 'Customer';
-        }
+        var vendor_text = is_customer_invoice ? _t('Customer') : _t('Vendor');
+        var invoice_id_text = is_customer_invoice ? _t('Reference') : _t('Vendor Reference');
+
         this._fields = [
-            new InvoiceExtractField(this, { text: 'VAT', fieldName: 'VAT_Number' }),
+            new InvoiceExtractField(this, { text: _t('VAT'), fieldName: 'VAT_Number' }),
             new InvoiceExtractField(this, { text: vendor_text, fieldName: 'supplier' }),
-            new InvoiceExtractField(this, { text: 'Date', fieldName: 'date' }),
-            new InvoiceExtractField(this, { text: 'Due Date', fieldName: 'due_date' }),
-            new InvoiceExtractField(this, { text: 'Vendor Reference', fieldName: 'invoice_id' }),
+            new InvoiceExtractField(this, { text: _t('Date'), fieldName: 'date' }),
+            new InvoiceExtractField(this, { text: _t('Due Date'), fieldName: 'due_date' }),
+            new InvoiceExtractField(this, { text: invoice_id_text, fieldName: 'invoice_id' }),
         ];
 
         this._fields[0].setActive();
         session.user_has_group('base.group_multi_currency').then(function(has_multi_currency) {
             if (has_multi_currency) {
-                self._fields.push(new InvoiceExtractField(self, { text: 'Currency', fieldName: 'currency' }));
+                self._fields.push(new InvoiceExtractField(self, { text: _t('Currency'), fieldName: 'currency' }));
             }
         });
     },
@@ -140,6 +140,4 @@ var InvoiceExtractFields = Class.extend(Mixins.EventDispatcherMixin, ServicesMix
     },
 });
 
-return InvoiceExtractFields;
-
-});
+export default InvoiceExtractFields;

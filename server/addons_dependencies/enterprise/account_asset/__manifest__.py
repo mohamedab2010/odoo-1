@@ -24,15 +24,16 @@ Keeps track of depreciations, and creates corresponding journal entries.
         'views/account_deferred_revenue.xml',
         'views/account_deferred_expense.xml',
         'views/account_move_views.xml',
-        'views/account_asset_templates.xml',
         'report/account_assets_report_views.xml',
     ],
     'demo': [
         'demo/account_deferred_revenue_demo.xml',
     ],
-    'qweb': [
-        "static/src/xml/account_asset_template.xml",
-    ],
     'license': 'OEEL-1',
     'auto_install': True,
+    'assets': {
+        'web.assets_backend': [
+            'account_asset/static/src/**/*',
+        ],
+    }
 }

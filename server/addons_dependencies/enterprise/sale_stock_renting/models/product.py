@@ -16,13 +16,26 @@ class ProductTemplate(models.Model):
     # TODO replace by UI greying of unselectable conflicting choices ?
     @api.constrains('rent_ok', 'tracking')
     def _lot_not_supported_rental(self):
-        if self.rent_ok and self.tracking == 'lot':
-            raise exceptions.ValidationError("Tracking by lots isn't supported for rental products. \
-                \n You should rather change the tracking mode to unique serial numbers.")
+        for template in self:
+            if template.rent_ok and template.tracking == 'lot':
+                raise exceptions.ValidationError("Tracking by lots isn't supported for rental products. \
+                    \n You should rather change the tracking mode to unique serial numbers.")
+
+    def _compute_show_qty_status_button(self):
+        super()._compute_show_qty_status_button()
+        for template in self:
+            if template.rent_ok and not template.sale_ok:
+                template.show_forecasted_qty_status_button = False
 
 
 class Product(models.Model):
     _inherit = 'product.product'
+
+    def _compute_show_qty_status_button(self):
+        super()._compute_show_qty_status_button()
+        for product in self:
+            if product.rent_ok and not product.sale_ok:
+                product.show_forecasted_qty_status_button = False
 
     def _get_qty_in_rent_domain(self):
         """Allow precising the warehouse_id to get qty currently in rent."""
@@ -89,7 +102,7 @@ class Product(models.Model):
                 ('reservation_begin', '<=', fro),
                 ('return_date', '>=', fro)
             ])
-            return [], [], active_lines_at_time_fro
+            return Reservation, Reservation, active_lines_at_time_fro
         else:
             begins_during_period = Reservation.search(domain + [
                 ('reservation_begin', '>', fro),
@@ -127,13 +140,12 @@ class Product(models.Model):
 
         # TODO is it more efficient to filter the records active in period
         # or to make another search on all the sale order lines???
-        if begins_during_period:
-            for date in begins_during_period.mapped('reservation_begin'):
+        if active_lines_in_period:
+            for date in [fro] + begins_during_period.mapped('reservation_begin'):
                 active_lines_at_date = active_lines_in_period.filtered(
                     lambda line: line.reservation_begin <= date and line.return_date >= date)
                 qty_rented_at_date = sum(active_lines_at_date.mapped(unavailable_qty))
-                if qty_rented_at_date > max_qty_rented:
-                    max_qty_rented = qty_rented_at_date
+                max_qty_rented = max(max_qty_rented, qty_rented_at_date)
 
         qty_always_in_rent_during_period = sum(covers_period.mapped(unavailable_qty))
 

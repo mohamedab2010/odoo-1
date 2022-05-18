@@ -11,21 +11,11 @@ class ResUsers(models.Model):
     sign_request_count = fields.Integer(
         compute='_compute_sign_request_count',
         compute_sudo=True,
-        groups="hr_contract_sign.group_sign_employee",
     )
 
-    def __init__(self, pool, cr):
-        """ Override of __init__ to add access rights.
-            Access rights are disabled by default, but allowed
-            on some specific fields defined in self.SELF_{READ/WRITE}ABLE_FIELDS.
-        """
-        readable_fields = [
-            'sign_request_count',
-        ]
-        init_res = super(ResUsers, self).__init__(pool, cr)
-        # duplicate list to avoid modifying the original reference
-        type(self).SELF_READABLE_FIELDS = readable_fields + type(self).SELF_READABLE_FIELDS
-        return init_res
+    @property
+    def SELF_READABLE_FIELDS(self):
+        return super().SELF_READABLE_FIELDS + ['sign_request_count']
 
     def _compute_sign_request_count(self):
         for user in self:

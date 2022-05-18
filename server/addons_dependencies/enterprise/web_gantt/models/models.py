@@ -39,44 +39,44 @@ class Base(models.AbstractModel):
 
     @api.model
     def gantt_unavailability(self, start_date, end_date, scale, group_bys=None, rows=None):
-        """
-        Get unavailabilities data to display in the Gantt view.
+        """Get unavailabilities data to display in the Gantt view.
 
         This method is meant to be overriden by each model that want to
-        implement this feature on a Gantt view.
+        implement this feature on a Gantt view. A subslot is considered 
+        unavailable (and greyed) when totally covered by an unavailability.
 
         Example:
             * start_date = 01/01/2000, end_date = 01/07/2000, scale = 'week',
               rows = [{
-                groupedBy: "project_id, user_id, stage_id",
+                groupedBy: ["project_id", "user_id", "stage_id"],
                 records: [1, 4, 2],
                 name: "My Awesome Project",
                 resId: 8,
                 rows: [{
-                    groupedBy: "user_id, stage_id",
+                    groupedBy: ["user_id", "stage_id"],
                     records: [1, 2],
                     name: "Marcel",
                     resId: 18,
                     rows: [{
-                        groupedBy: "stage_id",
+                        groupedBy: ["stage_id"],
                         records: [2],
                         name: "To Do",
                         resId: 3,
                         rows: []
                     }, {
-                        groupedBy: "stage_id",
+                        groupedBy: ["stage_id"],
                         records: [1],
                         name: "Done",
                         resId: 9,
                         rows: []
                     }]
                 }, {
-                    groupedBy: "user_id, stage_id",
+                    groupedBy: ["user_id", "stage_id"],
                     records: [4],
                     name: "Gilbert",
                     resId: 22,
                     rows: [{
-                        groupedBy: "stage_id",
+                        groupedBy: ["stage_id"],
                         records: [4],
                         name: "Done",
                         resId: 9,
@@ -84,24 +84,24 @@ class Base(models.AbstractModel):
                     }]
                 }]
             }, {
-                groupedBy: "project_id, user_id, stage_id",
+                groupedBy: ["project_id", "user_id", "stage_id"],
                 records: [3, 5, 7],
                 name: "My Other Project",
                 resId: 9,
                 rows: [{
-                    groupedBy: "user_id, stage_id",
+                    groupedBy: ["user_id", "stage_id"],
                     records: [3, 5, 7],
                     name: "Undefined User",
                     resId: None,
                     rows: [{
-                        groupedBy: "stage_id",
+                        groupedBy: ["stage_id"],
                         records: [3, 5, 7],
                         name: "To Do",
                         resId: 3,
                         rows: []
                     }]
             }, {
-                groupedBy: "project_id, user_id, stage_id",
+                groupedBy: ["project_id", "user_id", "stage_id"],
                 records: [],
                 name: "My group_expanded Project",
                 resId: 27,
@@ -110,7 +110,8 @@ class Base(models.AbstractModel):
 
             * The expected return value of this function is the rows dict with
               a new 'unavailabilities' key in each row for which you want to
-              display unavailabilities. Unavailablitities is a list in the form:
+              display unavailabilities. Unavailablitities is a list
+              (naturally ordered and pairwise disjoint) in the form:
               [{
                   start: <start date of first unavailabity in UTC format>,
                   stop: <stop date of first unavailabity in UTC format>
@@ -125,7 +126,7 @@ class Base(models.AbstractModel):
               end of this function :
               { ...
                 {
-                    groupedBy: "stage_id",
+                    groupedBy: ["stage_id"],
                     records: [2],
                     name: "To Do",
                     resId: 3,

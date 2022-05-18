@@ -98,7 +98,7 @@ odoo.define('account_accountant.MoveLineListViewTests', function (require) {
         });
 
         QUnit.test('Fetch and preview of attachments on big devices', async function (assert) {
-            assert.expect(16);
+            assert.expect(21);
 
             this.data['account.move.line'].records[2].move_attachment_ids = [1];
             this.data['account.move.line'].records[3].move_attachment_ids = [2];
@@ -158,16 +158,89 @@ odoo.define('account_accountant.MoveLineListViewTests', function (require) {
             assert.verifySteps(['/web/dataset/search_read/account.move.line', 'read/ir.attachment']);
             await testUtils.dom.click(list.$('.o_data_row:eq(2) .o_data_cell:eq(1)'));
             assert.hasAttrValue(list.$('.o_attachment_preview iframe'), 'data-src',
-                '/web/static/lib/pdfjs/web/viewer.html?file=/web/content/1',
+                '/web/static/lib/pdfjs/web/viewer.html?file=/web/content/1?filename%3Dundefined',
                 "the src attribute should be correctly set on the iframe");
 
             await testUtils.dom.click(list.$('.o_data_row:eq(3) .o_data_cell:eq(1)'));
             assert.hasAttrValue(list.$('.o_attachment_preview iframe'), 'data-src',
-                '/web/static/lib/pdfjs/web/viewer.html?file=/web/content/2',
+                '/web/static/lib/pdfjs/web/viewer.html?file=/web/content/2?filename%3Dundefined',
                 "the src attribute should still be correctly set on the iframe");
+
+            // reload with groupBy
+            await list.reload({ groupBy: ['move_id', 'move_attachment_ids'] });
+            await testUtils.dom.click(list.$('.o_group_header:eq(1)'));
+            // clicking on group header line should not do read call to ir.attachment
+            assert.verifySteps(["web_read_group/account.move.line",
+                "web_read_group/account.move.line",
+                "web_read_group/account.move.line",
+                "/web/dataset/search_read/account.move.line"]);
 
             list.destroy();
         });
+
+        QUnit.test('group buttons are toggled when hovering the group', async function (assert) {
+            assert.expect(12);
+
+            this.data['account.move.line'].fields.attachment_id = { type: 'many2one', relation: 'ir.attachment' };
+
+            const list = await createView({
+                View: MoveLineListView,
+                model: 'account.move.line',
+                data: this.data,
+                arch: `<tree js_class='account_move_line_list'>
+                            <field name='id'/>
+                            <field name='name'/>
+                            <field name='move_id'/>
+                            <field name='move_attachment_ids'/>
+                            <groupby name='move_id'>
+                                <button name='edit' type='edit' icon='fa-edit' title='Edit' />
+                            </groupby>
+                        </tree>`,
+                groupBy: ['move_id'],
+            });
+
+            assert.containsN(list, '.o_group_header', 2, "there should be two group rows");
+            assert.doesNotHaveClass(list.$('.o_group_header:eq(0)'), 'o_group_buttons',
+                "group button should not be available in collapsed group");
+
+            // expand first group
+            await testUtils.dom.click(list.$('.o_group_header:eq(0)'));
+            assert.containsN(list, '.o_data_row', 2, "there should be two data rows");
+
+            // mouseover on header row
+            await testUtils.dom.triggerMouseEvent(list.$('.o_group_header:eq(0)'), "mouseover");
+            assert.hasClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+            await testUtils.dom.triggerMouseEvent(list.$('.o_group_header:eq(0)'), "mouseout");
+            assert.doesNotHaveClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+
+            // mouseover on data row
+            await testUtils.dom.triggerMouseEvent(list.$('.o_data_row:eq(0)'), "mouseover");
+            assert.hasClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+            await testUtils.dom.triggerMouseEvent(list.$('.o_data_row:eq(0)'), "mouseout");
+            assert.doesNotHaveClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+
+            // reload with groupBy
+            await list.reload({ groupBy: ['move_id', 'attachment_id'] });
+            assert.containsN(list, '.o_group_header', 3,
+                "there should be three group rows, two for root groups and one inside move_id group");
+
+            // mouseover on sub group row
+            await testUtils.dom.triggerMouseEvent(list.$('.o_group_header:eq(1)'), "mouseover");
+            assert.hasClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+            await testUtils.dom.triggerMouseEvent(list.$('.o_group_header:eq(1)'), "mouseout");
+            assert.doesNotHaveClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+
+            // expand first sub group
+            await testUtils.dom.click(list.$('.o_group_header:eq(1)'));
+            assert.containsN(list, '.o_data_row', 2, "there should be two data rows");
+
+            // mouseover on sub group row
+            await testUtils.dom.triggerMouseEvent(list.$('.o_data_row:eq(0)'), "mouseover");
+            assert.hasClass(list.$('.o_group_header:eq(0)'), 'show_group_buttons');
+
+            list.destroy();
+        });
+
     });
 
 });

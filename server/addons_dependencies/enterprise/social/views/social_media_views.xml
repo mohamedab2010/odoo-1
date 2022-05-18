@@ -19,7 +19,7 @@
             <kanban create="false" class="o_kanban_social_media">
                 <field name="id"/>
                 <field name="name"/>
-                <field name="description"/>
+                <field name="media_description"/>
                 <field name="media_type"/>
                 <field name="can_link_accounts"/>
                 <templates>
@@ -28,9 +28,9 @@
                             <div class="o_kanban_image">
                                 <img type="open" t-att-src="kanban_image('social.media', 'image', record.id.raw_value)" alt="Social Media"/>
                             </div>
-                            <div>
+                            <div class="mb-2">
                                 <h3 class="mt4"><t t-esc="record.name.value"/></h3>
-                                <t t-if="record.description.raw_value" t-raw="record.description.raw_value"/>
+                                <t t-esc="record.media_description.value"/>
                             </div>
                             <div>
                                 <button t-if="record.can_link_accounts.raw_value" type="object" class="btn btn-primary float-right" name="action_add_account">Link account</button>

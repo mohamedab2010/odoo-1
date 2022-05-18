@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import base64
 import requests
 from werkzeug.urls import url_join
 
-from odoo import http, _
+from odoo import http, _, tools
 from odoo.http import request
 
 
 class SocialPushNotificationsController(http.Controller):
-    @http.route('/social_push_notifications/fetch_push_configuration', type='json', auth='public')
+    @http.route('/social_push_notifications/fetch_push_configuration', type='json', auth='public', website=True)
     def fetch_push_configuration(self):
         """ Fetches the firebase push configuration for the current website (if any). """
         current_website = request.env['website'].get_current_website()
@@ -17,7 +18,7 @@ class SocialPushNotificationsController(http.Controller):
             return {}
 
         title = current_website.notification_request_title or _("Want to discover new versions?")
-        body = current_website.notification_request_body or _("Enable push notifications to be notified about new features and events.")
+        body = current_website.notification_request_body or _("Enable push notifications to be notified about new features.")
         delay = current_website.notification_request_delay or 3
 
         if current_website.notification_request_icon:
@@ -48,9 +49,12 @@ class SocialPushNotificationsController(http.Controller):
             'social.social_iap_endpoint',
             request.env['social.media']._DEFAULT_SOCIAL_IAP_ENDPOINT
         )
-        result = requests.get(url_join(social_iap_endpoint, 'iap/social_push_notifications/get_firebase_info'), {
-            'db_uuid': request.env['ir.config_parameter'].sudo().get_param('database.uuid')
-        })
+        result = requests.get(url_join(social_iap_endpoint, 'iap/social_push_notifications/get_firebase_info'),
+            params={
+                'db_uuid': request.env['ir.config_parameter'].sudo().get_param('database.uuid')
+            },
+            timeout=5
+        )
 
         if result.status_code == 200:
             result_json = result.json()
@@ -90,3 +94,24 @@ class SocialPushNotificationsController(http.Controller):
     def unregister(self, token):
         if token:
             request.env['website.visitor'].sudo().search([('push_token', '=', token)]).write({'push_token': False})
+
+    @http.route('/social_push_notifications/social_post/<int:post_id>/push_notification_image', type='http', auth='public')
+    def social_push_get_notification_image(self, post_id):
+        social_post = request.env['social.post'].sudo().search([('id', '=', post_id), ('state', 'in', ['posting', 'posted'])], limit=1)
+
+        if not social_post:
+            status = 200
+            headers = []
+            image_base64 = base64.b64encode(request.env['ir.http']._placeholder())
+        else:
+            status, headers, image_base64 = request.env['ir.http'].sudo().binary_content(model='social.post', id=post_id, field='push_notification_image', default_mimetype='image/png')
+            if status in [301, 304]:
+                return request.env['ir.http']._response_by_status(status, headers, image_base64)
+
+        image_base64 = tools.image_process(image_base64, size=(64, 64))
+
+        content = base64.b64decode(image_base64)
+        headers = http.set_safe_image_headers(headers, content)
+        response = request.make_response(content, headers)
+        response.status_code = status
+        return response

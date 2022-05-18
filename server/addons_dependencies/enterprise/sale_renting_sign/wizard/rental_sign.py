@@ -10,21 +10,23 @@ class RentalSign(models.TransientModel):
     @api.model
     def default_get(self, fields):
         res = super(RentalSign, self).default_get(fields)
-        res["order_id"] = self.env.context.get("active_id", None)
-        default_template = self.env.company.rental_sign_tmpl_id
-        # if document not properly accessible by all employees, avoid access error
-        try:
-            default_template.check_access_rule("read")
-            res["template_id"] = self.env.company.rental_sign_tmpl_id.id
-        except:
-            pass
+        if 'template_id' in fields:
+            company = self.env['sale.order'].browse(res.get('order_id')).company_id or self.env.company
+            default_template = company.rental_sign_tmpl_id
+            # if document not properly accessible by all employees, avoid access error
+            try:
+                default_template.check_access_rule("read")
+                res["template_id"] = company.rental_sign_tmpl_id.id
+            except:
+                pass
         return res
 
     template_id = fields.Many2one(
         "sign.template", "Document Template", required=True, ondelete="cascade"
     )
     order_id = fields.Many2one(
-        "sale.order", "Sales Order", required=True, ondelete="cascade"
+        "sale.order", "Sales Order", required=True, ondelete="cascade",
+        default=lambda s: s.env.context.get("active_id", None),
     )
 
     def next_step(self):
@@ -35,7 +37,7 @@ class RentalSign(models.TransientModel):
         if pending_sign_request:
             return pending_sign_request.go_to_document()
         else:
-            action = self.env.ref("sign.action_sign_send_request").read([])[0]
+            action = self.env['ir.actions.act_window']._for_xml_id('sign.action_sign_send_request')
             action["context"] = {
                 "active_id": self.template_id.id,
                 "sign_directly_without_mail": True,

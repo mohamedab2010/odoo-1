@@ -2,6 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import datetime, time
+from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import api, fields, models
 from odoo.tools import float_round
@@ -14,21 +15,22 @@ class Employee(models.Model):
         group = self.env.ref('hr_timesheet.group_hr_timesheet_approver', raise_if_not_found=False)
         return [('groups_id', 'in', [group.id])] if group else []
 
-    timesheet_validated = fields.Date(
-        "Timesheets Validation Date", groups="hr.group_hr_user",
-        help="Date until which the employee's timesheets have been validated")
     timesheet_manager_id = fields.Many2one(
         'res.users', string='Timesheet',
+        compute='_compute_timesheet_manager', store=True, readonly=False,
         domain=_get_timesheet_manager_id_domain,
-        help="User responsible of timesheet validation. Should be Timesheet Manager.")
+        help='Select the user responsible for approving "Timesheet" of this employee.\n'
+             'If empty, the approval is done by an Administrator or Team Approver (determined in settings/users).')
 
-    @api.onchange('parent_id')
-    def _onchange_parent_id(self):
-        super(Employee, self)._onchange_parent_id()
-        previous_manager = self._origin.parent_id.user_id
-        manager = self.parent_id.user_id
-        if manager and manager.has_group('hr_timesheet.group_timesheet_manager') and (self.timesheet_manager_id == previous_manager or not self.timesheet_manager_id):
-            self.timesheet_manager_id = manager
+    @api.depends('parent_id')
+    def _compute_timesheet_manager(self):
+        for employee in self:
+            previous_manager = employee._origin.parent_id.user_id
+            manager = employee.parent_id.user_id
+            if manager and manager.has_group('hr_timesheet.group_hr_timesheet_approver') and (employee.timesheet_manager_id == previous_manager or not employee.timesheet_manager_id):
+                employee.timesheet_manager_id = manager
+            elif not employee.timesheet_manager_id:
+                employee.timesheet_manager_id = False
 
     def get_timesheet_and_working_hours(self, date_start, date_stop):
         """ Get the difference between the supposed working hour (based on resource calendar) and
@@ -59,10 +61,75 @@ class Employee(models.Model):
         datetime_min = datetime.combine(fields.Date.from_string(date_start), time.min)
         datetime_max = datetime.combine(fields.Date.from_string(date_stop), time.max)
 
+        employees_work_days_data = employees._get_work_days_data_batch(datetime_min, datetime_max, compute_leaves=False)
         for employee in employees:
-            working_hours = employee._get_work_days_data(datetime_min, datetime_max, compute_leaves=False)['hours']
+            working_hours = employees_work_days_data[employee.id]['hours']
             result[employee.id]['working_hours'] = float_round(working_hours, 2)
         return result
+
+    def _get_timesheets_and_working_hours_query(self):
+        return """
+            SELECT aal.employee_id as employee_id, COALESCE(SUM(aal.unit_amount), 0) as worked_hours
+            FROM account_analytic_line aal
+            WHERE aal.employee_id IN %s AND date >= %s AND date <= %s
+            GROUP BY aal.employee_id
+        """
+
+    @api.model
+    def get_timesheet_and_working_hours_for_employees(self, employees_grid_data, date_start, date_stop):
+        """
+        Method called by the timesheet avatar widget on the frontend in gridview to get information
+        about the hours employees have worked and should work.
+
+        :return: Dictionary of dictionary
+                 for each employee id =>
+                     number of units to work,
+                     what unit type are we using
+                     the number of worked units by the employees
+        """
+        result = {}
+
+        start_datetime = datetime.combine(fields.Date.from_string(date_start), time.min)
+        end_datetime = datetime.combine(fields.Date.from_string(date_stop), time.max)
+
+        uom = str(self.env.company.timesheet_encode_uom_id.name).lower()
+
+        employee_ids = [employee_data['employee_id'] for employee_data in employees_grid_data if 'employee_id' in employee_data]
+        employees = self.env['hr.employee'].browse(employee_ids)
+        hours_per_day_per_employee = {}
+
+        employees_work_days_data = employees._get_work_days_data_batch(start_datetime, end_datetime)
+
+        for employee in employees:
+            units_to_work = float(employees_work_days_data[employee.id]['hours'])
+
+            # Adjustments if we work with a different unit of measure
+            if uom == 'days':
+                hours_per_day_per_employee[employee.id] = employee.resource_calendar_id.hours_per_day
+                units_to_work = units_to_work / hours_per_day_per_employee[employee.id]
+                rounding = len(str(self.env.company.timesheet_encode_uom_id.rounding).split('.')[1])
+                units_to_work = round(units_to_work, rounding)
+
+            result[employee.id] = {'units_to_work': units_to_work, 'uom': uom}
+
+        query = self._get_timesheets_and_working_hours_query()
+        self.env.cr.execute(query, (tuple(employee_ids), date_start, date_stop))
+
+        for data_row in self.env.cr.dictfetchall():
+
+            worked_hours = data_row['worked_hours']
+
+            if uom == 'days':
+                worked_hours /= hours_per_day_per_employee[data_row['employee_id']]
+                rounding = len(str(self.env.company.timesheet_encode_uom_id.rounding).split('.')[1])
+                worked_hours = round(worked_hours, rounding)
+
+            result[data_row['employee_id']]['worked_hours'] = worked_hours
+
+        return result
+
+    def _get_user_m2o_to_empty_on_archived_employees(self):
+        return super()._get_user_m2o_to_empty_on_archived_employees() + ['timesheet_manager_id']
 
 
 class HrEmployeePublic(models.Model):

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
+import logging
 import json
 
 from ast import literal_eval
@@ -11,7 +12,31 @@ from odoo import http, _
 from odoo.http import content_disposition, request
 from odoo.exceptions import UserError, AccessError, ValidationError
 from odoo.addons.web_studio.controllers import export
+from odoo.osv import expression
 from odoo.tools import ustr, sql
+
+
+_logger = logging.getLogger(__name__)
+
+# contains all valid operations
+OPERATIONS_WHITELIST = [
+    'add',
+    'attributes',
+    'avatar_image',
+    'buttonbox',
+    'chatter',
+    'enable_approval',
+    'kanban_dropdown',
+    'kanban_image',
+    'kanban_priority',
+    'kanban_set_cover',
+    'map_popup_fields',
+    'pivot_measures_fields',
+    'graph_pivot_groupbys_fields',
+    'move',
+    'remove',
+    'statusbar',
+]
 
 
 class WebStudioController(http.Controller):
@@ -37,7 +62,7 @@ class WebStudioController(http.Controller):
     @http.route('/web_studio/get_studio_action', type='json', auth='user')
     def get_studio_action(self, action_name, model, view_id=None, view_type=None):
         view_type = 'tree' if view_type == 'list' else view_type  # list is stored as tree in db
-        model = request.env['ir.model'].search([('model', '=', model)], limit=1)
+        model = request.env['ir.model']._get(model)
 
         action = None
         if hasattr(self, '_get_studio_action_' + action_name):
@@ -111,6 +136,7 @@ class WebStudioController(http.Controller):
                 '&',
                 ("model_id.transient", "=", False),
                 ("model_id.abstract", "=", False),
+                ("report_type", "not in", ['qweb-text'])
             ],
             'context': {
                 'default_model': model.model,
@@ -124,11 +150,22 @@ class WebStudioController(http.Controller):
 
     def _get_studio_action_translations(self, model, **kwargs):
         """ Open a view for translating the field(s) of the record (model, id). """
-        domain = ['|', ('name', '=', model.model), ('name', 'ilike', model.model + ',')]
+        domains = [['|', ('name', '=', model.model), ('name', 'ilike', model.model + ',')]]
+        view_domains = [[('model', '=', model.model)]]
 
-        # search view + its inheritancies
-        views = request.env['ir.ui.view'].search([('model', '=', model.model)])
-        domain = ['|', '&', ('name', '=', 'ir.ui.view,arch_db'), ('res_id', 'in', views.ids)] + domain
+        # search report views related to model
+        reports = request.env['ir.actions.report'].search([
+            ("model_id.transient", "=", False),
+            ("model_id.abstract", "=", False),
+            ("report_type", "not in", ['qweb-text']),
+            ("model", "=", model.model),
+        ])
+        for report in reports:
+            view_domains.append(report.associated_view().get('domain'))
+
+        # search view + its inheritancies + report views
+        views = request.env['ir.ui.view'].search(expression.OR(view_domains))
+        domains.append(['&', ('name', '=', 'ir.ui.view,arch_db'), ('res_id', 'in', views.ids)])
 
         def make_domain(fld, rec):
             name = "%s,%s" % (fld.model_name, fld.name)
@@ -144,7 +181,7 @@ class WebStudioController(http.Controller):
                     while fld.related:
                         rec, fld = fld.traverse_related(rec)
                     if rec:
-                        return ['|'] + domain + make_domain(fld, rec)
+                        return make_domain(fld, rec)
                 except AccessError:
                     return []
 
@@ -155,13 +192,14 @@ class WebStudioController(http.Controller):
         # insert missing translations of views
         for view in views:
             for name, fld in view._fields.items():
-                domain += insert_missing(fld, view)
+                domains.append(insert_missing(fld, view))
 
         # insert missing translations of model, and extend domain for related fields
         record = request.env[model.model].search([], limit=1)
         if record:
             for name, fld in record._fields.items():
-                domain += insert_missing(fld, record)
+                domains.append(insert_missing(fld, record))
+        domain = expression.OR(domains)
 
         action = {
             'name': _('Translate view'),
@@ -175,71 +213,117 @@ class WebStudioController(http.Controller):
 
         return action
 
-    @http.route('/web_studio/create_new_menu', type='json', auth='user')
-    def create_new_menu(self, app_name=False, menu_name=False, model_id=False, is_app=False, parent_id=None, icon=None):
-        """ Create a new menu @menu_name, linked to a new action associated to the model_id
-            @param model_id: if not set, the action associated to this menu is the home menu
-                except if @is_app is True that will create a new model
-            @param is_app: if True, create an extra menu (app, without parent)
-            @param parent_id: the parent of the new menu.
-                To be set if is_app is False.
+    @http.route('/web_studio/create_new_app', type='json', auth='user')
+    def create_new_app(self, app_name=False, menu_name=False, model_choice=False, model_id=False, model_options=False, icon=None):
+        """Create a new app @app_name, linked to a new action associated to the model_id or the newlyy created model.
+            @param menu_name: name of the first menu (and model if model_choice is 'new') of the app
+            @param model_choice: 'new' for a new model, 'existing' for an existing model selected in the wizard
+            @param model_id: the model which will be associated to the action if menu_choice is 'existing'
+            @param model_options: dictionary of options for the model to be created to include some behaviours OoB
+                (e.g. archiving, messaging, etc.)
             @param icon: the icon of the new app.
                 It can either be:
                  - the ir.attachment id of the uploaded image
                  - if the icon has been created, an array containing: [icon_class, color, background_color]
-                To be set if is_app is True.
         """
-        model = None
-        if model_id:
+        _logger.info('creating new app "%s" with main menu "%s"', app_name, menu_name)
+        if model_choice == 'existing' and model_id:
             model = request.env['ir.model'].browse(model_id)
-        elif is_app:
+            extra_models = request.env['ir.model']
+            _logger.info('using existing model %s as main model, all main views duplicated for use in the new app', model.model)
+        elif model_choice == 'new' and menu_name:
             # create a new model
-            model = request.env['ir.model'].studio_name_create(menu_name)
+            (model, extra_models) = request.env['ir.model'].studio_model_create(menu_name, options=model_options)
+            _logger.info('created new model %s as main model with the following options: %s', model.model, ','.join(model_options))
+        else:
+            _logger.error('inconsistent parameters: model_choice is %s, model_id is %s and menu_name(model) is %s', model_choice, model_id, menu_name)
+            raise UserError(_("If you don't want to create a new model, an existing model should be selected."))
+
+        action = model._create_default_action(menu_name)
+        action_ref = 'ir.actions.act_window,' + str(action.id)
+
+        # create the menus (app menu + first submenu)
+        menu_values = {
+            'name': app_name,
+        }
+        child_menu_vals = [(0, 0, {'name': menu_name,'action': action_ref})]
+
+        # check if a configuration menu is needed
+        if extra_models:
+            configuration_menu_vals = {'name': _('Configuration'), 'child_id': [], 'is_studio_configuration': True, 'sequence': 100}
+            for extra_model in extra_models:
+                extra_action = extra_model._create_default_action(extra_model.name)
+                configuration_menu_vals['child_id'].append((0, 0, {'name': extra_model.name, 'action': 'ir.actions.act_window,'+ str(extra_action.id)}))
+            child_menu_vals.append((0, 0, configuration_menu_vals))
+
+        menu_values.update(self._get_icon_fields(icon))
+        menu_values['child_id'] = child_menu_vals
+
+        new_context = dict(request.context)
+        new_context.update({'ir.ui.menu.full_list': True})  # allows to create a menu without action
+        new_menu = request.env['ir.ui.menu'].with_context(new_context).create(menu_values)
+
+        return {
+            'menu_id': new_menu.id,
+            'action_id': action.id,
+        }
+
+    @http.route('/web_studio/create_new_menu', type='json', auth='user')
+    def create_new_menu(self, menu_name=False, model_choice=False, model_id=False, model_options=False, parent_menu_id=None):
+        """ Create a new menu @menu_name, linked to a new action associated to the model_id
+            @param model_choice: 'new' for a new model, 'existing' for an existing model selected in the wizard
+            @param model_id: the model which will be associated to the action if menu_choice is 'existing'
+            @param model_options: dictionary of options for the model to be created to include some behaviours OoB
+                (e.g. archiving, messaging, etc.)
+            @param parent_menu_id: the parent of the new menu.
+        """
+
+        sequence = 10
+        if parent_menu_id:
+            menu = request.env['ir.ui.menu'].search_read([('parent_id', '=', parent_menu_id)], fields=['sequence'], order='sequence desc', limit=1)
+            if menu:
+                sequence = menu[0]['sequence'] + 1
+
+        _logger.info('creating new menu "%s"', menu_name)
+        if model_choice == 'existing' and model_id:
+            model = request.env['ir.model'].browse(model_id)
+            extra_models = request.env['ir.model']
+            _logger.info('using existing model %s, all main views duplicated for use in the new app', model.model)
+        elif model_choice == 'new' and menu_name:
+            # create a new model
+            (model, extra_models) = request.env['ir.model'].studio_model_create(menu_name, options=model_options)
+            _logger.info('created new model %s with the following options: %s', model.model, ','.join(model_options))
+        elif model_choice == 'parent':
+            (model, extra_models) = (None, None)
+        else:
+            _logger.error('inconsistent parameters: model_choice is %s, model_id is %s and menu_name(model) is %s', model_choice, model_id, menu_name)
+            raise UserError(_("If you don't want to create a new model, an existing model should be selected."))
 
         # create the action
         if model:
-            action = request.env['ir.actions.act_window'].create({
-                'name': menu_name,
-                'res_model': model.model,
-                'help': """
-                    <p class="o_view_nocontent_smiling_face">
-                        This is your new action ; by default, it contains a list view and a form view.
-                    </p>
-                    <p>
-                        You can start customizing these screens by clicking on the Studio icon on the
-                        top right corner (you can also customize this help message there).
-                    </p>
-                """,
-            })
+            action = model._create_default_action(menu_name)
             action_ref = 'ir.actions.act_window,' + str(action.id)
         else:
             action = request.env.ref('base.action_open_website')
             action_ref = 'ir.actions.act_url,' + str(action.id)
 
-        if is_app:
-            # create the menus (app menu + first submenu)
-            menu_values = {
-                'name': app_name,
-                'child_id': [(0, 0, {
-                    'name': menu_name,
-                    'action': action_ref,
-                })]
-            }
+        # create the submenu
+        new_menu = request.env['ir.ui.menu'].create({
+            'name': menu_name,
+            'action': action_ref,
+            'parent_id': parent_menu_id,
+            'sequence': sequence,
+        })
 
-            menu_values.update(self._get_icon_fields(icon))
-
-            new_context = dict(request.context)
-            new_context.update({'ir.ui.menu.full_list': True})  # allows to create a menu without action
-            new_menu = request.env['ir.ui.menu'].with_context(new_context).create(menu_values)
-
-        else:
-            # create the submenu
-            new_menu = request.env['ir.ui.menu'].create({
-                'name': menu_name,
-                'action': action_ref,
-                'parent_id': parent_id,
-            })
-
+        # create extra menus for configuration of extra models (tags, stages)
+        if extra_models:
+            config_menu = new_menu._get_studio_configuration_menu()
+            child_menu_vals = list()
+            for extra_model in extra_models:
+                views = request.env['ir.ui.view'].search([('model', '=', extra_model.model)])
+                extra_action = extra_model._create_default_action(extra_model.name)
+                child_menu_vals.append((0, 0, {'name': extra_model.name, 'action': 'ir.actions.act_window,'+ str(extra_action.id)}))
+            config_menu.write({'child_id': child_menu_vals})
         return {
             'menu_id': new_menu.id,
             'action_id': action.id,
@@ -266,11 +350,12 @@ class WebStudioController(http.Controller):
     def set_background_image(self, attachment_id):
         attachment = request.env['ir.attachment'].browse(attachment_id)
         if attachment:
-            request.env.user.with_user(request.uid).company_id.background_image = attachment.datas
+            request.env.company.background_image = attachment.datas
 
     @http.route('/web_studio/reset_background_image', type='json', auth='user')
     def reset_background_image(self):
-        request.env.user.with_user(request.uid).company_id.background_image = None
+        if request.env.company in request.env.user.with_user(request.uid).company_ids:
+            request.env.company.background_image = None
 
     def create_new_field(self, values):
         """ Create a new field with given values.
@@ -287,11 +372,9 @@ class WebStudioController(http.Controller):
         # it doesn't make sense to add field, and won't work
         table_kind = sql.table_kind(request.env.cr, Model._table)
         if not table_kind or table_kind == 'v':
-            raise UserError(_('The model %s doesn\'t support adding fields.') % Model._name)
+            raise UserError(_('The model %s doesn\'t support adding fields.', Model._name))
 
-        model = request.env['ir.model'].search([('model', '=', model_name)])
-
-        values['model_id'] = model.id
+        values['model_id'] = request.env['ir.model']._get_id(model_name)
 
         # Field type is called ttype in the database
         if values.get('type'):
@@ -351,7 +434,7 @@ class WebStudioController(http.Controller):
         view_type = 'tree' if view_type == 'list' else view_type  # list is stored as tree in db
 
         if view_type == 'activity':
-            model = request.env['ir.model'].search([('model', '=', res_model)])
+            model = request.env['ir.model']._get(res_model)
             if model.state == 'manual' and not model.is_mail_activity:
                 # Activate mail.activity.mixin inheritance on the custom model
                 model.write({'is_mail_activity': True})
@@ -428,7 +511,8 @@ class WebStudioController(http.Controller):
             # try to find the lowest priority matching ir.ui.view
             view_id = request.env['ir.ui.view'].default_view(request.env[model]._name, view_type)
         # We have to create a view with the default view if we want to customize it.
-        view = self._get_or_create_default_view(model, view_type, view_id)
+        ir_model = request.env['ir.model']._get(model)
+        view = ir_model._get_default_view(view_type, view_id)
         studio_view = self._get_studio_view(view)
 
         return {
@@ -456,16 +540,30 @@ class WebStudioController(http.Controller):
 
         return self._return_view(view, studio_view)
 
+    @http.route('/web_studio/edit_approval', type='json', auth='user')
+    def edit_approval(self, model, method, action, operations=None):
+        for operation in operations:
+            rule_id = operation[1]
+            rule = request.env['studio.approval.rule'].browse(rule_id)
+            if operation[0] == 'operation_approval_message':
+                rule.message = operation[2]
+            elif operation[0] == 'operation_different_users':
+                rule.exclusive_user = operation[2]
+        return True
+
     @http.route('/web_studio/edit_view', type='json', auth='user')
-    def edit_view(self, view_id, studio_view_arch, operations=None):
+    def edit_view(self, view_id, studio_view_arch, operations=None, model=None):
         IrModelFields = request.env['ir.model.fields']
         view = request.env['ir.ui.view'].browse(view_id)
-
+        operations = operations or []
+        for op in operations:
+            if op['type'] not in OPERATIONS_WHITELIST:
+                raise ValidationError(_('The operation  type "%s" is not supported', op['type']))
         parser = etree.XMLParser(remove_blank_text=True)
         if studio_view_arch == "":
             studio_view_arch = '<data/>'
         arch = etree.fromstring(studio_view_arch, parser=parser)
-        model = view.model
+        model = model or view.model
 
         # Determine whether an operation is associated with
         # the creation of a binary field
@@ -483,31 +581,50 @@ class WebStudioController(http.Controller):
         # we also create an invisible char field meant to contain the filename.
         # The char field is then associated with the binary field
         # via the 'filename' attribute of the latter.
-        for op in [op for op in operations if create_binary_field(op)]:
-            filename = op['node']['field_description']['name'] + '_filename'
+        # Do it in another list to keep the order of the operations
+        # otherwise, the "append" of the filemane binary would be misplaced
+        _operations = []
+        for op in operations:
+            _operations.append(op)
+            if not create_binary_field(op):
+                continue
+            bin_file_field_name = op['node']['field_description']['name']
+            filename = bin_file_field_name + '_filename'
 
             # Create an operation adding an additional char field
             char_op = deepcopy(op)
             char_op['node']['field_description'].update({
                 'name': filename,
                 'type': 'char',
-                'field_description': _('Filename for %s') % op['node']['field_description']['name'],
+                'field_description': _('Filename for %s', op['node']['field_description']['name']),
             })
             char_op['node']['attrs']['invisible'] = '1'
-            operations.append(char_op)
+
+            # put the filename field after the binary field
+            char_op['target']['xpath_info'] = None
+            char_op['target']['tag'] = 'field'
+            char_op['target']['attrs'] = {'name': bin_file_field_name}
+            char_op['target']['position'] = 'after'
+            char_op['position'] = 'after'
+
+            _operations.append(char_op)
 
             op['node']['attrs']['filename'] = filename
 
+        operations = _operations
         for op in operations:
             # create a new field if it does not exist
             if 'node' in op:
                 if op['node'].get('tag') == 'field' and op['node'].get('field_description'):
-                    model = op['node']['field_description']['model_name']
-                    # Check if field exists before creation
-                    field = IrModelFields.search([
-                        ('name', '=', op['node']['field_description']['name']),
-                        ('model', '=', model),
-                    ], limit=1)
+                    if op['node']['field_description'].get('special') == 'lines':
+                        field = request.env['ir.model']._get(model)._setup_one2many_lines()
+                    else:
+                        model = op['node']['field_description']['model_name']
+                        # Check if field exists before creation
+                        field = IrModelFields.search([
+                            ('name', '=', op['node']['field_description']['name']),
+                            ('model', '=', model),
+                        ], limit=1)
                     if not field:
                         field = self.create_new_field(op['node']['field_description'])
                     op['node']['attrs']['name'] = field.name
@@ -595,16 +712,17 @@ class WebStudioController(http.Controller):
         })
 
     @http.route('/web_studio/edit_field', type='json', auth='user')
-    def edit_field(self, model_name, field_name, values):
+    def edit_field(self, model_name, field_name, values, force_edit=False):
         field = request.env['ir.model.fields'].search([('model', '=', model_name), ('name', '=', field_name)])
 
         if field.ttype == 'selection' and 'selection' in values:
             selection_values = [False] + [x[0] for x in literal_eval(values['selection'])]
-            records_count = request.env[model_name].search_count([(field_name, 'not in', selection_values)])
-            if records_count:
-                raise UserError(
-                    _("""You have %s records that have a selection value different than the ones you are defining. Please modify those records first.""") % records_count
-                )
+            records = request.env[model_name].search([(field_name, 'not in', selection_values)])
+            if records and not force_edit:
+                message = _("""There are %s records using selection values not listed in those you are trying to save.
+Are you sure you want to remove the selection values of those records?""") % len(records)
+                return {'records_linked': len(records), 'message': message}
+            records.write({field_name: False})
 
         field.write(values)
 
@@ -636,7 +754,7 @@ class WebStudioController(http.Controller):
                 return False
 
     @http.route('/web_studio/export', type='http', auth='user')
-    def export(self, token):
+    def export(self, **kw):
         """ Exports a zip file containing the 'studio_customization' module
             gathering all customizations done with Studio (customizations of
             existing apps and freshly created apps).
@@ -649,7 +767,7 @@ class WebStudioController(http.Controller):
             ('Content-Disposition', content_disposition('customizations.zip')),
             ('Content-Type', 'application/zip'),
             ('Content-Length', len(content)),
-        ], cookies={'fileToken': token})
+        ])
 
     @http.route('/web_studio/create_default_view', type='json', auth='user')
     def create_default_view(self, model, view_type, attrs):
@@ -666,25 +784,8 @@ class WebStudioController(http.Controller):
         arch = etree.Element(view_type, attrs)
         return etree.tostring(arch, encoding='unicode', pretty_print=True, method='html')
 
-    def _get_or_create_default_view(self, model, view_type, view_id=False):
-        View = request.env['ir.ui.view']
-        # If we have no view_id to inherit from, it's because we are adding
-        # fields to the default view of a new model. We will materialize the
-        # default view as a true view so we can keep using our xpath mechanism.
-        if view_id:
-            view = View.browse(view_id)
-        else:
-            arch = request.env[model].fields_view_get(view_id, view_type)['arch']
-            view = View.create({
-                'type': view_type,
-                'model': model,
-                'arch': arch,
-                'name': "Default %s view for %s" % (view_type, model),
-            })
-        return view
-
     def _node_to_expr(self, node):
-        if not node.get('attrs') and node.get('xpath_info'):
+        if node.get('xpath_info') and not node.get('subview_xpath'):
             # Format of expr is /form/tag1[]/tag2[]/[...]/tag[]
             expr = ''.join(['/%s[%s]' % (parent['tag'], parent['indice']) for parent in node.get('xpath_info')])
         else:
@@ -750,6 +851,18 @@ class WebStudioController(http.Controller):
                     'position': 'replace'
                 })
 
+    def _operation_replace(self, arch, operation, model):
+        """computes an xpath that will replace operation['target'] by operation['node'] in the arch"""
+        target_expr = self._node_to_expr(operation['target'])
+
+        replace_xpath = etree.SubElement(arch, 'xpath', {
+            'expr': target_expr,
+            'position': 'replace'
+        })
+
+        replace_with = operation['node']
+        etree.SubElement(replace_xpath, replace_with['tag'], replace_with['attrs'])
+
     def _operation_add(self, arch, operation, model):
         node = operation['node']
         xpath_node = self._get_xpath_node(arch, operation)
@@ -757,7 +870,7 @@ class WebStudioController(http.Controller):
         # Take a xml_node and put columns on it:
         # If the xml_node is not a group, this function will create a group node
         # to add two columns on it.
-        def add_columns(xml_node, title=False):
+        def add_columns(xml_node):
             # Get the random key generated is JS.
             # Expected value: 'studio_<tag_name>_<random_key>
             name = 'studio_group_' + xml_node.get('name').split('_')[2]
@@ -769,9 +882,6 @@ class WebStudioController(http.Controller):
 
             xml_node_page_left = etree.SubElement(xml_node_group, 'group', {'name': name + '_left'})
             xml_node_page_right = etree.SubElement(xml_node_group, 'group', {'name': name + '_right'})
-            if title:
-                xml_node_page_left.attrib['string'] = _('Left Title')
-                xml_node_page_right.attrib['string'] = _('Right Title')
 
         # Create the actual node inside the xpath. It needs to be the first
         # child of the xpath to respect the order in which they were added.
@@ -785,7 +895,7 @@ class WebStudioController(http.Controller):
             add_columns(xml_node)
         elif node['tag'] == 'group':
             if 'empty' not in operation:
-                add_columns(xml_node, title=True)
+                add_columns(xml_node)
         elif node['tag'] == 'button':
             # To create a stat button, we need
             #   - a many2one field (1) that points to this model
@@ -808,26 +918,54 @@ class WebStudioController(http.Controller):
             xml_node.text = node.get('text')
         xpath_node.insert(0, xml_node)
 
+    def _operation_enable_approval(self, arch, operation, model):
+        """Set 'studio_approval="True"' on all matching buttons in the view."""
+        btn_type = operation.get('btn_type')
+        btn_name = operation.get('btn_name')
+        view_id = operation.get('view_id')
+        parser = etree.XMLParser(remove_blank_text=True)
+        raw_base_arch = request.env[model].fields_view_get(view_id, 'form')['arch']
+        base_arch = etree.fromstring(raw_base_arch, parser=parser)
+
+        # if no rule is found, create one on the fly
+        is_method = btn_type == 'object'
+        method = is_method and btn_name
+        action = not is_method and int(btn_name)
+        rule_domain = request.env['studio.approval.rule']._get_rule_domain(model, method, action)
+        has_rules = request.env['studio.approval.rule'].search_count(rule_domain)
+        if not has_rules:
+            request.env['studio.approval.rule'].create_rule(model, method, action)
+        matching_buttons = base_arch.findall(".//button[@type='%s'][@name='%s']" % (btn_type, btn_name))
+        for idx, btn in enumerate(matching_buttons):
+            # note that these xpath are not the sexiest, but they will be cleaned
+            # at view normalization
+            xpath_node = etree.SubElement(arch, 'xpath', {
+            'expr': "(//button[@type='%s'][@name='%s'])[%s]" % (btn_type, btn_name, idx + 1),
+            'position': 'attributes'
+            })
+            attribute_node = etree.Element('attribute', name='studio_approval')
+            attribute_node.text = str(operation.get('enable'))
+            # NOTE: this will leave some extended views with `studio_approval=False`
+            # which is handled client side to do nothing
+            xpath_node.insert(0, attribute_node)
+
     def _get_or_create_fields_for_button(self, model, field, button_name):
         """ Returns the button_count_field and the button_action link to a stat button.
             @param field: a many2one field
         """
 
-        if field.ttype != 'many2one' or field.relation != model:
-            raise UserError(_('The related field of a button has to be a many2one to %s.' % model))
+        if (field.ttype != 'many2one' and field.ttype != 'many2many') or field.relation != model:
+            raise UserError(_('The related field of a button has to be a many2one to %s.', model))
 
-        model = request.env['ir.model'].search([('model', '=', model)], limit=1)
+        model = request.env['ir.model']._get(model)
 
         # There is a counter on the button ; as the related field is a many2one, we need
         # to create a new computed field that counts the number of records in the one2many
-        button_count_field_name = 'x_%s__%s_count' % (field.name, field.model.replace('.', '_'))[0:63]
+        button_count_field_name = 'x_%s_%s_count' % (field.name, field.model.replace('.', '_'))[0:63]
         button_count_field = request.env['ir.model.fields'].search([('name', '=', button_count_field_name), ('model_id', '=', model.id)])
         if not button_count_field:
             compute_function = """
-                    results = self.env['%(model)s'].read_group([('%(field)s', 'in', self.ids)], ['%(field)s'], ['%(field)s'])
-                    dic = {}
-                    for x in results: dic[x['%(field)s'][0]] = x['%(field)s_count']
-                    for record in self: record['%(count_field)s'] = dic.get(record.id, 0)
+                    for record in self: record['%(count_field)s'] = self.env['%(model)s'].search_count([('%(field)s', '=', record.id)])
                 """ % {
                     'model': field.model,
                     'field': field.name,
@@ -845,7 +983,8 @@ class WebStudioController(http.Controller):
 
         # The action could already exist but we don't want to recreate one each time
         button_action_domain = "[('%s', '=', active_id)]" % (field.name)
-        button_action_context = "{'search_default_%s': active_id,'default_%s': active_id}" % (field.name, field.name)
+        active_id = 'active_id' if field.ttype == 'many2one' else '[active_id]'
+        button_action_context = "{'search_default_%s': active_id,'default_%s': %s}" % (field.name, field.name, active_id)
         button_action = request.env['ir.actions.act_window'].search([
             ('name', '=', button_name), ('res_model', '=', field.model),
             ('domain', '=', button_action_domain), ('context', '=', button_action_context),
@@ -883,7 +1022,7 @@ class WebStudioController(http.Controller):
                     ('res_id', '=', many2many_value)])
                 if not group_xmlid:
                     raise UserError(_(
-                        "Only groups with an external ID can be used here. Please choose another " +
+                        "Only groups with an external ID can be used here. Please choose another "
                         "group or assign manually an external ID to this group."
                     ))
                 eval_attr.append(group_xmlid.complete_name)
@@ -895,7 +1034,7 @@ class WebStudioController(http.Controller):
             if 'color_field' in options:
                 field_name = operation['node']['attrs']['name']
                 field_id = request.env['ir.model.fields'].search([('model', '=', model), ('name', '=', field_name)])
-                related_model_id = request.env['ir.model'].search([('model', '=', field_id.relation)])
+                related_model_id = request.env['ir.model']._get(field_id.relation)
 
                 if 'color' in related_model_id.field_id.mapped('name'):
                     options['color_field'] = 'color'
@@ -968,7 +1107,7 @@ class WebStudioController(http.Controller):
             return
 
         # From this point, the model is either a custom model or inherits from mail.thread
-        model = request.env['ir.model'].search([('model', '=', operation['model'])])
+        model = request.env['ir.model']._get(operation['model'])
         if model.state == 'manual' and not model.is_mail_thread:
             # Activate mail.thread inheritance on the custom model
             model.write({'is_mail_thread': True})
@@ -989,11 +1128,12 @@ class WebStudioController(http.Controller):
             'position': 'after',
         })
         chatter_node = etree.Element('div', {'class': 'oe_chatter'})
-        follower_node = etree.Element('field', {'name': 'message_follower_ids', 'widget': 'mail_followers'})
-        activity_node = etree.Element('field', {'name': 'activity_ids', 'widget': 'mail_activity'})
-        thread_node = etree.Element('field', {'name': 'message_ids', 'widget': 'mail_thread'})
+        follower_node = etree.Element('field', {'name': 'message_follower_ids'})
         chatter_node.append(follower_node)
-        chatter_node.append(activity_node)
+        if model.is_mail_activity:
+            activity_node = etree.Element('field', {'name': 'activity_ids'})
+            chatter_node.append(activity_node)
+        thread_node = etree.Element('field', {'name': 'message_ids'})
         chatter_node.append(thread_node)
         xpath_node.append(chatter_node)
 
@@ -1005,16 +1145,16 @@ class WebStudioController(http.Controller):
                 - add a dropdown section in the view
                 - modify the kanban class to use `oe_kanban_color_`
         """
-        model_id = request.env['ir.model'].search([('model', '=', model)])
+        model_id = request.env['ir.model']._get_id(model)
         if not model_id:
             return
 
         color_field_name = 'x_color'
-        if not request.env['ir.model.fields'].search([('model_id', '=', model_id.id), ('name', '=', color_field_name), ('ttype', '=', 'integer')]):
+        if not request.env['ir.model.fields'].search([('model_id', '=', model_id), ('name', '=', color_field_name), ('ttype', '=', 'integer')]):
             # create a field if it doesn't exist in the model
             request.env['ir.model.fields'].create({
                 'model': model,
-                'model_id': model_id.id,
+                'model_id': model_id,
                 'name': color_field_name,
                 'field_description': 'Color',
                 'ttype': 'integer',
@@ -1030,7 +1170,7 @@ class WebStudioController(http.Controller):
         dropdown_node = etree.fromstring("""
             <div class="o_dropdown_kanban dropdown" name="kanban_dropdown">
                 <a class="dropdown-toggle o-no-caret btn" data-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Dropdown menu" role="button">
-                    <span class="fa fa-bars fa-lg"/>
+                    <span class="fa fa-ellipsis-v"/>
                 </a>
                 <div class="dropdown-menu" role="menu">
                     <t t-if="widget.editable"><a type="edit" class="dropdown-item">Edit</a></t>
@@ -1059,14 +1199,14 @@ class WebStudioController(http.Controller):
 
     def _operation_kanban_image(self, arch, operation, model):
         """ Insert a image and its corresponding needs in an kanban view arch
-            Implied modifications:
+            Implied modifications (if not already done):
                 - add the field in the view
                 - add a section (kanban_right) in the view
                 - add the field with `kanban_image` in this section
         """
-        model_id = request.env['ir.model'].search([('model', '=', model)])
+        model_id = request.env['ir.model']._get_id(model)
         if not model_id:
-            raise UserError(_('The model %s does not exist.') % model)
+            raise UserError(_('The model %s does not exist.', model))
 
         if not operation.get('field'):
             raise UserError(_('Please specify a field.'))
@@ -1076,7 +1216,7 @@ class WebStudioController(http.Controller):
             ('name', '=', operation['field'])
         ])
         if not field_id:
-            raise UserError(_('The field %s does not exist.') % operation['field'])
+            raise UserError(_('The field %s does not exist.', operation['field']))
 
         # add field at the beginning
         etree.SubElement(arch, 'xpath', {
@@ -1084,21 +1224,37 @@ class WebStudioController(http.Controller):
             'position': 'before',
         }).append(etree.Element('field', {'name': field_id.name}))
 
+        # check if there's already a bottom right section
+        # boy o boy i sure hope there's only one kanban!
+        base_arch = request.env[model].fields_view_get(view_type='kanban')['arch']
+        base_tree = etree.fromstring(base_arch)
+        has_br_container = base_tree.xpath('//div[hasclass("oe_kanban_bottom_right")]')
+
+        img_elem = """<img
+                t-if="record.{field}.raw_value"
+                t-att-src="kanban_image('{model}', 'image_128', record.{field}.raw_value)"
+                t-att-title="record.{field}.value" t-att-alt="record.{field}.value"
+                class="oe_kanban_avatar o_image_24_cover float-right"
+            />""".format(model=field_id.relation, field=field_id.name)
         # add the image inside the view
-        etree.SubElement(arch, 'xpath', {
-            'expr': '//div',
-            'position': 'inside',
-        }).append(
-            etree.fromstring("""
-                <div class="oe_kanban_bottom_right">
-                    <img
-                        t-att-src="kanban_image('%(model)s', 'image_128', record.%(field)s.raw_value)"
-                        t-att-title="record.%(field)s.value"
-                        class="oe_kanban_avatar o_image_24_cover float-right"
-                    />
-                </div>
-            """ % {'model': field_id.relation, 'field': field_id.name})
-        )
+        if has_br_container:
+            etree.SubElement(arch, 'xpath', {
+                'expr': '//div[hasclass("oe_kanban_bottom_right")]',
+                'position': 'inside',
+            }).append(
+                etree.fromstring(img_elem)
+            )
+        else:
+            etree.SubElement(arch, 'xpath', {
+                'expr': '//div',
+                'position': 'inside',
+            }).append(
+                etree.fromstring("""
+                    <div class="oe_kanban_bottom_right">
+                        %s
+                    </div>
+                """ % img_elem)
+            )
 
     def _operation_kanban_set_cover(self, arch, operation, model):
         """ Insert a menu in dropdown to set cover image in a kanban view.
@@ -1108,33 +1264,32 @@ class WebStudioController(http.Controller):
                 - adds an option inside dropdown section in the view
                 - adds an field having widget `attachment_image` in the view
         """
-        model_id = request.env['ir.model'].search([('model', '=', model)])
-        if not model_id:
-            raise UserError(_('The model %s does not exist.') % model)
+        ir_model = request.env['ir.model']._get(model)
+        if not ir_model:
+            raise UserError(_('The model %s does not exist.', model))
         if operation.get('field'):
             field_id = request.env['ir.model.fields'].search([
                 ('model', '=', model),
                 ('name', '=', operation['field'])
             ])
             if not field_id:
-                raise UserError(_('The field %s does not exist.') % operation['field'])
+                raise UserError(_('The field %s does not exist.', operation['field']))
         else:
-            att_model = request.env['ir.model'].search([('model', '=', 'ir.attachment')])
             field_id = request.env['ir.model.fields'].search([
-                ('model', '=', model_id.model),
+                ('model', '=', ir_model.model),
                 ('name', '=', 'x_studio_cover_image_id'),
                 ('ttype', '=', 'many2one')
             ])
             # create a field many2one x_studio_cover_image_id if it doesn't exist in the model
             if not field_id:
                 field_id = request.env['ir.model.fields'].create({
-                    'model': model_id.model,
-                    'model_id': model_id.id,
-                    'relation': att_model.model,
+                    'model': ir_model.model,
+                    'model_id': ir_model.id,
+                    'relation': 'ir.attachment',
                     'name': 'x_studio_cover_image_id',
                     'field_description': 'Cover Image',
                     'ttype': 'many2one',
-                    'domain': '[("res_model", "=", "%s"), ("res_id", "=", "%s"), ("mimetype", "ilike", "image")]' % (model_id.model, model_id.id)
+                    'domain': '[("res_model", "=", "%s"), ("res_id", "=", "%s"), ("mimetype", "ilike", "image")]' % (ir_model.model, ir_model.id)
                 })
 
         # add link inside the dropdown
@@ -1176,9 +1331,9 @@ class WebStudioController(http.Controller):
                 - add a section (kanban_left) in the view
                 - add the field x_priority with the widget priority in this section
         """
-        model_id = request.env['ir.model'].search([('model', '=', model)])
+        model_id = request.env['ir.model']._get_id(model)
         if not model_id:
-            raise UserError(_('The model %s does not exist.') % model)
+            raise UserError(_('The model %s does not exist.', model))
 
         if operation.get('field'):
             field_id = request.env['ir.model.fields'].search([
@@ -1186,11 +1341,11 @@ class WebStudioController(http.Controller):
                 ('name', '=', operation['field'])
             ])
             if not field_id:
-                raise UserError(_('The field %s does not exist.') % operation['field'])
+                raise UserError(_('The field %s does not exist.', operation['field']))
 
         else:
             field_id = request.env['ir.model.fields'].search([
-                ('model_id', '=', model_id.id),
+                ('model_id', '=', model_id),
                 ('name', '=', 'x_priority'),
                 ('ttype', '=', 'selection')
             ])
@@ -1198,7 +1353,7 @@ class WebStudioController(http.Controller):
             if not field_id:
                 field_id = request.env['ir.model.fields'].create({
                     'model': model,
-                    'model_id': model_id.id,
+                    'model_id': model_id,
                     'name': 'x_priority',
                     'field_description': 'Priority',
                     'ttype': 'selection',
@@ -1217,6 +1372,56 @@ class WebStudioController(http.Controller):
             """ % (field_id.name))
         )
 
+    def _operation_avatar_image(self, arch, operation, model):
+        studio_view_arch = arch  # The actual arch is the studio view arch
+        arch = request.env[model].fields_view_get(view_type='form')['arch']
+        parser = etree.XMLParser(remove_blank_text=True)
+        arch = etree.fromstring(arch, parser=parser)
+
+        model_id = request.env['ir.model']._get_id(model)
+        IrModelFields = request.env['ir.model.fields']
+
+        if not model_id:
+            raise UserError(_('The model %s does not exist.', model))
+        if operation.get('field'):
+            field_id = IrModelFields.search([
+                ('model', '=', model),
+                ('name', '=', operation['field'])
+            ])
+            if not field_id:
+                raise UserError(_('The field %s does not exist.', operation['field']))
+        else:
+            field_id = IrModelFields.search([
+                ('model_id', '=', model_id),
+                ('name', '=', 'x_avatar_image'),
+                ('ttype', '=', 'binary')
+            ])
+            # create a field selection x_avatar_image if it doesn't exist in the model
+            if not field_id:
+                field_id = IrModelFields.create({
+                    'model': model,
+                    'model_id': model_id,
+                    'name': 'x_avatar_image',
+                    'field_description': 'Avatar',
+                    'ttype': 'binary',
+                })
+        attrs = {
+            'expr': '//div[hasclass("oe_title")]',
+            'position': 'before',
+        }
+        hasFlexH1 = arch.xpath("//div[hasclass('oe_title')]//h1[hasclass('d-flex')]") and True
+        if hasFlexH1:
+            attrs.update({
+                "expr": "//div[hasclass('oe_title')]//h1[hasclass('d-flex')]",
+                "position": "inside",
+            })
+        avatar_class = "oe_avatar ml-3 h4" if hasFlexH1 else "oe_avatar ml-3 mr-3"
+        etree.SubElement(studio_view_arch, 'xpath', attrs).append(
+            etree.fromstring("""
+                <field name="%s" widget="image" class="%s"/>
+            """ % (field_id.name, avatar_class))
+        )
+
     def _operation_statusbar(self, arch, operation, model=None):
         """ Create and insert a header as the first child of the form. """
         xpath_node = etree.SubElement(arch, 'xpath', {
@@ -1225,12 +1430,121 @@ class WebStudioController(http.Controller):
         })
         xpath_node.append(etree.Element('header'))
 
+    def _operation_map_popup_fields(self, arch, operation, model):
+        fields = request.env['ir.model.fields'].browse(operation['target']['field_ids'])
+        for field in fields:
+            if operation['target']['operation_type'] == 'add':
+                op = {
+                    'node': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                            'string': field.field_description,
+                        }
+                    },
+                    'target': {
+                        'tag': 'map',
+                    },
+                    'position': 'inside',
+                }
+                self._operation_add(arch, op, model)
+            else:
+                op = {
+                    'type': 'remove',
+                    'target': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                        },
+                    }
+                }
+                self._operation_remove(arch, op)
+
+    def _operation_pivot_measures_fields(self, arch, operation, model):
+        fields = request.env['ir.model.fields'].browse(operation['target']['field_ids'])
+        for field in fields:
+            if operation['target']['operation_type'] == 'add':
+                op = {
+                    'node': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                            'type': 'measure',
+                        }
+                    },
+                    'target': {
+                        'tag': 'pivot',
+                    },
+                    'position': 'inside',
+                }
+                self._operation_add(arch, op, model)
+            else:
+                op = {
+                    'type': 'remove',
+                    'target': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                        },
+                    }
+                }
+                self._operation_remove(arch, op)
+
+    def _operation_graph_pivot_groupbys_fields(self, arch, operation, model):
+        fieldsName = request.env['ir.model.fields'].search([
+            ('name', 'in', operation['target']['field_names']),
+            ('model', '=', model),])
+        for field in fieldsName:
+            if operation['target']['operation_type'] == 'add':
+                op = {
+                    'node': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                            'type': operation['target']['field_type'],
+                        }
+                    },
+                    'target': {
+                        'tag': operation['target']['view_type'],
+                    },
+                    'position': 'inside',
+                }
+                self._operation_add(arch, op, model)
+            elif operation['target']['operation_type'] == 'replace':
+                op = {
+                    'node': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                            'type': operation['target']['field_type'],
+                        }
+                    },
+                    'target': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': operation['target']['old_field_names'],
+                        },
+                    },
+                }
+                self._operation_replace(arch, op, model)
+            else:
+                op = {
+                    'type': 'remove',
+                    'target': {
+                        'tag': 'field',
+                        'attrs': {
+                            'name': field.name,
+                        },
+                    }
+                }
+                self._operation_remove(arch, op)
+
     @http.route('/web_studio/get_email_alias', type='json', auth='user')
     def get_email_alias(self, model_name):
         """ Returns the email alias associated to the model @model_name if both exist
         """
         result = {'alias_domain': request.env['ir.config_parameter'].get_param('mail.catchall.domain')}
-        model = request.env['ir.model'].search([('model', '=', model_name)], limit=1)
+        model = request.env['ir.model']._get(model_name)
         if model:
             email_alias = request.env['mail.alias'].search([('alias_model_id', '=', model.id)], limit=1)
             if email_alias:
@@ -1243,9 +1557,9 @@ class WebStudioController(http.Controller):
              - if there is no email alias, it will be created
              - if there is one and the value is empty, it will be unlinked
         """
-        model = request.env['ir.model'].search([('model', '=', model_name)], limit=1)
-        if model:
-            email_alias = request.env['mail.alias'].search([('alias_model_id', '=', model.id)], limit=1)
+        model_id = request.env['ir.model']._get_id(model_name)
+        if model_id:
+            email_alias = request.env['mail.alias'].search([('alias_model_id', '=', model_id)], limit=1)
             if email_alias:
                 if value:
                     email_alias.alias_name = value
@@ -1253,7 +1567,7 @@ class WebStudioController(http.Controller):
                     email_alias.unlink()
             else:
                 request.env['mail.alias'].create({
-                    'alias_model_id': model.id,
+                    'alias_model_id': model_id,
                     'alias_name': value,
                 })
 
@@ -1267,7 +1581,7 @@ class WebStudioController(http.Controller):
     @http.route('/web_studio/set_default_value', type='json', auth='user')
     def set_default_value(self, model_name, field_name, value):
         """ Set the default value associated to the given field. """
-        request.env['ir.default'].set(model_name, field_name, value, company_id=True)
+        request.env['ir.default'].with_context(studio=True).set(model_name, field_name, value, company_id=True)
 
     @http.route('/web_studio/create_inline_view', type='json', auth='user')
     def create_inline_view(self, model, view_id, field_name, subview_type, subview_xpath):

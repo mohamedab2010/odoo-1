@@ -3,16 +3,16 @@
 # 	* marketing_automation_sms
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2021
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:37+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2021-09-14 11:00+0000\n"
+"PO-Revision-Date: 2021-09-14 12:41+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2022\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -27,8 +27,34 @@ msgstr "К-сть SMS-розсилок"
 
 #. module: marketing_automation_sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-exclamation-circle\"/> Bounced after"
+msgstr "<i class=\"fa fa-exclamation-circle\"/> З'являється після"
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-hand-pointer-o\"/> Clicked after"
+msgstr "<i class=\"fa fa-hand-pointer-o\"/> Натиснуто після"
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid "<i class=\"fa fa-hand-pointer-o\"/> Not clicked within"
+msgstr "<i class=\"fa fa-hand-pointer-o\"/> Не натиснуто після"
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 msgid "<i class=\"fa fa-pie-chart\"/> Details"
 msgstr "<i class=\"fa fa-pie-chart\"/> Деталі"
+
+#. module: marketing_automation_sms
+#: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
+msgid ""
+"<i data-trigger-type=\"sms_click\" class=\"fa fa-hand-pointer-o o_ma_text_processed o_add_child_activity\" title=\"Clicked\" role=\"img\" aria-label=\"Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_not_click\" class=\"fa fa-hand-pointer-o o_ma_text_rejected o_add_child_activity\" title=\"Not Clicked\" role=\"img\" aria-label=\"Not Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_bounce\" class=\"fa fa fa-exclamation-circle o_ma_text_rejected o_add_child_activity\" title=\"Bounced\" role=\"img\" aria-label=\"Bounced\"/>"
+msgstr ""
+"<i data-trigger-type=\"sms_click\" class=\"fa fa-hand-pointer-o o_ma_text_processed o_add_child_activity\" title=\"Clicked\" role=\"img\" aria-label=\"Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_not_click\" class=\"fa fa-hand-pointer-o o_ma_text_rejected o_add_child_activity\" title=\"Not Clicked\" role=\"img\" aria-label=\"Not Clicked\"/>\n"
+"                    <i data-trigger-type=\"sms_bounce\" class=\"fa fa fa-exclamation-circle o_ma_text_rejected o_add_child_activity\" title=\"Bounced\" role=\"img\" aria-label=\"Bounced\"/>"
 
 #. module: marketing_automation_sms
 #: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__activity_type
@@ -57,6 +83,11 @@ msgid "Mailing Statistics"
 msgstr "Статистика розсилки"
 
 #. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
+msgid "Mailing Type"
+msgstr "Тип розсилки"
+
+#. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_marketing_activity
 #: model:ir.model.fields,field_description:marketing_automation_sms.field_sms_composer__marketing_activity_id
 msgid "Marketing Activity"
@@ -68,16 +99,14 @@ msgid "Marketing Automation SMS"
 msgstr "Автоматизація маркетингу SMS"
 
 #. module: marketing_automation_sms
-#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
-#, python-format
-msgid "Marketing Automation: activity <%s> encountered mass mailing issue %s"
-msgstr ""
-"Автоматизація маркетингу: дія <%s> виникли проблеми масової розсилки %s"
-
-#. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_marketing_campaign
 msgid "Marketing Campaign"
 msgstr "Маркетингова кампанія"
+
+#. module: marketing_automation_sms
+#: model:ir.model,name:marketing_automation_sms.model_marketing_trace
+msgid "Marketing Trace"
+msgstr "Відслідковування маркетингу"
 
 #. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_mailing_mailing
@@ -85,13 +114,21 @@ msgid "Mass Mailing"
 msgstr "Масова розсилка"
 
 #. module: marketing_automation_sms
-#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
-msgid "Mass Mailing Id Mailing Type"
-msgstr "Тип Id масової розсилки"
+#: code:addons/marketing_automation_sms/models/marketing_trace.py:0
+#, python-format
+msgid "Parent activity SMS bounced"
+msgstr "Повернуте SMS батьківської дії"
+
+#. module: marketing_automation_sms
+#: code:addons/marketing_automation_sms/models/marketing_trace.py:0
+#, python-format
+msgid "Parent activity SMS clicked"
+msgstr "Натиснуте SMS батьківської дії"
 
 #. module: marketing_automation_sms
 #: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__activity_type__sms
 #: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__mass_mailing_id_mailing_type__sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_category__sms
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_campaign_view_form
 #: model_terms:ir.ui.view,arch_db:marketing_automation_sms.marketing_participant_view_form
 msgid "SMS"
@@ -118,6 +155,12 @@ msgid "SMS Template"
 msgstr "Шаблон SMS"
 
 #. module: marketing_automation_sms
+#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
+#, python-format
+msgid "SMS canceled"
+msgstr "SMS скасоване"
+
+#. module: marketing_automation_sms
 #: code:addons/marketing_automation_sms/models/mailing_trace.py:0
 #: code:addons/marketing_automation_sms/models/marketing_activity.py:0
 #, python-format
@@ -125,10 +168,19 @@ msgid "SMS failed"
 msgstr "Помилка SMS"
 
 #. module: marketing_automation_sms
-#: code:addons/marketing_automation_sms/models/marketing_activity.py:0
-#, python-format
-msgid "SMS ignored"
-msgstr "Проігнороване SMS"
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_bounce
+msgid "SMS: bounced"
+msgstr "SMS: повернуті"
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_click
+msgid "SMS: clicked"
+msgstr "SMS: натиснуті"
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields.selection,name:marketing_automation_sms.selection__marketing_activity__trigger_type__sms_not_click
+msgid "SMS: not clicked"
+msgstr "SMS: не натиснуті"
 
 #. module: marketing_automation_sms
 #: model:ir.model,name:marketing_automation_sms.model_sms_composer
@@ -141,6 +193,11 @@ msgid "Sent"
 msgstr "Надіслано"
 
 #. module: marketing_automation_sms
+#: model:ir.model.fields,help:marketing_automation_sms.field_marketing_activity__mass_mailing_id_mailing_type
+msgid "Technical field doing the mapping of activity type and mailing type."
+msgstr "Технічне поле співставляє тип дії та тип розсилки."
+
+#. module: marketing_automation_sms
 #: code:addons/marketing_automation_sms/models/marketing_activity.py:0
 #, python-format
 msgid ""
@@ -149,3 +206,13 @@ msgid ""
 msgstr ""
 "Для використання цієї функції ви повинні бути адміністратором або належати "
 "до групи автоматизації маркетингу."
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__trigger_category
+msgid "Trigger Category"
+msgstr "Категорія запуску"
+
+#. module: marketing_automation_sms
+#: model:ir.model.fields,field_description:marketing_automation_sms.field_marketing_activity__trigger_type
+msgid "Trigger Type"
+msgstr "Тип тригеру"

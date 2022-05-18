@@ -88,6 +88,13 @@ class HrPayrollAdvice(models.Model):
             date = fields.Date.from_string(fields.Date.today())
             advice_year = date.strftime('%m') + '-' + date.strftime('%Y')
             number = self.env['ir.sequence'].next_by_code('payment.advice')
+            if number is False:
+                self.env['ir.sequence'].create({
+                    'name': "Payment Advice",
+                    'code': "payment.advice",
+                    'padding': 3,
+                })
+                number = self.env['ir.sequence'].next_by_code('payment.advice')
             advice.write({
                 'number': 'PAY' + '/' + advice_year + '/' + number,
                 'state': 'confirm',
@@ -179,6 +186,62 @@ class HrPayslip(models.Model):
     _description = 'Pay Slips'
 
     advice_id = fields.Many2one('hr.payroll.advice', string='Bank Advice', copy=False)
+
+    def get_details_by_rule_category(self):
+        payslip_lines = self.line_ids
+        PayslipLine = self.env['hr.payslip.line']
+        RuleCateg = self.env['hr.salary.rule.category']
+
+        def get_recursive_parent(current_rule_category, rule_categories=None):
+            if rule_categories:
+                rule_categories = current_rule_category | rule_categories
+            else:
+                rule_categories = current_rule_category
+
+            if current_rule_category.parent_id:
+                return get_recursive_parent(current_rule_category.parent_id, rule_categories)
+            else:
+                return rule_categories
+
+        res = {}
+        result = {}
+
+        if payslip_lines:
+            self.env.cr.execute("""
+                SELECT pl.id, pl.category_id, pl.slip_id FROM hr_payslip_line as pl
+                LEFT JOIN hr_salary_rule_category AS rc on (pl.category_id = rc.id)
+                WHERE pl.id in %s
+                GROUP BY rc.parent_id, pl.sequence, pl.id, pl.category_id
+                ORDER BY pl.sequence, rc.parent_id""",
+                (tuple(payslip_lines.ids),))
+            for record in self.env.cr.fetchall():
+                result.setdefault(record[2], {})
+                result[record[2]].setdefault(record[1], [])
+                result[record[2]][record[1]].append(record[0])
+            for payslip_id, lines_dict in result.items():
+                res.setdefault(payslip_id, [])
+                for rule_categ_id, line_ids in lines_dict.items():
+                    rule_categories = RuleCateg.browse(rule_categ_id)
+                    lines = PayslipLine.browse(line_ids)
+                    level = 0
+                    for parent in get_recursive_parent(rule_categories):
+                        res[payslip_id].append({
+                            'rule_category': parent.name,
+                            'name': parent.name,
+                            'code': parent.code,
+                            'level': level,
+                            'total': sum(lines.mapped('total')),
+                        })
+                        level += 1
+                    for line in lines:
+                        res[payslip_id].append({
+                            'rule_category': line.name,
+                            'name': line.name,
+                            'code': line.code,
+                            'total': line.total,
+                            'level': level
+                        })
+        return res
 
 
 class ResCompany(models.Model):

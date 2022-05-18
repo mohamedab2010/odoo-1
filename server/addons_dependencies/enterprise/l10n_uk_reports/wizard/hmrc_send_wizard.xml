@@ -9,7 +9,6 @@
                 <form>
                     <group>
                         <field name="message" invisible="1"/>
-                        <field name="hmrc_cash_basis" invisible="1"/>
                         <field name="obligation_id" options="{'no_create': True}"/>
                     </group>
                     <div class="alert alert-info" role="alert" style="margin-bottom:0px;" attrs="{'invisible': [('message','=', False)]}">
@@ -26,12 +25,9 @@
                     </div>
 
                     <footer>
-                        <button string="Cancel" special="cancel"/>
+                        <button string="Cancel" special="cancel" data-hotkey="z"/>
                         <button string="Send" class="oe_highlight" type="object" name="send"
-                                attrs="{'invisible': ['|', ('accept_legal', '=', False), ('hmrc_cash_basis','=', True)]}"/>
-                        <button string="Send with Cash Accounting Scheme" class="oe_highlight" type="object" name="send"
-                                attrs="{'invisible': ['|', ('accept_legal', '=', False), ('hmrc_cash_basis','=', False)]}"
-                                context="{'hmrc_cash_basis': True}"/>
+                                attrs="{'invisible': [('accept_legal', '=', False)]}"/>
                     </footer>
                 </form>
             </field>

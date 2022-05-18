@@ -3,18 +3,16 @@
 # 	* social_facebook
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Eric Geens <ericgeens@yahoo.com>, 2019
-# Yenthe Van Ginneken <yenthespam@gmail.com>, 2019
-# Erwin van der Ploeg <erwin@odooexperts.nl>, 2020
+# Martin Trigaux, 2021
+# Erwin van der Ploeg <erwin@odooexperts.nl>, 2022
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5+e\n"
+"Project-Id-Version: Odoo Server saas~14.5+e\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-10-01 12:16+0000\n"
-"PO-Revision-Date: 2019-09-23 14:02+0000\n"
-"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2020\n"
+"POT-Creation-Date: 2021-09-14 11:01+0000\n"
+"PO-Revision-Date: 2021-09-14 12:43+0000\n"
+"Last-Translator: Erwin van der Ploeg <erwin@odooexperts.nl>, 2022\n"
 "Language-Team: Dutch (https://www.transifex.com/odoo/teams/41243/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -43,6 +41,12 @@ msgid "Actual Facebook ID of the post"
 msgstr "Facebook ID van de post"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "An error occurred."
+msgstr "Er is een fout opgetreden."
+
+#. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "App ID"
 msgstr "App ID"
@@ -61,6 +65,15 @@ msgid "Author Image"
 msgstr "Afbeelding auteur"
 
 #. module: social_facebook
+#: model:ir.model.fields,help:social_facebook.field_res_config_settings__facebook_use_own_account
+msgid ""
+"Check this if you want to use your personal Facebook Developer Account "
+"instead of the provided one."
+msgstr ""
+"Vink dit aan als je je persoonlijke Facebook-ontwikkelaarsaccount wilt "
+"gebruiken in plaats van de verstrekte."
+
+#. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_comments_count
 msgid "Comments"
 msgstr "Opmerkingen"
@@ -72,6 +85,7 @@ msgstr "Configuratie instellingen"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__display_facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__display_facebook_preview
 msgid "Display Facebook Preview"
 msgstr "Toon Facebook voorvertoning"
 
@@ -143,8 +157,28 @@ msgstr "Facebook post ID"
 
 #. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_social_post__facebook_preview
+#: model:ir.model.fields,field_description:social_facebook.field_social_post_template__facebook_preview
 msgid "Facebook Preview"
 msgstr "Facebook voorvertoning"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token or it may have expired."
+msgstr ""
+"Facebook heeft geen geldig toegangstoken verstrekt of het is mogelijk "
+"verlopen."
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Facebook did not provide a valid access token."
+msgstr "Facebook heeft geen geldig toegangstoken verstrekt."
+
+#. module: social_facebook
+#: model:ir.model.fields,field_description:social_facebook.field_social_stream_post__facebook_is_event_post
+msgid "Is event post"
+msgstr "Is evenement post"
 
 #. module: social_facebook
 #. openerp-web
@@ -172,7 +206,17 @@ msgstr "Pagina posts"
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
 msgid "Post Image"
-msgstr "Post afbeelding"
+msgstr "Plaats afbeelding"
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid ""
+"Post not found. It could be because the post has been deleted on the Social "
+"Platform."
+msgstr ""
+"Bericht niet gevonden. Het kan zijn dat het bericht is verwijderd op het "
+"sociale platform."
 
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
@@ -214,6 +258,11 @@ msgid "Social Post"
 msgstr "Social media post"
 
 #. module: social_facebook
+#: model:ir.model,name:social_facebook.model_social_post_template
+msgid "Social Post Template"
+msgstr "Sjabloon voor sociale berichten"
+
+#. module: social_facebook
 #: model:ir.model,name:social_facebook.model_social_stream
 msgid "Social Stream"
 msgstr "Social media stream"
@@ -224,14 +273,33 @@ msgid "Social Stream Post"
 msgstr "Social media post"
 
 #. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "There is no page linked to this account"
+msgstr "Er is geen pagina gekoppeld aan dit account"
+
+#. module: social_facebook
+#: code:addons/social_facebook/controllers/main.py:0
+#, python-format
+msgid "Unauthorized. Please contact your administrator. "
+msgstr "Niet geautoriseerd. Neem contact op met je applicatiebeheerder."
+
+#. module: social_facebook
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#: code:addons/social_facebook/models/social_stream_post.py:0
+#, python-format
+msgid "Unknown"
+msgstr "Onbekend"
+
+#. module: social_facebook
 #: model:ir.model.fields,field_description:social_facebook.field_res_config_settings__facebook_use_own_account
 msgid "Use your own Facebook Account"
-msgstr "Gebruik uw eigen Facebook account"
+msgstr "Gebruik je eigen Facebook account"
 
 #. module: social_facebook
 #: model_terms:ir.ui.view,arch_db:social_facebook.res_config_settings_view_form
 msgid "Use your own Facebook Developer Account on our Social app"
-msgstr "Gebruik uw eigen Facebook developer account op onze social app"
+msgstr "Gebruik je eigen Facebook developer account op onze social app"
 
 #. module: social_facebook
 #: model:ir.model.fields,help:social_facebook.field_social_media__media_type
@@ -256,10 +324,26 @@ msgid "Views"
 msgstr "Weergaven"
 
 #. module: social_facebook
+#: code:addons/social_facebook/models/social_live_post.py:0
+#: code:addons/social_facebook/models/social_post.py:0
+#, python-format
+msgid ""
+"We could not upload your image, try reducing its size and posting it again "
+"(error: %s)."
+msgstr ""
+"We konden je afbeelding niet uploaden, probeer de grootte te verkleinen en "
+"opnieuw te plaatsen (fout: %s)."
+
+#. module: social_facebook
 #: code:addons/social_facebook/models/social_media.py:0
 #, python-format
 msgid "You don't have an active subscription. Please buy one here: %s"
-msgstr "U heeft geen actief abonnement. U kunt er hier één kopen: %s"
+msgstr "Je hebt geen actief abonnement. Je kunt er hier één kopen: %s"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.social_stream_post_view_kanban
+msgid "added an event"
+msgstr "heeft een evenement toegevoegd"
 
 #. module: social_facebook
 #. openerp-web
@@ -267,3 +351,8 @@ msgstr "U heeft geen actief abonnement. U kunt er hier één kopen: %s"
 #, python-format
 msgid "comment/reply"
 msgstr "opmerking/reactie"
+
+#. module: social_facebook
+#: model_terms:ir.ui.view,arch_db:social_facebook.facebook_preview
+msgid "• <i class=\"fa fa-globe\"/>"
+msgstr "• <i class=\"fa fa-globe\"/>"

@@ -2,6 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
+from odoo.fields import Command
 
 
 class TestType(models.Model):
@@ -18,26 +19,73 @@ class TestType(models.Model):
 
 
 class MrpRouting(models.Model):
-    _inherit = "mrp.routing"
+    _inherit = "mrp.routing.workcenter"
+
+    quality_point_ids = fields.One2many('quality.point', 'operation_id', copy=True)
+    quality_point_count = fields.Integer('Steps', compute='_compute_quality_point_count')
+
+    @api.depends('quality_point_ids')
+    def _compute_quality_point_count(self):
+        read_group_res = self.env['quality.point'].sudo().read_group(
+            [('id', 'in', self.quality_point_ids.ids)],
+            ['operation_id'], 'operation_id'
+        )
+        data = dict((res['operation_id'][0], res['operation_id_count']) for res in read_group_res)
+        for operation in self:
+            operation.quality_point_count = data.get(operation.id, 0)
+
+    def write(self, vals):
+        res = super().write(vals)
+        if 'bom_id' in vals:
+            self.quality_point_ids._change_product_ids_for_bom(self.bom_id)
+        return res
+
+    def copy(self, default=None):
+        res = super().copy(default)
+        if default and "bom_id" in default:
+            res.quality_point_ids._change_product_ids_for_bom(res.bom_id)
+        return res
+
+    def toggle_active(self):
+        self.with_context(active_test=False).quality_point_ids.toggle_active()
+        return super().toggle_active()
 
     def action_mrp_workorder_show_steps(self):
         self.ensure_one()
         picking_type_id = self.env['stock.picking.type'].search([('code', '=', 'mrp_operation')], limit=1).id
-        action = self.env.ref('mrp_workorder.action_mrp_workorder_show_steps').read()[0]
-        ctx = dict(self._context, default_picking_type_id=picking_type_id, default_company_id=self.company_id.id)
-        action.update({'context': ctx})
+        action = self.env["ir.actions.actions"]._for_xml_id("mrp_workorder.action_mrp_workorder_show_steps")
+        ctx = {
+            'default_company_id': self.company_id.id,
+            'default_operation_id': self.id,
+            'default_picking_type_ids': [picking_type_id],
+        }
+        action.update({'context': ctx, 'domain': [('operation_id', '=', self.id)]})
         return action
+
 
 class QualityPoint(models.Model):
     _inherit = "quality.point"
 
-    code = fields.Selection(related='picking_type_id.code', readonly=False)  # TDE FIXME: necessary ?
+    def _default_product_ids(self):
+        # Determines a default product from the default operation's BOM.
+        operation_id = self.env.context.get('default_operation_id')
+        if operation_id:
+            bom = self.env['mrp.routing.workcenter'].browse(operation_id).bom_id
+            return bom.product_id.ids if bom.product_id else bom.product_tmpl_id.product_variant_id.ids
+
+    is_workorder_step = fields.Boolean(compute='_compute_is_workorder_step')
     operation_id = fields.Many2one(
         'mrp.routing.workcenter', 'Step', check_company=True)
-    routing_id = fields.Many2one(related='operation_id.routing_id', readonly=False)
+    bom_id = fields.Many2one(related='operation_id.bom_id')
+    bom_active = fields.Boolean('Related Bill of Material Active', related='bom_id.active')
+    component_ids = fields.One2many('product.product', compute='_compute_component_ids')
+    product_ids = fields.Many2many(
+        default=_default_product_ids,
+        domain="operation_id and [('id', 'in', bom_product_ids)] or [('type', 'in', ('product', 'consu')), '|', ('company_id', '=', False), ('company_id', '=', company_id)]")
+    bom_product_ids = fields.One2many('product.product', compute="_compute_bom_product_ids")
     test_type_id = fields.Many2one(
         'quality.point.test_type',
-        domain="[('allow_registration', '=', operation_id and code == 'mrp_operation')]")
+        domain="[('allow_registration', '=', operation_id and is_workorder_step)]")
     test_report_type = fields.Selection([('pdf', 'PDF'), ('zpl', 'ZPL')], string="Report Type", default="pdf", required=True)
     worksheet = fields.Selection([
         ('noupdate', 'Do not update page'),
@@ -47,32 +95,55 @@ class QualityPoint(models.Model):
     # Used with type register_consumed_materials the product raw to encode.
     component_id = fields.Many2one('product.product', 'Product To Register', check_company=True)
 
-    @api.onchange('product_tmpl_id')
-    def onchange_product_tmpl_id(self):
-        if self.picking_type_id.code != 'mrp_operation':
-            return super().onchange_product_tmpl_id()
+    @api.onchange('bom_product_ids', 'is_workorder_step')
+    def _onchange_bom_product_ids(self):
+        if self.is_workorder_step and self.bom_product_ids:
+            self.product_ids = self.product_ids._origin & self.bom_product_ids
+            self.product_category_ids = False
 
-    @api.onchange('product_id', 'product_tmpl_id', 'picking_type_id', 'test_type_id')
-    def _onchange_product(self):
-        bom_ids = self.env['mrp.bom'].search([('product_tmpl_id', '=', self.product_tmpl_id.id)])
-        component_ids = set([])
-        if self.test_type == 'register_consumed_materials':
-            for bom in bom_ids:
-                boms_done, lines_done = bom.explode(self.product_id, 1.0)
-                component_ids |= {l[0].product_id.id for l in lines_done}
-        if self.test_type == 'register_byproducts':
-            for bom in bom_ids:
-                component_ids |= {byproduct.product_id.id for byproduct in bom.byproduct_ids}
-        routing_ids = bom_ids.mapped('routing_id.id')
-        if self.picking_type_id.code == 'mrp_operation':
-            return {
-                'domain': {
-                    'operation_id': [('routing_id', 'in', routing_ids), '|', ('company_id', '=', self.company_id.id), ('company_id', '=', False)],
-                    'component_id': [('id', 'in', list(component_ids)), '|', ('company_id', '=', self.company_id.id), ('company_id', '=', False)],
-                    'product_tmpl_id': [('bom_ids', '!=', False), ('bom_ids.routing_id', '!=', False), '|', ('company_id', '=', self.company_id.id), ('company_id', '=', False)],
-                    'product_id': [('variant_bom_ids', '!=', False), ('variant_bom_ids.routing_id', '!=', False), '|', ('company_id', '=', self.company_id.id), ('company_id', '=', False)],
-                }
-            }
+    @api.depends('bom_id.product_id', 'bom_id.product_tmpl_id.product_variant_ids', 'is_workorder_step', 'bom_id')
+    def _compute_bom_product_ids(self):
+        self.bom_product_ids = False
+        points_for_workorder_step = self.filtered(lambda p: p.operation_id and p.bom_id)
+        for point in points_for_workorder_step:
+            bom_product_ids = point.bom_id.product_id or point.bom_id.product_tmpl_id.product_variant_ids
+            point.bom_product_ids = bom_product_ids.filtered(lambda p: not p.company_id or p.company_id == point.company_id._origin)
+
+    @api.depends('product_ids', 'test_type_id', 'is_workorder_step')
+    def _compute_component_ids(self):
+        self.component_ids = False
+        for point in self:
+            if not point.is_workorder_step or not self.bom_id or point.test_type not in ('register_consumed_materials', 'register_byproducts'):
+                point.component_id = None
+                continue
+            if point.test_type == 'register_byproducts':
+                point.component_ids = point.bom_id.byproduct_ids.product_id
+            else:
+                bom_products = point.bom_id.product_id or point.bom_id.product_tmpl_id.product_variant_ids
+                # If product_ids is set the step will exist only for these product variant then we can filter out for the bom explode
+                if point.product_ids:
+                    bom_products &= point.product_ids._origin
+
+                component_product_ids = set()
+                for product in bom_products:
+                    dummy, lines_done = point.bom_id.explode(product, 1.0)
+                    component_product_ids |= {line[0].product_id.id for line in lines_done}
+                point.component_ids = self.env['product.product'].browse(component_product_ids)
+
+    @api.depends('operation_id', 'picking_type_ids')
+    def _compute_is_workorder_step(self):
+        for quality_point in self:
+            quality_point.is_workorder_step = quality_point.operation_id or quality_point.picking_type_ids and\
+                all(pt.code == 'mrp_operation' for pt in quality_point.picking_type_ids)
+
+    def _change_product_ids_for_bom(self, bom_id):
+        products = bom_id.product_id or bom_id.product_tmpl_id.product_variant_ids
+        self.product_ids = [Command.set(products.ids)]
+
+    @api.onchange('operation_id')
+    def _onchange_operation_id(self):
+        if self.operation_id:
+            self._change_product_ids_for_bom(self.bom_id)
 
 
 class QualityAlert(models.Model):
@@ -81,6 +152,7 @@ class QualityAlert(models.Model):
     workorder_id = fields.Many2one('mrp.workorder', 'Operation', check_company=True)
     workcenter_id = fields.Many2one('mrp.workcenter', 'Work Center', check_company=True)
     production_id = fields.Many2one('mrp.production', "Production Order", check_company=True)
+
 
 class QualityCheck(models.Model):
     _inherit = "quality.check"
@@ -91,18 +163,22 @@ class QualityCheck(models.Model):
     production_id = fields.Many2one(
         'mrp.production', 'Production Order', check_company=True)
 
+    # doubly linked chain for tablet view navigation
+    next_check_id = fields.Many2one('quality.check')
+    previous_check_id = fields.Many2one('quality.check')
+
     # For components registration
-    parent_id = fields.Many2one(
-        'quality.check', 'Parent Quality Check', check_company=True)
+    move_id = fields.Many2one(
+        'stock.move', 'Stock Move', check_company=True)
+    move_line_id = fields.Many2one(
+        'stock.move.line', 'Stock Move Line', check_company=True)
     component_id = fields.Many2one(
         'product.product', 'Component', check_company=True)
-    component_uom_id = fields.Many2one('uom.uom', compute='_compute_component_uom', readonly=True)
-    workorder_line_id = fields.Many2one(
-        'mrp.workorder.line', 'Workorder Line', check_company=True)
-    qty_done = fields.Float('Done', default=1.0, digits='Product Unit of Measure')
-    finished_lot_id = fields.Many2one(
-        'stock.production.lot', 'Finished Product Lot',
-        domain="[('product_id', '=', product_id), ('company_id', '=', company_id)]")
+    component_uom_id = fields.Many2one('uom.uom', related='move_id.product_uom', readonly=True)
+
+    qty_done = fields.Float('Done', digits='Product Unit of Measure')
+    finished_lot_id = fields.Many2one('stock.production.lot', 'Finished Lot/Serial', related='production_id.lot_producing_id', store=True)
+    additional = fields.Boolean('Register additional product', compute='_compute_additional')
 
     # Computed fields
     title = fields.Char('Title', compute='_compute_title')
@@ -126,17 +202,10 @@ class QualityCheck(models.Model):
                     value['component_id'] = point.component_id.id
         return super(QualityCheck, self).create(values)
 
-    @api.depends('component_id', 'workorder_id')
-    def _compute_component_uom(self):
-        for check in self:
-            move = check.workorder_id.move_raw_ids.filtered(lambda move: move.product_id == check.component_id)
-            check.component_uom_id = move.product_uom
-
     def _compute_title(self):
+        super()._compute_title()
         for check in self:
-            if check.point_id:
-                check.title = check.point_id.title
-            else:
+            if not check.point_id or check.component_id:
                 check.title = '{} "{}"'.format(check.test_type_id.display_name, check.component_id.name)
 
     @api.depends('point_id', 'quality_state', 'component_id', 'component_uom_id', 'lot_id', 'qty_done')
@@ -149,10 +218,44 @@ class QualityCheck(models.Model):
             else:
                 check.result = check._get_check_result()
 
+    @api.depends('move_id')
+    def _compute_additional(self):
+        """ The stock_move is linked to additional workorder line only at
+        record_production. So line without move during production are additionnal
+        ones. """
+        for check in self:
+            check.additional = not check.move_id
+
     def _get_check_result(self):
         if self.test_type in ('register_consumed_materials', 'register_byproducts') and self.lot_id:
             return '{} - {}, {} {}'.format(self.component_id.name, self.lot_id.name, self.qty_done, self.component_uom_id.name)
-        elif self.test_type in ('register_consumed_materials', 'register_byproducts') and self.qty_done > 0:
+        elif self.test_type in ('register_consumed_materials', 'register_byproducts'):
             return '{}, {} {}'.format(self.component_id.name, self.qty_done, self.component_uom_id.name)
         else:
             return ''
+
+    def _insert_in_chain(self, position, relative):
+        """Insert the quality check `self` in a chain of quality checks.
+
+        The chain of quality checks is implicitly given by the `relative` argument,
+        i.e. by following its `previous_check_id` and `next_check_id` fields.
+
+        :param position: Where we need to insert `self` according to `relative`
+        :type position: string
+        :param relative: Where we need to insert `self` in the chain
+        :type relative: A `quality.check` record.
+        """
+        self.ensure_one()
+        assert position in ['before', 'after']
+        if position == 'before':
+            new_previous = relative.previous_check_id
+            self.next_check_id = relative
+            self.previous_check_id = new_previous
+            new_previous.next_check_id = self
+            relative.previous_check_id = self
+        else:
+            new_next = relative.next_check_id
+            self.next_check_id = new_next
+            self.previous_check_id = relative
+            new_next.previous_check_id = self
+            relative.next_check_id = self

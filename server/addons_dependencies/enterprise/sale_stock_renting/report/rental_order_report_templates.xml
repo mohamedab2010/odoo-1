@@ -2,7 +2,7 @@
 <odoo>
     <template id="report_rental_order_document" inherit_id="sale_renting.report_rental_order_document">
         <xpath expr="//div/table/thead/tr" position="inside">
-            <t t-set="display_serial_numbers" t-value="any([l.pickedup_lot_ids for l in doc.order_line])"/>
+            <t t-set="display_serial_numbers" t-value="any(l.pickedup_lot_ids for l in doc.order_line)"/>
             <th t-if="display_serial_numbers" class="text-right">Serial Numbers</th>
         </xpath>
         <xpath expr="//div/table/tbody/t/tr" position="inside">

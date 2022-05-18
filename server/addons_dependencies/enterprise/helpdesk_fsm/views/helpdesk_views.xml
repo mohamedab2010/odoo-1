@@ -5,6 +5,7 @@
         <record id="helpdesk_ticket_view_form" model="ir.ui.view">
             <field name="name">helpdesk.ticket.form.inherit</field>
             <field name="model">helpdesk.ticket</field>
+            <field name="priority">80</field>
             <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
             <field name="arch" type="xml">
                 <xpath expr="header" position="inside">
@@ -24,20 +25,10 @@
             <field name="model">helpdesk.team</field>
             <field name="inherit_id" ref="helpdesk.helpdesk_team_view_form" />
             <field name="arch" type="xml">
-                <xpath expr="//div[@id='after-sales']" position="after">
-                    <h2>Field Service</h2>
-                    <div class="row mt32 o_settings_container" id="field_service">
-                        <div class="col-lg-6 o_setting_box">
-                            <div class="o_setting_left_pane">
-                                <field name="use_fsm"/>
-                            </div>
-                            <div class="o_setting_right_pane">
-                                <label for="use_fsm"/>
-                                <div class="text-muted">
-                                    Plan Field Service tasks from tickets
-                                </div>
-                            </div>
-                        </div>
+                <xpath expr="//div[@id='field_service']" position="replace">
+                    <div attrs="{'invisible': [('use_fsm', '=', False)]}" class="mt-2">
+                        <label for="fsm_project_id" string="Project" />
+                        <field name="fsm_project_id" attrs="{'required': [('use_fsm', '=', True)]}" context="{'default_is_fsm': True}" />
                     </div>
                 </xpath>
             </field>

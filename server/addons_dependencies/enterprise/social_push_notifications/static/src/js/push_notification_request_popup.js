@@ -40,8 +40,22 @@ var NotificationRequestPopup = Widget.extend({
             if ($mainNavBar && $mainNavBar.length !== 0){
                 self.$el.addClass('o_social_push_notifications_permission_with_menubar');
             }
-            setTimeout(self._toggleDropdown.bind(self), self.notificationDelay * 1000);
+            self.timer = setTimeout(self._toggleDropdown.bind(self), self.notificationDelay * 1000);
+            const dropdown = self.$el.find('.dropdown');
+            dropdown.on('hide.bs.dropdown', () => {
+                self.destroy();
+            });
         });
+    },
+
+    /**
+     * @override
+     */
+    destroy: function () {
+        this._super(...arguments);
+        if (this.timer) {
+            clearTimeout(this.timer);
+        }
     },
 
     //--------------------------------------------------------------------------

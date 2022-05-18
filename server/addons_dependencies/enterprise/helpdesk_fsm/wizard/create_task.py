@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details
 
-from odoo import models, fields, _
+from odoo import models, fields, api, _
 
 
 class CreateTask(models.TransientModel):
@@ -14,11 +14,31 @@ class CreateTask(models.TransientModel):
     project_id = fields.Many2one('project.project', string='Project', help='Project in which to create the task', required=True, domain="[('company_id', '=', company_id), ('is_fsm', '=', True)]")
     partner_id = fields.Many2one('res.partner', string='Customer', help="Ticket's customer, will be linked to the task", required=True, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
 
+    @api.model
+    def default_get(self, fields_list):
+        defaults = super(CreateTask, self).default_get(fields_list)
+        if 'project_id' in fields_list and not defaults.get('project_id'):
+            task_default = self.env['project.task'].with_context(fsm_mode=True).default_get(['project_id'])
+            defaults.update({'project_id': task_default.get('project_id', False)})
+        partner_id = defaults.get('partner_id')
+        if partner_id:
+            delivery = self.env['res.partner'].browse(partner_id).address_get(['delivery']).get('delivery')
+            if delivery:
+                defaults.update({'partner_id': delivery})
+        return defaults
+
+    def _generate_task_values(self):
+        self.ensure_one()
+        return {
+            'name': self.name,
+            'helpdesk_ticket_id': self.helpdesk_ticket_id.id,
+            'project_id': self.project_id.id,
+            'partner_id': self.partner_id.id,
+        }
+
     def action_generate_task(self):
         self.ensure_one()
-        values = self._prepare_values()
-        new_task = self.env['project.task'].create(self._convert_to_write(values))
-        return new_task
+        return self.env['project.task'].create(self._generate_task_values())
 
     def action_generate_and_view_task(self):
         self.ensure_one()
@@ -29,14 +49,8 @@ class CreateTask(models.TransientModel):
             'res_model': 'project.task',
             'res_id': new_task.id,
             'view_mode': 'form',
-            'view_id': self.env.ref('industry_fsm.project_task_view_form').id,
+            'view_id': self.env.ref('project.view_task_form2').id,
             'context': {
                 'fsm_mode': True,
             }
         }
-
-    def _prepare_values(self, values={}):
-        prepared_values = dict(values)
-        for fname in ['helpdesk_ticket_id', 'name', 'project_id', 'partner_id']:
-            prepared_values[fname] = self[fname]
-        return prepared_values

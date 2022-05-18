@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 
 class Job(models.Model):
     _inherit = "hr.job"
-    _order = 'job_open_date'
+    _order = 'sequence, job_open_date'
 
     job_open_date = fields.Date('Job Start Recruitment Date', default=fields.Date.today())
     utm_campaign_id = fields.Many2one('utm.campaign', 'Campaign', ondelete='cascade')
@@ -44,7 +44,7 @@ class Job(models.Model):
 
     def _compute_max_points(self):
         for job in self:
-            stages = self.env['hr.recruitment.stage'].search(['|', ('job_ids', '=', False), ('job_ids', '=', job.id)])
+            stages = self.env['hr.recruitment.stage'].search([('use_in_referral', '=', True), '|', ('job_ids', '=', False), ('job_ids', '=', job.id)])
             job.max_points = sum(stages.mapped('points'))
 
     def set_recruit(self):

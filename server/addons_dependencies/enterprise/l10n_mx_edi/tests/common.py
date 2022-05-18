@@ -1,137 +1,318 @@
 # coding: utf-8
-
-from odoo.addons.account.tests.account_test_classes import AccountingTestCase
+from odoo.addons.account_edi.tests.common import AccountEdiTestCommon
 from odoo.tests import tagged
+from odoo.tools import misc
+
+import base64
+import os
+import datetime
+
+from pytz import timezone
 
 
-@tagged('post_install', '-at_install')
-class InvoiceTransactionCase(AccountingTestCase):
-    def setUp(self):
-        super(InvoiceTransactionCase, self).setUp()
-        self.manager_billing = self.env['res.users'].with_context(no_reset_password=True).create({  # noqa
-            'name': 'Manager billing mx',
-            'login': 'mx_billing_manager',
-            'email': 'mx_billing_manager@yourcompany.com',
-            'company_id': self.env.ref('base.main_company').id,
-            'groups_id': [(6, 0, [
-                self.ref('account.group_account_manager'),
-                self.ref('account.group_account_user'),
-                self.ref('base.group_system'),
-                self.ref('base.group_partner_manager')
-            ])]
+def mocked_l10n_mx_edi_pac(edi_format, invoice, exported):
+    exported['cfdi_signed'] = exported['cfdi_str']
+    exported['cfdi_encoding'] = 'str'
+    return exported
+
+
+@tagged('post_install_l10n', '-at_install', 'post_install')
+class TestMxEdiCommon(AccountEdiTestCommon):
+
+    @classmethod
+    def setUpClass(cls, chart_template_ref='l10n_mx.mx_coa', edi_format_ref='l10n_mx_edi.edi_cfdi_3_3'):
+        super().setUpClass(chart_template_ref=chart_template_ref, edi_format_ref=edi_format_ref)
+
+        cls.frozen_today = datetime.datetime(year=2017, month=1, day=1, hour=0, minute=0, second=0, tzinfo=timezone('utc'))
+
+        # Allow to see the full result of AssertionError.
+        cls.maxDiff = None
+
+        # ==== Config ====
+
+        cls.certificate = cls.env['l10n_mx_edi.certificate'].create({
+            'content': base64.encodebytes(misc.file_open(os.path.join('l10n_mx_edi', 'demo', 'pac_credentials', 'certificate.cer'), 'rb').read()),
+            'key': base64.encodebytes(misc.file_open(os.path.join('l10n_mx_edi', 'demo', 'pac_credentials', 'certificate.key'), 'rb').read()),
+            'password': '12345678a',
+        })
+        cls.certificate.write({
+            'date_start': '2016-01-01 01:00:00',
+            'date_end': '2018-01-01 01:00:00',
         })
 
-        self.uid = self.manager_billing
-        self.tax_model = self.env['account.tax']
-        self.partner_agrolait = self.env.ref("base.res_partner_address_4")
-        self.partner_agrolait.type = 'invoice'
-        self.partner_agrolait.parent_id.street_name = 'Street Parent'
-        self.product = self.env.ref("product.product_product_3")
-        self.company = self.env.company
-        self.account_settings = self.env['res.config.settings']
-        self.tax_positive = self.tax_model.create({
-            'name': 'IVA(16%) VENTAS TEST',
-            'description': 'IVA(16%)',
-            'amount': 16,
+        cls.company_values = {
+            'vat': 'EKU9003173C9',
+            'street': 'Campobasso Norte 3206/9000',
+            'street2': 'Fraccionamiento Montecarlo',
+            'zip': '85134',
+            'city': 'Ciudad Obregón',
+            'country_id': cls.env.ref('base.mx').id,
+            'state_id': cls.env.ref('base.state_mx_son').id,
+            'l10n_mx_edi_pac': 'solfact',
+            'l10n_mx_edi_pac_test_env': True,
+            'l10n_mx_edi_fiscal_regime': '601',
+            'l10n_mx_edi_certificate_ids': [(6, 0, cls.certificate.ids)],
+        }
+        cls.company_data['company'].write(cls.company_values)
+
+        cls.currency_data['currency'].l10n_mx_edi_decimal_places = 3
+
+        # Rename USD to something else and create a new USD with defined rates.
+        # Done like this because currencies should be fetched by name, not by xml_id
+        cls.env.ref('base.USD').name = 'FUSD'
+        cls.env['res.currency'].flush(['name'])
+        cls.fake_usd_data = cls.setup_multi_currency_data(default_values={
+            'name': 'USD',
+            'symbol': '$',
+            'rounding': 0.01,
+            'l10n_mx_edi_decimal_places': 2,
+        }, rate2016=6.0, rate2017=4.0)
+
+        # Prevent the xsd validation because it could lead to a not-deterministic behavior since the xsd is downloaded
+        # by a CRON.
+        xsd_attachment = cls.env.ref('l10n_mx_edi.xsd_cached_cfdv33_xsd', False)
+        if xsd_attachment:
+            xsd_attachment.unlink()
+
+        # ==== Business ====
+
+        cls.tax_16 = cls.env['account.tax'].create({
+            'name': 'tax_16',
             'amount_type': 'percent',
+            'amount': 16,
             'type_tax_use': 'sale',
+            'l10n_mx_tax_type': 'Tasa',
         })
-        self.tax_positive.l10n_mx_cfdi_tax_type = 'Tasa'
-        self.tax_negative = self.tax_model.create({
-            'name': 'ISR',
+
+        cls.tax_10_negative = cls.env['account.tax'].create({
+            'name': 'tax_10_negative',
             'amount_type': 'percent',
             'amount': -10,
-            'l10n_mx_cfdi_tax_type': 'Tasa',
-        })
-        self.product.taxes_id = [self.tax_positive.id, self.tax_negative.id]
-        self.product.l10n_mx_edi_code_sat_id = self.ref(
-            'l10n_mx_edi.prod_code_sat_01010101')
-        self.payment_term = self.env.ref('account.account_payment_term_30days')
-        # force PPD
-        self.payment_term.line_ids.days = 90
-        self.company.l10n_mx_edi_fiscal_regime = '601'
-        self.payment_method_cash = self.env.ref(
-            'l10n_mx_edi.payment_method_efectivo')
-        self.account_payment = self.env['res.partner.bank'].create({
-            'acc_number': '123456789',
-            'partner_id': self.partner_agrolait.id,
-        })
-        self.rate_model = self.env['res.currency.rate']
-        self.mxn = self.env.ref('base.MXN')
-        self.usd = self.env.ref('base.USD')
-        self.ova = self.env['account.account'].search([
-            ('user_type_id', '=', self.env.ref(
-                'account.data_account_type_current_assets').id)], limit=1)
-        self.user_billing = self.env['res.users'].with_context(no_reset_password=True).create({  # noqa
-            'name': 'User billing mx',
-            'login': 'mx_billing_user',
-            'email': 'mx_billing_user@yourcompany.com',
-            'company_id': self.env.ref('base.main_company').id,
-            'groups_id': [(6, 0, [self.ref('account.group_account_invoice')])]
+            'type_tax_use': 'sale',
+            'l10n_mx_tax_type': 'Tasa',
         })
 
-    def set_currency_rates(self, mxn_rate, usd_rate):
-        date = (self.env['l10n_mx_edi.certificate'].sudo().
-                get_mx_current_datetime().date())
-        self.mxn.rate_ids.filtered(
-            lambda r: r.name == date).unlink()
-        self.mxn.rate_ids = self.rate_model.create({
-            'rate': mxn_rate, 'name': date})
-        self.usd.rate_ids.filtered(
-            lambda r: r.name == date).unlink()
-        self.usd.rate_ids = self.rate_model.create({
-            'rate': usd_rate, 'name': date})
+        cls.tax_group = cls.env['account.tax'].create({
+            'name': 'tax_group',
+            'amount_type': 'group',
+            'amount': 0.0,
+            'type_tax_use': 'sale',
+            'children_tax_ids': [(6, 0, (cls.tax_16 + cls.tax_10_negative).ids)],
+        })
 
-    def create_invoice(self, inv_type='out_invoice', currency_id=None):
-        if currency_id is None:
-            currency_id = self.usd.id
-        self.partner_agrolait.lang = None
-        invoice = self.env['account.move'].with_env(self.env(user=self.user_billing)).with_context(default_type=inv_type).create({
-            'partner_id': self.partner_agrolait.id,
-            'type': inv_type,
-            'currency_id': currency_id,
-            'l10n_mx_edi_payment_method_id': self.payment_method_cash.id,
-            'l10n_mx_edi_partner_bank_id': self.account_payment.id,
-            'invoice_line_ids': [(0, 0, {
-                'product_id': self.product.id,
-                'quantity': 1,
-                'price_unit': 450.0,
-                'product_uom_id': self.product.uom_id.id,
-                'name': self.product.name,
+        cls.product = cls.env['product.product'].create({
+            'name': 'product_mx',
+            'weight': 2,
+            'uom_po_id': cls.env.ref('uom.product_uom_kgm').id,
+            'uom_id': cls.env.ref('uom.product_uom_kgm').id,
+            'lst_price': 1000.0,
+            'property_account_income_id': cls.company_data['default_account_revenue'].id,
+            'property_account_expense_id': cls.company_data['default_account_expense'].id,
+            'unspsc_code_id': cls.env.ref('product_unspsc.unspsc_code_01010101').id,
+        })
+
+        cls.payment_term = cls.env['account.payment.term'].create({
+            'name': 'test l10n_mx_edi',
+            'line_ids': [(0, 0, {
+                'value': 'balance',
+                'value_amount': 0.0,
+                'days': 90,
+                'option': 'day_after_invoice_date',
             })],
         })
-        return invoice
-        # TODO: fix that...
-        # self.env['account.move.line'].create({
-        #     'name': 'Test Tax for Customer Invoice',
-        #     'debit': 0.0,
-        #     'credit': 0.0,
-        #     'account_id': self.ova.id,
-        #     'invoice_id': invoice.id,
-        # })
 
-    def xml_merge_dynamic_items(self, xml, xml_expected):
-        xml_expected.attrib['Fecha'] = xml.attrib['Fecha']
-        xml_expected.attrib['Sello'] = xml.attrib['Sello']
-        xml_expected.attrib['Serie'] = xml.attrib['Serie']
-        xml_expected.Complemento = xml.Complemento
+        cls.partner_a.write({
+            'property_supplier_payment_term_id': cls.payment_term.id,
+            'country_id': cls.env.ref('base.us').id,
+            'state_id': cls.env.ref('base.state_us_23').id,
+            'zip': 39301,
+            'vat': '123456789',
+        })
 
-    def xml2dict(self, xml):
-        """Receive 1 lxml etree object and return a dict string.
-        This method allow us have a precise diff output"""
-        def recursive_dict(element):
-            return (element.tag,
-                    dict((recursive_dict(e) for e in element.getchildren()),
-                         ____text=(element.text or '').strip(), **element.attrib))
-        return dict([recursive_dict(xml)])
+        # ==== Records needing CFDI ====
 
-    def assertEqualXML(self, xml_real, xml_expected):
-        """Receive 2 objectify objects and show a diff assert if exists."""
-        xml_expected = self.xml2dict(xml_expected)
-        xml_real = self.xml2dict(xml_real)
-        # "self.maxDiff = None" is used to get a full diff from assertEqual method
-        # This allow us get a precise and large log message of where is failing
-        # expected xml vs real xml More info:
-        # https://docs.python.org/2/library/unittest.html#unittest.TestCase.maxDiff
-        self.maxDiff = None
-        self.assertEqual(xml_real, xml_expected)
+        cls.invoice = cls.env['account.move'].create({
+            'move_type': 'out_invoice',
+            'partner_id': cls.partner_a.id,
+            'invoice_date': '2017-01-01',
+            'date': '2017-01-01',
+            'currency_id': cls.currency_data['currency'].id,
+            'invoice_incoterm_id': cls.env.ref('account.incoterm_FCA').id,
+            'invoice_line_ids': [(0, 0, {
+                'product_id': cls.product.id,
+                'price_unit': 2000.0,
+                'quantity': 5,
+                'discount': 20.0,
+                'tax_ids': [(6, 0, (cls.tax_16 + cls.tax_10_negative).ids)],
+            })],
+        })
+
+        cls.credit_note = cls.env['account.move'].create({
+            'move_type': 'out_refund',
+            'partner_id': cls.partner_a.id,
+            'invoice_date': '2017-01-01',
+            'date': '2017-01-01',
+            'currency_id': cls.currency_data['currency'].id,
+            'invoice_incoterm_id': cls.env.ref('account.incoterm_FCA').id,
+            'invoice_line_ids': [(0, 0, {
+                'product_id': cls.product.id,
+                'price_unit': 2000.0,
+                'quantity': 5,
+                'discount': 20.0,
+                'tax_ids': [(6, 0, (cls.tax_16 + cls.tax_10_negative).ids)],
+            })],
+        })
+
+        cls.expected_invoice_cfdi_values = '''
+            <Comprobante
+                Certificado="___ignore___"
+                Fecha="2017-01-01T17:00:00"
+                Folio="1"
+                FormaPago="99"
+                LugarExpedicion="85134"
+                MetodoPago="PUE"
+                Moneda="Gol"
+                NoCertificado="''' + cls.certificate.serial_number + '''"
+                Serie="INV/2017/"
+                Sello="___ignore___"
+                Descuento="2000.000"
+                SubTotal="10000.000"
+                Total="8480.000"
+                TipoCambio="0.500000"
+                TipoDeComprobante="I"
+                Version="3.3">
+                <Emisor
+                    Rfc="EKU9003173C9"
+                    Nombre="company_1_data"
+                    RegimenFiscal="601"/>
+                <Receptor
+                    Rfc="XEXX010101000"
+                    Nombre="partner_a"
+                    UsoCFDI="P01"/>
+                <Conceptos>
+                    <Concepto
+                        Cantidad="5.000000"
+                        ClaveProdServ="01010101"
+                        Descripcion="product_mx"
+                        Importe="10000.000"
+                        Descuento="2000.000"
+                        ValorUnitario="2000.000">
+                        <Impuestos>
+                            <Traslados>
+                                <Traslado
+                                    Base="8000.000"
+                                    Importe="1280.00"
+                                    TasaOCuota="0.160000"
+                                    TipoFactor="Tasa"/>
+                            </Traslados>
+                            <Retenciones>
+                                <Retencion
+                                    Base="8000.000"
+                                    Importe="800.00"
+                                    TasaOCuota="0.100000"
+                                    TipoFactor="Tasa"/>
+                            </Retenciones>
+                        </Impuestos>
+                    </Concepto>
+                </Conceptos>
+                <Impuestos
+                    TotalImpuestosRetenidos="800.000"
+                    TotalImpuestosTrasladados="1280.000">
+                    <Retenciones>
+                        <Retencion
+                            Importe="800.000"/>
+                    </Retenciones>
+                    <Traslados>
+                        <Traslado
+                            Importe="1280.000"
+                            TasaOCuota="0.160000"
+                            TipoFactor="Tasa"/>
+                    </Traslados>
+                </Impuestos>
+            </Comprobante>
+        '''
+
+        cls.payment = cls.env['account.payment'].create({
+            'date': '2017-01-01',
+            'amount': cls.invoice.amount_total,
+            'payment_type': 'inbound',
+            'partner_type': 'customer',
+            'partner_id': cls.partner_a.id,
+            'currency_id': cls.currency_data['currency'].id,
+            'payment_method_line_id': cls.outbound_payment_method_line.payment_method_id.id,
+            'journal_id': cls.company_data['default_journal_bank'].id,
+        })
+
+        cls.statement = cls.env['account.bank.statement'].create({
+            'name': 'test_statement',
+            'date': '2017-01-01',
+            'journal_id': cls.company_data['default_journal_bank'].id,
+            'line_ids': [
+                (0, 0, {
+                    'payment_ref': 'mx_st_line',
+                    'partner_id': cls.partner_a.id,
+                    'foreign_currency_id': cls.currency_data['currency'].id,
+                    'amount': cls.invoice.amount_total_signed,
+                    'amount_currency': cls.invoice.amount_total,
+                }),
+            ],
+        })
+        cls.statement_line = cls.statement.line_ids
+
+        # payment done on 2017-01-01 00:00:00 UTC is expected to be signed on 2016-12-31 17:00:00 in Mexico tz
+        cls.expected_payment_cfdi_values = '''
+            <Comprobante
+                Certificado="___ignore___"
+                Fecha="2016-12-31T17:00:00"
+                Folio="1"
+                LugarExpedicion="85134"
+                Moneda="XXX"
+                NoCertificado="''' + cls.certificate.serial_number + '''"
+                Serie="BNK1/2017/01/"
+                Sello="___ignore___"
+                SubTotal="0"
+                Total="0"
+                TipoDeComprobante="P"
+                Version="3.3">
+                <Emisor
+                    Rfc="EKU9003173C9"
+                    Nombre="company_1_data"
+                    RegimenFiscal="601"/>
+                <Receptor
+                    Rfc="XEXX010101000"
+                    Nombre="partner_a"
+                    ResidenciaFiscal="USA"
+                    UsoCFDI="P01"/>
+                <Conceptos>
+                    <Concepto
+                        Cantidad="1"
+                        ClaveProdServ="84111506"
+                        ClaveUnidad="ACT"
+                        Descripcion="Pago"
+                        Importe="0"
+                        ValorUnitario="0"/>
+                </Conceptos>
+                <Complemento>
+                    <Pagos
+                        Version="1.0">
+                        <Pago
+                            FechaPago="2017-01-01T12:00:00"
+                            MonedaP="Gol"
+                            Monto="8480.000"
+                            FormaDePagoP="99"
+                            TipoCambioP="0.500000">
+                            <DoctoRelacionado
+                                Folio="1"
+                                IdDocumento="123456789"
+                                ImpPagado="8480.000"
+                                ImpSaldoAnt="8480.000"
+                                ImpSaldoInsoluto="0.000"
+                                MetodoDePagoDR="PUE"
+                                MonedaDR="Gol"
+                                NumParcialidad="1"
+                                Serie="INV/2017/"/>
+                        </Pago>
+                    </Pagos>
+                </Complemento>
+            </Comprobante>
+        '''

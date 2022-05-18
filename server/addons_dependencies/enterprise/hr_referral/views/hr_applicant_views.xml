@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <odoo>
-    <menuitem name="Referrals" id="menu_hr_referral_root" web_icon="hr_referral,static/description/icon.png" sequence="80" groups="hr_referral.group_hr_recruitment_referral_user"/>
-    <menuitem parent="menu_hr_referral_root" id="menu_hr_referral_configuration" name="Configuration" sequence="50" groups="hr_recruitment.group_hr_recruitment_manager"/>
+    <menuitem name="Referrals" id="menu_hr_referral_root" web_icon="hr_referral,static/description/icon.png" sequence="215" groups="hr_referral.group_hr_recruitment_referral_user"/>
+    <menuitem parent="menu_hr_referral_root" id="menu_hr_referral_configuration" name="Configuration" sequence="50" groups="hr_recruitment.group_hr_recruitment_manager,hr_referral.group_hr_referral_reward_responsible_user"/>
 
     <record model="ir.ui.view" id="hr_applicant_view_form_inherit_referral">
         <field name="name">hr.applicant.view.form.inherit.referral</field>
@@ -9,7 +9,7 @@
         <field name="inherit_id" ref="hr_recruitment.hr_applicant_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='source_id']" position="after">
-                <field name="ref_user_id"/>
+                <field name="ref_user_id" domain="[('share', '=', False)]"/>
             </xpath>
             <field name="source_id" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -55,7 +55,7 @@
                             <div t-attf-class="o_kanban_card_header">
                                 <t t-if="record.referral_state.raw_value == 'hired'">
                                     <div class="o_head_friend float-right">
-                                        <span class="small border px-1"><i class='fa fa-check mr-2' /><field name="referral_state"/></span>
+                                        <span class="small border px-1"><i class='fa fa-check mr-2' title="Hired"/><field name="referral_state"/></span>
                                     </div>
                                 </t>
                                 <t t-else="">
@@ -102,9 +102,9 @@
                             <table class="table">
                                 <tr t-foreach="JSON.parse(record.shared_item_infos.raw_value)" t-as="stage">
                                     <td>
-                                        <t t-if="stage.done"><i class="text-success fa fa-check"></i></t>
-                                        <t t-elif="record.referral_state.raw_value == 'closed'"><i class="text-danger fa fa-times"></i></t>
-                                        <t t-else=""><i class="fa fa-square-o"></i></t>
+                                        <t t-if="stage.done"><i class="text-success fa fa-check" title="Done"></i></t>
+                                        <t t-elif="record.referral_state.raw_value == 'closed'"><i class="text-danger fa fa-times" title="Closed"></i></t>
+                                        <t t-else=""><i class="fa fa-square-o" title="Open"></i></t>
                                     </td>
                                     <td><t t-esc="stage.name"/></td>
                                     <td t-if="stage.done">+<t t-esc="stage.points"/> Points</td>
@@ -128,7 +128,7 @@
                 <field name="name"/>
                 <filter domain="[('referral_state', '=', 'progress')]" string="In Progress" name="filter_progress"/>
                 <filter domain="[('referral_state', '=', 'hired')]" string="Hired" name="filter_hired"/>
-                <filter domain="[('referral_state', '=', 'closed')]" string="Not Hired" name="filter_closed"/>
+                <filter domain="[('referral_state', '=', 'closed'), ('active', '=', False)]" string="Not Hired" name="filter_closed"/>
             </search>
         </field>
     </record>
@@ -141,7 +141,7 @@
         <field name="search_view_id" ref="view_hr_referral_filter"/>
         <field name="domain">[('ref_user_id','=',uid)]</field>
         <field name="help" type="html">
-          <p class="o_view_nocontent_smiling_face">
+          <p class="o_view_nocontent_referral_kanban">
               Ready to receive points?
           </p><p>
               Let's share a job position.

@@ -12,4 +12,5 @@
         'views/social_post_views.xml',
     ],
     'auto_install': True,
+    'license': 'OEEL-1',
 }

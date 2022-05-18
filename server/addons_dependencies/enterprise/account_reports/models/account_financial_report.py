@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-import copy
 import ast
+import json
+import re
 
-from odoo import models, fields, api, _
-from odoo.tools.safe_eval import safe_eval
-from odoo.tools.misc import formatLang
-from odoo.tools import float_is_zero, ustr
+from .formula import FormulaSolver, PROTECTED_KEYWORDS
 from dateutil.relativedelta import relativedelta
-from odoo.exceptions import UserError, ValidationError
+from odoo import models, fields, api, _
+from odoo.tools import float_is_zero, ustr
+from odoo.exceptions import ValidationError
 from odoo.osv import expression
 
 
@@ -17,13 +17,51 @@ class ReportAccountFinancialReport(models.Model):
     _description = "Account Report (HTML)"
     _inherit = "account.report"
 
+    filter_all_entries = False
+    filter_hierarchy = False
+
+    @property
+    def filter_date(self):
+        if self.date_range:
+            return {'mode': 'range', 'filter': 'this_year'}
+        else:
+            return {'mode': 'single', 'filter': 'today'}
+
+    @property
+    def filter_comparison(self):
+        if self.comparison:
+            return {'date_from': '', 'date_to': '', 'filter': 'no_comparison', 'number_period': 1}
+        return super().filter_comparison
+
+    @property
+    def filter_unfold_all(self):
+        if self.unfold_all_filter:
+            return False
+        return super().filter_unfold_all
+
+    @property
+    def filter_journals(self):
+        if self.show_journal_filter:
+            return True
+        return super().filter_journals
+
+    @property
+    def filter_analytic(self):
+        enable_filter_analytic_accounts = self.env.user.id in self.env.ref('analytic.group_analytic_accounting').users.ids
+        enable_filter_analytic_tags = self.env.user.id in self.env.ref('analytic.group_analytic_tags').users.ids
+        if self.analytic and not enable_filter_analytic_accounts and not enable_filter_analytic_tags:
+            return None
+        return self.analytic or None
+
+    @property
+    def filter_ir_filters(self):
+        return self.applicable_filters_ids or None
+
     name = fields.Char(translate=True)
-    debit_credit = fields.Boolean('Show Credit and Debit Columns')
     line_ids = fields.One2many('account.financial.html.report.line', 'financial_report_id', string='Lines')
     date_range = fields.Boolean('Based on date ranges', default=True, help='specify if the report use date_range or single date')
     comparison = fields.Boolean('Allow comparison', default=True, help='display the comparison filter')
     analytic = fields.Boolean('Allow analytic filters', help='display the analytic filters')
-    hierarchy_option = fields.Boolean('Enable the hierarchy option', help='Display the hierarchy choice in the report options')
     show_journal_filter = fields.Boolean('Allow filtering by journals', help='display the journal filter in the report')
     unfold_all_filter = fields.Boolean('Show unfold all filter', help='display the unfold all options in report')
     company_id = fields.Many2one('res.company', string='Company')
@@ -32,12 +70,25 @@ class ReportAccountFinancialReport(models.Model):
         help="The menu item generated for this report, or None if there isn't any."
     )
     parent_id = fields.Many2one('ir.ui.menu', related="generated_menu_id.parent_id", readonly=False)
-    tax_report = fields.Boolean('Tax Report', help="Set to True to automatically filter out journal items that have the boolean field 'tax_exigible' set to False")
+    tax_report = fields.Boolean('Tax Report', help="Set to True to automatically filter out journal items that are not tax exigible.")
     applicable_filters_ids = fields.Many2many('ir.filters', domain="[('model_id', '=', 'account.move.line')]",
                                               help='Filters that can be used to filter and group lines in this report. This uses saved filters on journal items.')
+    country_id = fields.Many2one(string="Country", comodel_name='res.country', help="The country this report is intended to.")
 
-    @api.model
+    # -------------------------------------------------------------------------
+    # OPTIONS: ir_filters
+    # -------------------------------------------------------------------------
+
+    def _get_country_for_fiscal_position_filter(self, options):
+        return self.tax_report and self.country_id or None
+
     def _init_filter_ir_filters(self, options, previous_options=None):
+        ''' Initialize the ir_filters filter that is used to bring additional filters on the whole report.
+        E.g. Create an ir.filter like [('partner_id', '=', 3)] and add it to the financial report.
+        The filter is visible on the rendered financial report to be enabled/disabled by the user.
+        :param options:             Current report options.
+        :param previous_options:    Previous report options.
+        '''
         if self.filter_ir_filters is None:
             return
 
@@ -55,180 +106,732 @@ class ReportAccountFinancialReport(models.Model):
                 'selected': filters_map.get(ir_filter.id, False),
             })
 
-    def _get_column_name(self, field_content, field):
-        comodel_name = self.env['account.move.line']._fields[field].comodel_name
-        if not comodel_name:
-            return field_content
-        grouping_record = self.env[comodel_name].browse(field_content)
-        return grouping_record.display_name if grouping_record and grouping_record.exists() else _('Undefined')
-
-    def _get_columns_name_hierarchy(self, options):
-        '''Calculates a hierarchy of column headers meant to be easily used in QWeb.
-
-        This returns a list of lists. An example for 1 period and a
-        filter that groups by company and partner:
-
-        [
-          [{'colspan': 2, 'name': 'As of 02/28/2018'}],
-          [{'colspan': 2, 'name': 'YourCompany'}],
-          [{'colspan': 1, 'name': 'ASUSTeK'}, {'colspan': 1, 'name': 'Agrolait'}],
-        ]
-
-        The algorithm used to generate this loops through each group
-        id in options['groups'].get('ids') (group_ids). E.g. for
-        group_ids:
-
-        [(1, 8, 8),
-         (1, 17, 9),
-         (1, None, 9),
-         (1, None, 13),
-         (1, None, None)]
-
-        These groups are always ordered. The algorithm loops through
-        every first elements of each tuple, then every second element
-        of each tuple etc. It generates a header element every time
-        it:
-
-        - notices a change compared to the last element (e.g. when processing 17
-          it will create a dict for 8) or,
-        - when a split in the row above happened
-
+    @api.model
+    def _get_options_ir_filters_domain(self, options):
+        ''' Helper to retrieve all selected ir.filter options.
+        :param options:     The current report options.
+        :return:            A list of ir.filter options inside the 'ir_filters' key.
         '''
-        if not options.get('groups', {}).get('ids'):
-            return False
-
-        periods = [{'string': self.format_date(options), 'class': 'number'}] + options['comparison']['periods']
-
-        # generate specific groups for each period
-        groups = []
-        for period in periods:
-            if len(periods) == 1 and self.debit_credit:
-                for group in options['groups'].get('ids'):
-                    groups.append(({'string': _('Debit'), 'class': 'number'},) + tuple(group))
-                for group in options['groups'].get('ids'):
-                    groups.append(({'string': _('Crebit'), 'class': 'number'},) + tuple(group))
-            for group in options['groups'].get('ids'):
-                groups.append((period,) + tuple(group))
-
-        # add sentinel group that won't be rendered, this way we don't
-        # need special code to handle the last group of every row
-        groups.append(('sentinel',) * (len(options['groups'].get('fields', [])) + 1))
-
-        column_hierarchy = []
-
-        # row_splits ensures that we do not span over a split in the row above.
-        # E.g. the following is *not* allowed (there should be 2 product sales):
-        # | Agrolait | Camptocamp |
-        # |  20000 Product Sales  |
-        row_splits = []
-
-        for field_index, field in enumerate(['period'] + options['groups'].get('fields')):
-            current_colspan = 0
-            current_group = False
-            last_group = False
-
-            # every report has an empty, unnamed header as the leftmost column
-            current_hierarchy_line = [{'name': '', 'colspan': 1}]
-
-            for group_index, group_ids in enumerate(groups):
-                current_group = group_ids[field_index]
-                if last_group is False:
-                    last_group = current_group
-
-                if last_group != current_group or group_index in row_splits:
-                    current_hierarchy_line.append({
-                        # field_index - 1 because ['period'] is not part of options['groups']['fields']
-                        'name': last_group.get('string') if field == 'period' else self._get_column_name(last_group, options['groups']['fields'][field_index - 1]),
-                        'colspan': current_colspan,
-                        'class': 'number',
-                    })
-                    last_group = current_group
-                    current_colspan = 0
-                    row_splits.append(group_index)
-
-                current_colspan += 1
-
-            column_hierarchy.append(current_hierarchy_line)
-
-        return column_hierarchy
-
-    def _get_columns_name(self, options):
-        columns = [{'name': ''}]
-        if self.debit_credit and not options.get('comparison', {}).get('periods', False):
-            columns += [{'name': _('Debit'), 'class': 'number'}, {'name': _('Credit'), 'class': 'number'}]
-        if not self.filter_date:
-            if self.date_range:
-                self.filter_date = {'mode': 'range', 'filter': 'this_year'}
-            else:
-                self.filter_date = {'mode': 'single', 'filter': 'today'}
-        columns += [{'name': self.format_date(options), 'class': 'number'}]
-        if options.get('comparison') and options['comparison'].get('periods'):
-            for period in options['comparison']['periods']:
-                columns += [{'name': period.get('string'), 'class': 'number'}]
-            if options['comparison'].get('number_period') == 1 and not options.get('groups'):
-                columns += [{'name': '%', 'class': 'number'}]
-
-        if options.get('groups', {}).get('ids'):
-            columns_for_groups = []
-            for column in columns[1:]:
-                for ids in options['groups'].get('ids'):
-                    group_column_name = ''
-                    for index, id in enumerate(ids):
-                        column_name = self._get_column_name(id, options['groups']['fields'][index])
-                        group_column_name += ' ' + column_name
-                    columns_for_groups.append({'name': column.get('name') + group_column_name, 'class': 'number'})
-            columns = columns[:1] + columns_for_groups
-
-        return columns
-
-    def _with_correct_filters(self):
-        if self.date_range:
-            self.filter_date = {'mode': 'range', 'filter': 'this_year'}
-            if self.comparison:
-                self.filter_comparison = {'date_from': '', 'date_to': '', 'filter': 'no_comparison', 'number_period': 1}
-        else:
-            self.filter_date = {'mode': 'single', 'filter': 'today'}
-            if self.comparison:
-                self.filter_comparison = {'date_from': '', 'date_to': '', 'filter': 'no_comparison', 'number_period': 1}
-        if self.unfold_all_filter:
-            self.filter_unfold_all = False
-        if self.show_journal_filter:
-            self.filter_journals = True
-        self.filter_all_entries = False
-        self.filter_analytic = self.analytic or None
-        if self.analytic:
-            self.filter_analytic_accounts = [] if self.env.user.id in self.env.ref('analytic.group_analytic_accounting').users.ids else None
-            self.filter_analytic_tags = [] if self.env.user.id in self.env.ref('analytic.group_analytic_tags').users.ids else None
-            #don't display the analytic filtering options if no option would be shown
-            if self.filter_analytic_accounts is None and self.filter_analytic_tags is None:
-                self.filter_analytic = None
-        self.filter_hierarchy = True if self.hierarchy_option else None
-        self.filter_ir_filters = self.applicable_filters_ids or None
-        return self
+        if not options.get('ir_filters'):
+            return []
+        domain = []
+        for option in options['ir_filters']:
+            if option['selected']:
+                domain += option['domain']
+        return domain
 
     @api.model
+    def _is_allowed_groupby_field(self, field):
+        ''' Method used to filter the fields to be used in the group by filter.
+        :param field:   An ir.model.field record.
+        :return:        True if the field is allowed in the group by filter, False otherwise.
+        '''
+        return field.name not in ('one2many', 'many2many') and field.store
+
+    @api.model
+    def _get_options_groupby_fields(self, options):
+        ''' Helper to retrieve all selected groupby fields.
+        :param options:     The current report options.
+        :return:            A list of valid fields on which perform the horizontal groupby.
+        '''
+        if not options.get('ir_filters'):
+            return []
+
+        AccountMoveLine = self.env['account.move.line']
+        groupby_fields = []
+        for option in options['ir_filters']:
+            if not option['selected']:
+                continue
+
+            selected_fields = option['groupby']
+            for field in selected_fields:
+                if field in AccountMoveLine._fields and self._is_allowed_groupby_field(AccountMoveLine._fields[field]):
+                    groupby_fields.append(field)
+        return groupby_fields
+
+    @api.model
+    def _get_options_domain(self, options):
+        # OVERRIDE to handle custom domains by the ir.filter filter.
+        domain = super(ReportAccountFinancialReport, self)._get_options_domain(options)
+        domain += self._get_options_ir_filters_domain(options)
+        return domain
+
+    # -------------------------------------------------------------------------
+    # OPTIONS
+    # -------------------------------------------------------------------------
+
     def _get_options(self, previous_options=None):
-        rslt = super(ReportAccountFinancialReport, self)._get_options(previous_options)
+        # OVERRIDE
+        options = super(ReportAccountFinancialReport, self)._get_options(previous_options)
 
         # If manual values were stored in the context, we store them as options.
         # This is useful for report printing, were relying only on the context is
         # not enough, because of the use of a route to download the report (causing
         # a context loss, but keeping the options).
-        if self.env.context.get('financial_report_line_values'):
-            rslt['financial_report_line_values'] = self.env.context['financial_report_line_values']
+        if self._context.get('financial_report_line_values'):
+            options['financial_report_line_values'] = self.env.context['financial_report_line_values']
 
-        return rslt
-
-    def get_report_informations(self, options):
-        return super(ReportAccountFinancialReport, self._with_correct_filters()).get_report_informations(options)
+        return options
 
     def _set_context(self, options):
         ctx = super(ReportAccountFinancialReport, self)._set_context(options)
-        # We first restore the context for from_context lines from the options
-        if options.get('financial_report_line_values'):
-            ctx.update({'financial_report_line_values': options['financial_report_line_values']})
-
+        ctx['model'] = self._name
         return ctx
+
+    def _get_templates(self):
+        # Update the report_financial templates to include the buttons for the missing / excess journal items.
+        templates = super()._get_templates()
+        templates['main_template'] = 'account_reports.main_template_control_domain'
+        return templates
+
+    # -------------------------------------------------------------------------
+    # HELPERS
+    # -------------------------------------------------------------------------
+
+    @api.model
+    def _format_cell_value(self, financial_line, amount, currency=False, blank_if_zero=False):
+        ''' Format the value to display inside a cell depending the 'figure_type' field in the financial report line.
+        :param financial_line:  An account.financial.html.report.line record.
+        :param amount:          A number.
+        :param currency:        An optional res.currency record.
+        :param blank_if_zero:   An optional flag forcing the string to be empty if amount is zero.
+        :return:
+        '''
+        if not financial_line.formulas:
+            return ''
+
+        if self._context.get('no_format'):
+            return amount
+
+        if financial_line.figure_type == 'float':
+            return super().format_value(amount, currency=currency, blank_if_zero=blank_if_zero)
+        elif financial_line.figure_type == 'percents':
+            return str(round(amount * 100, 1)) + '%'
+        elif financial_line.figure_type == 'no_unit':
+            return round(amount, 1)
+        return amount
+
+    @api.model
+    def _compute_growth_comparison_column(self, options, value1, value2, green_on_positive=True):
+        ''' Helper to get the additional columns due to the growth comparison feature. When only one comparison is
+        requested, an additional column is there to show the percentage of growth based on the compared period.
+        :param options:             The report options.
+        :param value1:              The value in the current period.
+        :param value2:              The value in the compared period.
+        :param green_on_positive:   A flag customizing the value with a green color depending if the growth is positive.
+        :return:                    The new columns to add to line['columns'].
+        '''
+        if float_is_zero(value2, precision_rounding=0.1):
+            return {'name': _('n/a'), 'class': 'number'}
+        else:
+            res = round((value1 - value2) / value2 * 100, 1)
+
+            # In case the comparison is made on a negative figure, the color should be the other
+            # way around. For example:
+            #                       2018         2017           %
+            # Product Sales      1000.00     -1000.00     -200.0%
+            #
+            # The percentage is negative, which is mathematically correct, but my sales increased
+            # => it should be green, not red!
+            if float_is_zero(res, precision_rounding=0.1):
+                return {'name': '0.0%', 'class': 'number'}
+            elif (res > 0) != (green_on_positive and value2 > 0):
+                return {'name': str(res) + '%', 'class': 'number color-red'}
+            else:
+                return {'name': str(res) + '%', 'class': 'number color-green'}
+
+    @api.model
+    def _display_growth_comparison(self, options):
+        ''' Helper determining if the growth comparison feature should be displayed or not.
+        :param options: The report options.
+        :return:        A boolean.
+        '''
+        return options.get('comparison') \
+               and len(options['comparison'].get('periods', [])) == 1 \
+               and not self._get_options_groupby_fields(options)
+
+    @api.model
+    def _compute_debug_info_column(self, options, solver, financial_line):
+        ''' Helper to get the additional columns to display the debug info popup.
+        :param options:             The report options.
+        :param solver:              The FormulaSolver instance used to compute the formulas.
+        :param financial_line:      An account.financial.html.report.line record.
+        :return:                    The new columns to add to line['columns'].
+        '''
+        if financial_line.formulas:
+            results = solver.get_results(financial_line)
+            failed_control_domain = financial_line.id in options.get('control_domain_missing_ids', []) + options.get('control_domain_excess_ids', [])
+            return {
+                'style': 'width: 1%; text-align: right;',
+                'template': 'account_reports.cell_template_debug_popup_financial_reports',
+                'line_code': financial_line.code or '',
+                'popup_template': 'accountReports.FinancialReportInfosTemplate',
+                'popup_class': 'fa fa-info-circle',
+                'popup_attributes': {'tabindex': 1},
+                'popup_data': json.dumps({
+                    'id': financial_line.id,
+                    'name': financial_line.name,
+                    'code': financial_line.code or '',
+                    'formula': solver.get_formula_popup(financial_line),
+                    'formula_with_values': solver.get_formula_string(financial_line),
+                    'formula_balance': self._format_cell_value(financial_line, sum(results['formula'].values())),
+                    'domain': str(financial_line.domain) if solver.is_leaf(financial_line) and financial_line.domain else '',
+                    'control_domain': failed_control_domain and str(financial_line.control_domain),
+                    'display_button': solver.has_move_lines(financial_line),
+                }),
+            }
+        else:
+            return {'style': 'width: 1%;'}
+
+    @api.model
+    def _display_debug_info(self, options):
+        ''' Helper determining if the debug info popup column should be displayed or not.
+        :param options: The report options.
+        :return:        A boolean.
+        '''
+        return not self._context.get('print_mode') and self.user_has_groups('base.group_no_one') \
+               and (not options.get('comparison') or not options['comparison'].get('periods'))
+
+    def _get_report_country_code(self, options):
+        # Overridden in order to also take the financial report's country_id into account.
+        # Indeed, _get_country_for_fiscal_position_filter will not return it if the report
+        # doesn't have tax_report = True.
+        fp_country = self._get_country_for_fiscal_position_filter(options)
+        return fp_country and fp_country.code or self.country_id.code or None
+
+    # -------------------------------------------------------------------------
+    # COLUMNS / LINES
+    # -------------------------------------------------------------------------
+
+    @api.model
+    def _build_lines_hierarchy(self, options_list, financial_lines, solver, groupby_keys):
+        ''' Travel the whole hierarchy and create the report lines to be rendered.
+        :param options_list:        The report options list, first one being the current dates range, others being the
+                                    comparisons.
+        :param financial_lines:     An account.financial.html.report.line recordset.
+        :param solver:              The FormulaSolver instance used to compute the formulas.
+        :param groupby_keys:        The sorted encountered keys in the solver.
+        :return:                    The lines.
+        '''
+        lines = []
+        for financial_line in financial_lines:
+
+            is_leaf = solver.is_leaf(financial_line)
+            has_lines = solver.has_move_lines(financial_line)
+
+            financial_report_line = self._get_financial_line_report_line(
+                options_list[0],
+                financial_line,
+                solver,
+                groupby_keys,
+            )
+
+            # Manage 'hide_if_zero' field.
+            if financial_line.hide_if_zero and all(self.env.company.currency_id.is_zero(column['no_format'])
+                                                   for column in financial_report_line['columns'] if 'no_format' in column):
+                continue
+
+            # Manage 'hide_if_empty' field.
+            if financial_line.hide_if_empty and is_leaf and not has_lines:
+                continue
+
+            lines.append(financial_report_line)
+
+            aml_lines = []
+            if financial_line.children_ids:
+                # Travel children.
+                lines += self._build_lines_hierarchy(options_list, financial_line.children_ids, solver, groupby_keys)
+            elif is_leaf and financial_report_line['unfolded']:
+                # Fetch the account.move.lines.
+                solver_results = solver.get_results(financial_line)
+                sign = solver_results['amls']['sign']
+                operator = solver_results['amls']['operator']
+                for groupby_id, display_name, results in financial_line._compute_amls_results(options_list, self, sign=sign, operator=operator):
+                    aml_lines.append(self._get_financial_aml_report_line(
+                        options_list[0],
+                        financial_report_line['id'],
+                        financial_line,
+                        groupby_id,
+                        display_name,
+                        results,
+                        groupby_keys,
+                    ))
+            lines += aml_lines
+
+            if self.env.company.totals_below_sections and (financial_line.children_ids or (is_leaf and financial_report_line['unfolded'] and aml_lines)):
+                lines.append(self._get_financial_total_section_report_line(options_list[0], financial_report_line))
+                financial_report_line["unfolded"] = True  # enables adding "o_js_account_report_parent_row_unfolded" -> hides total amount in head line as it is displayed later in total line
+
+        return lines
+
+    @api.model
+    def _build_headers_hierarchy(self, options_list, groupby_keys):
+        ''' Build the report headers hierarchy by taking care about additional group bys enabled.
+
+        Suppose a groupby partner_id,currency_id,date with 'groupby_keys' equals to
+        (0,1,3,'2019-01-01'), (0,1,2,'2019-01-02'), (0,2,1,'2019-01-03'), (1,2,3,None).
+        Make the assumption the many2one are sorted by ids.
+        We want to build construct the following headers:
+
+        |                   <current_report_date>                       |                   <comparison_1>                              |
+        |           partner_id=1        |           partner_id=2        |           partner_id=1        |           partner_id=2        |
+        | currency_id=2 | currency_id=3 | currency_id=1 | currency_id=3 | currency_id=2 | currency_id=3 | currency_id=1 | currency_id=3 |
+        | '2019-01-02'  | '2019-01-01'  | '2019-01-03'  | None          | '2019-01-02'  | '2019-01-01'  | '2019-01-03'  | None          |
+
+        :param options_list:        The report options list, first one being the current dates range, others being the
+                                    comparisons.
+        :param groupby_keys:        The keys used during formulas.
+        :return:                    The headers hierarchy.
+        '''
+        groupby_list = self._get_options_groupby_fields(options_list[0])
+
+        #########################################################################
+        # Create the sorting_map used to track the order / name for each record / group by.
+        # The complexity is to fetch the records using a minimum number of queries
+        # according their table's order.
+        #
+        # Convert (0,1,3,'2019-01-01'), (0,1,2,'2019-01-02'), (0,2,1,'2019-01-03'), (1,2,3,None) into:
+        #
+        # keys_grouped_by_ids: [{1, 2}, {2, 3, 1}, {'2019-01-01', '2019-01-02', '2019-01-03'}]
+        #
+        # Then, fetch values and create the sorting_map:
+        #
+        # [
+        #   {0: (0, 'period_date'), 1: (1, 'comparison_1')}
+        #   {1: (0, 'partner_1'), 2: (1, 'partner_2')},
+        #   {1: (0, 'currency_1'), 2: (1, 'currency_2'), 3: (2, 'currency_2')},
+        #   {'2019-01-01': (0, '2019-01-01'), '2019-01-02': (1, '2019-01-02'), '2019-01-03': (2, '2019-01-03'), None: (3, 'Undefined')},
+        # ]
+        #
+        #########################################################################
+
+        keys_grouped_by_ids = [set() for gb in groupby_list]
+        for key in groupby_keys:
+            # Skip the first element that is the period number.
+            # All comparisons must have the same headers.
+            for i, value in enumerate(key[1:]):
+                if value is not None:
+                    keys_grouped_by_ids[i].add(value)
+
+        sorting_map = [{i: (i, self.format_date(options)) for i, options in enumerate(options_list)}]
+        for groupby, ids_set in zip(groupby_list, keys_grouped_by_ids):
+            groupby_field = self.env['account.move.line']._fields[groupby]
+            values_map = {None: (len(ids_set) + 1, _('Undefined'))}
+            if groupby_field.relational:
+                # Preserve the table order by using search instead of browse.
+                sorted_records = self.env[groupby_field.comodel_name].with_context(active_test=False).search([('id', 'in', tuple(ids_set))])
+                index = 0
+                for record, name_get_res in zip(sorted_records, sorted_records.name_get()):
+                    values_map[record.id] = (index, name_get_res[1])
+                    index += 1
+            else:
+                # Sort the keys in a lexicographic order.
+                if groupby_field.name == 'date':
+                    format_func = lambda v: fields.Date.to_string(v)
+                elif groupby_field.name == 'datetime':
+                    format_func = lambda v: fields.Datetime.to_string(v)
+                else:
+                    format_func = lambda v: v
+                for i, v in enumerate(sorted(list(ids_set))):
+                    values_map[v] = (i, format_func(v))
+            sorting_map.append(values_map)
+
+        #########################################################################
+        # Create the hierarchy of headers, sorted by keys with the right colspan.
+        #
+        # Convert (0,1,3,'2019-01-01'), (0,1,2,'2019-01-02'), (0,2,1,'2019-01-03'), (1,2,3,None) into:
+        #
+        # [
+        #   {'name': '', 'colspan': 4, 'children': [
+        #       {'name': 'partner_1', 'colspan': 2, 'children': [
+        #           {'name': 'currency_2', 'colspan': 1, 'children': [
+        #               {'name': '2019-01-02', 'colspan': 1, 'children': []},
+        #           ]},
+        #           {'name': 'currency_3', 'colspan': 1, 'children': [
+        #               {'name': '2019-01-01', 'colspan': 1, 'children': []},
+        #           ]},
+        #       ]},
+        #       {'name': 'partner_2', 'colspan': 2, 'children': [
+        #           {'name': 'currency_1', 'colspan': 1, 'children': [
+        #               {'name': '2019-01-03', 'colspan': 1, 'children': []},
+        #           ]},
+        #           {'name': 'currency_3', 'colspan': 1, 'children': [
+        #               {'name': 'Undefined', 'colspan': 1, 'children': []},
+        #           ]},
+        #       ]},
+        #   ]},
+        # ]
+        #
+        #########################################################################
+
+        def _create_headers_hierarchy(level_keys, level=0):
+            current_node = {}
+            for key in level_keys:
+                current_node.setdefault(key[0], set())
+                sub_key = key[1:]
+                if sub_key:
+                    current_node[key[0]].add(sub_key)
+            headers = [{
+                'name': sorting_map[level][key][1],
+                'colspan': len(sub_keys) or 1,
+                'children': _create_headers_hierarchy(sub_keys, level=level+1) if sub_keys else None,
+                'key': key,
+                'class': 'number'
+            } for key, sub_keys in current_node.items()]
+            headers = sorted(headers, key=lambda header: sorting_map[level][header['key']][0])
+            return headers
+
+        level_keys = [(0,) + key[1:] for key in groupby_keys] or [(0,)]
+        headers_hierarchy = _create_headers_hierarchy(set(level_keys))
+
+        #########################################################################
+        # Convert the newly created hierarchy of headers to the list.
+        # Collect keys in the right order to create lines's columns.
+        # Duplicate keys in order to manage also the comparisons.
+        #
+        # 'headers_hierarchy' will be converted to:
+        #
+        # [
+        #   [
+        #       {'name': 'period_date', 'colspan': 4},                                      # period_0
+        #       {'name': 'comparison_date', 'colspan': 4},                                  # comparison_1
+        #   ],
+        #   [
+        #       {'name': 'partner_1', 'colspan': 2}, {'name': 'partner_2', 'colspan': 2}],  # period_0
+        #       {'name': 'partner_1', 'colspan': 2}, {'name': 'partner_2', 'colspan': 2}],  # comparison_1
+        #   [
+        #       {'name': 'currency_2', 'colspan': 1}, {'name': 'currency_3', 'colspan': 1}, # period_0
+        #       {'name': 'currency_1', 'colspan': 1}, {'name': 'currency_3', 'colspan': 1},
+        #       {'name': 'currency_2', 'colspan': 1}, {'name': 'currency_3', 'colspan': 1}, # comparison_1
+        #       {'name': 'currency_1', 'colspan': 1}, {'name': 'currency_3', 'colspan': 1},
+        #   ],
+        #   [
+        #       {'name': '2019-01-02', 'colspan': 1}, {'name': '2019-01-01', 'colspan': 1},  # period_0
+        #       {'name': '2019-01-03', 'colspan': 1}, {'name': 'Undefined', 'colspan': 1},
+        #       {'name': '2019-01-02', 'colspan': 1}, {'name': '2019-01-01', 'colspan': 1}, # comparison_1
+        #       {'name': '2019-01-03', 'colspan': 1}, {'name': 'Undefined', 'colspan': 1},
+        #   ],
+        # ]
+        #
+        # ... with the corresponding sorted keys:
+        #
+        # [
+        #   (0,1,2,'2019-01-02'), (0,1,3,'2019-01-01'), (0,2,1,'2019-01-03'), (0,2,3,None),     # period_0
+        #   (1,1,2,'2019-01-02'), (1,1,3,'2019-01-01'), (1,2,1,'2019-01-03'), (1,2,3,None),     # comparison_1
+        # ]
+        #
+        #########################################################################
+
+        headers = [[] for i in range(len(groupby_list) + 1)]
+        sorted_groupby_keys = []
+
+        def _populate_headers(current_node, current_key=[], level=0):
+            headers[level] += current_node
+            for header in current_node:
+                children = header.pop('children')
+                if children:
+                    _populate_headers(children, current_key + [header['key']], level=level + 1)
+                else:
+                    sorted_groupby_keys.append(tuple(current_key + [header['key']]))
+
+        _populate_headers(headers_hierarchy)
+
+        # Add empty header if there is no data.
+        for j in range(1, len(headers)):
+            if not headers[j]:
+                headers[j].append({'name': '', 'class': 'number', 'colspan': 1})
+
+        # Manage comparison + update string.
+        additional_sorted_groupby_keys = []
+        additional_headers = [[] for i in range(len(groupby_list) + 1)]
+        for i, options in enumerate(options_list):
+            if i == 0:
+                # Current period.
+                headers[0][0]['name'] = sorting_map[0][0][1]
+            else:
+                for j in range(len(headers)):
+                    if j == 0:
+                        additional_headers[j].append(headers[j][-1].copy())
+                    else:
+                        additional_headers[j] += headers[j]
+                additional_headers[0][-1]['name'] = sorting_map[0][i][1]
+                for key in sorted_groupby_keys:
+                    new_key = list(key)
+                    new_key[0] = i
+                    additional_sorted_groupby_keys.append(tuple(new_key))
+        sorted_groupby_keys += additional_sorted_groupby_keys
+        for i, headers_row in enumerate(additional_headers):
+            headers[i] += headers_row
+
+        # Add left unnamed header.
+        for i in range(len(headers)):
+            headers[i] = [{'name': '', 'class': 'number', 'colspan': 1}] + headers[i]
+
+        # Manage the growth comparison feature.
+        if self._display_growth_comparison(options_list[0]):
+            headers[0].append({'name': '%', 'class': 'number', 'colspan': 1})
+
+        # Manage the debug info columns.
+        if self._display_debug_info(options_list[0]):
+            for i in range(len(headers)):
+                if i == 0:
+                    headers[i].append({
+                        'template': 'account_reports.cell_template_show_bug_financial_reports',
+                        'style': 'width: 1%; text-align: right;',
+                    })
+                else:
+                    headers[i].append({'name': '', 'style': 'width: 1%; text-align: right;'})
+
+        return headers, sorted_groupby_keys
+
+    def _get_lines(self, options, line_id=None):
+        # OVERRIDE.
+        # /!\ As '_get_table' is overrided, this method is called only when a line is unfolded.
+        # Then, line_id will never be None.
+        self.ensure_one()
+        options_list = self._get_options_periods_list(options)
+
+        model_name, model_id = self._get_model_info_from_id(line_id)
+        if model_name != 'account.financial.html.report.line':
+            raise Exception("Error: trying to unfold a line which isn't a financial report line.")
+
+        financial_line = self.env['account.financial.html.report.line'].browse(model_id)
+        formula_solver = FormulaSolver(options_list, self)
+        formula_solver.fetch_lines(financial_line)
+        sorted_groupby_keys = [tuple(key) for key in options.get('sorted_groupby_keys', [(0,)])]
+        lines = self._build_lines_hierarchy(options_list, financial_line, formula_solver, sorted_groupby_keys)
+
+        return lines
+
+    def _get_table(self, options):
+        # OVERRIDE of the _get_table in account.report because the columns are dependent of the data due to the
+        # group by feature.
+        self.ensure_one()
+
+        options_list = self._get_options_periods_list(options)
+        formula_solver = FormulaSolver(options_list, self)
+        financial_lines = self.env['account.financial.html.report.line'].search([('id', 'child_of', self.line_ids.ids)])
+        formula_solver.fetch_lines(financial_lines)
+        groupby_keys = formula_solver.get_keys()
+        headers, sorted_groupby_keys = self._build_headers_hierarchy(options_list, groupby_keys)
+        lines = self._build_lines_hierarchy(options_list, self.line_ids, formula_solver, sorted_groupby_keys)
+
+        options['sorted_groupby_keys'] = sorted_groupby_keys
+
+        return headers, lines
+
+    @api.model
+    def _get_financial_line_report_line(self, options, financial_line, solver, groupby_keys):
+        ''' Create the report line for an account.financial.html.report.line record.
+        :param options:             The report options.
+        :param financial_line:      An account.financial.html.report.line record.
+        :param solver_results:      An instance of the FormulaSolver class.
+        :param groupby_keys:        The sorted encountered keys in the solver.
+        :return:                    The dictionary corresponding to a line to be rendered.
+        '''
+        results = solver.get_results(financial_line)['formula']
+
+        is_leaf = solver.is_leaf(financial_line)
+        has_lines = solver.has_move_lines(financial_line)
+        has_something_to_unfold = is_leaf and has_lines and bool(financial_line.groupby)
+
+        # Compute if the line is unfoldable or not.
+        is_unfoldable = has_something_to_unfold and financial_line.show_domain == 'foldable'
+
+        # Compute the id of the report line we'll generate
+        report_line_id = self._get_generic_line_id('account.financial.html.report.line', financial_line.id)
+
+        # Compute if the line is unfolded or not.
+        # /!\ Take care about the case when the line is unfolded but not unfoldable with show_domain == 'always'.
+        if not has_something_to_unfold or financial_line.show_domain == 'never':
+            is_unfolded = False
+        elif financial_line.show_domain == 'always':
+            is_unfolded = True
+        elif financial_line.show_domain == 'foldable' and (report_line_id in options['unfolded_lines'] or options.get('unfold_all')):
+            is_unfolded = True
+        else:
+            is_unfolded = False
+
+        # Standard columns.
+        columns = []
+        for key in groupby_keys:
+            amount = results.get(key, 0.0)
+            columns.append({'name': self._format_cell_value(financial_line, amount), 'no_format': amount, 'class': 'number'})
+
+        # Growth comparison column.
+        if self._display_growth_comparison(options):
+            columns.append(self._compute_growth_comparison_column(options,
+                columns[0]['no_format'],
+                columns[1]['no_format'],
+                green_on_positive=financial_line.green_on_positive
+            ))
+
+        financial_report_line = {
+            'id': report_line_id,
+            'name': financial_line.name,
+            'model_ref': ('account.financial.html.report.line', financial_line.id),
+            'level': financial_line.level,
+            'class': 'o_account_reports_totals_below_sections' if self.env.company.totals_below_sections else '',
+            'columns': columns,
+            'unfoldable': is_unfoldable,
+            'unfolded': is_unfolded,
+            'page_break': financial_line.print_on_new_page,
+            'action_id': financial_line.action_id.id,
+        }
+
+        # Only run the checks in debug mode
+        if self.user_has_groups('base.group_no_one'):
+            # If a financial line has a control domain, a check is made to detect any potential discrepancy
+            if financial_line.control_domain:
+                if not financial_line._check_control_domain(options, results, self):
+                    # If a discrepancy is found, a check is made to see if the current line is
+                    # missing items or has items appearing more than once.
+                    has_missing = solver._has_missing_control_domain(options, financial_line)
+                    has_excess = solver._has_excess_control_domain(options, financial_line)
+                    financial_report_line['has_missing'] = has_missing
+                    financial_report_line['has_excess'] = has_excess
+                    # In either case, the line is colored in red.
+                    # The ids of the missing / excess report lines are stored in the options for the top yellow banner
+                    if has_missing:
+                        financial_report_line['class'] += ' alert alert-danger'
+                        options.setdefault('control_domain_missing_ids', [])
+                        options['control_domain_missing_ids'].append(financial_line.id)
+                    if has_excess:
+                        financial_report_line['class'] += ' alert alert-danger'
+                        options.setdefault('control_domain_excess_ids', [])
+                        options['control_domain_excess_ids'].append(financial_line.id)
+
+        # Debug info columns.
+        if self._display_debug_info(options):
+            columns.append(self._compute_debug_info_column(options, solver, financial_line))
+
+        # Custom caret_options for tax report.
+        if self.tax_report and financial_line.domain and not financial_line.action_id:
+            financial_report_line['caret_options'] = 'tax.report.line'
+
+        return financial_report_line
+
+    @api.model
+    def _get_financial_aml_report_line(self, options, financial_report_line_id, financial_line, groupby_id, display_name, results, groupby_keys):
+        ''' Create the report line for the account.move.line grouped by any key.
+        :param options:                     The report options.
+        :param financial_report_line_id:    Generic report line id string for financial_line
+        :param financial_line:              An account.financial.html.report.line record.
+        :param groupby_id:                  The key used as the vertical group_by. It could be a record's id or a value for regular field.
+        :param display_name:                The full name of the line to display.
+        :param results:                     The results given by the FormulaSolver class for the given line.
+        :param groupby_keys:                The sorted encountered keys in the solver.
+        :return:                            The dictionary corresponding to a line to be rendered.
+        '''
+        # Standard columns.
+        columns = []
+        for key in groupby_keys:
+            amount = results.get(key, 0.0)
+            columns.append({'name': self._format_cell_value(financial_line, amount), 'no_format': amount, 'class': 'number'})
+
+        # Growth comparison column.
+        if self._display_growth_comparison(options):
+            columns.append(self._compute_growth_comparison_column(options,
+                columns[0]['no_format'],
+                columns[1]['no_format'],
+                green_on_positive=financial_line.green_on_positive
+            ))
+
+        if self._display_debug_info(options):
+            columns.append({'name': '', 'style': 'width: 1%;'})
+
+        groupby_model = self.env['account.move.line']._fields[financial_line.groupby].comodel_name
+
+        return {
+            'id': self._get_generic_line_id(groupby_model, groupby_id, parent_line_id=financial_report_line_id),
+            'name': display_name,
+            'level': financial_line.level + 1,
+            'parent_id': financial_report_line_id,
+            'caret_options': financial_line.groupby == 'account_id' and 'account.account' or financial_line.groupby,
+            'columns': columns,
+        }
+
+    @api.model
+    def _get_financial_total_section_report_line(self, options, financial_report_line):
+        ''' Create the total report line.
+        :param options:                 The report options.
+        :param financial_report_line:   The line dictionary created by the '_get_financial_line_report_line' method.
+        :return:                        The dictionary corresponding to a line to be rendered.
+        '''
+        return {
+            'id': self._get_generic_line_id('account.financial.html.report.line', None, parent_line_id=financial_report_line['id'], markup='total'),
+            'name': _('Total') + ' ' + financial_report_line['name'],
+            'level': financial_report_line['level'] + 1,
+            'parent_id': financial_report_line['id'],
+            'class': 'total',
+            'columns': financial_report_line['columns'],
+        }
+
+    def _get_report_name(self):
+        # OVERRIDE
+        self.ensure_one()
+        return self.name
+
+    # -------------------------------------------------------------------------
+    # LOW-LEVEL METHODS
+    # -------------------------------------------------------------------------
+
+    @api.model
+    def create(self, vals):
+        parent_id = vals.pop('parent_id', False)
+        res = super(ReportAccountFinancialReport, self).create(vals)
+        res._create_action_and_menu(parent_id)
+        return res
+
+    def write(self, vals):
+        parent_id = vals.pop('parent_id', False)
+        res = super(ReportAccountFinancialReport, self).write(vals)
+        if parent_id:
+            # this keeps external ids "alive" when upgrading the module
+            for report in self:
+                report._create_action_and_menu(parent_id)
+        return res
+
+    def unlink(self):
+        for report in self:
+            menu = report.generated_menu_id
+            if menu:
+                if menu.action:
+                    menu.action.unlink()
+                menu.unlink()
+        return super(ReportAccountFinancialReport, self).unlink()
+
+    @api.returns('self', lambda value: value.id)
+    def copy(self, default=None):
+        '''Copy the whole financial report hierarchy by duplicating each line recursively.
+
+        :param default: Default values.
+        :return: The copied account.financial.html.report record.
+        '''
+        self.ensure_one()
+        if default is None:
+            default = {}
+        default.update({'name': self._get_copied_name()})
+        copied_report_id = super(ReportAccountFinancialReport, self).copy(default=default)
+        code_mapping = {}
+        for line in self.line_ids:
+            line._copy_hierarchy(report_id=self, copied_report_id=copied_report_id, code_mapping=code_mapping)
+        return copied_report_id
+
+    # -------------------------------------------------------------------------
+    # BUSINESS METHODS
+    # -------------------------------------------------------------------------
+
+    def action_redirect_to_report(self, options, target_id):
+        ''' Action when clicking in a code owned by another report in the debug info popup.
+
+        :param options:     The report options.
+        :param target_id:   The target report id.
+        :return:            An action opening a new financial report.
+        '''
+        self.ensure_one()
+        action = self.browse(target_id).generated_menu_id.action
+        return self.execute_action(options, {'actionId': action.id})
 
     def _create_action_and_menu(self, parent_id):
         # create action and menu with corresponding external ids, in order to
@@ -251,7 +854,7 @@ class ReportAccountFinancialReport(models.Model):
 
                 menu_vals = {
                     'name': report._get_report_name(),
-                    'parent_id': parent_id or IMD.xmlid_to_res_id('account.menu_finance_reports'),
+                    'parent_id': parent_id or IMD._xmlid_to_res_id('account.menu_finance_reports'),
                     'action': 'ir.actions.client,%s' % (action.id,),
                 }
                 menu_xmlid = "%s.%s" % (module, 'account_financial_html_report_menu_' + str(report.id))
@@ -259,103 +862,6 @@ class ReportAccountFinancialReport(models.Model):
                 menu = self.env['ir.ui.menu'].sudo()._load_records([data])
 
                 self.write({'generated_menu_id': menu.id})
-
-    @api.model
-    def create(self, vals):
-        parent_id = vals.pop('parent_id', False)
-        res = super(ReportAccountFinancialReport, self).create(vals)
-        res._create_action_and_menu(parent_id)
-        return res
-
-    def write(self, vals):
-        parent_id = vals.pop('parent_id', False)
-        res = super(ReportAccountFinancialReport, self).write(vals)
-        if parent_id:
-            # this keeps external ids "alive" when upgrading the module
-            for report in self:
-                report._create_action_and_menu(parent_id)
-        return res
-
-    def unlink(self):
-        for report in self:
-            menu = report.generated_menu_id
-            if menu:
-                menu.action.unlink()
-                menu.unlink()
-        return super(ReportAccountFinancialReport, self).unlink()
-
-    def _get_currency_table(self):
-        used_currency = self.env.company.currency_id.with_context(company_id=self.env.company.id)
-        currency_table = {}
-        for company in self.env['res.company'].search([]):
-            if company.currency_id != used_currency:
-                currency_table[company.currency_id.id] = used_currency.rate / company.currency_id.rate
-        return currency_table
-
-    def _get_groups(self, domain, group_by):
-        '''This returns a list of lists of record ids. Every list represents a
-           domain to be used in a column in the report. The ids in the list are
-           in the same order as `group_by`. Only groups containing an
-           account.move.line are returned.
-
-           E.g. with group_by=['partner_id', 'journal_id']:
-           # partner_id  journal_id
-           [(7,2),
-            (7,5),
-            (8,8)]
-        '''
-        if any([field not in self.env['account.move.line'] for field in group_by]):
-            raise ValueError(_('Groupby should be a field from account.move.line'))
-        domain = [domain] if domain else [()]
-        group_by = ', '.join(['"account_move_line".%s' % field for field in group_by])
-        all_report_lines = self.env['account.financial.html.report.line'].search([('id', 'child_of', self.line_ids.ids)])
-        all_domains = expression.OR([ast.literal_eval(dom) for dom in all_report_lines.mapped('domain') if dom])
-        all_domains = expression.AND([all_domains] + domain)
-        tables, where_clause, where_params = self.env['account.move.line']._query_get(domain=all_domains)
-        sql = 'SELECT %s FROM %s WHERE %s GROUP BY %s ORDER BY %s' % (group_by, tables, where_clause, group_by, group_by)
-        self.env.cr.execute(sql, where_params)
-        return self.env.cr.fetchall()
-
-    def _get_filter_info(self, options):
-        if not options.get('ir_filters'):
-            return False, False
-
-        selected_ir_filter = [f for f in options['ir_filters'] if f.get('selected')]
-        if selected_ir_filter:
-            selected_ir_filter = selected_ir_filter[0]
-        else:
-            return False, False
-
-        return selected_ir_filter['domain'], selected_ir_filter['groupby']
-
-    def _get_lines(self, options, line_id=None):
-        line_obj = self.line_ids
-        if line_id:
-            line_obj = self.env['account.financial.html.report.line'].search([('id', '=', line_id)])
-        if options.get('comparison') and options.get('comparison').get('periods'):
-            line_obj = line_obj.with_context(periods=options['comparison']['periods'])
-        if options.get('ir_filters'):
-            line_obj = line_obj.with_context(periods=options.get('ir_filters'))
-
-        currency_table = self._get_currency_table()
-        domain, group_by = self._get_filter_info(options)
-
-        if group_by:
-            options['groups'] = {}
-            options['groups']['fields'] = group_by
-            options['groups']['ids'] = self._get_groups(domain, group_by)
-
-        amount_of_periods = len((options.get('comparison') or {}).get('periods') or []) + 1
-        amount_of_group_ids = len(options.get('groups', {}).get('ids') or []) or 1
-        linesDicts = [[{} for _ in range(0, amount_of_group_ids)] for _ in range(0, amount_of_periods)]
-
-        res = line_obj.with_context(
-            filter_domain=domain,
-        )._get_lines(self, currency_table, options, linesDicts)
-        return res
-
-    def _get_report_name(self):
-        return self.name
 
     def _get_copied_name(self):
         '''Return a copied name of the account.financial.html.report record by adding the suffix (copy) at the end
@@ -369,27 +875,66 @@ class ReportAccountFinancialReport(models.Model):
             name += ' ' + _('(copy)')
         return name
 
-    @api.returns('self', lambda value: value.id)
-    def copy(self, default=None):
-        '''Copy the whole financial report hierarchy by duplicating each line recursively.
+    def _prepare_control_domain_action(self, options, missing=True):
+        """ Prepare the report lines, the solver and the action for the control domain buttons.
+        Depending on the button used, 'active_ids' will include either the 'control_domain_missing_ids'
+        or the 'control_domain_excess_ids'
+        :return:    The missing / excess report lines, the solver and the action.
+        """
 
-        :param default: Default values.
-        :return: The copied account.financial.html.report record.
-        '''
+        active_ids = options.get('control_domain_missing_ids') if missing else options.get('control_domain_excess_ids')
+        lines = self.env['account.financial.html.report.line'].browse(active_ids)
+        options_list = self._get_options_periods_list(options)
+        solver = FormulaSolver(options_list, self)
+        solver.fetch_lines(lines)
+
+        action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move.line',
+            'view_type': 'list',
+            'view_mode': 'list',
+            'target': 'current',
+            'views': [[self.env.ref('account.view_move_line_tree').id, 'list']],
+            'domain': self._get_options_domain(options),
+            'context': {
+                **self._set_context(options),
+                'group_by': 'account_id',
+            },
+        }
+
+        return lines, solver, action
+
+    def open_control_domain_missing(self, options, params=None):
+        """ Action when clicking the link on the banner at the top that is shown
+        when the control domain check fails because of missing journal items.
+        :return:    A tree view with the missing items.
+        """
         self.ensure_one()
-        if default is None:
-            default = {}
-        default.update({'name': self._get_copied_name()})
-        copied_report_id = super(ReportAccountFinancialReport, self).copy(default=default)
-        for line in self.line_ids:
-            line._copy_hierarchy(report_id=self, copied_report_id=copied_report_id)
-        return copied_report_id
+
+        lines, solver, action = self._prepare_control_domain_action(options)
+        action['domain'] += expression.OR([solver._get_missing_control_domain(options, line) for line in lines])
+        action['name'] = _('Missing Journal Items')
+
+        return action
+
+    def open_control_domain_excess(self, options, params=None):
+        """ Action when clicking the link on the banner at the top that is shown
+        when the control domain check fails because of missing journal items.
+        :return:    A tree view with the excess items.
+        """
+        self.ensure_one()
+
+        lines, solver, action = self._prepare_control_domain_action(options, missing=False)
+        action['domain'] += expression.OR([solver._get_excess_control_domain(options, line) for line in lines])
+        action['name'] = _('Excess Journal Items')
+
+        return action
 
 
 class AccountFinancialReportLine(models.Model):
     _name = "account.financial.html.report.line"
     _description = "Account Report (HTML Line)"
-    _order = "sequence"
+    _order = "sequence, id"
     _parent_store = True
 
     name = fields.Char('Section Name', translate=True)
@@ -401,8 +946,9 @@ class AccountFinancialReportLine(models.Model):
     sequence = fields.Integer()
 
     domain = fields.Char(default=None)
+    control_domain = fields.Char(default=None, help='Specify a control domain that will raise a warning if the report line is not computed correctly.')
     formulas = fields.Char()
-    groupby = fields.Char("Group by", default=False)
+    groupby = fields.Char("Group by")
     figure_type = fields.Selection([('float', 'Float'), ('percents', 'Percents'), ('no_unit', 'No Unit')],
                                    'Type', default='float', required=True)
     print_on_new_page = fields.Boolean('Print On New Page', help='When checked this line and everything after it will be printed on a new page.')
@@ -411,7 +957,7 @@ class AccountFinancialReportLine(models.Model):
     special_date_changer = fields.Selection([
         ('from_beginning', 'From the beginning'),
         ('to_beginning_of_period', 'At the beginning of the period'),
-        ('normal', 'Use given dates'),
+        ('normal', 'Use the dates that should normally be used, depending on the account types'), # So, the start of the accounting if include_initial_balance is True on the account type
         ('strict_range', 'Force given dates for all accounts and account types'),
         ('from_fiscalyear', 'From the beginning of the fiscal year'),
     ], default='normal')
@@ -424,11 +970,408 @@ class AccountFinancialReportLine(models.Model):
         ('code_uniq', 'unique (code)', "A report line with the same code already exists."),
     ]
 
-    @api.constrains('code')
-    def _code_constrains(self):
+    # -------------------------------------------------------------------------
+    # CONSTRAINS
+    # -------------------------------------------------------------------------
+
+    @api.constrains('code', 'groupby', 'formulas')
+    def _check_line_consistency(self):
+        AccountMoveLine = self.env['account.move.line']
+
         for rec in self:
-            if rec.code and rec.code.strip().lower() in __builtins__.keys():
-                raise ValidationError('The code "%s" is invalid on line with name "%s"' % (rec.code, rec.name))
+            # Check 'code' must not be a protected keyword.
+            if rec.code:
+                protected_codes = set(dir(__builtins__)).union(set(PROTECTED_KEYWORDS))
+                if rec.code and rec.code.strip().lower() in protected_codes:
+                    raise ValidationError("The code '%s' is invalid on line with name '%s'") % (rec.code, rec.name)
+
+            # Check 'groupby' must be a valid field.
+            if rec.groupby:
+                groupby_field = AccountMoveLine._fields.get(rec.groupby)
+                if not groupby_field or not self.env['account.financial.html.report']._is_allowed_groupby_field(groupby_field):
+                    raise ValidationError(_("Groupby field %s is invalid on line with name '%s'") % (rec.groupby, rec.name))
+
+            # Make sure groupby is specified in conjunction with 'sum_if_pos_groupby' or 'sum_if_neg_groupby'
+            if rec.formulas:
+                if any(key in rec.formulas for key in ('sum_if_pos_groupby', 'sum_if_neg_groupby')) and not rec.groupby:
+                    raise ValidationError(_("Please specify a Group by field when using '%s' in Formulas, on line with name '%s'")
+                                          % (rec.formulas, rec.name))
+
+    @api.constrains('domain')
+    def _validate_domain(self):
+        error_format = _("Error while validating the domain of line %s:\n%s")
+        for record in self.filtered('domain'):
+            try:
+                domain = record._get_domain({}, record._get_financial_report())
+                expression.expression(domain, self.env['account.move.line'])
+            except Exception as e:
+                raise ValidationError(error_format % (record.name, str(e)))
+
+    # -------------------------------------------------------------------------
+    # OPTIONS
+    # -------------------------------------------------------------------------
+
+    def _get_options_financial_line(self, options, calling_financial_report, parent_financial_report):
+        ''' Create a new options specific to one financial line.
+        :param options:                     The report options.
+        :param calling_financial_report:    The financial report called by the user to be rendered.
+        :param parent_financial_report:     The financial report owning the current financial report line that need to
+                                            be evaluated by the solver.
+        :return:                            The report options adapted to the financial line.
+        '''
+        self.ensure_one()
+
+        # Make sure to adapt the options if the current report is not the one owning the current financial report line.
+        # This is necessary when the 'date' filter mode is not the same in both reports. For example, some P&L lines
+        # are used in some balance sheet formulas. However, the balance sheet is a single-date mode report but not the
+        # P&L.
+        if parent_financial_report and calling_financial_report != parent_financial_report:
+            new_options = parent_financial_report._get_options(previous_options=options)
+
+            # Propate the 'ir_filters' manually because 'applicable_filters_ids' could be different
+            # in both reports. In that case, we need to propagate it whatever the configuration.
+            if options.get('ir_filters'):
+                new_options['ir_filters'] = options['ir_filters']
+
+            options = new_options
+
+        new_options = options.copy()
+        new_options['date'] = options['date'].copy()
+        date_from = options['date']['date_from']
+        date_to = options['date']['date_to']
+        if self.special_date_changer == 'strict_range':
+            new_options['date']['strict_range'] = True
+        elif self.special_date_changer == 'from_beginning':
+            new_options['date']['date_from'] = False
+        elif self.special_date_changer == 'to_beginning_of_period':
+            date_tmp = fields.Date.from_string(date_from) - relativedelta(days=1)
+            date_to = date_tmp.strftime('%Y-%m-%d')
+            new_options['date'].update({'date_from': False, 'date_to': date_to, 'strict_range': False})
+        elif self.special_date_changer == 'from_fiscalyear':
+            date_tmp = fields.Date.from_string(date_to)
+            date_tmp = self.env.company.compute_fiscalyear_dates(date_tmp)['date_from']
+            date_from = date_tmp.strftime('%Y-%m-%d')
+            new_options['date'].update({'date_from': date_from, 'date_to': date_to, 'strict_range': True, 'mode': 'range'})
+        return new_options
+
+    # -------------------------------------------------------------------------
+    # HELPERS
+    # -------------------------------------------------------------------------
+
+    def _get_financial_report(self):
+        ''' Retrieve the financial report owning the current line.
+        The current financial report you are rendering is not always the report owning the
+        lines as you could reference a line in a formula coming from another report.
+
+        :return: An account.financial.html.report record.
+        '''
+        self.ensure_one()
+        line = self
+        financial_report = False
+        while not financial_report:
+            financial_report = line.financial_report_id
+            if not line.parent_id:
+                break
+            line = line.parent_id
+        return financial_report
+
+    def _get_domain(self, options, financial_report):
+        ''' Get the domain to be applied on the current line.
+        :return: A valid domain to apply on the account.move.line model.
+        '''
+        self.ensure_one()
+
+        # Domain defined on the line.
+        domain = self.domain and ast.literal_eval(ustr(self.domain)) or []
+
+        # Take care of the tax exigibility.
+        # /!\ Still needed as there are still some custom tax reports in localizations.
+        if financial_report.tax_report:
+            domain += self.env['account.move.line']._get_tax_exigible_domain()
+
+        return domain
+
+    # -------------------------------------------------------------------------
+    # QUERIES
+    # -------------------------------------------------------------------------
+
+    def _compute_amls_results(self, options_list, calling_financial_report, sign=1, operator=None):
+        ''' Compute the results for the unfolded lines by taking care about the line order and the group by filter.
+
+        Suppose the line has '-sum' as formulas with 'partner_id' in groupby and 'currency_id' in group by filter.
+        The result will be something like:
+        [
+            (0, 'partner 0', {(0,1): amount1, (0,2): amount2, (1,1): amount3}),
+            (1, 'partner 1', {(0,1): amount4, (0,2): amount5, (1,1): amount6}),
+            ...               |
+        ]    |                |
+             |__ res.partner ids
+                              |_ key where the first element is the period number, the second one being a res.currency id.
+
+        :param options_list:                The report options list, first one being the current dates range, others
+                                            being the comparisons.
+        :param calling_financial_report:    The financial report called by the user to be rendered.
+        :param sign:                        1 or -1 to get negative values in case of '-sum' formula.
+        :param operator:                    The operator initiating the computation of the amls.
+        :return:                            A list (groupby_key, display_name, {key: <balance>...}).
+        '''
+        self.ensure_one()
+        params = []
+        queries = []
+
+        AccountFinancialReportHtml = self.financial_report_id
+        horizontal_groupby_list = AccountFinancialReportHtml._get_options_groupby_fields(options_list[0])
+        groupby_list = [self.groupby] + horizontal_groupby_list
+        groupby_clause = ','.join('account_move_line.%s' % gb for gb in groupby_list)
+        groupby_field = self.env['account.move.line']._fields[self.groupby]
+
+        ct_query = self.env['res.currency']._get_query_currency_table(options_list[0])
+        parent_financial_report = self._get_financial_report()
+
+        # Prepare a query by period as the date is different for each comparison.
+
+        for i, options in enumerate(options_list):
+            new_options = self._get_options_financial_line(options, calling_financial_report, parent_financial_report)
+            line_domain = self._get_domain(new_options, parent_financial_report)
+
+            tables, where_clause, where_params = AccountFinancialReportHtml._query_get(new_options, domain=line_domain)
+
+            queries.append('''
+                SELECT
+                    ''' + (groupby_clause and '%s,' % groupby_clause) + '''
+                    %s AS period_index,
+                    COALESCE(SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)), 0.0) AS balance
+                FROM ''' + tables + '''
+                JOIN ''' + ct_query + ''' ON currency_table.company_id = account_move_line.company_id
+                WHERE ''' + where_clause + '''
+                ''' + (groupby_clause and 'GROUP BY %s' % groupby_clause) + '''
+            ''')
+            params += [i] + where_params
+
+        # Fetch the results.
+        # /!\ Take care of both vertical and horizontal group by clauses.
+
+        results = {}
+
+        total_balance = 0.0
+        self._cr.execute(' UNION ALL '.join(queries), params)
+        for res in self._cr.dictfetchall():
+            balance = res['balance']
+            total_balance += balance
+
+            # Build the key.
+            key = [res['period_index']]
+            for gb in horizontal_groupby_list:
+                key.append(res[gb])
+            key = tuple(key)
+
+            add_line = (
+                not operator
+                or operator in ('sum', 'sum_if_pos', 'sum_if_neg')
+                or (operator == 'sum_if_pos_groupby' and balance >= 0.0)
+                or (operator == 'sum_if_neg_groupby' and balance < 0.0)
+            )
+
+            if add_line:
+                results.setdefault(res[self.groupby], {})
+                results[res[self.groupby]][key] = sign * balance
+
+        add_line = (
+            not operator
+            or operator in ('sum', 'sum_if_pos_groupby', 'sum_if_neg_groupby')
+            or (operator == 'sum_if_pos' and total_balance >= 0.0)
+            or (operator == 'sum_if_neg' and total_balance < 0.0)
+        )
+        if not add_line:
+            results = {}
+
+        # Sort the lines according to the vertical groupby and compute their display name.
+        if groupby_field.relational:
+            # Preserve the table order by using search instead of browse.
+            sorted_records = self.env[groupby_field.comodel_name].search([('id', 'in', tuple(results.keys()))])
+            sorted_values = sorted_records.name_get()
+        else:
+            # Sort the keys in a lexicographic order.
+            sorted_values = [(v, v) for v in sorted(list(results.keys()))]
+
+        return [(groupby_key, display_name, results[groupby_key]) for groupby_key, display_name in sorted_values]
+
+    def _compute_control_domain(self, options_list, calling_financial_report):
+        """ Run an SQL query to fetch the results from the control domain.
+
+        :param calling_financial_report:    The financial report called by the user to be rendered.
+        :return:                            A dictionary with he total for each period.
+        """
+
+        self.ensure_one()
+        params = []
+        queries = []
+
+        parent_financial_report = self._get_financial_report()
+        groupby_list = parent_financial_report._get_options_groupby_fields(options_list[0])
+        groupby_clause = ','.join('account_move_line.%s' % gb for gb in groupby_list)
+
+        ct_query = self.env['res.currency']._get_query_currency_table(options_list[0])
+
+        # Prepare a query by period as the date is different for each comparison.
+
+        for i, options in enumerate(options_list):
+            new_options = self._get_options_financial_line(options, calling_financial_report, parent_financial_report)
+            control_domain = self.control_domain and ast.literal_eval(ustr(self.control_domain)) or []
+
+            tables, where_clause, where_params = parent_financial_report._query_get(new_options, domain=control_domain)
+
+            queries.append(f'''
+                SELECT
+                    {groupby_clause and f'{groupby_clause},'} %s AS period_index,
+                    COALESCE(SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)), 0.0) AS balance
+                FROM {tables}
+                JOIN {ct_query} ON currency_table.company_id = account_move_line.company_id
+                WHERE {where_clause}
+                {groupby_clause and f'GROUP BY {groupby_clause}'}
+            ''')
+            params.append(i)
+            params += where_params
+
+        # Fetch the results.
+
+        results = {}
+        parent_financial_report._cr.execute(' UNION ALL '.join(queries), params)
+
+        for res in self._cr.dictfetchall():
+            # Build the key and save the balance
+            key = [res['period_index']]
+            for gb in groupby_list:
+                key.append(res[gb])
+            key = tuple(key)
+
+            results[key] = res['balance']
+
+        return results
+
+    def _check_control_domain(self, options, results, calling_financial_report):
+        """ Compare values from the solver with those from the control domain.
+        :param calling_financial_report:    The financial report called by the user to be rendered.
+        :return:                            False if values do not match.
+        """
+
+        options_list = self.env['account.report']._get_options_periods_list(options)
+        results_control = self._compute_control_domain(options_list, calling_financial_report)
+        company_round = self.env.company.currency_id.round
+
+        # Values are compared in absolute terms since they are coming from different sources :
+        # - Values in 'results' come from the Solver. Their sign is formatted based on how it should be displayed.
+        # - Values in 'results_control' are raw.
+        # The sign does not matter in this case, just that the (absolute) values are the same to pass the test.
+        return all(
+            abs(company_round(results_control[key])) == abs(company_round(results[key]))
+            for key in results_control
+        )
+
+    def _compute_sum(self, options_list, calling_financial_report):
+        ''' Compute the values to be used inside the formula for the current line.
+        If called, it means the current line formula contains something making its line a leaf ('sum' or 'count_rows')
+        for example.
+
+        The results is something like:
+        {
+            'sum':                  {key: <balance>...},
+            'sum_if_pos':           {key: <balance>...},
+            'sum_if_pos_groupby':   {key: <balance>...},
+            'sum_if_neg':           {key: <balance>...},
+            'sum_if_neg_groupby':   {key: <balance>...},
+            'count_rows':           {period_index: <number_of_rows_in_period>...},
+        }
+
+        ... where:
+        'period_index' is the number of the period, 0 being the current one, others being comparisons.
+
+        'key' is a composite key containing the period_index and the additional group by enabled on the financial report.
+        For example, suppose a group by 'partner_id':
+
+        The keys could be something like (0,1), (1,2), (1,3), meaning:
+        * (0,1): At the period 0, the results for 'partner_id = 1' are...
+        * (1,2): At the period 1 (first comparison), the results for 'partner_id = 2' are...
+        * (1,3): At the period 1 (first comparison), the results for 'partner_id = 3' are...
+
+        :param options_list:                The report options list, first one being the current dates range, others
+                                            being the comparisons.
+        :param calling_financial_report:    The financial report called by the user to be rendered.
+        :return:                            A python dictionary.
+        '''
+        self.ensure_one()
+        params = []
+        queries = []
+
+        AccountFinancialReportHtml = self.financial_report_id
+        groupby_list = AccountFinancialReportHtml._get_options_groupby_fields(options_list[0])
+        all_groupby_list = groupby_list.copy()
+        groupby_in_formula = any(x in (self.formulas or '') for x in ('sum_if_pos_groupby', 'sum_if_neg_groupby'))
+        if groupby_in_formula and self.groupby and self.groupby not in all_groupby_list:
+            all_groupby_list.append(self.groupby)
+        groupby_clause = ','.join('account_move_line.%s' % gb for gb in all_groupby_list)
+
+        ct_query = self.env['res.currency']._get_query_currency_table(options_list[0])
+        parent_financial_report = self._get_financial_report()
+
+        # Prepare a query by period as the date is different for each comparison.
+
+        for i, options in enumerate(options_list):
+            new_options = self._get_options_financial_line(options, calling_financial_report, parent_financial_report)
+            line_domain = self._get_domain(new_options, parent_financial_report)
+
+            tables, where_clause, where_params = AccountFinancialReportHtml._query_get(new_options, domain=line_domain)
+
+            queries.append('''
+                SELECT
+                    ''' + (groupby_clause and '%s,' % groupby_clause) + ''' %s AS period_index,
+                    COUNT(DISTINCT account_move_line.''' + (self.groupby or 'id') + ''') AS count_rows,
+                    COALESCE(SUM(ROUND(account_move_line.balance * currency_table.rate, currency_table.precision)), 0.0) AS balance
+                FROM ''' + tables + '''
+                JOIN ''' + ct_query + ''' ON currency_table.company_id = account_move_line.company_id
+                WHERE ''' + where_clause + '''
+                ''' + (groupby_clause and 'GROUP BY %s' % groupby_clause) + '''
+            ''')
+            params.append(i)
+            params += where_params
+
+        # Fetch the results.
+
+        results = {
+            'sum': {},
+            'sum_if_pos': {},
+            'sum_if_pos_groupby': {},
+            'sum_if_neg': {},
+            'sum_if_neg_groupby': {},
+            'count_rows': {},
+        }
+
+        self._cr.execute(' UNION ALL '.join(queries), params)
+        for res in self._cr.dictfetchall():
+            # Build the key.
+            key = [res['period_index']]
+            for gb in groupby_list:
+                key.append(res[gb])
+            key = tuple(key)
+
+            # Compute values.
+            results['count_rows'].setdefault(res['period_index'], 0)
+            results['count_rows'][res['period_index']] += res['count_rows']
+            results['sum'][key] = res['balance']
+            if results['sum'][key] > 0:
+                results['sum_if_pos'][key] = results['sum'][key]
+                results['sum_if_pos_groupby'].setdefault(key, 0.0)
+                results['sum_if_pos_groupby'][key] += res['balance']
+            if results['sum'][key] < 0:
+                results['sum_if_neg'][key] = results['sum'][key]
+                results['sum_if_neg_groupby'].setdefault(key, 0.0)
+                results['sum_if_neg_groupby'][key] += res['balance']
+
+        return results
+
+    # -------------------------------------------------------------------------
+    # BUSINESS METHODS
+    # -------------------------------------------------------------------------
 
     def _get_copied_code(self):
         '''Look for an unique copied code.
@@ -472,653 +1415,69 @@ class AccountFinancialReportLine(models.Model):
             line._copy_hierarchy(parent_id=copy_line_id, code_mapping=code_mapping)
         # Update formulas
         if self.formulas:
-            copied_formulas = self.formulas
-            for k, v in code_mapping.items():
-                for field in ['debit', 'credit', 'balance', 'amount_residual']:
-                    suffix = '.' + field
-                    copied_formulas = copied_formulas.replace(k + suffix, v + suffix)
-            copy_line_id.formulas = copied_formulas
+            copied_formulas = f" {self.formulas} " # Add spaces so that the lookahead/lookbehind of the regex can work (we can't do a | in those)
+            for old_code, new_code in code_mapping.items():
+                copied_formulas = re.sub(f"(?<=\\W){old_code}(?=\\W)", new_code, copied_formulas)
+            copy_line_id.formulas = copied_formulas.strip() # Remove the spaces introduced for lookahead/lookbehind
 
-    def _query_get_select_sum(self, currency_table):
-        """ Little function to help building the SELECT statement when computing the report lines.
+    def action_view_journal_entries(self, options, calling_financial_report_id):
+        ''' Action when clicking on the "View Journal Items" in the debug info popup.
 
-            @param currency_table: dictionary containing the foreign currencies (key) and their factor (value)
-                compared to the current user's company currency
-            @returns: the string and parameters to use for the SELECT
-        """
-        decimal_places = self.env.company.currency_id.decimal_places
-        extra_params = []
-        select = '''
-            COALESCE(SUM(\"account_move_line\".balance), 0) AS balance,
-            COALESCE(SUM(\"account_move_line\".amount_residual), 0) AS amount_residual,
-            COALESCE(SUM(\"account_move_line\".debit), 0) AS debit,
-            COALESCE(SUM(\"account_move_line\".credit), 0) AS credit
+        :param options:                     The report options.
+        :param calling_financial_report_id: The financial report's id called by the user to be rendered.
+        :return:                            An action showing the account.move.lines for the current financial report
+                                            line.
         '''
-        if currency_table:
-            select = 'COALESCE(SUM(CASE '
-            for currency_id, rate in currency_table.items():
-                extra_params += [currency_id, rate, decimal_places]
-                select += 'WHEN \"account_move_line\".company_currency_id = %s THEN ROUND(\"account_move_line\".balance * %s, %s) '
-            select += 'ELSE \"account_move_line\".balance END), 0) AS balance, COALESCE(SUM(CASE '
-            for currency_id, rate in currency_table.items():
-                extra_params += [currency_id, rate, decimal_places]
-                select += 'WHEN \"account_move_line\".company_currency_id = %s THEN ROUND(\"account_move_line\".amount_residual * %s, %s) '
-            select += 'ELSE \"account_move_line\".amount_residual END), 0) AS amount_residual, COALESCE(SUM(CASE '
-            for currency_id, rate in currency_table.items():
-                extra_params += [currency_id, rate, decimal_places]
-                select += 'WHEN \"account_move_line\".company_currency_id = %s THEN ROUND(\"account_move_line\".debit * %s, %s) '
-            select += 'ELSE \"account_move_line\".debit END), 0) AS debit, COALESCE(SUM(CASE '
-            for currency_id, rate in currency_table.items():
-                extra_params += [currency_id, rate, decimal_places]
-                select += 'WHEN \"account_move_line\".company_currency_id = %s THEN ROUND(\"account_move_line\".credit * %s, %s) '
-            select += 'ELSE \"account_move_line\".credit END), 0) AS credit'
+        self.ensure_one()
+        parent_financial_report = self._get_financial_report()
+        calling_financial_report = self.env['account.financial.html.report'].browse(calling_financial_report_id)
+        new_options = self._get_options_financial_line(options, calling_financial_report, parent_financial_report)
+        domain = self._get_domain(new_options, parent_financial_report) + parent_financial_report._get_options_domain(new_options)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Journal Items'),
+            'res_model': 'account.move.line',
+            'view_type': 'list',
+            'view_mode': 'list',
+            'target': 'current',
+            'views': [[self.env.ref('account.view_move_line_tree').id, 'list']],
+            'domain': domain,
+            'context': {**parent_financial_report._set_context(options)},
+        }
 
-        return select, extra_params
-
-    def _compute_line(self, currency_table, financial_report, group_by=None, domain=[]):
-        """ Computes the sum that appeas on report lines when they aren't unfolded. It is using _query_get() function
-            of account.move.line which is based on the context, and an additional domain (the field domain on the report
-            line) to build the query that will be used.
-
-            @param currency_table: dictionary containing the foreign currencies (key) and their factor (value)
-                compared to the current user's company currency
-            @param financial_report: browse_record of the financial report we are willing to compute the lines for
-            @param group_by: used in case of conditionnal sums on the report line
-            @param domain: domain on the report line to consider in the query_get() call
-
-            @returns : a dictionnary that has for each aml in the domain a dictionnary of the values of the fields
-        """
-        domain = domain and ast.literal_eval(ustr(domain))
-        for index, condition in enumerate(domain):
-            if condition[0].startswith('tax_ids.'):
-                new_condition = (condition[0].partition('.')[2], condition[1], condition[2])
-                taxes = self.env['account.tax'].with_context(active_test=False).search([new_condition])
-                domain[index] = ('tax_ids', 'in', taxes.ids)
-        aml_obj = self.env['account.move.line']
-        tables, where_clause, where_params = aml_obj._query_get(domain=self._get_aml_domain())
-        if financial_report.tax_report:
-            where_clause += ''' AND "account_move_line".tax_exigible = 't' '''
-
-        line = self
-        financial_report = self._get_financial_report()
-
-        select, select_params = self._query_get_select_sum(currency_table)
-        where_params = select_params + where_params
-
-        if (self.env.context.get('sum_if_pos') or self.env.context.get('sum_if_neg')) and group_by:
-            sql = "SELECT account_move_line." + group_by + " as " + group_by + "," + select + " FROM " + tables + " WHERE " + where_clause + " GROUP BY account_move_line." + group_by
-            self.env.cr.execute(sql, where_params)
-            res = {'balance': 0, 'debit': 0, 'credit': 0, 'amount_residual': 0}
-            for row in self.env.cr.dictfetchall():
-                if (row['balance'] > 0 and self.env.context.get('sum_if_pos')) or (row['balance'] < 0 and self.env.context.get('sum_if_neg')):
-                    for field in ['debit', 'credit', 'balance', 'amount_residual']:
-                        res[field] += row[field]
-            res['currency_id'] = self.env.company.currency_id.id
-            return res
-
-        sql, params = self._build_query_compute_line(select, tables, where_clause, where_params)
-        self.env.cr.execute(sql, params)
-        results = self.env.cr.dictfetchall()[0]
-        results['currency_id'] = self.env.company.currency_id.id
-        return results
-
-    def _get_financial_report(self):
-        """ Returns the financial report this line belongs to (so the one that is
-        either set as financial_report_id of this line or one of its parents."""
+    def action_view_coa(self, options):
+        """ Action when clicking on the "Accounts" button in the debug info popup."""
         self.ensure_one()
 
-        line = self
-        while line.parent_id or line.financial_report_id:
-            if line.financial_report_id:
-                return line.financial_report_id
-            line = line.parent_id
+        options_list = self._get_financial_report()._get_options_periods_list(options)
+        solver = FormulaSolver(options_list, self)
+        solver.fetch_lines(self)
 
-        return False
+        missing_amls = solver._get_missing_control_domain(options, self)
+        excess_amls = solver._get_excess_control_domain(options, self)
+        amls = self.env['account.move.line'].search(expression.OR([missing_amls + excess_amls]))
 
-    def _build_query_compute_line(self, select, tables, where_clause, params):
-        """Beware of SQL injections when inheriting this."""
-        return "SELECT " + select + " FROM " + tables + " WHERE " + where_clause, params
-
-    def _compute_date_range(self):
-        '''Compute the current report line date range according to the dates passed through the context
-        and its specified special_date_changer.
-
-        :return: The date_from, date_to, strict_range values to consider for the report line.
-        '''
-        date_from = self._context.get('date_from', False)
-        date_to = self._context.get('date_to', False)
-
-        strict_range = self.special_date_changer == 'strict_range'
-        if self.special_date_changer == 'from_beginning':
-            date_from = False
-        if self.special_date_changer == 'to_beginning_of_period' and date_from:
-            date_tmp = fields.Date.from_string(self._context['date_from']) - relativedelta(days=1)
-            date_to = date_tmp.strftime('%Y-%m-%d')
-            date_from = False
-        if self.special_date_changer == 'from_fiscalyear' and date_to:
-            date_tmp = fields.Date.from_string(date_to)
-            date_tmp = self.env.company.compute_fiscalyear_dates(date_tmp)['date_from']
-            date_from = date_tmp.strftime('%Y-%m-%d')
-            strict_range = True
-        return date_from, date_to, strict_range
-
-    def report_move_lines_action(self):
-        domain = ast.literal_eval(self.domain)
-        if 'date_from' in self.env.context.get('context', {}):
-            if self.env.context['context'].get('date_from'):
-                domain = expression.AND([domain, [('date', '>=', self.env.context['context']['date_from'])]])
-            if self.env.context['context'].get('date_to'):
-                domain = expression.AND([domain, [('date', '<=', self.env.context['context']['date_to'])]])
-            if self.env.context['context'].get('state', 'all') == 'posted':
-                domain = expression.AND([domain, [('move_id.state', '=', 'posted')]])
-            if self.env.context['context'].get('company_ids'):
-                domain = expression.AND([domain, [('company_id', 'in', self.env.context['context']['company_ids'])]])
-        return {'type': 'ir.actions.act_window',
-                'name': 'Journal Items (%s)' % self.name,
-                'res_model': 'account.move.line',
-                'view_mode': 'tree,form',
-                'domain': domain,
-                }
-
-    @api.constrains('groupby')
-    def _check_same_journal(self):
-        for rec in self:
-            if rec.groupby and rec.groupby not in self.env['account.move.line']:
-                raise ValidationError(_("Groupby should be a journal item field"))
-
-    def _get_sum(self, currency_table, financial_report, field_names=None):
-        ''' Returns the sum of the amls in the domain '''
-        if not field_names:
-            field_names = ['debit', 'credit', 'balance', 'amount_residual']
-        res = dict((fn, 0.0) for fn in field_names)
-        if self.domain:
-            date_from, date_to, strict_range = \
-                self._compute_date_range()
-            res = self.with_context(strict_range=strict_range, date_from=date_from, date_to=date_to, active_test=False)._compute_line(currency_table, financial_report, group_by=self.groupby, domain=self._get_aml_domain())
-        return res
-
-    def _get_balance(self, linesDict, currency_table, financial_report, field_names=None):
-        results = []
-
-        if not field_names:
-            field_names = ['debit', 'credit', 'balance']
-
-        for rec in self:
-            res = dict((fn, 0.0) for fn in field_names)
-            c = FormulaContext(self.env['account.financial.html.report.line'],
-                    linesDict, currency_table, financial_report, rec)
-            if rec.formulas:
-                for f in rec.formulas.split(';'):
-                    [field, formula] = f.split('=')
-                    field = field.strip()
-                    if field in field_names:
-                        try:
-                            res[field] = safe_eval(formula, c, nocopy=True)
-                        except ValueError as err:
-                            if 'division by zero' in err.args[0]:
-                                res[field] = 0
-                            else:
-                                raise err
-            results.append(res)
-        return results
-
-    def _get_rows_count(self):
-        groupby = self.groupby or 'id'
-        if groupby not in self.env['account.move.line']:
-            raise ValueError(_('Groupby should be a field from account.move.line'))
-
-        date_from, date_to, strict_range = self._compute_date_range()
-        tables, where_clause, where_params = self.env['account.move.line'].with_context(strict_range=strict_range,
-                                                                                        date_from=date_from,
-                                                                                        date_to=date_to)._query_get(domain=self._get_aml_domain())
-
-        query, params = self._build_query_rows_count(groupby, tables, where_clause, where_params)
-        self.env.cr.execute(query, params)
-        return self.env.cr.dictfetchone()['count']
-
-    def _build_query_rows_count(self, groupby, tables, where_clause, params):
-        return 'SELECT count(distinct(account_move_line.' + groupby + ')) FROM ' + tables + 'WHERE' + where_clause, params
-
-    def _get_value_from_context(self):
-        if self.env.context.get('financial_report_line_values'):
-            return self.env.context.get('financial_report_line_values').get(self.code, 0)
-        return 0
-
-    def _format(self, value):
-        if self.env.context.get('no_format'):
-            return value
-        value['no_format_name'] = value['name']
-        if self.figure_type == 'float':
-            currency_id = self.env.company.currency_id
-            if currency_id.is_zero(value['name']):
-                # don't print -0.0 in reports
-                value['name'] = abs(value['name'])
-                value['class'] = 'number text-muted'
-            value['name'] = formatLang(self.env, value['name'], currency_obj=currency_id)
-            return value
-        if self.figure_type == 'percents':
-            value['name'] = str(round(value['name'] * 100, 1)) + '%'
-            return value
-        value['name'] = round(value['name'], 1)
-        return value
-
-    def _get_gb_name(self, gb_id):
-        if self.groupby and self.env['account.move.line']._fields[self.groupby].relational:
-            relation = self.env['account.move.line']._fields[self.groupby].comodel_name
-            gb = self.env[relation].browse(gb_id)
-            return gb.display_name if gb and gb.exists() else _('Undefined')
-        return gb_id
-
-    def _build_cmp(self, balance, comp):
-        if comp != 0:
-            res = round((balance - comp) / comp * 100, 1)
-            # Avoid displaying '-0.0%'.
-            if float_is_zero(res, precision_rounding=0.1):
-                res = 0.0
-            # In case the comparison is made on a negative figure, the color should be the other
-            # way around. For example:
-            #                       2018         2017           %
-            # Product Sales      1000.00     -1000.00     -200.0%
-            #
-            # The percentage is negative, which is mathematically correct, but my sales increased
-            # => it should be green, not red!
-            if (res > 0) != (self.green_on_positive and comp > 0):
-                return {'name': str(res) + '%', 'class': 'number color-red'}
-            else:
-                return {'name': str(res) + '%', 'class': 'number color-green'}
-        else:
-            return {'name': _('n/a')}
-
-    def _split_formulas(self):
-        result = {}
-        if self.formulas:
-            for f in self.formulas.split(';'):
-                [column, formula] = f.split('=')
-                column = column.strip()
-                result.update({column: formula})
-        return result
-
-    def _get_aml_domain(self):
-        return (safe_eval(self.domain) or []) + (self._context.get('filter_domain') or []) + (self._context.get('group_domain') or [])
-
-    def _get_group_domain(self, group, groups):
-        return [(field, '=', grp) for field, grp in zip(groups['fields'], group)]
-
-    def _eval_formula(self, financial_report, debit_credit, currency_table, linesDict_per_group, groups=False):
-        groups = groups or {'fields': [], 'ids': [()]}
-        debit_credit = debit_credit and financial_report.debit_credit
-        formulas = self._split_formulas()
-        currency = self.env.company.currency_id
-
-        line_res_per_group = []
-
-        if not groups['ids']:
-            return [{'line': {'balance': 0.0}}]
-
-        # this computes the results of the line itself
-        for group_index, group in enumerate(groups['ids']):
-            self_for_group = self.with_context(group_domain=self._get_group_domain(group, groups))
-            linesDict = linesDict_per_group[group_index]
-            line = False
-
-            if self.code and self.code in linesDict:
-                line = linesDict[self.code]
-            elif formulas and formulas['balance'].strip() == 'count_rows' and self.groupby:
-                line_res_per_group.append({'line': {'balance': self_for_group._get_rows_count()}})
-            elif formulas and formulas['balance'].strip() == 'from_context':
-                line_res_per_group.append({'line': {'balance': self_for_group._get_value_from_context()}})
-            else:
-                line = FormulaLine(self_for_group, currency_table, financial_report, linesDict=linesDict)
-
-            if line:
-                res = {}
-                res['balance'] = line.balance
-                res['balance'] = currency.round(line.balance) if self.figure_type != 'percents' else line.balance
-                if debit_credit:
-                    res['credit'] = currency.round(line.credit)
-                    res['debit'] = currency.round(line.debit)
-                line_res_per_group.append(res)
-
-        # don't need any groupby lines for count_rows and from_context formulas
-        if all('line' in val for val in line_res_per_group):
-            return line_res_per_group
-
-        columns = []
-        # this computes children lines in case the groupby field is set
-        if self.domain and self.groupby and self.show_domain != 'never':
-            if self.groupby not in self.env['account.move.line']:
-                raise ValueError(_('Groupby should be a field from account.move.line'))
-
-            groupby = [self.groupby or 'id']
-            if groups:
-                groupby = groups['fields'] + groupby
-            groupby = ', '.join(['"account_move_line".%s' % field for field in groupby])
-
-            aml_obj = self.env['account.move.line']
-            tables, where_clause, where_params = aml_obj._query_get(domain=self._get_aml_domain())
-            if financial_report.tax_report:
-                where_clause += ''' AND "account_move_line".tax_exigible = 't' '''
-
-            select, params = self._query_get_select_sum(currency_table)
-            params += where_params
-
-            sql, params = self._build_query_eval_formula(groupby, select, tables, where_clause, params)
-            self.env.cr.execute(sql, params)
-            results = self.env.cr.fetchall()
-            for group_index, group in enumerate(groups['ids']):
-                linesDict = linesDict_per_group[group_index]
-                results_for_group = [result for result in results if group == result[:len(group)]]
-                if results_for_group:
-                    results_for_group = [r[len(group):] for r in results_for_group]
-                    results_for_group = dict([(k[0], {'balance': k[1], 'amount_residual': k[2], 'debit': k[3], 'credit': k[4]}) for k in results_for_group])
-                    c = FormulaContext(self.env['account.financial.html.report.line'].with_context(group_domain=self._get_group_domain(group, groups)),
-                                       linesDict, currency_table, financial_report, only_sum=True)
-                    if formulas:
-                        for key in results_for_group:
-                            c['sum'] = FormulaLine(results_for_group[key], currency_table, financial_report, type='not_computed')
-                            c['sum_if_pos'] = FormulaLine(results_for_group[key]['balance'] >= 0.0 and results_for_group[key] or {'balance': 0.0},
-                                                          currency_table, financial_report, type='not_computed')
-                            c['sum_if_neg'] = FormulaLine(results_for_group[key]['balance'] <= 0.0 and results_for_group[key] or {'balance': 0.0},
-                                                          currency_table, financial_report, type='not_computed')
-                            for col, formula in formulas.items():
-                                if col in results_for_group[key]:
-                                    results_for_group[key][col] = safe_eval(formula, c, nocopy=True)
-                    to_del = []
-                    for key in results_for_group:
-                        if self.env.company.currency_id.is_zero(results_for_group[key]['balance']):
-                            to_del.append(key)
-                    for key in to_del:
-                        del results_for_group[key]
-                    results_for_group.update({'line': line_res_per_group[group_index]})
-                    columns.append(results_for_group)
-                else:
-                    res_vals = {'balance': 0.0}
-                    if debit_credit:
-                        res_vals.update({'debit': 0.0, 'credit': 0.0})
-                    columns.append({'line': res_vals})
-
-        return columns or [{'line': res} for res in line_res_per_group]
-
-    def _build_query_eval_formula(self, groupby, select, tables, where_clause, params):
-        """Beware of SQL injections when inheriting this."""
-        return "SELECT " + groupby + ", " + select + " FROM " + tables + " WHERE " + where_clause + " GROUP BY " + groupby + " ORDER BY " + groupby, params
-
-    def _put_columns_together(self, data, domain_ids):
-        res = dict((domain_id, []) for domain_id in domain_ids)
-        for period in data:
-            debit_credit = False
-            if 'debit' in period['line']:
-                debit_credit = True
-            for domain_id in domain_ids:
-                if debit_credit:
-                    res[domain_id].append(period.get(domain_id, {'debit': 0})['debit'])
-                    res[domain_id].append(period.get(domain_id, {'credit': 0})['credit'])
-                res[domain_id].append(period.get(domain_id, {'balance': 0})['balance'])
-        return res
-
-    def _divide_line(self, line):
-        line1 = {
-            'id': line['id'],
-            'name': line['name'],
-            'class': line['class'],
-            'level': line['level'],
-            'columns': [{'name': ''}] * len(line['columns']),
-            'unfoldable': line['unfoldable'],
-            'unfolded': line['unfolded'],
-            'page_break': line['page_break'],
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Chart of Accounts'),
+            'res_model': 'account.account',
+            'view_mode': 'tree',
+            'limit': 99999999,
+            'search_view_id': [self.env.ref('account.view_account_search').id],
+            'views': [[self.env.ref('account_reports.view_account_coa').id, 'list']],
+            'domain': [('id', 'in', amls.mapped('account_id.id'))],
         }
-        line2 = {
-            'id': line['id'],
-            'name': _('Total') + ' ' + line['name'],
-            'class': 'total',
-            'level': line['level'] + 1,
-            'columns': line['columns'],
+
+    def action_view_line_computation(self):
+        """ Action when clicking on the "Report Line Computation" button in the debug info popup."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Computation: %s', self.name),
+            'res_model': 'account.financial.html.report.line',
+            'view_mode': 'form',
+            'views': [[False, 'form']],
+            'target': 'new',
+            'res_id': self.id,
+            'context': {'create': False},
         }
-        return [line1, line2]
-
-    def _get_lines(self, financial_report, currency_table, options, linesDicts):
-        final_result_table = []
-        comparison_table = [options.get('date')]
-        comparison_table += options.get('comparison') and options['comparison'].get('periods', []) or []
-        currency_precision = self.env.company.currency_id.rounding
-
-        # build comparison table
-        for line in self:
-            res = []
-            debit_credit = len(comparison_table) == 1
-            domain_ids = {'line'}
-            k = 0
-
-            for period in comparison_table:
-                date_from = period.get('date_from', False)
-                date_to = period.get('date_to', False) or period.get('date', False)
-                date_from, date_to, strict_range = line.with_context(date_from=date_from, date_to=date_to)._compute_date_range()
-
-                r = line.with_context(date_from=date_from,
-                                      date_to=date_to,
-                                      strict_range=strict_range)._eval_formula(financial_report,
-                                                                               debit_credit,
-                                                                               currency_table,
-                                                                               linesDicts[k],
-                                                                               groups=options.get('groups'))
-                debit_credit = False
-                res.extend(r)
-                for column in r:
-                    domain_ids.update(column)
-                k += 1
-
-            res = line._put_columns_together(res, domain_ids)
-
-            if line.hide_if_zero and all([float_is_zero(k, precision_rounding=currency_precision) for k in res['line']]):
-                continue
-
-            # Post-processing ; creating line dictionnary, building comparison, computing total for extended, formatting
-            vals = {
-                'id': line.id,
-                'name': line.name,
-                'level': line.level,
-                'class': 'o_account_reports_totals_below_sections' if self.env.company.totals_below_sections else '',
-                'columns': [{'name': l} for l in res['line']],
-                'unfoldable': len(domain_ids) > 1 and line.show_domain != 'always',
-                'unfolded': line.id in options.get('unfolded_lines', []) or line.show_domain == 'always',
-                'page_break': line.print_on_new_page,
-            }
-
-            if financial_report.tax_report and line.domain and not line.action_id:
-                vals['caret_options'] = 'tax.report.line'
-
-            if line.action_id:
-                vals['action_id'] = line.action_id.id
-            domain_ids.remove('line')
-            lines = [vals]
-            groupby = line.groupby or 'aml'
-            if line.id in options.get('unfolded_lines', []) or line.show_domain == 'always':
-                if line.groupby:
-                    domain_ids = sorted(list(domain_ids), key=lambda k: line._get_gb_name(k))
-                for domain_id in domain_ids:
-                    name = line._get_gb_name(domain_id)
-                    if not self.env.context.get('print_mode') or not self.env.context.get('no_format'):
-                        name = name[:40] + '...' if name and len(name) >= 45 else name
-                    vals = {
-                        'id': domain_id,
-                        'name': name,
-                        'level': line.level,
-                        'parent_id': line.id,
-                        'columns': [{'name': l} for l in res[domain_id]],
-                        'caret_options': groupby == 'account_id' and 'account.account' or groupby,
-                        'financial_group_line_id': line.id,
-                    }
-                    if line.financial_report_id.name == 'Aged Receivable':
-                        vals['trust'] = self.env['res.partner'].browse([domain_id]).trust
-                    lines.append(vals)
-                if domain_ids and self.env.company.totals_below_sections:
-                    lines.append({
-                        'id': 'total_' + str(line.id),
-                        'name': _('Total') + ' ' + line.name,
-                        'level': line.level,
-                        'class': 'o_account_reports_domain_total',
-                        'parent_id': line.id,
-                        'columns': copy.deepcopy(lines[0]['columns']),
-                    })
-
-            for vals in lines:
-                if len(comparison_table) == 2 and not options.get('groups'):
-                    vals['columns'].append(line._build_cmp(vals['columns'][0]['name'], vals['columns'][1]['name']))
-                    for i in [0, 1]:
-                        vals['columns'][i] = line._format(vals['columns'][i])
-                else:
-                    vals['columns'] = [line._format(v) for v in vals['columns']]
-                if not line.formulas:
-                    vals['columns'] = [{'name': ''} for k in vals['columns']]
-
-            if len(lines) == 1:
-                new_lines = line.children_ids._get_lines(financial_report, currency_table, options, linesDicts)
-                if new_lines and line.formulas:
-                    if self.env.company.totals_below_sections:
-                        divided_lines = self._divide_line(lines[0])
-                        result = [divided_lines[0]] + new_lines + [divided_lines[-1]]
-                    else:
-                        result = [lines[0]] + new_lines
-                else:
-                    if not new_lines and not lines[0]['unfoldable'] and line.hide_if_empty:
-                        lines = []
-                    result = lines + new_lines
-            else:
-                result = lines
-            final_result_table += result
-
-        return final_result_table
-
-
-class FormulaLine(object):
-    def __init__(self, obj, currency_table, financial_report, type='balance', linesDict=None):
-        if linesDict is None:
-            linesDict = {}
-        fields = dict((fn, 0.0) for fn in ['debit', 'credit', 'balance'])
-        if type == 'balance':
-            fields = obj._get_balance(linesDict, currency_table, financial_report)[0]
-            linesDict[obj.code] = self
-        elif type in ['sum', 'sum_if_pos', 'sum_if_neg']:
-            if type == 'sum_if_neg':
-                obj = obj.with_context(sum_if_neg=True)
-            if type == 'sum_if_pos':
-                obj = obj.with_context(sum_if_pos=True)
-            if obj._name == 'account.financial.html.report.line':
-                fields = obj._get_sum(currency_table, financial_report)
-                self.amount_residual = fields['amount_residual']
-            elif obj._name == 'account.move.line':
-                self.amount_residual = 0.0
-                field_names = ['debit', 'credit', 'balance', 'amount_residual']
-                res = obj.env['account.financial.html.report.line']._compute_line(currency_table, financial_report)
-                for field in field_names:
-                    fields[field] = res[field]
-                self.amount_residual = fields['amount_residual']
-        elif type == 'not_computed':
-            for field in fields:
-                fields[field] = obj.get(field, 0)
-            self.amount_residual = obj.get('amount_residual', 0)
-        elif type == 'null':
-            self.amount_residual = 0.0
-        self.balance = fields['balance']
-        self.credit = fields['credit']
-        self.debit = fields['debit']
-
-
-class FormulaContext(dict):
-    def __init__(self, reportLineObj, linesDict, currency_table, financial_report, curObj=None, only_sum=False, *data):
-        self.reportLineObj = reportLineObj
-        self.curObj = curObj
-        self.linesDict = linesDict
-        self.currency_table = currency_table
-        self.only_sum = only_sum
-        self.financial_report = financial_report
-        return super(FormulaContext, self).__init__(data)
-
-    def __getitem__(self, item):
-        formula_items = ['sum', 'sum_if_pos', 'sum_if_neg']
-        if item in set(__builtins__.keys()) - set(formula_items):
-            return super(FormulaContext, self).__getitem__(item)
-
-        if self.only_sum and item not in formula_items:
-            return FormulaLine(self.curObj, self.currency_table, self.financial_report, type='null')
-        if self.get(item):
-            return super(FormulaContext, self).__getitem__(item)
-        if self.linesDict.get(item):
-            return self.linesDict[item]
-        if item == 'sum':
-            res = FormulaLine(self.curObj, self.currency_table, self.financial_report, type='sum')
-            self['sum'] = res
-            return res
-        if item == 'sum_if_pos':
-            res = FormulaLine(self.curObj, self.currency_table, self.financial_report, type='sum_if_pos')
-            self['sum_if_pos'] = res
-            return res
-        if item == 'sum_if_neg':
-            res = FormulaLine(self.curObj, self.currency_table, self.financial_report, type='sum_if_neg')
-            self['sum_if_neg'] = res
-            return res
-        if item == 'NDays':
-            d1 = fields.Date.from_string(self.curObj.env.context['date_from'])
-            d2 = fields.Date.from_string(self.curObj.env.context['date_to'])
-            res = (d2 - d1).days
-            self['NDays'] = res
-            return res
-        if item == 'count_rows':
-            return self.curObj._get_rows_count()
-        if item == 'from_context':
-            return self.curObj._get_value_from_context()
-        line_id = self.reportLineObj.search([('code', '=', item)], limit=1)
-        if line_id:
-            date_from, date_to, strict_range = line_id._compute_date_range()
-            res = FormulaLine(line_id.with_context(strict_range=strict_range, date_from=date_from, date_to=date_to), self.currency_table, self.financial_report, linesDict=self.linesDict)
-            self.linesDict[item] = res
-            return res
-        return super(FormulaContext, self).__getitem__(item)
-
-
-class IrModuleModule(models.Model):
-    _inherit = "ir.module.module"
-
-    def _update_translations(self, filter_lang=None):
-        """ Create missing translations after loading the one of account.financial.html.report
-
-        Use the translations of the account.financial.html.report to translate the linked
-        ir.actions.client and ir.ui.menu generated at the creation of the report
-        """
-        res = super(IrModuleModule, self)._update_translations(filter_lang=filter_lang)
-
-        # generated missing action translations for translated reports
-        self.env.cr.execute("""
-           INSERT INTO ir_translation (lang, type, name, res_id, src, value, module, state)
-           SELECT DISTINCT ON (l.code, a.id) l.code, 'model', 'ir.actions.client,name', a.id, t.src, t.value, t.module, t.state
-             FROM account_financial_html_report r
-             JOIN ir_act_client a ON (r.name = a.name)
-             JOIN ir_translation t ON (t.res_id = r.id AND t.name = 'account.financial.html.report,name')
-             JOIN res_lang l on  (l.code = t.lang)
-            WHERE NOT EXISTS (
-                  SELECT 1 FROM ir_translation tt
-                  WHERE (tt.name = 'ir.actions.client,name'
-                    AND tt.lang = l.code
-                    AND type='model'
-                    AND tt.res_id = a.id)
-                  )
-        """)
-
-        # generated missing menu translations for translated reports
-        self.env.cr.execute("""
-           INSERT INTO ir_translation (lang, type, name, res_id, src, value, module, state)
-           SELECT DISTINCT ON (l.code, m.id) l.code, 'model', 'ir.ui.menu,name', m.id, t.src, t.value, t.module, t.state
-             FROM account_financial_html_report r
-             JOIN ir_ui_menu m ON (r.name = m.name)
-             JOIN ir_translation t ON (t.res_id = r.id AND t.name = 'account.financial.html.report,name')
-             JOIN res_lang l on  (l.code = t.lang)
-            WHERE NOT EXISTS (
-                  SELECT 1 FROM ir_translation tt
-                  WHERE (tt.name = 'ir.ui.menu,name'
-                    AND tt.lang = l.code
-                    AND type='model'
-                    AND tt.res_id = m.id)
-                  )
-        """)
-
-        return res

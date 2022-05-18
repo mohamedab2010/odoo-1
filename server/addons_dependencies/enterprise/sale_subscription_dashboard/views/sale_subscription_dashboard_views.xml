@@ -4,7 +4,7 @@
         <field name="name">account.move.line.pivot</field>
         <field name="model">account.move.line</field>
         <field name="arch" type="xml">
-            <pivot string="Invoice Line Entries Analysis">
+            <pivot string="Invoice Line Entries Analysis" sample="1">
                 <field name="subscription_mrr" type="measure"/>
                 <field name="company_id" type="row"/>
                 <field name="subscription_id" type="row"/>
@@ -21,14 +21,13 @@
                 <field name="subscription_end_date" filter_domain="[('subscription_end_date','&gt;=', self)]"/>
                 <group expand="0" string="Group By">
                     <separator/>
-                    <filter string="OUT invoices" name="OUT" domain="[('move_id.type', 'in', ('out_invoice', 'out_refund'))]"/>
+                    <filter string="OUT invoices" name="OUT" domain="[('move_id.move_type', 'in', ('out_invoice', 'out_refund'))]"/>
                     <separator/>
                     <filter string="Active invoices" name="ACTIVE" domain="[('move_id.state', 'not in', ('draft', 'cancel'))]"/>
                 </group>
             </search>
         </field>
     </record>
-
 
     <record id="action_subscription_dashboard_report_main" model="ir.actions.client">
         <field name="name">Revenue KPIs</field>
@@ -52,6 +51,7 @@
         <field name="name">Invoice Line Entries Analysis</field>
         <field name="res_model">account.move.line</field>
         <field name="view_mode">pivot</field>
+        <field name="view_id" ref="move_line_entries_report_pivot"/>
         <field name="search_view_id" ref="move_line_entries_report_search"/>
         <field name="context">{'search_default_OUT':1, 'search_default_ACTIVE':1,}</field>
         <field name="help">From this view, have an analysis of your different invoice line entries.</field>

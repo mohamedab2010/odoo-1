@@ -8,42 +8,35 @@ odoo.define('account_consolidation.GridController', function (require) {
 
 
     return WebGridController.extend({
-        init: function (parent, action) {
-            this._super.apply(this, arguments);
-            self.add_column_label = _t('Add a column');
-            self.view_report_label = _t('Consolidated balance');
-        },
-        renderButtons: function ($node) {
-            this._super.apply(this, arguments);
-            if (!!this.context.default_period_id) {
-                this.view_report_btn = $('<button class="btn btn-secondary o_grid_button_view_report" type="button" role="button"/>');
-                this.view_report_btn.text(self.view_report_label);
-                this.view_report_btn.on('click', this._onViewReport.bind(this));
-                $node.prepend(this.view_report_btn);
-                this.add_col_btn = $('<button class="btn btn-primary o_grid_button_add" type="button" role="button"/>');
-                this.add_col_btn.text(self.add_column_label);
-                this.add_col_btn.on('click', this._onAddColumn.bind(this));
-                $node.prepend(this.add_col_btn);
+        renderButtons(...args) {
+            this._super(...args);
+            if (this.context.default_period_id) {
+                const $view_report_btn = $('<button class="btn btn-secondary o_grid_button_view_report" type="button" role="button"/>')
+                    .text(_t('Consolidated balance'))
+                    .on('click', this._onViewReport.bind(this));
+                this.$buttons.prepend($view_report_btn);
+                const $add_col_btn = $('<button class="btn btn-primary o_grid_button_add" type="button" role="button"/>')
+                    .text(_t('Add a column'))
+                    .on('click', this._onAddColumn.bind(this));
+                this.$buttons.prepend($add_col_btn);
             }
         },
-        _onAddColumn: function (e) {
-            event.preventDefault();
-            var self = this;
+        _onAddColumn(e) {
+            e.preventDefault();
             new dialogs.FormViewDialog(this, {
                 res_model: 'consolidation.journal',
                 res_id: false,
-                context: {'default_period_id': self.context.default_period_id},
-                title: self.add_column_label,
+                context: {'default_period_id': this.context.default_period_id},
+                title: _t('Add a column'),
                 disable_multiple_selection: true,
                 on_saved: this.reload.bind(this, {})
             }).open();
         },
-        _onViewReport: function (e) {
-            event.preventDefault();
-            var self = this;
+        _onViewReport(e) {
+            e.preventDefault();
             this.do_action('account_consolidation.trial_balance_report_action', {
                 additional_context:{
-                    default_period_id: self.context.default_period_id
+                    default_period_id: this.context.default_period_id
                 }
             });
         }

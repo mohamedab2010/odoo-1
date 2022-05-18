@@ -11,5 +11,5 @@ class ResCompany(models.Model):
         ('no_send', 'Do not digitalize bills'),
         ('manual_send', "Digitalize bills on demand only"),
         ('auto_send', 'Digitalize all bills automatically')], string="Send mode on invoices attachments",
-        required=True, default='manual_send')
-    extract_single_line_per_tax = fields.Boolean(string="OCR Single Invoice Line Per Tax", required=True, default=True)
+        required=False, default='auto_send')
+    extract_single_line_per_tax = fields.Boolean(string="OCR Single Invoice Line Per Tax", default=True)
