@@ -5,7 +5,7 @@ LABEL maintainer="Oakland  Tech <m.abdalla@odooerp.ae>"
 #USER root
 
 COPY image-scripts/entrypoint.sh /
-RUN chmod +x /entrypoint.sh
+#RUN chmod +x /entrypoint.sh
 
 RUN pip3 install redis
 
